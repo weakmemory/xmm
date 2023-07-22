@@ -338,4 +338,5 @@ name: Nix CI for bundle default
     - reopened
   push:
     branches:
+    - main
     - master
