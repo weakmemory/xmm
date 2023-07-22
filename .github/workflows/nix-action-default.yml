@@ -272,6 +272,7 @@ jobs:
   xmm:
     needs:
     - coq
+    - imm
     runs-on: ubuntu-latest
     steps:
     - name: Determine which commit to initially checkout
@@ -317,6 +318,10 @@ jobs:
       name: 'Building/fetching previous CI target: coq'
       run: NIXPKGS_ALLOW_UNFREE=1 nix-build --no-out-link --argstr bundle "default"
         --argstr job "coq"
+    - if: steps.stepCheck.outputs.status == 'built'
+      name: 'Building/fetching previous CI target: imm'
+      run: NIXPKGS_ALLOW_UNFREE=1 nix-build --no-out-link --argstr bundle "default"
+        --argstr job "imm"
     - if: steps.stepCheck.outputs.status == 'built'
       name: Building/fetching current CI target
       run: NIXPKGS_ALLOW_UNFREE=1 nix-build --no-out-link --argstr bundle "default"
