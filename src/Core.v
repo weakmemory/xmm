@@ -2,6 +2,31 @@ Require Import Lia Setoid Program.Basics.
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
 From imm Require Import AuxDef Events Execution Execution_eco imm_s_hb SetSize.
+From imm Require Import AuxRel.
+
+Import ListNotations.
+(* TODO: extract it from weakestmoToImm to a library and use here *)
+Definition opt_to_list {A} (a : option A) : list A :=
+  match a with
+  | None => []
+  | Some a => [a]
+  end.
+
+Definition upd_opt {A} {B} (f : A -> B) (a : option A) (b : option B) :=
+  match a, b with
+  | Some a, Some b => upd f a b
+  | _, _ => f
+  end.
+  
+Definition opt_same_ctor {A B} (a : option A) (b : option B) : Prop :=
+  match a, b with
+  | None  , None
+  | Some _, Some _ => True
+  | _, _ => False
+  end.
+
+Definition rmw_delta e e' : relation actid :=
+  eq e × eq_opt e'.
 
 Inductive cont_label :=
 | CInit (tid : thread_id)
@@ -89,5 +114,50 @@ Record consistency := {
     (* psc_ac : acyclic (psc G); *)
 }.
 End WCoreDefs.
+
+Section WCoreSteps.
+
+Definition basic_step_exec_
+           (lang : Language.t (list label))
+           (k k' : cont_label)
+           (st st' : Language.state lang)
+           (e  : actid)
+           (e' : option actid)
+           (G G' : execution) : Prop :=
+  ⟪ EDEF    :
+    match e, e' with
+    | InitEvent _, _ => False
+    | ThreadEvent t n, Some (ThreadEvent t' n') =>
+      t' = t /\ n' = 1 + n
+    | _, _ => True
+    end ⟫ /\
+  ⟪ THREADS : threads_set G' ≡₁ threads_set G ⟫ /\
+  ⟪ EVENTS  : acts_set G' ≡₁ acts_set G ∪₁ (eq e ∪₁ eq_opt e') ⟫ /\
+  ⟪ EVENT   : eq e ∪₁ eq_opt e' ⊆₁ set_compl (acts_set G) ⟫ /\
+  exists lbl lbl',
+    let lbls := (opt_to_list lbl') ++ [lbl] in
+    (* TODO: add restrictions on continuations *)
+    (* let thrd := ES.cont_thread S k in
+    ⟪ KCE    : k' =  CEvent (opt_ext e e')⟫ /\
+    ⟪ CONT   : K S (k, existT _ lang st) ⟫ /\
+    ⟪ CONT'  : ES.cont S' = upd (ES.cont S) k' (Some (existT _ lang st')) ⟫ /\ *)
+    ⟪ STEP   : (Language.step lang) lbls st st' ⟫ /\
+    ⟪ LABEL' : opt_same_ctor e' lbl' ⟫ /\
+    ⟪ LAB'   : lab G' = upd_opt (upd (lab G) e lbl ) e' lbl' ⟫ /\
+    ⟪ RF'     : rf G ⊆ rf G' ⟫ /\
+    ⟪ CO'     : co G ⊆ co G' ⟫ /\
+    ⟪ RMW'   : rmw G' ≡ rmw G ∪ rmw_delta e e' ⟫.
+
+Definition basic_step_
+           (lang : Language.t (list label))
+           (k k' : cont_label)
+           (st st' : (Language.state lang))
+           (e  : actid)
+           (e' : option actid)
+           (X X' : t) : Prop :=
+  ⟪ COMMITTED : committed X' ≡₁ committed X ⟫ /\
+  basic_step_exec_ lang k k' st st' e e' (G X) (G X').
+
+End WCoreSteps.
 
 End WCore.
