@@ -32,18 +32,22 @@
   default-bundle = "8.18";
 
   bundles."8.17" = {
+    push-branches = [ "master" "main" ];
     coqPackages.coq.override.version = "8.17";
     coqPackages.hahn.override.version = "master";
+    coqPackages.hahnExt.override.version = "0.9.4";
     coqPackages.sflib.override.version = "master";
     coqPackages.promising-lib.override.version = "master";
-    coqPackages.imm.override.version = "1.5.1";
+    coqPackages.imm.override.version = "1.6.1";
   };
   bundles."8.18" = {
+    push-branches = [ "**" ];
     coqPackages.coq.override.version = "8.18";
     coqPackages.hahn.override.version = "master";
+    coqPackages.hahnExt.override.version = "0.9.4";
     coqPackages.sflib.override.version = "master";
     coqPackages.promising-lib.override.version = "master";
-    coqPackages.imm.override.version = "1.5.1";
+    coqPackages.imm.override.version = "1.6.1";
   };
 
   cachix.coq = {};

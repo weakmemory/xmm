@@ -1,29 +1,10 @@
 Require Import Lia Setoid Program.Basics.
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
-From imm Require Import AuxDef Events Execution Execution_eco imm_s_hb SetSize.
-From imm Require Import AuxRel.
+From hahnExt Require Import HahnExt.
+From imm Require Import Events Execution Execution_eco imm_s_hb.
 
 Import ListNotations.
-(* TODO: extract it from weakestmoToImm to a library and use here *)
-Definition opt_to_list {A} (a : option A) : list A :=
-  match a with
-  | None => []
-  | Some a => [a]
-  end.
-
-Definition upd_opt {A} {B} (f : A -> B) (a : option A) (b : option B) :=
-  match a, b with
-  | Some a, Some b => upd f a b
-  | _, _ => f
-  end.
-  
-Definition opt_same_ctor {A B} (a : option A) (b : option B) : Prop :=
-  match a, b with
-  | None  , None
-  | Some _, Some _ => True
-  | _, _ => False
-  end.
 
 Definition rmw_delta e e' : relation actid :=
   eq e × eq_opt e'.
