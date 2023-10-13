@@ -1,5 +1,4 @@
 { lib, mkCoqDerivation, which, coq
-  , coq-lsp
   , imm
   , version ? null }:
 
@@ -12,7 +11,7 @@ with lib; mkCoqDerivation {
   defaultVersion = with versions; switch coq.coq-version [
   ] null;
 
-  propagatedBuildInputs = [coq-lsp imm];
+  propagatedBuildInputs = [imm];
 
   dontConfigure = true;
   extraInstallFlags = ["-f" "Makefile.coq"]; 
