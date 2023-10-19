@@ -1,5 +1,7 @@
 { lib, mkCoqDerivation, which, coq
+  , vscoq-language-server
   , imm
+  , coq-record-update
   , version ? null }:
 
 with lib; mkCoqDerivation {
@@ -11,7 +13,7 @@ with lib; mkCoqDerivation {
   defaultVersion = with versions; switch coq.coq-version [
   ] null;
 
-  propagatedBuildInputs = [imm];
+  propagatedBuildInputs = [vscoq-language-server imm coq-record-update];
 
   dontConfigure = true;
   extraInstallFlags = ["-f" "Makefile.coq"]; 

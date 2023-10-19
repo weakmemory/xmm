@@ -1,4 +1,7 @@
 Require Import Lia Setoid Program.Basics.
+
+From RecordUpdate Require Import RecordSet.
+
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
@@ -163,6 +166,7 @@ Definition commit_step_
   << NCIDS    : non_commit_ids X' ≡₁ non_commit_ids X \₁ eq cid >> /\
   << ECID     : commit_entries X' = upd (commit_entries X) cid (Some (Commit.InExec e)) >>
   .
+
 
 Definition reexec_step_
            (X''  : t)
