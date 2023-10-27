@@ -1,7 +1,5 @@
 Require Import Lia Setoid Program.Basics.
 
-From RecordUpdate Require Import RecordSet.
-
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
@@ -11,7 +9,20 @@ From imm Require Import imm_s_hb.
 From imm Require Import imm_bob.
 From imm Require Import SubExecution.
 
+From RecordUpdate Require Import RecordSet.
+(* Import RecordSetNotations. *)
+
 Import ListNotations.
+
+Set Implicit Arguments.
+
+(* TODO: move *)
+Definition edges_to {A} (e : A) := (fun _ _ => True) ⨾ ⦗eq e⦘.
+
+#[export] Instance eta_execution : Settable _ :=
+  settable! Build_execution
+    <acts_set; threads_set; lab; rmw; data; addr; ctrl; rmw_dep; rf; co>
+.
 
 Definition rmw_delta e e' : relation actid :=
   eq e × eq_opt e'.
@@ -58,6 +69,7 @@ Module WCore.
 
 Record t := {
     G : execution;
+    sc : relation actid;
     cont : cont_label ->
             option { lang : Language.t (list label) &
                             (Language.state lang) };
@@ -106,15 +118,15 @@ Definition committed_actid_set :=
 Notation "'E_C'" := (E ∩₁ committed_actid_set).
 
 Record consistency := {
-    hb_eco_irr     : irreflexive (hb ;; eco^?);
-    weak_atomicity : restr_rel (E_C ∩₁ dom_rel rmw) (rf⁻¹ ;; rf) ⊆ ∅₂;
+    hb_eco_irr     : irreflexive (hb ⨾ eco^?);
+    weak_atomicity : restr_rel (E_C ∩₁ dom_rel rmw) (rf⁻¹ ⨾ rf) ⊆ ∅₂;
     (* psc_ac : acyclic (psc G); *)
 }.
 End WCoreDefs.
 
 Section WCoreSteps.
 
-Definition basic_step_exec_
+Definition add_step_exec
            (lang : Language.t (list label))
            (k k' : cont_label)
            (st st' : Language.state lang)
@@ -145,48 +157,61 @@ Definition basic_step_exec_
     ⟪ CO'     : co G ⊆ co G' ⟫ /\
     ⟪ RMW'   : rmw G' ≡ rmw G ∪ rmw_delta e e' ⟫.
 
-Definition basic_step_
-           (lang : Language.t (list label))
-           (k k' : cont_label)
-           (st st' : (Language.state lang))
+Definition add_step_
            (e  : actid)
            (e' : option actid)
            (X X' : t) : Prop :=
-  ⟪ COMMITTED : committed X' ≡₁ committed X ⟫ /\
-  basic_step_exec_ lang k k' st st' e e' (G X) (G X').
+  exists lang k k' st st',
+    ⟪ COMMITTED : committed X' ≡₁ committed X ⟫ /\
+    add_step_exec lang k k' st st' e e' (G X) (G X').
 
-Definition commit_step_
+Definition add_step (X X' : t) : Prop := exists e e', add_step_ e e' X X'.
+
+Record commit_step
            (cid : Commit.id)
            (e  : actid)
            (X X' : t) : Prop :=
-  << SAMEEXEC : G X' = G X >> /\
-  << SAMEcont : cont X' = cont X >> /\
+  { ct_G : G X' = G X;
+    ct_K : cont X' = cont X;
 
-  << NEWCID   : non_commit_ids X cid >> /\
-  << NCIDS    : non_commit_ids X' ≡₁ non_commit_ids X \₁ eq cid >> /\
-  << ECID     : commit_entries X' = upd (commit_entries X) cid (Some (Commit.InExec e)) >>
-  .
+    ct_cid      : non_commit_ids X cid;
+    ct_noncid   : non_commit_ids X' ≡₁ non_commit_ids X \₁ (eq cid);
+    ct_centries : commit_entries X' = upd (commit_entries X) cid (Some (Commit.InExec e));
+  }.
 
+Record rf_change G'' sc'' (w r : actid) (X X' : t) :=
+  { rfc_r        : is_r (lab (G X)) r;
+    rfc_w        : is_w (lab (G X)) w;
+    rfc_same_loc : same_loc (lab (G X)) w r;
+    rfc_race      : (race (G X) ∪ hb (G X)) w r;
+    
+    rfc_sub      : sub_execution (G X) G'' (sc X) sc'';
+    rfc_acts     : acts_set G'' ≡₁ acts_set (G X) \₁ codom_rel (⦗eq r⦘⨾ (sb (G X) ∪ rf (G X))⁺);
+    rfc_G        :  G  X' =
+                       set lab (fun lab'' => lab'') (* TODO: fix new lab *)
+                       (set rf (fun rf'' => (rf'' \ (edges_to r)) ∪ singl_rel w r) G'');
+    rfc_sc       : sc X' = sc'';
+  }.
 
-Definition reexec_step_
-           (X''  : t)
-
+(* TODO: merge with rf_change? *)
+Definition drop_step
            (w    : actid)
            (r    : actid)
            (X X' : t) : Prop :=
   let E_C := committed_actid_set X in
-  << NOTCOM  : ~ E_C r >> /\
-  << HBCOM   : dom_rel (hb_alt (G X) ;; <|eq r|>) ⊆₁ E_C >> /\
-  << RR      : is_r (lab (G X)) r >> /\
-  << WW      : is_w (lab (G X)) w >> /\
-  << SAMELOC : same_loc (lab (G X)) w r >> /\
-  << RACE : (race (G X) ∪ hb (G X)) w r >> /\
+  ⟪ NOTCOM  : ~ E_C r ⟫ /\
+  ⟪ HBCOM   : dom_rel (hb_alt (G X) ⨾ ⦗eq r⦘) ⊆₁ E_C ⟫ /\
+  ⟪ RFC  : exists G'' sc'', rf_change G'' sc'' w r X X' ⟫
+  .
 
-  (* TODO: specify sc relation *)
-  << SUBEXEC : sub_execution (G X) (G X'') ∅₂ ∅₂ >> /\
-  << EX''    : acts_set (G X'') ≡₁ acts_set (G X) \₁ codom_rel (<|eq r|>;; (sb (G X) ∪ rf (G X))⁺) >> /\
-
-  False.
+Definition reexec_step
+           (w    : actid)
+           (r    : actid)
+           (X X' : t) : Prop :=
+  exists X'',
+    ⟪ DROP : drop_step w r X X'' ⟫ /\
+    ⟪ COMMITTED : committed X' ≡₁ committed X ⟫ /\
+    ⟪ RESTORE : add_step＊  X'' X' ⟫.
 
 End WCoreSteps.
 
