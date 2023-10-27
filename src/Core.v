@@ -171,19 +171,22 @@ Record commit_step
            (cid : Commit.id)
            (e  : actid)
            (X X' : t) : Prop :=
-  { ct_G : G X' = G X;
-    ct_K : cont X' = cont X;
+  { cmt_G : G X' = G X;
+    cmt_K : cont X' = cont X;
 
-    ct_cid      : non_commit_ids X cid;
-    ct_noncid   : non_commit_ids X' ≡₁ non_commit_ids X \₁ (eq cid);
-    ct_centries : commit_entries X' = upd (commit_entries X) cid (Some (Commit.InExec e));
+    cmt_cid      : non_commit_ids X cid;
+    cmt_noncid   : non_commit_ids X' ≡₁ non_commit_ids X \₁ (eq cid);
+    cmt_centries : commit_entries X' = upd (commit_entries X) cid (Some (Commit.InExec e));
   }.
 
-Record rf_change G'' sc'' (w r : actid) (X X' : t) :=
+Record rf_change_step_ G'' sc'' (w r : actid) (X X' : t) :=
   { rfc_r        : is_r (lab (G X)) r;
     rfc_w        : is_w (lab (G X)) w;
     rfc_same_loc : same_loc (lab (G X)) w r;
     rfc_race      : (race (G X) ∪ hb (G X)) w r;
+
+    rfc_ncom  : ~ committed_actid_set X r;
+    rfc_hbcom : dom_rel (hb_alt (G X) ⨾ ⦗eq r⦘) ⊆₁ committed_actid_set X;
     
     rfc_sub      : sub_execution (G X) G'' (sc X) sc'';
     rfc_acts     : acts_set G'' ≡₁ acts_set (G X) \₁ codom_rel (⦗eq r⦘⨾ (sb (G X) ∪ rf (G X))⁺);
@@ -192,24 +195,20 @@ Record rf_change G'' sc'' (w r : actid) (X X' : t) :=
                        (set rf (fun rf'' => (rf'' \ (edges_to r)) ∪ singl_rel w r) G'');
     rfc_sc       : sc X' = sc'';
   }.
+(* TODO: add lemmas on *)
 
-(* TODO: merge with rf_change? *)
-Definition drop_step
+Definition rf_change_step
            (w    : actid)
            (r    : actid)
            (X X' : t) : Prop :=
-  let E_C := committed_actid_set X in
-  ⟪ NOTCOM  : ~ E_C r ⟫ /\
-  ⟪ HBCOM   : dom_rel (hb_alt (G X) ⨾ ⦗eq r⦘) ⊆₁ E_C ⟫ /\
-  ⟪ RFC  : exists G'' sc'', rf_change G'' sc'' w r X X' ⟫
-  .
+  exists G'' sc'', rf_change_step_ G'' sc'' w r X X'.
 
 Definition reexec_step
            (w    : actid)
            (r    : actid)
            (X X' : t) : Prop :=
   exists X'',
-    ⟪ DROP : drop_step w r X X'' ⟫ /\
+    ⟪ DROP : rf_change_step w r X X'' ⟫ /\
     ⟪ COMMITTED : committed X' ≡₁ committed X ⟫ /\
     ⟪ RESTORE : add_step＊  X'' X' ⟫.
 
