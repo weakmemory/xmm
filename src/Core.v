@@ -92,14 +92,18 @@ Notation "'rmw'" := (rmw G).
 Notation "'W'"   := (is_w lab).
 Notation "'commit_entries'" := (commit_entries X).
 Notation "'non_commit_ids'" := (non_commit_ids X).
+Notation "'threads_set'" := (threads_set G).
 
 Definition committed : Commit.id -> Prop :=
     fun cid => is_some (commit_entries cid).
+
+Print tid.
 
 Record wf := {
     wf_G : Wf G;
     cont_defined : forall e (NINIT : ~ is_init e) (IN : E e) (NRMW : ~ dom_rel rmw e),
         is_some (cont X (CEvent e));
+    cont_init : forall tid , (threads_set tid) -> is_some (cont X (CInit tid));
     (* TODO: add property stating existence of continuation for some threads *)
 
     non_commit_ids_inf : set_size non_commit_ids = NOinfinity;
@@ -132,7 +136,10 @@ Definition add_step_exec
            (st st' : Language.state lang)
            (e  : actid)
            (e' : option actid)
-           (G G' : execution) : Prop :=
+           (X X' : t)
+           : Prop :=
+           let G' := G X' in
+           let G := G X in
   ⟪ EDEF    :
     match e, e' with
     | InitEvent _, _ => False
@@ -146,10 +153,10 @@ Definition add_step_exec
   exists lbl lbl',
     let lbls := (opt_to_list lbl') ++ [lbl] in
     (* TODO: add restrictions on continuations *)
-    (* let thrd := ES.cont_thread S k in
-    ⟪ KCE    : k' =  CEvent (opt_ext e e')⟫ /\
-    ⟪ CONT   : K S (k, existT _ lang st) ⟫ /\
-    ⟪ CONT'  : ES.cont S' = upd (ES.cont S) k' (Some (existT _ lang st')) ⟫ /\ *)
+    (* let thrd := ES.cont_thread S k in *)
+    ⟪ KCE    : k' =  CEvent (opt_ext e e') ⟫ /\
+    (* ⟪ CONT   : K S (k, existT _ lang st) ⟫ /\ *)
+    ⟪ CONT'  : cont X' = upd (cont X) k' (Some (existT _ lang st')) ⟫ /\ 
     ⟪ STEP   : (Language.step lang) lbls st st' ⟫ /\
     ⟪ LABEL' : opt_same_ctor e' lbl' ⟫ /\
     ⟪ LAB'   : lab G' = upd_opt (upd (lab G) e lbl ) e' lbl' ⟫ /\
