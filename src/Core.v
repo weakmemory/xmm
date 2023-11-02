@@ -101,7 +101,7 @@ Record wf := {
     wf_G : Wf G;
     cont_defined : forall e (NINIT : ~ is_init e) (IN : E e) (NRMW : ~ dom_rel rmw e),
         is_some (cont X (CEvent e));
-    cont_init : forall tid , (threads_set tid) -> is_some (cont X (CInit tid));
+    cont_init : forall tid (IN : threads_set tid), is_some (cont X (CInit tid));
     (* TODO: add property stating existence of continuation for some threads *)
 
     non_commit_ids_inf : set_size non_commit_ids = NOinfinity;
