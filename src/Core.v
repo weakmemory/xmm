@@ -153,7 +153,7 @@ Definition add_step_exec
     (* TODO: add restrictions on continuations *)
     (* let thrd := ES.cont_thread S k in *)
     ⟪ KCE    : k' =  CEvent (opt_ext e e') ⟫ /\
-    (* ⟪ CONT   : K S (k, existT _ lang st) ⟫ /\ *)
+    ⟪ CONT   : cont X k = Some (existT _ lang st) ⟫ /\
     ⟪ CONT'  : cont X' = upd (cont X) k' (Some (existT _ lang st')) ⟫ /\
     ⟪ STEP   : (Language.step lang) lbls st st' ⟫ /\
     ⟪ LABEL' : opt_same_ctor e' lbl' ⟫ /\
