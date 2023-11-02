@@ -97,8 +97,6 @@ Notation "'threads_set'" := (threads_set G).
 Definition committed : Commit.id -> Prop :=
     fun cid => is_some (commit_entries cid).
 
-Print tid.
-
 Record wf := {
     wf_G : Wf G;
     cont_defined : forall e (NINIT : ~ is_init e) (IN : E e) (NRMW : ~ dom_rel rmw e),
@@ -116,7 +114,7 @@ Record wf := {
 Definition committed_actid_set :=
     (fun e => exists cid,
                 match commit_entries cid with
-                | Some (Commit.InExec e') => e = e' 
+                | Some (Commit.InExec e') => e = e'
                 | _ => False
                 end).
 Notation "'E_C'" := (E ∩₁ committed_actid_set).
@@ -156,7 +154,7 @@ Definition add_step_exec
     (* let thrd := ES.cont_thread S k in *)
     ⟪ KCE    : k' =  CEvent (opt_ext e e') ⟫ /\
     (* ⟪ CONT   : K S (k, existT _ lang st) ⟫ /\ *)
-    ⟪ CONT'  : cont X' = upd (cont X) k' (Some (existT _ lang st')) ⟫ /\ 
+    ⟪ CONT'  : cont X' = upd (cont X) k' (Some (existT _ lang st')) ⟫ /\
     ⟪ STEP   : (Language.step lang) lbls st st' ⟫ /\
     ⟪ LABEL' : opt_same_ctor e' lbl' ⟫ /\
     ⟪ LAB'   : lab G' = upd_opt (upd (lab G) e lbl ) e' lbl' ⟫ /\
@@ -194,7 +192,7 @@ Record rf_change_step_ G'' sc'' (w r : actid) (X X' : t) :=
 
     rfc_ncom  : ~ committed_actid_set X r;
     rfc_hbcom : dom_rel (hb_alt (G X) ⨾ ⦗eq r⦘) ⊆₁ committed_actid_set X;
-    
+
     rfc_sub      : sub_execution (G X) G'' (sc X) sc'';
     rfc_acts     : acts_set G'' ≡₁ acts_set (G X) \₁ codom_rel (⦗eq r⦘⨾ (sb (G X) ∪ rf (G X))⁺);
     rfc_G        :  G  X' =
