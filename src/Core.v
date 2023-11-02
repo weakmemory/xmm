@@ -134,10 +134,9 @@ Definition add_step_exec
            (st st' : Language.state lang)
            (e  : actid)
            (e' : option actid)
-           (X X' : t)
-           : Prop :=
-           let G' := G X' in
-           let G := G X in
+           (X X' : t) : Prop :=
+  let G' := G X' in
+  let G := G X in
   ⟪ EDEF    :
     match e, e' with
     | InitEvent _, _ => False
