@@ -167,7 +167,7 @@ Definition add_step_
            (X X' : t) : Prop :=
   exists lang k k' st st',
     ⟪ COMMITTED : committed X' ≡₁ committed X ⟫ /\
-    add_step_exec lang k k' st st' e e' (G X) (G X').
+    add_step_exec lang k k' st st' e e' X X'.
 
 Definition add_step (X X' : t) : Prop := exists e e', add_step_ e e' X X'.
 
