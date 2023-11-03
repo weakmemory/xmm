@@ -252,6 +252,19 @@ Definition reexec_step
     ⟪ COMMITTED : committed X' ≡₁ committed X ⟫ /\
     ⟪ RESTORE : add_step＊  X'' X' ⟫.
 
+Lemma reexec_step_wf w r (X X' : t)
+  (WF : wf X) (STEP : reexec_step w r X X') : wf X'.
+Proof using.
+  cdes STEP.
+  assert (WF'' : wf X'').
+  { (* TODO: make a lemma that rf_change_step preserves wf *)
+    admit. }
+  (* clos_refl_trans
+     clos_refl_trans_1n
+     clos_refl_trans_n1 *)
+  admit.
+Admitted.
+
 End WCoreSteps.
 
 End WCore.
