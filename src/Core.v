@@ -24,8 +24,11 @@ Definition edges_to {A} (e : A) := (fun _ _ => True) ⨾ ⦗eq e⦘.
     <acts_set; threads_set; lab; rmw; data; addr; ctrl; rmw_dep; rf; co>
 .
 
+(* TODO: move *)
 Definition rmw_delta e e' : relation actid :=
   eq e × eq_opt e'.
+#[global]
+Hint Unfold rmw_delta : unfolderDb.
 
 Inductive cont_label :=
 | CInit (tid : thread_id)
@@ -151,15 +154,15 @@ Definition add_step_exec
   ⟪ EVENT   : eq e ∪₁ eq_opt e' ⊆₁ set_compl (acts_set G) ⟫ /\
   exists lbl lbl',
     let lbls := (opt_to_list lbl') ++ [lbl] in
-    ⟪ KCE    : k' =  CEvent (opt_ext e e') ⟫ /\
-    ⟪ CONT   : cont X k = Some (existT _ lang st) ⟫ /\
-    ⟪ CONT'  : cont X' = upd (cont X) k' (Some (existT _ lang st')) ⟫ /\
-    ⟪ STEP   : (Language.step lang) lbls st st' ⟫ /\
-    ⟪ LABEL' : opt_same_ctor e' lbl' ⟫ /\
-    ⟪ LAB'   : lab G' = upd_opt (upd (lab G) e lbl ) e' lbl' ⟫ /\
+    ⟪ KCE     : k' =  CEvent (opt_ext e e') ⟫ /\
+    ⟪ CONT    : cont X k = Some (existT _ lang st) ⟫ /\
+    ⟪ CONT'   : cont X' = upd (cont X) k' (Some (existT _ lang st')) ⟫ /\
+    ⟪ STEP    : Language.step lang lbls st st' ⟫ /\
+    ⟪ LABEL'  : opt_same_ctor e' lbl' ⟫ /\
+    ⟪ LAB'    : lab G' = upd_opt (upd (lab G) e lbl ) e' lbl' ⟫ /\
     ⟪ RF'     : rf G ⊆ rf G' ⟫ /\
     ⟪ CO'     : co G ⊆ co G' ⟫ /\
-    ⟪ RMW'   : rmw G' ≡ rmw G ∪ rmw_delta e e' ⟫.
+    ⟪ RMW'    : rmw G' ≡ rmw G ∪ rmw_delta e e' ⟫.
 
 (* NOTE: merge this definition with add_step_exec? Or move parts of add_step_exec here? *)
 (* NOTE: should we add a requirement that `non_commit_ids` remain the same? *)
@@ -168,64 +171,41 @@ Definition add_step_
            (e' : option actid)
            (X X' : t) : Prop :=
   exists lang k k' st st',
-    ⟪ COMMITTED : committed X' ≡₁ committed X ⟫ /\
+    ⟪ NCOMMITIDS : non_commit_ids X' ≡₁ non_commit_ids X ⟫ /\
+    ⟪ COMMITENTR : commit_entries X' =  commit_entries X ⟫ /\ 
     add_step_exec lang k k' st st' e e' X X'.
 
 Definition add_step (X X' : t) : Prop := exists e e', add_step_ e e' X X'.
 
-Lemma add_step_same_uncommitted (X X' : t) (STEP : add_step X X') : non_commit_ids X' ≡₁ non_commit_ids X.
+Lemma add_step_same_committed (X X' : t) (STEP : add_step X X') : committed X' ≡₁ committed X.
 Proof using.
-Admitted.
+  do 2 (red in STEP; desf).
+  unfold committed. now rewrite COMMITENTR.
+Qed.
 
 Lemma add_step_wf (X X' : t) (WF : wf X) (STEP : add_step X X') : wf X'.
 Proof using.
   unfold add_step, add_step_, add_step_exec in *.
   desf; constructor; auto; intros.
-  { rewrite CONT'.
-    (* TODO turn into a lemma like set_subset_eq *)
-    apply set_subset_eq with (P := set_compl _) (a := e) in NRMW.
-    rewrite RMW', dom_union, set_compl_union in NRMW.
-    apply EVENTS in IN; unfolder in IN; desf.
-    3: now rewrite upds.
-    { rewrite updo. apply WF; auto.
-      { apply set_subset_eq with (P := set_compl _) (a := e); auto.
-        now apply NRMW. }
-      injection as Heq.
-      apply EVENT with (x := e); simpl; unfolder; auto. }
-    exfalso.
-    apply NRMW with (x := ThreadEvent thread index); auto.
-    unfold rmw_delta; unfolder; eauto. }
-  { rewrite CONT'.
-    rewrite updo by congruence.
-    apply WF. now apply THREADS. }
-  { (*
-    committed sets are the same.
-    therefore we probably should be able to prove that the
-    non_commit_ids set is the same
-    *)
-    admit. }
-  { admit. }
-  { admit. }
-  { rewrite CONT'.
-    (* TODO turn into a lemma like set_subset_eq *)
-    apply set_subset_eq with (P := set_compl _) (a := e) in NRMW.
-    rewrite RMW', dom_union, set_compl_union in NRMW.
-    apply EVENTS in IN; unfolder in IN; desf.
-    { rewrite updo. apply WF; auto.
-      { apply set_subset_eq with (P := set_compl _) (a := e); auto.
-        now apply NRMW. }
-      injection as Heq.
-      apply EVENT with (x := e); simpl; unfolder; auto. }
-    { simpl. now rewrite upds. }
-  }
-  { rewrite CONT'.
-    rewrite updo by congruence.
-    apply WF. now apply THREADS. }
-  { admit. }
-  { admit. }
-  admit.
-Admitted.
+  all: rewrite ?CONT', ?COMMITENTR, ?NCOMMITIDS; auto; try apply WF.
+  all: try now apply NCOMMITIDS.
+  all: try now apply NCOMMITIDS; rewrite COMMITENTR in CIN;
+               apply WF.
+  all: try now rewrite updo by congruence;
+               apply WF; apply THREADS.
 
+  all: apply set_subset_eq with (P := set_compl _) (a := e) in NRMW.
+  all: rewrite RMW', dom_union, set_compl_union in NRMW.
+  all: apply EVENTS in IN; unfolder in IN; desf; ins.
+  all: try now rewrite upds.
+  2: { exfalso. eapply NRMW; eauto.
+       clear. basic_solver. }
+  all: rewrite updo.
+  all: try now apply WF; auto; apply NRMW.
+  all: injection as Heq; subst.
+  all: eapply EVENT; eauto.
+  all: clear; basic_solver.
+Qed.
 
 Record commit_step
            (cid : Commit.id)
