@@ -151,8 +151,6 @@ Definition add_step_exec
   ⟪ EVENT   : eq e ∪₁ eq_opt e' ⊆₁ set_compl (acts_set G) ⟫ /\
   exists lbl lbl',
     let lbls := (opt_to_list lbl') ++ [lbl] in
-    (* TODO: add restrictions on continuations *)
-    (* let thrd := ES.cont_thread S k in *)
     ⟪ KCE    : k' =  CEvent (opt_ext e e') ⟫ /\
     ⟪ CONT   : cont X k = Some (existT _ lang st) ⟫ /\
     ⟪ CONT'  : cont X' = upd (cont X) k' (Some (existT _ lang st')) ⟫ /\
@@ -176,11 +174,11 @@ Definition add_step_
 Definition add_step (X X' : t) : Prop := exists e e', add_step_ e e' X X'.
 
 Lemma add_step_same_uncommitted (X X' : t) (STEP : add_step X X') : non_commit_ids X' ≡₁ non_commit_ids X.
-Proof.
+Proof using.
 Admitted.
 
 Lemma add_step_wf (X X' : t) (WF : wf X) (STEP : add_step X X') : wf X'.
-Proof.
+Proof using.
   unfold add_step, add_step_, add_step_exec in *.
   desf; constructor; auto; intros.
   { rewrite CONT'.
@@ -188,15 +186,15 @@ Proof.
     apply set_subset_eq with (P := set_compl _) (a := e) in NRMW.
     rewrite RMW', dom_union, set_compl_union in NRMW.
     apply EVENTS in IN; unfolder in IN; desf.
+    3: now rewrite upds.
     { rewrite updo. apply WF; auto.
       { apply set_subset_eq with (P := set_compl _) (a := e); auto.
         now apply NRMW. }
       injection as Heq.
       apply EVENT with (x := e); simpl; unfolder; auto. }
-    { exfalso.
-      apply NRMW with (x := ThreadEvent thread index); auto.
-      unfold rmw_delta; unfolder; eauto. }
-    now rewrite upds. }
+    exfalso.
+    apply NRMW with (x := ThreadEvent thread index); auto.
+    unfold rmw_delta; unfolder; eauto. }
   { rewrite CONT'.
     rewrite updo by congruence.
     apply WF. now apply THREADS. }
@@ -225,8 +223,8 @@ Proof.
     apply WF. now apply THREADS. }
   { admit. }
   { admit. }
-  { admit. }
-Qed.
+  admit.
+Admitted.
 
 
 Record commit_step
