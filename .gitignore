@@ -10,3 +10,4 @@ _CoqProject
 *.glob
 .*.aux
 *.vio
+*_cp_aux.v
