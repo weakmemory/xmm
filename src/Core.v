@@ -205,6 +205,7 @@ Proof using.
   all: clear; basic_solver.
 Qed.
 
+(* TODO make into definition? *)
 Record commit_step
            (cid : Commit.id)
            (e  : actid)
@@ -216,6 +217,30 @@ Record commit_step
     cmt_noncid   : non_commit_ids X' ≡₁ non_commit_ids X \₁ (eq cid);
     cmt_centries : commit_entries X' = upd (commit_entries X) cid (Some (Commit.InExec e));
   }.
+
+Lemma commit_wf (X X' : t) (WF: wf X)
+                (cid : Commit.id) (e : actid)
+                (STEP: commit_step cid e X X'): wf X'.
+Proof using.
+  desf; constructor; intros.
+  all: rewrite ?(cmt_K STEP).
+  all: try (apply WF; erewrite <- ?cmt_G by eassumption; auto).
+
+  { rewrite (cmt_G STEP).
+    now apply WF. }
+  { rewrite (cmt_noncid STEP).
+    edestruct (set_size _) eqn:HEQ'; auto.
+    eenough (HEQSZ : set_size _ = NOnum _) by now rewrite (non_commit_ids_inf WF) in HEQSZ.
+    erewrite set_size_equiv by (apply set_union_minus with (s' := eq cid); destruct STEP; basic_solver).
+    apply set_size_union_disjoint; apply set_size_single || basic_solver. }
+  { apply (cmt_noncid STEP) in NCI.
+    rewrite (cmt_centries STEP), updo by (symmetry; now apply NCI).
+    apply WF; now apply NCI. }
+  assert (AA : cid0 <> cid) by (intro F; now rewrite F, (cmt_centries STEP), upds in CIN).
+  rewrite (cmt_centries STEP), updo in CIN by assumption.
+  apply WF in CIN. apply (cmt_noncid STEP). basic_solver.
+Qed.
+
 
 Record rf_change_step_ G'' sc'' (w r : actid) (X X' : t) :=
   { rfc_r        : is_r (lab (G X)) r;
