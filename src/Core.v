@@ -137,10 +137,9 @@ Definition add_step_exec
            (st st' : Language.state lang)
            (e  : actid)
            (e' : option actid)
-           (X X' : t) : Prop :=
-  let G' := G X' in
-  let G := G X in
+           (G G' : execution) : Prop :=
   ⟪ WF_G' : Wf G' ⟫ /\
+  ⟪ EIMM : codom_rel (⦗eq (opt_ext e e')⦘ ⨾ sb G) ≡₁ ∅⟫ /\
   ⟪ EDEF    :
     match e, e' with
     | InitEvent _, _ => False
@@ -155,8 +154,6 @@ Definition add_step_exec
   exists lbl lbl',
     let lbls := (opt_to_list lbl') ++ [lbl] in
     ⟪ KCE     : k' =  CEvent (opt_ext e e') ⟫ /\
-    ⟪ CONT    : cont X k = Some (existT _ lang st) ⟫ /\
-    ⟪ CONT'   : cont X' = upd (cont X) k' (Some (existT _ lang st')) ⟫ /\
     ⟪ STEP    : Language.step lang lbls st st' ⟫ /\
     ⟪ LABEL'  : opt_same_ctor e' lbl' ⟫ /\
     ⟪ LAB'    : lab G' = upd_opt (upd (lab G) e lbl ) e' lbl' ⟫ /\
@@ -165,15 +162,16 @@ Definition add_step_exec
     ⟪ RMW'    : rmw G' ≡ rmw G ∪ rmw_delta e e' ⟫.
 
 (* NOTE: merge this definition with add_step_exec? Or move parts of add_step_exec here? *)
-(* NOTE: should we add a requirement that `non_commit_ids` remain the same? *)
 Definition add_step_
            (e  : actid)
            (e' : option actid)
            (X X' : t) : Prop :=
   exists lang k k' st st',
+    ⟪ CONT    : cont X k = Some (existT _ lang st) ⟫ /\
+    ⟪ CONT'   : cont X' = upd (cont X) k' (Some (existT _ lang st')) ⟫ /\
     ⟪ NCOMMITIDS : non_commit_ids X' ≡₁ non_commit_ids X ⟫ /\
-    ⟪ COMMITENTR : commit_entries X' =  commit_entries X ⟫ /\ 
-    add_step_exec lang k k' st st' e e' X X'.
+    ⟪ COMMITENTR : commit_entries X' =  commit_entries X ⟫ /\
+    add_step_exec lang k k' st st' e e' (G X) (G X').
 
 Definition add_step (X X' : t) : Prop := exists e e', add_step_ e e' X X'.
 
