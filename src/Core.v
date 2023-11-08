@@ -289,6 +289,30 @@ Record rf_change_step_ G'' sc'' (w r : actid) (X X' : t) :=
   }.
 (* TODO: add lemmas on *)
 
+(* TODO: how to update function with a set  *)
+
+Lemma rf_change_step_disjoint (G : execution) (r : actid) (WF : Wf G) :
+  set_disjoint ((fun a => is_init a) ∩₁ acts_set G) (codom_rel (⦗eq r⦘⨾ (sb G ∪ rf G)⁺)).
+Proof using.
+    unfolder. intros e (INIT & _) (e' & EQ & REL). subst e'.
+    induction REL as [r e REL | r e e' REL IHREL REL' IHREL']; auto.
+    destruct REL as [REL|REL].
+    all: apply no_sb_to_init in REL || apply no_rf_to_init in REL.
+    all: now unfolder in REL.
+Qed.
+
+Lemma rf_change_step_intermediate_wf (G'' : execution) sc'' (w r : actid) (X X' : t)
+  (STEP : rf_change_step_ G'' sc'' w r X X') (WF : Wf (G X)) : Wf G''.
+Proof using.
+  eapply sub_WF; eauto.
+  { rewrite (rfc_acts STEP).
+    erewrite <- (set_minus_disjoint ((fun a : actid => is_init a) ∩₁ acts_set (G X))).
+    { apply set_subset_minus; basic_solver. }
+    eapply set_disjoint_more; try apply rf_change_step_disjoint; eauto.
+    basic_solver. }
+  apply (rfc_sub STEP).
+Qed.
+
 Definition rf_change_step
            (w    : actid)
            (r    : actid)
