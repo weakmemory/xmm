@@ -306,9 +306,10 @@ Lemma rf_change_step_intermediate_wf (G'' : execution) sc'' (w r : actid) (X X' 
 Proof using.
   eapply sub_WF; eauto.
   { rewrite (rfc_acts STEP).
-    erewrite <- (set_minus_disjoint ((fun a : actid => is_init a) ∩₁ acts_set (G X))).
+    erewrite <- (set_minus_disjoint (_ ∩₁ _)).
     { apply set_subset_minus; basic_solver. }
-    eapply set_disjoint_more; try apply rf_change_step_disjoint; eauto.
+    eapply set_disjoint_more.
+    all: try apply rf_change_step_disjoint; eauto.
     basic_solver. }
   apply (rfc_sub STEP).
 Qed.
