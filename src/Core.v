@@ -16,6 +16,37 @@ Import ListNotations.
 
 Set Implicit Arguments.
 
+(* TODO: move to HahnExt/SetSize.v *)
+Lemma set_size_inf_minus_finite {A} (s s' : A -> Prop)
+    (INF : set_size s = NOinfinity)
+    (FIN : set_finite s') :
+  set_size (s \₁ s') = NOinfinity.
+Proof using.
+  unfold set_size in *. desf.
+  exfalso.
+  destruct s0 as [l HH].
+  destruct FIN as [l' AA].
+  apply n. exists (l ++ l'). ins.
+  destruct (classic (s' x)) as [IN'|NIN].
+  { apply in_app_r. now apply AA. }
+  apply in_app_l. apply HH.
+  red. auto.
+Qed.
+
+(* TODO: move to HahnExt/SetSize.v *)
+Lemma set_finite_singl {A} (a : A) : set_finite (eq a).
+Proof using. exists [a]. ins. auto. Qed.
+
+(* TODO: move to HahnExt/SetSize.v *)
+Lemma set_size_inf_minus_singl {A} (s : A -> Prop) (a : A)
+    (INF : set_size s = NOinfinity) :
+  set_size (s \₁ eq a) = NOinfinity.
+Proof using.
+  apply set_size_inf_minus_finite; auto.
+  apply set_finite_singl.
+Qed.
+
+
 (* TODO: move *)
 Definition edges_to {A} (e : A) := (fun _ _ => True) ⨾ ⦗eq e⦘.
 
@@ -24,8 +55,11 @@ Definition edges_to {A} (e : A) := (fun _ _ => True) ⨾ ⦗eq e⦘.
     <acts_set; threads_set; lab; rmw; data; addr; ctrl; rmw_dep; rf; co>
 .
 
+(* TODO: move *)
 Definition rmw_delta e e' : relation actid :=
   eq e × eq_opt e'.
+#[global]
+Hint Unfold rmw_delta : unfolderDb.
 
 Inductive cont_label :=
 | CInit (tid : thread_id)
@@ -92,6 +126,7 @@ Notation "'rmw'" := (rmw G).
 Notation "'W'"   := (is_w lab).
 Notation "'commit_entries'" := (commit_entries X).
 Notation "'non_commit_ids'" := (non_commit_ids X).
+Notation "'threads_set'" := (threads_set G).
 
 Definition committed : Commit.id -> Prop :=
     fun cid => is_some (commit_entries cid).
@@ -99,7 +134,8 @@ Definition committed : Commit.id -> Prop :=
 Record wf := {
     wf_G : Wf G;
     cont_defined : forall e (NINIT : ~ is_init e) (IN : E e) (NRMW : ~ dom_rel rmw e),
-        is_some (cont X (CEvent e));
+    is_some (cont X (CEvent e));
+    cont_init : forall tid (IN : threads_set tid), is_some (cont X (CInit tid));
     (* TODO: add property stating existence of continuation for some threads *)
 
     non_commit_ids_inf : set_size non_commit_ids = NOinfinity;
@@ -112,7 +148,7 @@ Record wf := {
 Definition committed_actid_set :=
     (fun e => exists cid,
                 match commit_entries cid with
-                | Some (Commit.InExec e') => e = e' 
+                | Some (Commit.InExec e') => e = e'
                 | _ => False
                 end).
 Notation "'E_C'" := (E ∩₁ committed_actid_set).
@@ -133,9 +169,12 @@ Definition add_step_exec
            (e  : actid)
            (e' : option actid)
            (G G' : execution) : Prop :=
+  ⟪ WF_G' : Wf G' ⟫ /\
+  ⟪ EIMM : ⦗eq (opt_ext e e')⦘ ⨾ sb G' ≡ ∅₂⟫ /\
   ⟪ EDEF    :
     match e, e' with
     | InitEvent _, _ => False
+    | _, Some (InitEvent _) => False
     | ThreadEvent t n, Some (ThreadEvent t' n') =>
       t' = t /\ n' = 1 + n
     | _, _ => True
@@ -145,28 +184,59 @@ Definition add_step_exec
   ⟪ EVENT   : eq e ∪₁ eq_opt e' ⊆₁ set_compl (acts_set G) ⟫ /\
   exists lbl lbl',
     let lbls := (opt_to_list lbl') ++ [lbl] in
-    (* TODO: add restrictions on continuations *)
-    (* let thrd := ES.cont_thread S k in
-    ⟪ KCE    : k' =  CEvent (opt_ext e e')⟫ /\
-    ⟪ CONT   : K S (k, existT _ lang st) ⟫ /\
-    ⟪ CONT'  : ES.cont S' = upd (ES.cont S) k' (Some (existT _ lang st')) ⟫ /\ *)
-    ⟪ STEP   : (Language.step lang) lbls st st' ⟫ /\
-    ⟪ LABEL' : opt_same_ctor e' lbl' ⟫ /\
-    ⟪ LAB'   : lab G' = upd_opt (upd (lab G) e lbl ) e' lbl' ⟫ /\
+    ⟪ KCE     : k' =  CEvent (opt_ext e e') ⟫ /\
+    ⟪ STEP    : Language.step lang lbls st st' ⟫ /\
+    ⟪ LABEL'  : opt_same_ctor e' lbl' ⟫ /\
+    ⟪ LAB'    : lab G' = upd_opt (upd (lab G) e lbl ) e' lbl' ⟫ /\
     ⟪ RF'     : rf G ⊆ rf G' ⟫ /\
     ⟪ CO'     : co G ⊆ co G' ⟫ /\
-    ⟪ RMW'   : rmw G' ≡ rmw G ∪ rmw_delta e e' ⟫.
+    ⟪ RMW'    : rmw G' ≡ rmw G ∪ rmw_delta e e' ⟫.
 
+(* NOTE: merge this definition with add_step_exec? Or move parts of add_step_exec here? *)
 Definition add_step_
            (e  : actid)
            (e' : option actid)
            (X X' : t) : Prop :=
   exists lang k k' st st',
-    ⟪ COMMITTED : committed X' ≡₁ committed X ⟫ /\
+    ⟪ CONT    : cont X k = Some (existT _ lang st) ⟫ /\
+    ⟪ CONT'   : cont X' = upd (cont X) k' (Some (existT _ lang st')) ⟫ /\
+    ⟪ NCOMMITIDS : non_commit_ids X' ≡₁ non_commit_ids X ⟫ /\
+    ⟪ COMMITENTR : commit_entries X' =  commit_entries X ⟫ /\
     add_step_exec lang k k' st st' e e' (G X) (G X').
 
 Definition add_step (X X' : t) : Prop := exists e e', add_step_ e e' X X'.
 
+Lemma add_step_same_committed (X X' : t) (STEP : add_step X X') : committed X' ≡₁ committed X.
+Proof using.
+  do 2 (red in STEP; desf).
+  unfold committed. now rewrite COMMITENTR.
+Qed.
+
+Lemma add_step_wf (X X' : t) (WF : wf X) (STEP : add_step X X') : wf X'.
+Proof using.
+  unfold add_step, add_step_, add_step_exec in *.
+  desf; constructor; auto; intros.
+  all: rewrite ?CONT', ?COMMITENTR, ?NCOMMITIDS; auto; try apply WF.
+  all: try now apply NCOMMITIDS.
+  all: try now apply NCOMMITIDS; rewrite COMMITENTR in CIN;
+               apply WF.
+  all: try now rewrite updo by congruence;
+               apply WF; apply THREADS.
+
+  all: apply set_subset_eq with (P := set_compl _) (a := e) in NRMW.
+  all: rewrite RMW', dom_union, set_compl_union in NRMW.
+  all: apply EVENTS in IN; unfolder in IN; desf; ins.
+  all: try now rewrite upds.
+  2: { exfalso. eapply NRMW; eauto.
+       clear. basic_solver. }
+  all: rewrite updo.
+  all: try now apply WF; auto; apply NRMW.
+  all: injection as Heq; subst.
+  all: eapply EVENT; eauto.
+  all: clear; basic_solver.
+Qed.
+
+(* TODO make into definition? *)
 Record commit_step
            (cid : Commit.id)
            (e  : actid)
@@ -179,6 +249,28 @@ Record commit_step
     cmt_centries : commit_entries X' = upd (commit_entries X) cid (Some (Commit.InExec e));
   }.
 
+Lemma commit_step_wf (X X' : t) (WF: wf X)
+                (cid : Commit.id) (e : actid)
+                (STEP: commit_step cid e X X'): wf X'.
+Proof using.
+  desf; constructor; intros.
+  all: rewrite ?(cmt_K STEP).
+  all: try (apply WF; erewrite <- ?cmt_G by eassumption; auto).
+
+  { rewrite (cmt_G STEP).
+    now apply WF. }
+  { rewrite (cmt_noncid STEP).
+    apply set_size_inf_minus_singl.
+    apply WF. }
+  { apply (cmt_noncid STEP) in NCI.
+    rewrite (cmt_centries STEP), updo; [apply WF | symmetry].
+    all: apply NCI. }
+  assert (AA : cid0 <> cid).
+  { intro F. now rewrite F, (cmt_centries STEP), upds in CIN. }
+  rewrite (cmt_centries STEP), updo in CIN by auto.
+  apply WF in CIN. apply (cmt_noncid STEP). basic_solver.
+Qed.
+
 Record rf_change_step_ G'' sc'' (w r : actid) (X X' : t) :=
   { rfc_r        : is_r (lab (G X)) r;
     rfc_w        : is_w (lab (G X)) w;
@@ -187,7 +279,7 @@ Record rf_change_step_ G'' sc'' (w r : actid) (X X' : t) :=
 
     rfc_ncom  : ~ committed_actid_set X r;
     rfc_hbcom : dom_rel (hb_alt (G X) ⨾ ⦗eq r⦘) ⊆₁ committed_actid_set X;
-    
+
     rfc_sub      : sub_execution (G X) G'' (sc X) sc'';
     rfc_acts     : acts_set G'' ≡₁ acts_set (G X) \₁ codom_rel (⦗eq r⦘⨾ (sb (G X) ∪ rf (G X))⁺);
     rfc_G        :  G  X' =
@@ -211,6 +303,19 @@ Definition reexec_step
     ⟪ DROP : rf_change_step w r X X'' ⟫ /\
     ⟪ COMMITTED : committed X' ≡₁ committed X ⟫ /\
     ⟪ RESTORE : add_step＊  X'' X' ⟫.
+
+Lemma reexec_step_wf w r (X X' : t)
+  (WF : wf X) (STEP : reexec_step w r X X') : wf X'.
+Proof using.
+  cdes STEP.
+  assert (WF'' : wf X'').
+  { (* TODO: make a lemma that rf_change_step preserves wf *)
+    admit. }
+  (* clos_refl_trans
+     clos_refl_trans_1n
+     clos_refl_trans_n1 *)
+  admit.
+Admitted.
 
 End WCoreSteps.
 
