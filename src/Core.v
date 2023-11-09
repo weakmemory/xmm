@@ -437,10 +437,22 @@ Proof using.
   unfolder; split; ins; desf; eauto.
 Qed.
 
-Lemma single_rel_functional (A : Type) (x y : A) :
-  functional (singl_rel x y).
+Lemma update_rf_ineq_l (r x y : actid) (G : execution)
+  (WF : Wf G) (RF : (rf G \ edges_to r) x y) (IS_READ : is_r (lab G) r) :
+  x <> r.
 Proof using.
-  unfolder; ins; desf.
+  destruct RF as [RF INEQ]. intro F; subst.
+  apply (wf_rfD WF) in RF.
+  unfolder in RF; desc.
+  unfold is_w, is_r in *; destruct (lab G r); auto.
+Qed.
+
+Lemma update_rf_ineq_r (r x y : actid) (G : execution)
+  (WF : Wf G) (RF : (rf G \ edges_to r) x y) (IS_READ : is_r (lab G) r) :
+  y <> r.
+Proof using.
+  destruct RF as [RF INEQ]. intro F; subst.
+  apply INEQ; basic_solver.
 Qed.
 
 Lemma rf_change_step_wf (r w : actid) (G : execution) (WF : Wf G)
@@ -456,6 +468,7 @@ Proof using.
   all: rewrite ?rfc_same_r, ?rfc_same_w, ?rfc_same_f, ?rfc_same_rex.
   all: rewrite ?rfc_same_loc_same, ?rfc_same_actsset.
   all: try solve [unfold rfc_endG; simpl; now apply WF].
+
   { unfold rfc_endG; simpl.
     rewrite seq_union_l, seq_union_r.
     rewrite <- single_rel_compress by assumption.
@@ -467,32 +480,25 @@ Proof using.
   { unfold rfc_endG; simpl.
     set (HH := wf_rfl WF).
     apply inclusion_union_l; basic_solver. }
-  (* TODO: compress *)
-  { unfold rfc_endG; simpl.
-    unfolder; intros x y [[RF NEDG] | [EQW EQR]]; subst; eauto.
-    { set (RF' := RF); apply (wf_rfv WF) in RF'; unfolder in RF'.
+  { unfold rfc_endG; simpl. apply funeq_union.
+    { intros x y RF.
       unfold val; simpl.
-      rewrite !updo. apply RF'.
-
-      intro F; subst. apply NEDG. unfold edges_to. basic_solver.
-
-      intro F; subst. apply (wf_rfD WF) in RF. unfolder in RF.
-      desf. generalize RF R_READ; unfold is_r, is_w. destruct (lab G r); easy. }
+      rewrite updo by (eapply update_rf_ineq_l; eauto).
+      rewrite updo by (eapply update_rf_ineq_r; eauto).
+      apply wf_rfv; basic_solver. }
+    intros x y [EQ EQ']. subst.
     unfold val; simpl.
-    rewrite upds.
-    rewrite updo.
-    { generalize W_WRITE R_READ; unfold is_w, is_r.
-      destruct (lab G r), (lab G w); try easy; simpl. }
-    intro F; subst.
-    generalize W_WRITE R_READ; unfold is_w, is_r.
-    destruct (lab G r), (lab G r); try easy. }
-  { unfolder; intros x y z [[RF NEDG] | [EQW EQR]]; subst; eauto.
-    { intros [[RF' NEDG'] | [EQ EQ']].
-      { eapply (wf_rff WF) in RF; now apply RF. }
-      subst. exfalso; apply NEDG. unfolder. eauto. }
-    intros [[RF' NEDG'] | [EQ EQ']].
-    { exfalso; apply NEDG'. unfolder. eauto. }
-    now subst. }
+    rewrite upds. unfold is_r, is_w in *.
+    destruct (lab G r) eqn:HEQ1; destruct (lab G w) eqn:HEQ2.
+    all: try easy; simpl.
+    rewrite updo by (intro F; subst; congruence).
+    now rewrite HEQ2. }
+  { unfold rfc_endG; simpl.
+    rewrite transp_union. apply functional_union.
+    { eapply functional_mori; unfold flip; eauto using wf_rff, transp_mori. }
+    { basic_solver. }
+    unfolder; intros e [y [RF F]] [y' [EQ1 EQ2]]; subst.
+    apply F; eauto. }
   { intro ol.
     rewrite rfc_same_w, rfc_same_actsset.
     enough (HEQ :
