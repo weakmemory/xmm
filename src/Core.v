@@ -49,6 +49,7 @@ Qed.
 
 (* TODO: move *)
 Definition edges_to {A} (e : A) := (fun _ _ => True) ⨾ ⦗eq e⦘.
+Hint Unfold edges_to : unfolderDb.
 
 #[export] Instance eta_execution : Settable _ :=
   settable! Build_execution
@@ -271,6 +272,16 @@ Proof using.
   apply WF in CIN. apply (cmt_noncid STEP). basic_solver.
 Qed.
 
+Definition upd_rval (l : label) (new_val : option value) :=
+  match l with
+  | Aload rmw mode loc old => Aload rmw mode loc (opt_ext old new_val)
+  | _ => l
+  end.
+
+Definition rfc_endG (r w : actid) (G : execution) :=
+    (set lab (fun lab'' => upd lab'' r (upd_rval (lab'' r) (val lab'' w)))
+    (set rf (fun rf'' => (rf'' \ (edges_to r)) ∪ singl_rel w r) G)).
+
 Record rf_change_step_ G'' sc'' (w r : actid) (X X' : t) :=
   { rfc_r        : is_r (lab (G X)) r;
     rfc_w        : is_w (lab (G X)) w;
@@ -282,9 +293,7 @@ Record rf_change_step_ G'' sc'' (w r : actid) (X X' : t) :=
 
     rfc_sub      : sub_execution (G X) G'' (sc X) sc'';
     rfc_acts     : acts_set G'' ≡₁ acts_set (G X) \₁ codom_rel (⦗eq r⦘⨾ (sb (G X) ∪ rf (G X))⁺);
-    rfc_G        :  G  X' =
-                       set lab (fun lab'' => lab'') (* TODO: fix new lab *)
-                       (set rf (fun rf'' => (rf'' \ (edges_to r)) ∪ singl_rel w r) G'');
+    rfc_G        :  G  X' = rfc_endG r w G'';
     rfc_sc       : sc X' = sc'';
   }.
 (* TODO: add lemmas on *)
@@ -295,13 +304,13 @@ Lemma rf_change_step_disjoint (G : execution) (r : actid) (WF : Wf G) :
   set_disjoint ((fun a => is_init a) ∩₁ acts_set G) (codom_rel (⦗eq r⦘⨾ (sb G ∪ rf G)⁺)).
 Proof using.
   unfolder. intros e (INIT & _) (e' & EQ & REL). subst e'.
-  induction REL as [r e REL | r e e' REL IHREL REL' IHREL']; auto.
+  induction REL as [r e REL |]; auto.
   destruct REL as [REL|REL].
   all: apply no_sb_to_init in REL || apply no_rf_to_init in REL.
   all: now unfolder in REL.
 Qed.
 
-Lemma rf_change_step_intermediate_wf (G'' : execution) sc'' (w r : actid) (X X' : t)
+Lemma rf_change_step_imG_wf (G'' : execution) sc'' (w r : actid) (X X' : t)
   (STEP : rf_change_step_ G'' sc'' w r X X') (WF : Wf (G X)) : Wf G''.
 Proof using.
   eapply sub_WF; eauto using rfc_sub.
@@ -312,6 +321,181 @@ Proof using.
   all: try apply rf_change_step_disjoint; eauto.
   basic_solver.
 Qed.
+
+Lemma rfc_preserve_r (r w : actid) (G : execution) (e : actid)
+  : is_r (lab (rfc_endG r w G)) e = is_r (lab G) e.
+Proof using.
+  unfold rfc_endG, upd_rval, is_r in *; ins.
+  destruct (classic (e = r)) as [EQ|NEQ].
+  { subst; rewrite upds.
+    destruct (lab G r); auto. }
+  rewrite updo by assumption.
+  destruct (lab G r); auto.
+Qed.
+
+Lemma rfc_preserve_w (r w : actid) (G : execution) (e : actid)
+  : is_w (lab (rfc_endG r w G)) e = is_w (lab G) e.
+Proof using.
+  unfold rfc_endG, upd_rval, is_w in *; ins.
+  destruct (classic (e = r)) as [EQ|NEQ].
+  { subst; rewrite upds.
+    destruct (lab G r); auto. }
+  rewrite updo by assumption.
+  destruct (lab G r); auto.
+Qed.
+
+Lemma rfc_preserve_f (r w : actid) (G : execution) (e : actid)
+  : is_f (lab (rfc_endG r w G)) e = is_f (lab G) e.
+Proof using.
+  unfold rfc_endG, upd_rval, is_f in *; ins.
+  destruct (classic (e = r)) as [EQ|NEQ].
+  { subst; rewrite upds.
+    destruct (lab G r); auto. }
+  rewrite updo by assumption.
+  destruct (lab G r); auto.
+Qed.
+
+Lemma rfc_same_r (r w : actid) (G : execution)
+  : is_r (lab (rfc_endG r w G)) ≡₁ is_r (lab G).
+Proof using.
+  unfolder; splits; intros.
+  all: now rewrite ?rfc_preserve_r in *.
+Qed.
+
+Lemma rfc_same_w (r w : actid) (G : execution)
+  : is_w (lab (rfc_endG r w G)) ≡₁ is_w (lab G).
+Proof using.
+  unfolder; splits; intros.
+  all: now rewrite ?rfc_preserve_w in *.
+Qed.
+
+Lemma rfc_same_f (r w : actid) (G : execution)
+  : is_f (lab (rfc_endG r w G)) ≡₁ is_f (lab G).
+Proof using.
+  unfolder; splits; intros.
+  all: now rewrite ?rfc_preserve_f in *.
+Qed.
+
+Lemma rfc_preserve_loc (e : actid) (r w : actid) (G : execution)
+  : loc (lab (rfc_endG r w G)) e = loc (lab G) e.
+Proof using.
+  unfold rfc_endG, upd_rval, loc. simpl.
+  destruct (classic (e = r)) as [EQ|NEQ].
+  { subst; rewrite upds.
+    destruct (lab G r); auto. }
+  rewrite updo by assumption.
+  destruct (lab G r); auto.
+Qed.
+
+Lemma rfc_same_loc_same (r w : actid) (G : execution)
+  : same_loc (lab (rfc_endG r w G)) ≡ same_loc (lab G).
+Proof using.
+  unfold same_loc; unfolder; splits; intros.
+  all: now rewrite ?rfc_preserve_loc in *.
+Qed.
+
+Lemma rfc_same_actsset (r w : actid) (G : execution)
+  : acts_set (rfc_endG r w G) ≡₁ acts_set G.
+Proof using.
+  unfold acts_set; unfold rfc_endG; simpl.
+  easy.
+Qed.
+
+Lemma rfc_preserve_rex (e : actid) (r w : actid) (G : execution)
+  : R_ex (lab (rfc_endG r w G)) e = R_ex (lab G) e.
+Proof using.
+  unfold rfc_endG, upd_rval, R_ex. simpl.
+  destruct (classic (e = r)) as [EQ|NEQ].
+  { subst; rewrite upds.
+    destruct (lab G r); auto. }
+  rewrite updo by assumption.
+  destruct (lab G r); auto.
+Qed.
+
+Lemma rfc_same_rex (r w : actid) (G : execution)
+  : R_ex (lab (rfc_endG r w G)) ≡₁ R_ex (lab G).
+Proof using.
+  unfolder; splits; intros.
+  all: now rewrite ?rfc_preserve_rex in *.
+Qed.
+
+Lemma rf_change_step_wf (r w : actid) (G : execution) (WF : Wf G)
+  (R_MEM : acts_set G w)
+  (W_MEM : acts_set G r)
+  (R_READ : is_r (lab G) r)
+  (W_WRITE : is_w (lab G) w)
+  (W_R_SAME_LOC : same_loc (lab G) w r):
+  Wf (rfc_endG r w G).
+Proof using.
+  constructor; try now apply WF.
+  all: rewrite ?rfc_same_r, ?rfc_same_w, ?rfc_same_f, ?rfc_same_rex.
+  all: rewrite ?rfc_same_loc_same, ?rfc_same_actsset.
+  all: try now (unfold rfc_endG; simpl; now apply WF).
+  { unfold rfc_endG; simpl. unfolder. splits.
+    { intros x y [[RF NEDG] | [EQW EQR]]; subst; eauto.
+      set (RF' := RF); apply WF in RF'; unfolder in RF'.
+      splits; eauto || apply RF'. }
+    ins; desf; splits; eauto. }
+  { unfold rfc_endG; simpl. unfolder. splits.
+    { intros x y [[RF NEDG] | [EQW EQR]]; subst; eauto.
+      set (RF' := RF); apply (wf_rfD WF) in RF'; unfolder in RF'.
+      splits; eauto || apply RF'. }
+    ins; desf; splits; eauto. }
+  { unfold rfc_endG; simpl.
+    unfolder; intros x y [[RF NEDG] | [EQW EQR]]; subst; eauto.
+    now apply (wf_rfl WF) in RF. }
+  (* TODO: compress *)
+  { unfold rfc_endG; simpl.
+    unfolder; intros x y [[RF NEDG] | [EQW EQR]]; subst; eauto.
+    { set (RF' := RF); apply (wf_rfv WF) in RF'; unfolder in RF'.
+      unfold val; simpl.
+      rewrite !updo. apply RF'.
+
+      intro F; subst. apply NEDG. unfold edges_to. basic_solver.
+
+      intro F; subst. apply (wf_rfD WF) in RF. unfolder in RF.
+      desf. generalize RF R_READ; unfold is_r, is_w. destruct (lab G r); easy. }
+    unfold val; simpl.
+    rewrite upds.
+    rewrite updo.
+    { generalize W_WRITE R_READ; unfold is_w, is_r.
+      destruct (lab G r), (lab G w); try easy; simpl. }
+    intro F; subst.
+    generalize W_WRITE R_READ; unfold is_w, is_r.
+    destruct (lab G r), (lab G r); try easy. }
+  { unfold rfc_endG; simpl.
+    unfolder; intros x y z [[RF NEDG] | [EQW EQR]]; subst; eauto.
+    { intros [[RF' NEDG'] | [EQ EQ']].
+      { eapply (wf_rff WF) in RF; now apply RF. }
+      subst. exfalso; apply NEDG; eauto. }
+    intros [[RF' NEDG'] | [EQ EQ']].
+    { exfalso; apply NEDG'; eauto. }
+    now subst. }
+  { intro ol.
+    rewrite rfc_same_w, rfc_same_actsset.
+    assert (HEQ :
+      (fun x : actid => loc (lab (rfc_endG r w G)) x = ol) ≡₁
+      (fun x : actid => loc (lab G) x = ol)
+    ) by (
+      unfold same_loc; unfolder; splits; intros;
+      now rewrite ?rfc_preserve_loc in *
+    ).
+    rewrite HEQ. (* TODO: ...lemma *)
+    unfold rfc_endG; simpl.
+    apply WF. }
+  { intros l [e [INACT LOC]].
+    apply rfc_same_actsset in INACT.
+    rewrite rfc_preserve_loc in LOC.
+    apply WF; eauto. }
+  intros l.
+  unfold rfc_endG; simpl.
+  rewrite updo. { apply WF. }
+
+  intro F; subst.
+  unfold is_r in R_READ.
+  now rewrite (wf_init_lab WF) in R_READ.
+Qed.
+
 
 Definition rf_change_step
            (w    : actid)
