@@ -33,6 +33,7 @@
 
   bundles."8.18" = {
     push-branches = [ "**" ];
+    coqPackages.vscoq-language-server.override.version = "v2.0.2+coq8.18";
     coqPackages.coq.override.version = "8.18";
     coqPackages.hahn.override.version = "master";
     coqPackages.hahnExt.override.version = "0.9.4";
