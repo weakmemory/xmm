@@ -419,6 +419,30 @@ Proof using.
   all: now rewrite ?rfc_preserve_rex in *.
 Qed.
 
+Lemma rel_compress_sub (A : Type) (S1 S2 : A -> Prop) (R1 R2 : relation A)
+  (SUB : R1 ⊆ R2) (EQ : R2 ≡ ⦗S1⦘⨾ R2⨾ ⦗ S2⦘):
+  R1 ≡ ⦗S1⦘⨾ R1⨾ ⦗S2⦘.
+Proof using.
+  unfolder; split; try solve[ins; desf; eauto].
+  intros x y REL.
+  set (REL' := REL).
+  apply SUB, EQ in REL'.
+  unfolder in REL'; easy.
+Qed.
+
+Lemma single_rel_compress (A : Type) (S1 S2 : A -> Prop) (x y : A)
+  (MEM_X : S1 x) (MEM_Y : S2 y):
+  singl_rel x y ≡ ⦗S1⦘⨾ singl_rel x y⨾ ⦗S2⦘.
+Proof using.
+  unfolder; split; ins; desf; eauto.
+Qed.
+
+Lemma single_rel_functional (A : Type) (x y : A) :
+  functional (singl_rel x y).
+Proof using.
+  unfolder; ins; desf.
+Qed.
+
 Lemma rf_change_step_wf (r w : actid) (G : execution) (WF : Wf G)
   (R_MEM : acts_set G w)
   (W_MEM : acts_set G r)
@@ -427,23 +451,22 @@ Lemma rf_change_step_wf (r w : actid) (G : execution) (WF : Wf G)
   (W_R_SAME_LOC : same_loc (lab G) w r):
   Wf (rfc_endG r w G).
 Proof using.
+  assert (SUB : rf G \ edges_to r ⊆ rf G) by basic_solver.
   constructor; try now apply WF.
   all: rewrite ?rfc_same_r, ?rfc_same_w, ?rfc_same_f, ?rfc_same_rex.
   all: rewrite ?rfc_same_loc_same, ?rfc_same_actsset.
-  all: try now (unfold rfc_endG; simpl; now apply WF).
-  { unfold rfc_endG; simpl. unfolder. splits.
-    { intros x y [[RF NEDG] | [EQW EQR]]; subst; eauto.
-      set (RF' := RF); apply WF in RF'; unfolder in RF'.
-      splits; eauto || apply RF'. }
-    ins; desf; splits; eauto. }
-  { unfold rfc_endG; simpl. unfolder. splits.
-    { intros x y [[RF NEDG] | [EQW EQR]]; subst; eauto.
-      set (RF' := RF); apply (wf_rfD WF) in RF'; unfolder in RF'.
-      splits; eauto || apply RF'. }
-    ins; desf; splits; eauto. }
+  all: try solve [unfold rfc_endG; simpl; now apply WF].
   { unfold rfc_endG; simpl.
-    unfolder; intros x y [[RF NEDG] | [EQW EQR]]; subst; eauto.
-    now apply (wf_rfl WF) in RF. }
+    rewrite seq_union_l, seq_union_r.
+    rewrite <- single_rel_compress by assumption.
+    now erewrite <- rel_compress_sub by (apply WF || eauto). }
+  { unfold rfc_endG; simpl.
+    rewrite seq_union_l, seq_union_r.
+    rewrite <- single_rel_compress by assumption.
+    now erewrite <- rel_compress_sub by (apply WF || eauto). }
+  { unfold rfc_endG; simpl.
+    set (HH := wf_rfl WF).
+    apply inclusion_union_l; basic_solver. }
   (* TODO: compress *)
   { unfold rfc_endG; simpl.
     unfolder; intros x y [[RF NEDG] | [EQW EQR]]; subst; eauto.
@@ -463,37 +486,28 @@ Proof using.
     intro F; subst.
     generalize W_WRITE R_READ; unfold is_w, is_r.
     destruct (lab G r), (lab G r); try easy. }
-  { unfold rfc_endG; simpl.
-    unfolder; intros x y z [[RF NEDG] | [EQW EQR]]; subst; eauto.
+  { unfolder; intros x y z [[RF NEDG] | [EQW EQR]]; subst; eauto.
     { intros [[RF' NEDG'] | [EQ EQ']].
       { eapply (wf_rff WF) in RF; now apply RF. }
-      subst. exfalso; apply NEDG; eauto. }
+      subst. exfalso; apply NEDG. unfolder. eauto. }
     intros [[RF' NEDG'] | [EQ EQ']].
-    { exfalso; apply NEDG'; eauto. }
+    { exfalso; apply NEDG'. unfolder. eauto. }
     now subst. }
   { intro ol.
     rewrite rfc_same_w, rfc_same_actsset.
-    assert (HEQ :
-      (fun x : actid => loc (lab (rfc_endG r w G)) x = ol) ≡₁
-      (fun x : actid => loc (lab G) x = ol)
-    ) by (
-      unfold same_loc; unfolder; splits; intros;
-      now rewrite ?rfc_preserve_loc in *
-    ).
-    rewrite HEQ. (* TODO: ...lemma *)
-    unfold rfc_endG; simpl.
-    apply WF. }
+    enough (HEQ :
+      (fun x : actid => loc _ x = ol) ≡₁
+      (fun x : actid => loc _ x = ol)
+    ) by (rewrite HEQ; unfold rfc_endG; simpl; apply WF).
+    unfold same_loc; unfolder; splits; intros.
+    all: now rewrite ?rfc_preserve_loc in *. }
   { intros l [e [INACT LOC]].
     apply rfc_same_actsset in INACT.
     rewrite rfc_preserve_loc in LOC.
     apply WF; eauto. }
-  intros l.
-  unfold rfc_endG; simpl.
-  rewrite updo. { apply WF. }
-
-  intro F; subst.
-  unfold is_r in R_READ.
-  now rewrite (wf_init_lab WF) in R_READ.
+  unfold rfc_endG; simpl. intros l.
+  enough (HNEQ: InitEvent l <> r) by (rewrite updo; apply WF || auto).
+  intro F; subst. eapply read_or_fence_is_not_init; eauto.
 Qed.
 
 
