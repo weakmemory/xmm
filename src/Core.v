@@ -279,8 +279,8 @@ Definition upd_rval (l : label) (new_val : option value) :=
   end.
 
 Definition rfc_endG (r w : actid) (G : execution) :=
-    (set lab (fun lab'' => upd lab'' r (upd_rval (lab'' r) (val lab'' w)))
-    (set rf (fun rf'' => (rf'' \ (edges_to r)) ∪ singl_rel w r) G)).
+    set lab (fun lab'' => upd lab'' r (upd_rval (lab'' r) (val lab'' w)))
+    (set rf (fun rf'' => (rf'' \ (edges_to r)) ∪ singl_rel w r) G).
 
 Record rf_change_step_ G'' sc'' (w r : actid) (X X' : t) :=
   { rfc_r        : is_r (lab (G X)) r;
@@ -455,7 +455,7 @@ Proof using.
   apply INEQ; basic_solver.
 Qed.
 
-Lemma rf_change_step_wf (r w : actid) (G : execution) (WF : Wf G)
+Lemma rfc_endG_wf (r w : actid) (G : execution) (WF : Wf G)
   (R_MEM : acts_set G w)
   (W_MEM : acts_set G r)
   (R_READ : is_r (lab G) r)
