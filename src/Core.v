@@ -284,7 +284,9 @@ Definition rfc_endG (r w : actid) (G : execution) :=
 
 Record rf_change_step_ G'' sc'' (w r : actid) (X X' : t) :=
   { rfc_r        : is_r (lab (G X)) r;
-    rfc_w        : is_w (lab (G X)) w;
+    rfc_w        : is_w (lab (G X)) w; 
+    rfc_act_r    : acts_set (G X) r;
+    rfc_act_w    : acts_set (G X) w;
     rfc_same_loc : same_loc (lab (G X)) w r;
     rfc_race      : (race (G X) ∪ hb (G X)) w r;
 
@@ -516,12 +518,42 @@ Proof using.
   intro F; subst. eapply read_or_fence_is_not_init; eauto.
 Qed.
 
-
 Definition rf_change_step
            (w    : actid)
            (r    : actid)
            (X X' : t) : Prop :=
-  exists G'' sc'', rf_change_step_ G'' sc'' w r X X'.
+  exists G'' sc'', rf_change_step_ G'' sc'' w r X X'. 
+
+Lemma rf_step_wf w r (X X' : t) 
+  (WF : wf X) (STEP : rf_change_step w r X X') 
+  : wf X'.  
+Proof. 
+  unfold rf_change_step in STEP. destruct STEP as (G'' & sc & RFC). 
+  constructor. 
+  { erewrite rfc_G by eassumption.
+    apply rf_change_step_wf.  
+    { eapply rf_change_step_imG_wf; eauto. 
+      apply WF. } 
+    { eapply rfc_acts; eauto.
+      unfolder; splits. 
+      { eapply rfc_act_w; eauto. } 
+      intros (r' & r'' & ((EQ & EQ') & PORF)); subst r''; subst r'. 
+      admit.
+    } 
+    { eapply rfc_acts; eauto. 
+      unfolder; splits. 
+      { eapply rfc_act_r; eauto. } 
+      admit.
+    } 
+    { erewrite sub_lab by apply RFC. apply RFC. } 
+    { erewrite sub_lab by apply RFC. apply RFC. } 
+    erewrite sub_lab by apply RFC. apply RFC. } 
+  { admit. } 
+  { admit. } 
+  { admit. } 
+  { admit. } 
+  admit.
+Admitted.
 
 Definition reexec_step
            (w    : actid)
@@ -537,13 +569,10 @@ Lemma reexec_step_wf w r (X X' : t)
 Proof using.
   cdes STEP.
   assert (WF'' : wf X'').
-  { (* TODO: make a lemma that rf_change_step preserves wf *)
-    admit. }
-  (* clos_refl_trans
-     clos_refl_trans_1n
-     clos_refl_trans_n1 *)
-  admit.
-Admitted.
+  { eapply rf_step_wf; eauto. } 
+  clear - RESTORE WF''. induction RESTORE; eauto.
+  eapply add_step_wf; eauto.
+Qed.
 
 End WCoreSteps.
 
