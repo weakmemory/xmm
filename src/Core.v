@@ -524,14 +524,14 @@ Definition rf_change_step
            (X X' : t) : Prop :=
   exists G'' sc'', rf_change_step_ G'' sc'' w r X X'. 
 
-Lemma rf_step_wf w r (X X' : t) 
+Lemma rf_change_step_wf w r (X X' : t) 
   (WF : wf X) (STEP : rf_change_step w r X X') 
   : wf X'.  
 Proof. 
   unfold rf_change_step in STEP. destruct STEP as (G'' & sc & RFC). 
   constructor. 
   { erewrite rfc_G by eassumption.
-    apply rf_change_step_wf.  
+    apply rfc_endG_wf.  
     { eapply rf_change_step_imG_wf; eauto. 
       apply WF. } 
     { eapply rfc_acts; eauto.
@@ -569,7 +569,7 @@ Lemma reexec_step_wf w r (X X' : t)
 Proof using.
   cdes STEP.
   assert (WF'' : wf X'').
-  { eapply rf_step_wf; eauto. } 
+  { eapply rf_change_step_wf; eauto. } 
   clear - RESTORE WF''. induction RESTORE; eauto.
   eapply add_step_wf; eauto.
 Qed.
