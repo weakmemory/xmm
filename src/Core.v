@@ -1,4 +1,5 @@
 Require Import Lia Setoid Program.Basics.
+Require Import AuxDef.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -15,37 +16,6 @@ From RecordUpdate Require Import RecordSet.
 Import ListNotations.
 
 Set Implicit Arguments.
-
-(* TODO: move to HahnExt/SetSize.v *)
-Lemma set_size_inf_minus_finite {A} (s s' : A -> Prop)
-    (INF : set_size s = NOinfinity)
-    (FIN : set_finite s') :
-  set_size (s \₁ s') = NOinfinity.
-Proof using.
-  unfold set_size in *. desf.
-  exfalso.
-  destruct s0 as [l HH].
-  destruct FIN as [l' AA].
-  apply n. exists (l ++ l'). ins.
-  destruct (classic (s' x)) as [IN'|NIN].
-  { apply in_app_r. now apply AA. }
-  apply in_app_l. apply HH.
-  red. auto.
-Qed.
-
-(* TODO: move to HahnExt/SetSize.v *)
-Lemma set_finite_singl {A} (a : A) : set_finite (eq a).
-Proof using. exists [a]. ins. auto. Qed.
-
-(* TODO: move to HahnExt/SetSize.v *)
-Lemma set_size_inf_minus_singl {A} (s : A -> Prop) (a : A)
-    (INF : set_size s = NOinfinity) :
-  set_size (s \₁ eq a) = NOinfinity.
-Proof using.
-  apply set_size_inf_minus_finite; auto.
-  apply set_finite_singl.
-Qed.
-
 
 (* TODO: move *)
 Definition edges_to {A} (e : A) := (fun _ _ => True) ⨾ ⦗eq e⦘.
@@ -284,7 +254,7 @@ Definition rfc_endG (r w : actid) (G : execution) :=
 
 Record rf_change_step_ G'' sc'' (w r : actid) (X X' : t) :=
   { rfc_r        : is_r (lab (G X)) r;
-    rfc_w        : is_w (lab (G X)) w; 
+    rfc_w        : is_w (lab (G X)) w;
     rfc_act_r    : acts_set (G X) r;
     rfc_act_w    : acts_set (G X) w;
     rfc_same_loc : same_loc (lab (G X)) w r;
@@ -389,14 +359,14 @@ Proof using.
   destruct (lab G r); auto.
 Qed.
 
-Lemma rfc_same_loc_same (r w : actid) (G : execution)
+Lemma rfc_endG_same_loc_eq (r w : actid) (G : execution)
   : same_loc (lab (rfc_endG r w G)) ≡ same_loc (lab G).
 Proof using.
   unfold same_loc; unfolder; splits; intros.
   all: now rewrite ?rfc_preserve_loc in *.
 Qed.
 
-Lemma rfc_same_actsset (r w : actid) (G : execution)
+Lemma rfc_endG_eqE (r w : actid) (G : execution)
   : acts_set (rfc_endG r w G) ≡₁ acts_set G.
 Proof using.
   unfold acts_set; unfold rfc_endG; simpl.
@@ -421,24 +391,6 @@ Proof using.
   all: now rewrite ?rfc_preserve_rex in *.
 Qed.
 
-Lemma rel_compress_sub (A : Type) (S1 S2 : A -> Prop) (R1 R2 : relation A)
-  (SUB : R1 ⊆ R2) (EQ : R2 ≡ ⦗S1⦘⨾ R2⨾ ⦗ S2⦘):
-  R1 ≡ ⦗S1⦘⨾ R1⨾ ⦗S2⦘.
-Proof using.
-  unfolder; split; try solve[ins; desf; eauto].
-  intros x y REL.
-  set (REL' := REL).
-  apply SUB, EQ in REL'.
-  unfolder in REL'; easy.
-Qed.
-
-Lemma single_rel_compress (A : Type) (S1 S2 : A -> Prop) (x y : A)
-  (MEM_X : S1 x) (MEM_Y : S2 y):
-  singl_rel x y ≡ ⦗S1⦘⨾ singl_rel x y⨾ ⦗S2⦘.
-Proof using.
-  unfolder; split; ins; desf; eauto.
-Qed.
-
 Lemma update_rf_ineq_l (r x y : actid) (G : execution)
   (WF : Wf G) (RF : (rf G \ edges_to r) x y) (IS_READ : is_r (lab G) r) :
   x <> r.
@@ -453,7 +405,7 @@ Lemma update_rf_ineq_r (r x y : actid) (G : execution)
   (WF : Wf G) (RF : (rf G \ edges_to r) x y) (IS_READ : is_r (lab G) r) :
   y <> r.
 Proof using.
-  destruct RF as [RF INEQ]. intro F; subst.
+  destruct RF as [RF INEQ]. intro; subst.
   apply INEQ; basic_solver.
 Qed.
 
@@ -468,7 +420,7 @@ Proof using.
   assert (SUB : rf G \ edges_to r ⊆ rf G) by basic_solver.
   constructor; try now apply WF.
   all: rewrite ?rfc_same_r, ?rfc_same_w, ?rfc_same_f, ?rfc_same_rex.
-  all: rewrite ?rfc_same_loc_same, ?rfc_same_actsset.
+  all: rewrite ?rfc_endG_same_loc_eq, ?rfc_endG_eqE.
   all: try solve [unfold rfc_endG; simpl; now apply WF].
 
   { unfold rfc_endG; simpl.
@@ -502,7 +454,7 @@ Proof using.
     unfolder; intros e [y [RF F]] [y' [EQ1 EQ2]]; subst.
     apply F; eauto. }
   { intro ol.
-    rewrite rfc_same_w, rfc_same_actsset.
+    rewrite rfc_same_w, rfc_endG_eqE.
     enough (HEQ :
       (fun x : actid => loc _ x = ol) ≡₁
       (fun x : actid => loc _ x = ol)
@@ -510,7 +462,7 @@ Proof using.
     unfold same_loc; unfolder; splits; intros.
     all: now rewrite ?rfc_preserve_loc in *. }
   { intros l [e [INACT LOC]].
-    apply rfc_same_actsset in INACT.
+    apply rfc_endG_eqE in INACT.
     rewrite rfc_preserve_loc in LOC.
     apply WF; eauto. }
   unfold rfc_endG; simpl. intros l.
@@ -522,37 +474,29 @@ Definition rf_change_step
            (w    : actid)
            (r    : actid)
            (X X' : t) : Prop :=
-  exists G'' sc'', rf_change_step_ G'' sc'' w r X X'. 
+  exists G'' sc'', rf_change_step_ G'' sc'' w r X X'.
 
-Lemma rf_change_step_wf w r (X X' : t) 
-  (WF : wf X) (STEP : rf_change_step w r X X') 
-  : wf X'.  
-Proof. 
-  unfold rf_change_step in STEP. destruct STEP as (G'' & sc & RFC). 
-  constructor. 
+Lemma rf_change_step_wf w r (X X' : t)
+  (WF : wf X) (STEP : rf_change_step w r X X')
+  : wf X'.
+Proof.
+  unfold rf_change_step in STEP. destruct STEP as (G'' & sc & RFC).
+  constructor.
   { erewrite rfc_G by eassumption.
-    apply rfc_endG_wf.  
-    { eapply rf_change_step_imG_wf; eauto. 
-      apply WF. } 
-    { eapply rfc_acts; eauto.
-      unfolder; splits. 
-      { eapply rfc_act_w; eauto. } 
-      intros (r' & r'' & ((EQ & EQ') & PORF)); subst r''; subst r'. 
-      admit.
-    } 
-    { eapply rfc_acts; eauto. 
-      unfolder; splits. 
-      { eapply rfc_act_r; eauto. } 
-      admit.
-    } 
-    { erewrite sub_lab by apply RFC. apply RFC. } 
-    { erewrite sub_lab by apply RFC. apply RFC. } 
-    erewrite sub_lab by apply RFC. apply RFC. } 
-  { admit. } 
-  { admit. } 
-  { admit. } 
-  { admit. } 
-  admit.
+    apply rfc_endG_wf.
+    all: try now (erewrite sub_lab; apply RFC).
+    { eapply rf_change_step_imG_wf; eauto.
+      apply WF. }
+    { eapply rfc_acts; eauto. unfolder; splits.
+      { eapply rfc_act_w; eauto. }
+      intros (r' & r'' & ((EQ & EQ') & PORF)); subst r''; subst r'.
+      admit. }
+    eapply rfc_acts; eauto. unfolder; splits.
+    { eapply rfc_act_r; eauto. }
+    admit. }
+  { admit. }
+  { admit. }
+  { admit. }
 Admitted.
 
 Definition reexec_step
@@ -569,7 +513,7 @@ Lemma reexec_step_wf w r (X X' : t)
 Proof using.
   cdes STEP.
   assert (WF'' : wf X'').
-  { eapply rf_change_step_wf; eauto. } 
+  { eapply rf_change_step_wf; eauto. }
   clear - RESTORE WF''. induction RESTORE; eauto.
   eapply add_step_wf; eauto.
 Qed.
