@@ -48,3 +48,15 @@ Proof using.
   apply set_size_inf_minus_finite; auto.
   apply set_finite_singl.
 Qed.
+
+Lemma set_size_inf_union {A} (s s' : A -> Prop)
+  (INF : set_size s = NOinfinity) :
+  set_size (s ∪₁ s') = NOinfinity.
+Proof using.
+  unfold set_size in *. desf.
+  exfalso.
+  destruct s0 as [l HH].
+  apply n. exists (List.filter (fun x => ifP s x then true else false) l). ins.
+  apply in_filter_iff.
+  splits; try apply HH; basic_solver.
+Qed.

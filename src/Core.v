@@ -252,6 +252,9 @@ Definition rfc_endG (r w : actid) (G : execution) :=
     set lab (fun lab'' => upd lab'' r (upd_rval (lab'' r) (val lab'' w)))
     (set rf (fun rf'' => (rf'' \ (edges_to r)) ∪ singl_rel w r) G).
 
+Definition rfc_remove_events (r : actid) (G : execution) : actid -> Prop :=
+  codom_rel (⦗eq r⦘⨾ (sb G ∪ rf G)⁺).
+
 Record rf_change_step_ G'' sc'' (w r : actid) (X X' : t) :=
   { rfc_r        : is_r (lab (G X)) r;
     rfc_w        : is_w (lab (G X)) w;
@@ -264,7 +267,7 @@ Record rf_change_step_ G'' sc'' (w r : actid) (X X' : t) :=
     rfc_hbcom : dom_rel (hb_alt (G X) ⨾ ⦗eq r⦘) ⊆₁ committed_actid_set X;
 
     rfc_sub      : sub_execution (G X) G'' (sc X) sc'';
-    rfc_acts     : acts_set G'' ≡₁ acts_set (G X) \₁ codom_rel (⦗eq r⦘⨾ (sb (G X) ∪ rf (G X))⁺);
+    rfc_acts     : acts_set G'' ≡₁ acts_set (G X) \₁ rfc_remove_events r (G X);
     rfc_G        :  G  X' = rfc_endG r w G'';
     rfc_sc       : sc X' = sc'';
   }.
@@ -291,7 +294,7 @@ Proof using.
   { apply set_subset_minus; basic_solver. }
   eapply set_disjoint_more.
   all: try apply rf_change_step_disjoint; eauto.
-  basic_solver.
+  unfold rfc_remove_events; basic_solver.
 Qed.
 
 Lemma rfc_preserve_r (r w : actid) (G : execution) (e : actid)
@@ -470,18 +473,36 @@ Proof using.
   intro F; subst. eapply read_or_fence_is_not_init; eauto.
 Qed.
 
+Definition removed_commit_ids (r : actid) (X : t) : Commit.id -> Prop :=
+  commit_entries X ↓₁
+  ((fun e => Some (Commit.InExec e)) ↑₁ rfc_remove_events r (G X)).
+
+Definition rfc_new_commit_entries (r : actid) (X : t) (cid : Commit.id) : option Commit.entry :=
+  ifP removed_commit_ids r X cid then None
+  else commit_entries X cid.
+
+Definition rfc_new_cont (r : actid) (X : t) (clab : cont_label) : option {lang : Language.t (list label) & Language.state lang} :=
+  match clab with
+  | CInit tid => cont X clab
+  | CEvent e => ifP rfc_remove_events r (G X) e then None else cont X clab
+  end.
+
 Definition rf_change_step
            (w    : actid)
            (r    : actid)
            (X X' : t) : Prop :=
-  exists G'' sc'', rf_change_step_ G'' sc'' w r X X'.
+  exists G'' sc'',
+    ⟪ RFC : rf_change_step_ G'' sc'' w r X X' ⟫ /\
+    ⟪ NCOMMITIDS : non_commit_ids X' ≡₁ non_commit_ids X ∪₁ removed_commit_ids r X ⟫ /\
+    ⟪ COMMIT_ENTRIES : commit_entries X' = rfc_new_commit_entries r X ⟫ /\
+    ⟪ CONTINUATION : cont X' = rfc_new_cont r X ⟫.
 
 Lemma rf_change_step_wf w r (X X' : t)
   (WF : wf X) (STEP : rf_change_step w r X X')
   : wf X'.
 Proof.
-  unfold rf_change_step in STEP. destruct STEP as (G'' & sc & RFC).
-  constructor.
+  unfold rf_change_step in STEP. destruct STEP as (G'' & sc & CONDS).
+  desc. constructor.
   { erewrite rfc_G by eassumption.
     apply rfc_endG_wf.
     all: try now (erewrite sub_lab; apply RFC).
@@ -494,9 +515,29 @@ Proof.
     eapply rfc_acts; eauto. unfolder; splits.
     { eapply rfc_act_r; eauto. }
     admit. }
-  { admit. }
-  { admit. }
-  { admit. }
+  { (* TODO: we do not change rmw of (G X), so this should be easy *)
+    admit. }
+  { intros tid HTHREAD.
+    rewrite CONTINUATION. unfold rfc_new_cont.
+    apply WF.
+    enough (HEQ : threads_set (G X') ≡₁ threads_set (G X)) by now apply HEQ.
+    rewrite (rfc_G RFC).
+    unfold rfc_endG; simpl.
+    (* TODO G'' and (G X) have same thread sets *)
+    admit. }
+  { rewrite NCOMMITIDS.
+    apply set_size_inf_union.
+    apply WF. }
+  { intros cid NON_CMT.
+    apply NCOMMITIDS in NON_CMT.
+    rewrite COMMIT_ENTRIES; unfold rfc_new_commit_entries.
+    edestruct (excluded_middle_informative _); auto.
+    apply WF; unfolder in NON_CMT; basic_solver. }
+  intros cid ENTRY.
+  rewrite COMMIT_ENTRIES in ENTRY. unfold rfc_new_commit_entries in ENTRY.
+  apply NCOMMITIDS.
+  edestruct (excluded_middle_informative _); try basic_solver.
+  left. now apply WF.
 Admitted.
 
 Definition reexec_step
