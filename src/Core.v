@@ -275,6 +275,39 @@ Record rf_change_step_ G'' sc'' (w r : actid) (X X' : t) :=
 
 (* TODO: how to update function with a set  *)
 
+Definition removed_commit_ids (r : actid) (X : t) : Commit.id -> Prop :=
+  commit_entries X ↓₁
+  ((fun e => Some (Commit.InExec e)) ↑₁ rfc_remove_events r (G X)).
+
+Definition rfc_new_commit_entries (r : actid) (X : t) (cid : Commit.id) : option Commit.entry :=
+  ifP removed_commit_ids r X cid then None
+  else commit_entries X cid.
+
+Definition rfc_new_cont (r : actid) (X : t) (clab : cont_label) : option {lang : Language.t (list label) & Language.state lang} :=
+  match clab with
+  | CInit tid => cont X clab
+  | CEvent e => ifP rfc_remove_events r (G X) e then None else cont X clab
+  end.
+
+Definition rf_change_step
+           (w    : actid)
+           (r    : actid)
+           (X X' : t) : Prop :=
+  exists G'' sc'',
+    ⟪ RFC : rf_change_step_ G'' sc'' w r X X' ⟫ /\
+    ⟪ NCOMMITIDS : non_commit_ids X' ≡₁ non_commit_ids X ∪₁ removed_commit_ids r X ⟫ /\
+    ⟪ COMMIT_ENTRIES : commit_entries X' = rfc_new_commit_entries r X ⟫ /\
+    ⟪ CONTINUATION : cont X' = rfc_new_cont r X ⟫.
+
+Definition reexec_step
+           (w    : actid)
+           (r    : actid)
+           (X X' : t) : Prop :=
+  exists X'',
+    ⟪ DROP : rf_change_step w r X X'' ⟫ /\
+    ⟪ COMMITTED : committed X' ≡₁ committed X ⟫ /\
+    ⟪ RESTORE : add_step＊  X'' X' ⟫.
+
 Lemma rf_change_step_disjoint (G : execution) (r : actid) (WF : Wf G) :
   set_disjoint ((fun a => is_init a) ∩₁ acts_set G) (codom_rel (⦗eq r⦘⨾ (sb G ∪ rf G)⁺)).
 Proof using.
@@ -473,30 +506,6 @@ Proof using.
   intro F; subst. eapply read_or_fence_is_not_init; eauto.
 Qed.
 
-Definition removed_commit_ids (r : actid) (X : t) : Commit.id -> Prop :=
-  commit_entries X ↓₁
-  ((fun e => Some (Commit.InExec e)) ↑₁ rfc_remove_events r (G X)).
-
-Definition rfc_new_commit_entries (r : actid) (X : t) (cid : Commit.id) : option Commit.entry :=
-  ifP removed_commit_ids r X cid then None
-  else commit_entries X cid.
-
-Definition rfc_new_cont (r : actid) (X : t) (clab : cont_label) : option {lang : Language.t (list label) & Language.state lang} :=
-  match clab with
-  | CInit tid => cont X clab
-  | CEvent e => ifP rfc_remove_events r (G X) e then None else cont X clab
-  end.
-
-Definition rf_change_step
-           (w    : actid)
-           (r    : actid)
-           (X X' : t) : Prop :=
-  exists G'' sc'',
-    ⟪ RFC : rf_change_step_ G'' sc'' w r X X' ⟫ /\
-    ⟪ NCOMMITIDS : non_commit_ids X' ≡₁ non_commit_ids X ∪₁ removed_commit_ids r X ⟫ /\
-    ⟪ COMMIT_ENTRIES : commit_entries X' = rfc_new_commit_entries r X ⟫ /\
-    ⟪ CONTINUATION : cont X' = rfc_new_cont r X ⟫.
-
 Lemma rf_change_step_wf w r (X X' : t)
   (WF : wf X) (STEP : rf_change_step w r X X')
   : wf X'.
@@ -539,15 +548,6 @@ Proof.
   edestruct (excluded_middle_informative _); try basic_solver.
   left. now apply WF.
 Admitted.
-
-Definition reexec_step
-           (w    : actid)
-           (r    : actid)
-           (X X' : t) : Prop :=
-  exists X'',
-    ⟪ DROP : rf_change_step w r X X'' ⟫ /\
-    ⟪ COMMITTED : committed X' ≡₁ committed X ⟫ /\
-    ⟪ RESTORE : add_step＊  X'' X' ⟫.
 
 Lemma reexec_step_wf w r (X X' : t)
   (WF : wf X) (STEP : reexec_step w r X X') : wf X'.
