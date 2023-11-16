@@ -318,7 +318,7 @@ Proof using.
   all: now unfolder in REL.
 Qed.
 
-Lemma rf_change_step_imG_wf (G'' : execution) sc'' (w r : actid) (X X' : t)
+Lemma rfc_imG_wf (G'' : execution) sc'' (w r : actid) (X X' : t)
   (STEP : rf_change_step_ G'' sc'' w r X X') (WF : Wf (G X)) : Wf G''.
 Proof using.
   eapply sub_WF; eauto using rfc_sub.
@@ -330,7 +330,34 @@ Proof using.
   unfold rfc_remove_events; basic_solver.
 Qed.
 
-Lemma rfc_preserve_r (r w : actid) (G : execution) (e : actid)
+
+Lemma rfc_imG_no_broken_rmw (G'' : execution) sc'' (w r e e' : actid) (X X' : t)
+  (STEP : rf_change_step_ G'' sc'' w r X X')
+  (WF : Wf (G X))
+  (RMW : rmw (G X) e e')
+  (E_SAVED : acts_set G'' e):
+  rmw G'' e e'.
+Proof using.
+  apply (sub_rmw (rfc_sub STEP)).
+  apply wf_rmwE in RMW; eauto using rfc_imG_wf.
+  unfolder in RMW.
+  destruct RMW as (DOML & RMW & DOMR).
+  unfolder. splits; auto.
+  apply (rfc_acts STEP).
+  unfolder. splits; auto.
+  unfold rfc_remove_events. unfolder.
+  intros (x & z & [EQ1 EQ2] & REL). subst x z.
+  apply (rfc_acts STEP) in E_SAVED.
+  destruct E_SAVED as [_ NOT_REMOVED].
+  unfold rfc_remove_events in NOT_REMOVED. unfolder in NOT_REMOVED.
+  apply NOT_REMOVED. do 2 exists r. splits; auto. clear NOT_REMOVED.
+ (* immediate set of a union *)
+ (* r <> e? *)
+ (* We seem to be stuck due to the same po-rf problem *)
+  admit.
+Admitted.
+
+Lemma rfc_endG_preserve_r (r w : actid) (G : execution) (e : actid)
   : is_r (lab (rfc_endG r w G)) e = is_r (lab G) e.
 Proof using.
   unfold rfc_endG, upd_rval, is_r in *; ins.
@@ -341,7 +368,7 @@ Proof using.
   destruct (lab G r); auto.
 Qed.
 
-Lemma rfc_preserve_w (r w : actid) (G : execution) (e : actid)
+Lemma rfc_endG_preserve_w (r w : actid) (G : execution) (e : actid)
   : is_w (lab (rfc_endG r w G)) e = is_w (lab G) e.
 Proof using.
   unfold rfc_endG, upd_rval, is_w in *; ins.
@@ -352,7 +379,7 @@ Proof using.
   destruct (lab G r); auto.
 Qed.
 
-Lemma rfc_preserve_f (r w : actid) (G : execution) (e : actid)
+Lemma rfc_endG_preserve_f (r w : actid) (G : execution) (e : actid)
   : is_f (lab (rfc_endG r w G)) e = is_f (lab G) e.
 Proof using.
   unfold rfc_endG, upd_rval, is_f in *; ins.
@@ -363,28 +390,28 @@ Proof using.
   destruct (lab G r); auto.
 Qed.
 
-Lemma rfc_same_r (r w : actid) (G : execution)
+Lemma rfc_endG_r_eq (r w : actid) (G : execution)
   : is_r (lab (rfc_endG r w G)) ≡₁ is_r (lab G).
 Proof using.
   unfolder; splits; intros.
-  all: now rewrite ?rfc_preserve_r in *.
+  all: now rewrite ?rfc_endG_preserve_r in *.
 Qed.
 
-Lemma rfc_same_w (r w : actid) (G : execution)
+Lemma rfc_endG_w_eq (r w : actid) (G : execution)
   : is_w (lab (rfc_endG r w G)) ≡₁ is_w (lab G).
 Proof using.
   unfolder; splits; intros.
-  all: now rewrite ?rfc_preserve_w in *.
+  all: now rewrite ?rfc_endG_preserve_w in *.
 Qed.
 
-Lemma rfc_same_f (r w : actid) (G : execution)
+Lemma rfc_endG_f_eq (r w : actid) (G : execution)
   : is_f (lab (rfc_endG r w G)) ≡₁ is_f (lab G).
 Proof using.
   unfolder; splits; intros.
-  all: now rewrite ?rfc_preserve_f in *.
+  all: now rewrite ?rfc_endG_preserve_f in *.
 Qed.
 
-Lemma rfc_preserve_loc (e : actid) (r w : actid) (G : execution)
+Lemma rfc_endG_preserve_loc (e : actid) (r w : actid) (G : execution)
   : loc (lab (rfc_endG r w G)) e = loc (lab G) e.
 Proof using.
   unfold rfc_endG, upd_rval, loc. simpl.
@@ -399,7 +426,7 @@ Lemma rfc_endG_same_loc_eq (r w : actid) (G : execution)
   : same_loc (lab (rfc_endG r w G)) ≡ same_loc (lab G).
 Proof using.
   unfold same_loc; unfolder; splits; intros.
-  all: now rewrite ?rfc_preserve_loc in *.
+  all: now rewrite ?rfc_endG_preserve_loc in *.
 Qed.
 
 Lemma rfc_endG_eqE (r w : actid) (G : execution)
@@ -409,7 +436,7 @@ Proof using.
   easy.
 Qed.
 
-Lemma rfc_preserve_rex (e : actid) (r w : actid) (G : execution)
+Lemma rfc_endG_eqRex_bool (e : actid) (r w : actid) (G : execution)
   : R_ex (lab (rfc_endG r w G)) e = R_ex (lab G) e.
 Proof using.
   unfold rfc_endG, upd_rval, R_ex. simpl.
@@ -420,11 +447,11 @@ Proof using.
   destruct (lab G r); auto.
 Qed.
 
-Lemma rfc_same_rex (r w : actid) (G : execution)
+Lemma rfc_endG_eqRex (r w : actid) (G : execution)
   : R_ex (lab (rfc_endG r w G)) ≡₁ R_ex (lab G).
 Proof using.
   unfolder; splits; intros.
-  all: now rewrite ?rfc_preserve_rex in *.
+  all: now rewrite ?rfc_endG_eqRex_bool in *.
 Qed.
 
 Lemma update_rf_ineq_l (r x y : actid) (G : execution)
@@ -455,7 +482,7 @@ Lemma rfc_endG_wf (r w : actid) (G : execution) (WF : Wf G)
 Proof using.
   assert (SUB : rf G \ edges_to r ⊆ rf G) by basic_solver.
   constructor; try now apply WF.
-  all: rewrite ?rfc_same_r, ?rfc_same_w, ?rfc_same_f, ?rfc_same_rex.
+  all: rewrite ?rfc_endG_r_eq, ?rfc_endG_w_eq, ?rfc_endG_f_eq, ?rfc_endG_eqRex.
   all: rewrite ?rfc_endG_same_loc_eq, ?rfc_endG_eqE.
   all: try solve [unfold rfc_endG; simpl; now apply WF].
 
@@ -490,16 +517,16 @@ Proof using.
     unfolder; intros e [y [RF F]] [y' [EQ1 EQ2]]; subst.
     apply F; eauto. }
   { intro ol.
-    rewrite rfc_same_w, rfc_endG_eqE.
+    rewrite rfc_endG_w_eq, rfc_endG_eqE.
     enough (HEQ :
       (fun x : actid => loc _ x = ol) ≡₁
       (fun x : actid => loc _ x = ol)
     ) by (rewrite HEQ; unfold rfc_endG; simpl; apply WF).
     unfold same_loc; unfolder; splits; intros.
-    all: now rewrite ?rfc_preserve_loc in *. }
+    all: now rewrite ?rfc_endG_preserve_loc in *. }
   { intros l [e [INACT LOC]].
     apply rfc_endG_eqE in INACT.
-    rewrite rfc_preserve_loc in LOC.
+    rewrite rfc_endG_preserve_loc in LOC.
     apply WF; eauto. }
   unfold rfc_endG; simpl. intros l.
   enough (HNEQ: InitEvent l <> r) by (rewrite updo; apply WF || auto).
@@ -509,13 +536,13 @@ Qed.
 Lemma rf_change_step_wf w r (X X' : t)
   (WF : wf X) (STEP : rf_change_step w r X X')
   : wf X'.
-Proof.
+Proof using.
   unfold rf_change_step in STEP. destruct STEP as (G'' & sc & CONDS).
   desc. constructor.
   { erewrite rfc_G by eassumption.
     apply rfc_endG_wf.
     all: try now (erewrite sub_lab; apply RFC).
-    { eapply rf_change_step_imG_wf; eauto.
+    { eapply rfc_imG_wf; eauto.
       apply WF. }
     { eapply rfc_acts; eauto. unfolder; splits.
       { eapply rfc_act_w; eauto. }
@@ -524,7 +551,20 @@ Proof.
     eapply rfc_acts; eauto. unfolder; splits.
     { eapply rfc_act_r; eauto. }
     admit. }
-  { (* TODO: we do not change rmw of (G X), so this should be easy *)
+  { rewrite (rfc_G RFC), CONTINUATION.
+    intros e INIT ACT NRMW.
+    apply rfc_endG_eqE in ACT.
+    unfold rfc_endG in NRMW; simpl in NRMW.
+    unfold rfc_new_cont.
+    edestruct (excluded_middle_informative _).
+    { exfalso.
+      apply (rfc_acts RFC) in ACT.
+      now apply ACT. }
+    apply set_subset_eq with (P := set_compl _) (a := e) in NRMW.
+    rewrite (sub_rmw (rfc_sub RFC)) in NRMW.
+    rewrite dom_eqv1, set_compl_inter in NRMW.
+    destruct (NRMW e) as [MEM | DOM]; try (auto || basic_solver).
+    (* NOW prove that the right half of RMW didn't get cut *)
     admit. }
   { intros tid HTHREAD.
     rewrite CONTINUATION. unfold rfc_new_cont.

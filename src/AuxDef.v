@@ -60,3 +60,18 @@ Proof using.
   apply in_filter_iff.
   splits; try apply HH; basic_solver.
 Qed.
+
+Lemma immediate_total {A} (x y z : A) (s : A -> Prop) (r : relation A)
+  (X : s x)
+  (Y : s y)
+  (Z : s z)
+  (TOTAL : is_total s r)
+  (FIRST : r x z)
+  (IMM : immediate r y z)
+  (NEQ : x <> y) :
+  r x y.
+Proof using.
+  unfolder in IMM. desc.
+  destruct (TOTAL x X y Y NEQ).
+  all: auto || exfalso; eauto.
+Qed.
