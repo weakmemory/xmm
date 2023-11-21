@@ -1,4 +1,5 @@
 Require Import Lia Setoid Program.Basics.
+Require Import AuxDef.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -16,39 +17,9 @@ Import ListNotations.
 
 Set Implicit Arguments.
 
-(* TODO: move to HahnExt/SetSize.v *)
-Lemma set_size_inf_minus_finite {A} (s s' : A -> Prop)
-    (INF : set_size s = NOinfinity)
-    (FIN : set_finite s') :
-  set_size (s \₁ s') = NOinfinity.
-Proof using.
-  unfold set_size in *. desf.
-  exfalso.
-  destruct s0 as [l HH].
-  destruct FIN as [l' AA].
-  apply n. exists (l ++ l'). ins.
-  destruct (classic (s' x)) as [IN'|NIN].
-  { apply in_app_r. now apply AA. }
-  apply in_app_l. apply HH.
-  red. auto.
-Qed.
-
-(* TODO: move to HahnExt/SetSize.v *)
-Lemma set_finite_singl {A} (a : A) : set_finite (eq a).
-Proof using. exists [a]. ins. auto. Qed.
-
-(* TODO: move to HahnExt/SetSize.v *)
-Lemma set_size_inf_minus_singl {A} (s : A -> Prop) (a : A)
-    (INF : set_size s = NOinfinity) :
-  set_size (s \₁ eq a) = NOinfinity.
-Proof using.
-  apply set_size_inf_minus_finite; auto.
-  apply set_finite_singl.
-Qed.
-
-
 (* TODO: move *)
 Definition edges_to {A} (e : A) := (fun _ _ => True) ⨾ ⦗eq e⦘.
+Hint Unfold edges_to : unfolderDb.
 
 #[export] Instance eta_execution : Settable _ :=
   settable! Build_execution
@@ -206,36 +177,6 @@ Definition add_step_
 
 Definition add_step (X X' : t) : Prop := exists e e', add_step_ e e' X X'.
 
-Lemma add_step_same_committed (X X' : t) (STEP : add_step X X') : committed X' ≡₁ committed X.
-Proof using.
-  do 2 (red in STEP; desf).
-  unfold committed. now rewrite COMMITENTR.
-Qed.
-
-Lemma add_step_wf (X X' : t) (WF : wf X) (STEP : add_step X X') : wf X'.
-Proof using.
-  unfold add_step, add_step_, add_step_exec in *.
-  desf; constructor; auto; intros.
-  all: rewrite ?CONT', ?COMMITENTR, ?NCOMMITIDS; auto; try apply WF.
-  all: try now apply NCOMMITIDS.
-  all: try now apply NCOMMITIDS; rewrite COMMITENTR in CIN;
-               apply WF.
-  all: try now rewrite updo by congruence;
-               apply WF; apply THREADS.
-
-  all: apply set_subset_eq with (P := set_compl _) (a := e) in NRMW.
-  all: rewrite RMW', dom_union, set_compl_union in NRMW.
-  all: apply EVENTS in IN; unfolder in IN; desf; ins.
-  all: try now rewrite upds.
-  2: { exfalso. eapply NRMW; eauto.
-       clear. basic_solver. }
-  all: rewrite updo.
-  all: try now apply WF; auto; apply NRMW.
-  all: injection as Heq; subst.
-  all: eapply EVENT; eauto.
-  all: clear; basic_solver.
-Qed.
-
 (* TODO make into definition? *)
 Record commit_step
            (cid : Commit.id)
@@ -249,31 +190,24 @@ Record commit_step
     cmt_centries : commit_entries X' = upd (commit_entries X) cid (Some (Commit.InExec e));
   }.
 
-Lemma commit_step_wf (X X' : t) (WF: wf X)
-                (cid : Commit.id) (e : actid)
-                (STEP: commit_step cid e X X'): wf X'.
-Proof using.
-  desf; constructor; intros.
-  all: rewrite ?(cmt_K STEP).
-  all: try (apply WF; erewrite <- ?cmt_G by eassumption; auto).
+Definition upd_rval (l : label) (new_val : option value) :=
+  match l with
+  | Aload rmw mode loc old => Aload rmw mode loc (opt_ext old new_val)
+  | _ => l
+  end.
 
-  { rewrite (cmt_G STEP).
-    now apply WF. }
-  { rewrite (cmt_noncid STEP).
-    apply set_size_inf_minus_singl.
-    apply WF. }
-  { apply (cmt_noncid STEP) in NCI.
-    rewrite (cmt_centries STEP), updo; [apply WF | symmetry].
-    all: apply NCI. }
-  assert (AA : cid0 <> cid).
-  { intro F. now rewrite F, (cmt_centries STEP), upds in CIN. }
-  rewrite (cmt_centries STEP), updo in CIN by auto.
-  apply WF in CIN. apply (cmt_noncid STEP). basic_solver.
-Qed.
+Definition rfc_endG (r w : actid) (G : execution) :=
+    set lab (fun lab'' => upd lab'' r (upd_rval (lab'' r) (val lab'' w)))
+    (set rf (fun rf'' => (rf'' \ (edges_to r)) ∪ singl_rel w r) G).
+
+Definition rfc_remove_events (r : actid) (G : execution) : actid -> Prop :=
+  codom_rel (⦗eq r⦘⨾ (sb G ∪ rf G)⁺).
 
 Record rf_change_step_ G'' sc'' (w r : actid) (X X' : t) :=
   { rfc_r        : is_r (lab (G X)) r;
     rfc_w        : is_w (lab (G X)) w;
+    rfc_act_r    : acts_set (G X) r;
+    rfc_act_w    : acts_set (G X) w;
     rfc_same_loc : same_loc (lab (G X)) w r;
     rfc_race      : (race (G X) ∪ hb (G X)) w r;
 
@@ -281,19 +215,37 @@ Record rf_change_step_ G'' sc'' (w r : actid) (X X' : t) :=
     rfc_hbcom : dom_rel (hb_alt (G X) ⨾ ⦗eq r⦘) ⊆₁ committed_actid_set X;
 
     rfc_sub      : sub_execution (G X) G'' (sc X) sc'';
-    rfc_acts     : acts_set G'' ≡₁ acts_set (G X) \₁ codom_rel (⦗eq r⦘⨾ (sb (G X) ∪ rf (G X))⁺);
-    rfc_G        :  G  X' =
-                       set lab (fun lab'' => lab'') (* TODO: fix new lab *)
-                       (set rf (fun rf'' => (rf'' \ (edges_to r)) ∪ singl_rel w r) G'');
+    rfc_acts     : acts_set G'' ≡₁ acts_set (G X) \₁ rfc_remove_events r (G X);
+    rfc_G        :  G  X' = rfc_endG r w G'';
     rfc_sc       : sc X' = sc'';
   }.
 (* TODO: add lemmas on *)
+
+(* TODO: how to update function with a set  *)
+
+Definition removed_commit_ids (r : actid) (X : t) : Commit.id -> Prop :=
+  commit_entries X ↓₁
+  ((fun e => Some (Commit.InExec e)) ↑₁ rfc_remove_events r (G X)).
+
+Definition rfc_new_commit_entries (r : actid) (X : t) (cid : Commit.id) : option Commit.entry :=
+  ifP removed_commit_ids r X cid then None
+  else commit_entries X cid.
+
+Definition rfc_new_cont (r : actid) (X : t) (clab : cont_label) : option {lang : Language.t (list label) & Language.state lang} :=
+  match clab with
+  | CInit tid => cont X clab
+  | CEvent e => ifP rfc_remove_events r (G X) e then None else cont X clab
+  end.
 
 Definition rf_change_step
            (w    : actid)
            (r    : actid)
            (X X' : t) : Prop :=
-  exists G'' sc'', rf_change_step_ G'' sc'' w r X X'.
+  exists G'' sc'',
+    ⟪ RFC : rf_change_step_ G'' sc'' w r X X' ⟫ /\
+    ⟪ NCOMMITIDS : non_commit_ids X' ≡₁ non_commit_ids X ∪₁ removed_commit_ids r X ⟫ /\
+    ⟪ COMMIT_ENTRIES : commit_entries X' = rfc_new_commit_entries r X ⟫ /\
+    ⟪ CONTINUATION : cont X' = rfc_new_cont r X ⟫.
 
 Definition reexec_step
            (w    : actid)
@@ -303,19 +255,6 @@ Definition reexec_step
     ⟪ DROP : rf_change_step w r X X'' ⟫ /\
     ⟪ COMMITTED : committed X' ≡₁ committed X ⟫ /\
     ⟪ RESTORE : add_step＊  X'' X' ⟫.
-
-Lemma reexec_step_wf w r (X X' : t)
-  (WF : wf X) (STEP : reexec_step w r X X') : wf X'.
-Proof using.
-  cdes STEP.
-  assert (WF'' : wf X'').
-  { (* TODO: make a lemma that rf_change_step preserves wf *)
-    admit. }
-  (* clos_refl_trans
-     clos_refl_trans_1n
-     clos_refl_trans_n1 *)
-  admit.
-Admitted.
 
 End WCoreSteps.
 
