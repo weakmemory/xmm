@@ -62,30 +62,36 @@ Definition hb_alt := (ppo_alt ∪ rf)⁺.
 End Race.
 
 Module Commit.
-Definition id := nat.
+Definition id := nat. 
 
-Inductive entry :=
-| InExec (e : actid)
-| ToRestore (l : label)
-.
+Record graph := {
+    commit_ids : id -> Prop; 
+    sb : relation id; 
+    rf : relation id; 
+    lab : id -> label;
+}.
+
 End Commit.
 
 Module WCore.
 
 Record t := {
-    G : execution;
+    G : execution; 
+    GC : Commit.graph;
     sc : relation actid;
     cont : cont_label ->
             option { lang : Language.t (list label) &
                             (Language.state lang) };
-
-    commit_entries : Commit.id -> option Commit.entry;
+    commit_entries : Commit.id -> option actid;
     non_commit_ids : Commit.id -> Prop;
 }.
 
 Section WCoreDefs.
 Variable (X : t).
-Notation "'G'" := (G X).
+Notation "'G'" := (G X). 
+Notation "'GC'" := (GC X). 
+Notation "'sbc'" := Commit.sb.  
+Notation "'rfc'" := Commit.rf.  
 Notation "'E'" := (acts_set G).
 Notation "'lab'" := (lab G).
 Notation "'same_loc'" := (same_loc lab).
@@ -111,12 +117,24 @@ Record wf := {
 
     non_commit_ids_inf : set_size non_commit_ids = NOinfinity;
     non_commit_ids_no_entry : forall cid (NCI : non_commit_ids cid),
-        commit_entries cid = None;
-    no_entry_non_commit_ids : forall cid (CIN : commit_entries cid = None),
-        non_commit_ids cid;
+        commit_entries cid = None; 
+    entry_commit_ids : forall cid (ENTRY : is_some (commit_entries cid)),
+        Commit.commit_ids GC cid;
+    
+    commit_sb : forall a b ea eb (ENTRY_A : commit_entries a = Some ea)
+                                 (ENTRY_B : commit_entries b = Some eb),
+        sbc GC a b <-> sb G ea eb;
+    commit_rf : forall a b ea eb (ENTRY_A : commit_entries a = Some ea)
+                                 (ENTRY_B : commit_entries b = Some eb),
+        rf ea eb -> rfc GC a b; 
+    (* commit_no_w_r : forall r (NO_WRITE : (E \₁ codom_rel rf) r), 
+        is_some (commit_entries r); *)
+
+    lab_coh : forall c e (ENTRY : commit_entries c = Some e),
+        lab e = Commit.lab GC c;
 }.
 
-Definition committed_actid_set :=
+(* Definition committed_actid_set :=
     (fun e => exists cid,
                 match commit_entries cid with
                 | Some (Commit.InExec e') => e = e'
@@ -128,7 +146,7 @@ Record consistency := {
     hb_eco_irr     : irreflexive (hb ⨾ eco^?);
     weak_atomicity : restr_rel (E_C ∩₁ dom_rel rmw) (rf⁻¹ ⨾ rf) ⊆ ∅₂;
     (* psc_ac : acyclic (psc G); *)
-}.
+}. *)
 End WCoreDefs.
 
 Section WCoreSteps.
@@ -188,6 +206,8 @@ Record commit_step
     cmt_cid      : non_commit_ids X cid;
     cmt_noncid   : non_commit_ids X' ≡₁ non_commit_ids X \₁ (eq cid);
     cmt_centries : commit_entries X' = upd (commit_entries X) cid (Some (Commit.InExec e));
+
+
   }.
 
 Definition upd_rval (l : label) (new_val : option value) :=
