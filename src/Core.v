@@ -149,7 +149,7 @@ Record consistency := {
 }. *)
 End WCoreDefs.
 
-Section WCoreSteps.
+Section WCoreSteps. 
 
 Definition add_step_exec
            (lang : Language.t (list label))
@@ -179,18 +179,33 @@ Definition add_step_exec
     ⟪ LAB'    : lab G' = upd_opt (upd (lab G) e lbl ) e' lbl' ⟫ /\
     ⟪ RF'     : rf G ⊆ rf G' ⟫ /\
     ⟪ CO'     : co G ⊆ co G' ⟫ /\
-    ⟪ RMW'    : rmw G' ≡ rmw G ∪ rmw_delta e e' ⟫.
+    ⟪ RMW'    : rmw G' ≡ rmw G ∪ rmw_delta e e' ⟫.  
+
+Print set_collect.
+
+Definition correct_cid 
+            (G : execution) 
+            (GC : Commit.graph) 
+            (commit_entries : Commit.id -> option actid)  
+            (e : actid) 
+            (c : Commit.id) : Prop := 
+  ⟪ CID     : (Commit.commit_ids GC) c ⟫ /\ 
+  ⟪ LABS    : (Commit.lab GC) c = (lab G) e ⟫ /\ 
+  ⟪ SB_PRE_G     : Some ↓₁ (commit_entries ↑₁ dom_rel (Commit.sb GC ⨾ ⦗eq c⦘)) ⊆₁ acts_set G⟫ /\ 
+  ⟪ RF_G    : forall c_w e_w (RF : Commit.rf GC c_w c) (EQ : commit_entries c_w = Some e_w) , dom_rel (rf G ⨾ ⦗eq e⦘) e_w ⟫.
+
 
 (* NOTE: merge this definition with add_step_exec? Or move parts of add_step_exec here? *)
 Definition add_step_
-           (e  : actid)
+           (e  : actid) 
            (e' : option actid)
            (X X' : t) : Prop :=
-  exists lang k k' st st',
+  exists lang k k' st st' c,
     ⟪ CONT    : cont X k = Some (existT _ lang st) ⟫ /\
     ⟪ CONT'   : cont X' = upd (cont X) k' (Some (existT _ lang st')) ⟫ /\
     ⟪ NCOMMITIDS : non_commit_ids X' ≡₁ non_commit_ids X ⟫ /\
-    ⟪ COMMITENTR : commit_entries X' =  commit_entries X ⟫ /\
+    ⟪ COMMIT_ENTRY : commit_entries X' = upd (commit_entries X) c (Some e) ⟫ /\ 
+    ⟪ CORRECT_CID : correct_cid (G X) (GC X) (commit_entries X) e c ⟫ /\
     add_step_exec lang k k' st st' e e' (G X) (G X').
 
 Definition add_step (X X' : t) : Prop := exists e e', add_step_ e e' X X'.
