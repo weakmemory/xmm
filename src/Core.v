@@ -61,38 +61,59 @@ Definition ppo_alt := (sb ∩ same_loc ∪ bob)⁺.
 Definition hb_alt := (ppo_alt ∪ rf)⁺.
 End Race.
 
-Module Commit.
-Definition id := nat. 
+(* Module Commit.
+Definition id := nat.
 
 Record graph := {
-    commit_ids : id -> Prop; 
-    sb : relation id; 
-    rf : relation id; 
+    commit_ids : id -> Prop;
+    sb : relation id;
+    rf : relation id;
     lab : id -> label;
 }.
 
-End Commit.
+End Commit. *)
 
 Module WCore.
 
+(*
+  The following relations must be empty for GC
+  - data
+  - addr
+  - ctrl
+  - rmw_dep
+  - co
+*)
+Record gc_restr (GC : execution) := {
+  gc_wf : Wf GC;
+  empty_data : data GC ≡ ∅₂;
+  empty_addr : addr GC ≡ ∅₂;
+  empty_ctrl : ctrl GC ≡ ∅₂;
+  empty_co : co GC ≡ ∅₂;
+  empty_rmw_dep : rmw_dep GC ≡ ∅₂;
+}.
+
 Record t := {
-    G : execution; 
-    GC : Commit.graph;
+    G : execution;
+    GC : execution;
+    GC_COH : gc_restr GC;
     sc : relation actid;
     cont : cont_label ->
             option { lang : Language.t (list label) &
                             (Language.state lang) };
-    commit_entries : Commit.id -> option actid;
-    non_commit_ids : Commit.id -> Prop;
+    commit_entries : actid -> option actid;
+    non_commit_ids : actid -> Prop;
 }.
 
 Section WCoreDefs.
 Variable (X : t).
-Notation "'G'" := (G X). 
-Notation "'GC'" := (GC X). 
-Notation "'sbc'" := Commit.sb.  
-Notation "'rfc'" := Commit.rf.  
+Notation "'G'" := (G X).
+Notation "'GC'" := (GC X).
+Notation "'sbc'" := (sb GC).
+Notation "'sb'" := (sb G).
+Notation "'rfc'" := (rf GC).
+Notation "'labc'" := (lab GC).
 Notation "'E'" := (acts_set G).
+Notation "'EC'" := (acts_set GC).
 Notation "'lab'" := (lab G).
 Notation "'same_loc'" := (same_loc lab).
 Notation "'mod'" := (mod lab).
@@ -105,34 +126,51 @@ Notation "'commit_entries'" := (commit_entries X).
 Notation "'non_commit_ids'" := (non_commit_ids X).
 Notation "'threads_set'" := (threads_set G).
 
-Definition committed : Commit.id -> Prop :=
+Definition mapped_cids : actid -> Prop :=
     fun cid => is_some (commit_entries cid).
 
+Definition pmap_rel (r : relation actid) : relation actid :=
+    Some ↓ (commit_entries ↑ r).
+
+Definition committed : actid -> Prop :=
+    Some ↓₁ (commit_entries ↑₁ E).
+
 Record wf := {
-    wf_G : Wf G;
-    cont_defined : forall e (NINIT : ~ is_init e) (IN : E e) (NRMW : ~ dom_rel rmw e),
+  wf_G : Wf G;
+  wf_GC : Wf GC;
+  cont_defined : forall e (NINIT : ~ is_init e) (IN : E e) (NRMW : ~ dom_rel rmw e),
     is_some (cont X (CEvent e));
-    cont_init : forall tid (IN : threads_set tid), is_some (cont X (CInit tid));
-    (* TODO: add property stating existence of continuation for some threads *)
+  cont_init : forall tid (IN : threads_set tid), is_some (cont X (CInit tid));
 
-    non_commit_ids_inf : set_size non_commit_ids = NOinfinity;
-    non_commit_ids_no_entry : forall cid (NCI : non_commit_ids cid),
-        commit_entries cid = None; 
-    entry_commit_ids : forall cid (ENTRY : is_some (commit_entries cid)),
-        Commit.commit_ids GC cid;
-    
-    commit_sb : forall a b ea eb (ENTRY_A : commit_entries a = Some ea)
-                                 (ENTRY_B : commit_entries b = Some eb),
-        sbc GC a b <-> sb G ea eb;
-    commit_rf : forall a b ea eb (ENTRY_A : commit_entries a = Some ea)
-                                 (ENTRY_B : commit_entries b = Some eb),
-        rf ea eb -> rfc GC a b; 
-    (* commit_no_w_r : forall r (NO_WRITE : (E \₁ codom_rel rf) r), 
-        is_some (commit_entries r); *)
+  non_commit_ids_inf : set_size non_commit_ids = NOinfinity;
+  non_commit_ids_no_entry : non_commit_ids ⊆₁ (fun cid => commit_entries cid = None);
 
-    lab_coh : forall c e (ENTRY : commit_entries c = Some e),
-        lab e = Commit.lab GC c;
+  commit_sb : pmap_rel sbc ⊆ sb;
+  commit_rf : pmap_rel rfc ⊆ rf;
+
+  lab_coh : forall c e (ENTRY : commit_entries c = Some e), lab e = labc c;
 }.
+
+Lemma commit_sb_eq : pmap_rel sbc ≡ sb.
+Proof using.
+  admit.
+Admitted.
+
+Lemma entry_commited  : committed ⊆₁ E.
+Proof using.
+  admit.
+Admitted.
+
+(* Record strong_wf := {
+  weak_wf : wf;
+  entry_commit_ids : mapped_cids ≡₁ EC;
+}. *)
+
+Definition correct_cid (e : actid) (c : actid) : Prop :=
+  ⟪ CID       : EC c ⟫ /\
+  ⟪ LABS      : labc c = lab e ⟫ /\
+  ⟪ SB_PRE_G  : dom_rel (pmap_rel (sbc ⨾ ⦗eq c⦘)) ⊆₁ E ⟫ /\
+  ⟪ RF_G      : dom_rel (pmap_rel (rfc ⨾ ⦗eq c⦘)) ⊆₁ E ⟫.
 
 (* Definition committed_actid_set :=
     (fun e => exists cid,
@@ -140,7 +178,6 @@ Record wf := {
                 | Some (Commit.InExec e') => e = e'
                 | _ => False
                 end).
-Notation "'E_C'" := (E ∩₁ committed_actid_set).
 
 Record consistency := {
     hb_eco_irr     : irreflexive (hb ⨾ eco^?);
@@ -149,8 +186,9 @@ Record consistency := {
 }. *)
 End WCoreDefs.
 
-Section WCoreSteps. 
+Section WCoreSteps.
 
+(* TODO: check if this satisfies the delta-mo condition (generate lemmas for that and others) *)
 Definition add_step_exec
            (lang : Language.t (list label))
            (k k' : cont_label)
@@ -179,64 +217,41 @@ Definition add_step_exec
     ⟪ LAB'    : lab G' = upd_opt (upd (lab G) e lbl ) e' lbl' ⟫ /\
     ⟪ RF'     : rf G ⊆ rf G' ⟫ /\
     ⟪ CO'     : co G ⊆ co G' ⟫ /\
-    ⟪ RMW'    : rmw G' ≡ rmw G ∪ rmw_delta e e' ⟫.  
-
-Print set_collect.
-
-Definition correct_cid 
-            (G : execution) 
-            (GC : Commit.graph) 
-            (commit_entries : Commit.id -> option actid)  
-            (e : actid) 
-            (c : Commit.id) : Prop := 
-  ⟪ CID     : (Commit.commit_ids GC) c ⟫ /\ 
-  ⟪ LABS    : (Commit.lab GC) c = (lab G) e ⟫ /\ 
-  ⟪ SB_PRE_G     : Some ↓₁ (commit_entries ↑₁ dom_rel (Commit.sb GC ⨾ ⦗eq c⦘)) ⊆₁ acts_set G⟫ /\ 
-  ⟪ RF_G    : forall c_w e_w (RF : Commit.rf GC c_w c) (EQ : commit_entries c_w = Some e_w) , dom_rel (rf G ⨾ ⦗eq e⦘) e_w ⟫.
+    ⟪ RMW'    : rmw G' ≡ rmw G ∪ rmw_delta e e' ⟫.
 
 
-(* NOTE: merge this definition with add_step_exec? Or move parts of add_step_exec here? *)
 Definition add_step_
-           (e  : actid) 
+           (e  : actid)
            (e' : option actid)
            (X X' : t) : Prop :=
   exists lang k k' st st' c,
     ⟪ CONT    : cont X k = Some (existT _ lang st) ⟫ /\
     ⟪ CONT'   : cont X' = upd (cont X) k' (Some (existT _ lang st')) ⟫ /\
     ⟪ NCOMMITIDS : non_commit_ids X' ≡₁ non_commit_ids X ⟫ /\
-    ⟪ COMMIT_ENTRY : commit_entries X' = upd (commit_entries X) c (Some e) ⟫ /\ 
-    ⟪ CORRECT_CID : correct_cid (G X) (GC X) (commit_entries X) e c ⟫ /\
+    ⟪ COMMIT_ENTRY : commit_entries X' = upd (commit_entries X) c (Some e) ⟫ /\
+    ⟪ CORRECT_CID : correct_cid X e c ⟫ /\
     add_step_exec lang k k' st st' e e' (G X) (G X').
 
 Definition add_step (X X' : t) : Prop := exists e e', add_step_ e e' X X'.
 
-(* TODO make into definition? *)
-Record commit_step
-           (cid : Commit.id)
-           (e  : actid)
-           (X X' : t) : Prop :=
-  { cmt_G : G X' = G X;
-    cmt_K : cont X' = cont X;
+(* Definition pmap_inv {A B : Type} (s : A -> Prop) (f : A -> option B) : B -> Prop :=
+    Some ↓₁ (f ↑₁ s).
+Definition add_rc G GC rf_new f :=
+  let RC r rc := codom_rel rf_new r /\ lab G r = lab GC rc in
+  let po1 x y := in
+  ⟪ CMTIDS    : acts_set GC \₁ pmap_inv (dom_rel RC f)  ∪₁ codom_rel RC ⟫ /\
+  ⟪ CMTIDS.
 
-    cmt_cid      : non_commit_ids X cid;
-    cmt_noncid   : non_commit_ids X' ≡₁ non_commit_ids X \₁ (eq cid);
-    cmt_centries : commit_entries X' = upd (commit_entries X) cid (Some (Commit.InExec e));
+Record reexec_step_ rf_new (X X'' X' : t) :=
+  { (* The set of reconsidered reads *)
+    rf_new_racy : rf_new ⊆ race (G X);
+    rf_new_codom : codom_rel rf_new ⊆₁ acts_set (G X);
 
-
+    (* The intermediate execution *)
+    intg_acts : acts_set (G X'') ≡₁ acts_set (G X) \₁ codom_rel (⦗codom_rel rf_new⦘ ⨾ clos_refl_trans (sb (G X) ∪ rf (G X)));
+    intg_subexec : sub_execution (G X) (G X'') (sc X) (sc X'');
+    intg_cmd_acts : dom_rel (hb_alt (G X) ⨾ ⦗codom_rel rf_new⦘) ⊆₁ acts_set (GC X);
   }.
-
-Definition upd_rval (l : label) (new_val : option value) :=
-  match l with
-  | Aload rmw mode loc old => Aload rmw mode loc (opt_ext old new_val)
-  | _ => l
-  end.
-
-Definition rfc_endG (r w : actid) (G : execution) :=
-    set lab (fun lab'' => upd lab'' r (upd_rval (lab'' r) (val lab'' w)))
-    (set rf (fun rf'' => (rf'' \ (edges_to r)) ∪ singl_rel w r) G).
-
-Definition rfc_remove_events (r : actid) (G : execution) : actid -> Prop :=
-  codom_rel (⦗eq r⦘⨾ (sb G ∪ rf G)⁺).
 
 Record rf_change_step_ G'' sc'' (w r : actid) (X X' : t) :=
   { rfc_r        : is_r (lab (G X)) r;
@@ -289,7 +304,7 @@ Definition reexec_step
   exists X'',
     ⟪ DROP : rf_change_step w r X X'' ⟫ /\
     ⟪ COMMITTED : committed X' ≡₁ committed X ⟫ /\
-    ⟪ RESTORE : add_step＊  X'' X' ⟫.
+    ⟪ RESTORE : add_step＊  X'' X' ⟫. *)
 
 End WCoreSteps.
 
