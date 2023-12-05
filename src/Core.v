@@ -225,11 +225,12 @@ Definition add_step_
            (e' : option actid)
            (X X' : t) : Prop :=
   exists lang k k' st st' c,
+    ⟪ COMMIT  : GC X' = GC X ⟫ /\
     ⟪ CONT    : cont X k = Some (existT _ lang st) ⟫ /\
     ⟪ CONT'   : cont X' = upd (cont X) k' (Some (existT _ lang st')) ⟫ /\
     ⟪ NCOMMITIDS : non_commit_ids X' ≡₁ non_commit_ids X ⟫ /\
-    ⟪ COMMIT_ENTRY : commit_entries X' = upd (commit_entries X) c (Some e) ⟫ /\
     ⟪ CORRECT_CID : correct_cid X e c ⟫ /\
+    ⟪ COMMIT_ENTRY : commit_entries X' = upd (commit_entries X) c (Some e) ⟫ /\
     add_step_exec lang k k' st st' e e' (G X) (G X').
 
 Definition add_step (X X' : t) : Prop := exists e e', add_step_ e e' X X'.
