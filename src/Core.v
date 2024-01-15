@@ -310,3 +310,34 @@ Definition reexec_step
 End WCoreSteps.
 
 End WCore.
+
+Section Draft.
+
+Record cfg := {
+  G : execution;
+  GC : execution;
+  C : actid -> Prop;
+  f : actid -> option actid;
+}.
+
+Record cfg_correct (Cfg : cfg) := { 
+  c_subset : Cfg.(C) ⊆₁ acts_set Cfg.(G);
+}.
+
+Definition Wf (Cfg : cfg) : Prop :=
+  let G := Cfg.(G) in
+  let GC := Cfg.(GC) in
+  let C := Cfg.(C) in
+  ⟪ WF_G : Wf G ⟫ /\
+  ⟪ WF_GC : Wf GC ⟫ /\
+  ⟪ F_INJ : inj_dom (fun x => acts_set GC x /\ is_some (f Cfg x)) (f Cfg) ⟫ /\ 
+  ⟪ F_TID : forall c (IN_C : C c), option_map tid (f Cfg c) = Some (tid c) ⟫  /\ 
+  ⟪ F_LAB : forall c (IN_C : C c), option_map (lab G) (f Cfg c) = Some (lab GC c) ⟫ /\
+  ⟪ F_SB : Some ↓ ((f Cfg ) ↑ (⦗C⦘ ⨾ sb GC ⨾ ⦗C⦘)) ⊆ sb G ⟫ /\ 
+  ⟪ F_RF : Some ↓ ((f Cfg ) ↑ (⦗C⦘ ⨾ rf GC ⨾ ⦗C⦘)) ⊆ rf G ⟫ /\ 
+  ⟪ F_RMW : forall r (IS_R : is_r (lab G) r), dom_rel (rf G ⨾ ⦗eq r⦘) ⊆₁ (fun x => is_w (lab G) x) \/ ((f  Cfg) ↑₁ C) (Some r)⟫.
+
+Definition sb_delta (G : execution) (e : actid) : relation actid :=
+  (acts_set G ∩₁ (fun x => tid x = tid e)) × eq e. 
+
+End Draft.
