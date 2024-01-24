@@ -320,7 +320,7 @@ Record cfg := {
   f : actid -> option actid;
 }.
 
-Section DraftDefs.
+Section CoreDefs.
 
 Variable (X : cfg).
 Notation "'G'" := (G X).
@@ -350,9 +350,40 @@ Definition Wf : Prop :=
   ⟪ F_RF : Some ↓ (f ↑ (⦗C⦘ ⨾ rfc ⨾ ⦗C⦘)) ⊆ rf ⟫ /\
   ⟪ F_RMW : forall r (IS_R : R r), dom_rel (rf ⨾ ⦗eq r⦘) ⊆₁ W \/ (f ↑₁ C) (Some r)⟫.
 
-End DraftDefs.
+End CoreDefs.
 
-Definition sb_delta (G : execution) (e : actid) : relation actid :=
-  (acts_set G ∩₁ (fun x => tid x = tid e)) × eq e.
+Section DeltaDefs.
+
+Variable (G : execution).
+Variable (e : actid).
+Notation "'is_w'" := (is_w (lab G)).
+Notation "'is_r'" := (is_r (lab G)).
+Notation "'W'" := is_w.
+Notation "'R'" := is_r.
+Notation "'W_ex'" := (W_ex G).
+
+(* We do not need sb_delta as `sb` has an exact formula *)
+(* Definition sb_delta : relation actid :=
+  (E ∩₁ (fun x => tid x = tid e)) × eq e. *)
+
+Definition rf_delta_R (w : option actid) : relation actid :=
+  match w with
+  | Some w => (eq w) × (eq e) ∩ W × R
+  | _ => ∅₂
+  end.
+
+Definition rf_delta_W (GC : execution) (f' : actid -> option actid) : relation actid :=
+  let Wc := f' ↓₁ (eq (Some e)) in
+  let Rc := codom_rel (⦗Wc⦘ ⨾ (rf GC)) in
+  (eq e) × (Some ↓₁ (f' ↑₁ Rc)).
+
+Definition mo_delta (W1 W2 : actid -> Prop) : relation actid :=
+  if is_w e then ((eq e) × W1) ∪ ((eq e) × W2)
+  else ∅₂.
+
+Definition rmw_delta (r : option actid) : relation actid :=
+  (R ∩₁ (eq_opt r)) × (W_ex ∩₁ (eq e)).
+
+End DeltaDefs.
 
 End Draft.
