@@ -386,4 +386,45 @@ Definition rmw_delta (r : option actid) : relation actid :=
 
 End DeltaDefs.
 
+Section CfgAddEventStep.
+
+Variable (X X' : cfg).
+Notation "'G''" := (G X').
+Notation "'GC''" := (GC X').
+Notation "'C''" := (C X').
+Notation "'f''" := (f X').
+Notation "'E''" := (acts_set G').
+Notation "'lab''" := (lab G').
+
+Notation "'G'" := (G X).
+Notation "'GC'" := (GC X).
+Notation "'C'" := (C X).
+Notation "'f'" := (f X).
+Notation "'E'" := (acts_set G).
+Notation "'lab'" := (lab G).
+
+Record cfg_add_event
+  (e : actid)
+  (l : label)
+  (r w : option actid)
+  (W1 W2 : actid -> Prop)
+  (c : option actid) : Prop :=
+{ e_notin : ~(E e);
+  e_new : E' ≡₁ E ∪₁ (eq e);
+  lab_new : lab' = upd lab e l;
+
+  (* Skipping condition for sb *)
+  rf_new : rf G' ≡ (rf G) ∪ (rf_delta_R G e w) ∪ (rf_delta_W e GC f');
+  mo_new : co G' ≡ (co G) ∪ (mo_delta G e W1 W2);
+  rmw_new : rmw G' ≡ (rmw G) ∪ (rmw_delta G e r);
+
+  f_new : match c with
+          | None => True
+          | Some c => f' = upd f e (Some c)
+          end;
+  wf_new_conf : Wf X';
+}.
+
+End CfgAddEventStep.
+
 End Draft.
