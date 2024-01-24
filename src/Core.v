@@ -337,7 +337,7 @@ Notation "'sb'" := (sb G).
 Notation "'rf'" := (rf G).
 
 Record cfg_correct := {
-  c_subset : C ⊆₁ acts_set G;
+  c_subset : C ⊆₁ acts_set GC;
 }.
 
 Definition Wf : Prop :=
