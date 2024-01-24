@@ -451,7 +451,7 @@ Definition cfg_add_event (e : actid) (l : label) : Prop :=
 
 End CfgAddEventStep.
 
-Section ExecutionSteps.
+Section ExecAdd.
 
 Variable (G G' : execution).
 
@@ -460,6 +460,62 @@ Record exec_inst (e : actid) (l : label) : Prop := {
   is_cons : IsCons G';
 }.
 
-End ExecutionSteps.
+End ExecAdd.
+
+Section ExecRexec.
+
+Variable (G G' : execution).
+Variable (rfre : relation actid).
+
+Notation "'E'" := (acts_set G).
+Notation "'is_w'" := (is_w (lab G)).
+Notation "'is_r'" := (is_r (lab G)).
+Notation "'W'" := is_w.
+Notation "'R'" := is_r.
+Notation "'race'" := (race G).
+Notation "'lab'" := (lab G).
+Notation "'same_loc'" := (same_loc lab).
+Notation "'hb'" := (hb G).
+Notation "'hbloc'" := (same_loc ∩ hb).
+Notation "'re'" := (⦗W⦘ ⨾ (race ∪ hbloc) ⨾ ⦗R⦘).
+Notation "'rf''" := (rf G').
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+
+Notation "'Rre'" := (codom_rel rfre).
+Notation "'Wre'" := (dom_rel rfre).
+Notation "'D'" := (E \₁ codom_rel (⦗Rre⦘ ⨾ (sb ∪ rf)＊)).
+
+Definition silent_cfg_add_step (X X' : cfg) : Prop :=
+  exists e l, cfg_add_event X X' e l.
+Definition f_restr_D (f : actid -> option actid) : (actid -> option actid) :=
+  (restr_fun (Some ↓₁ (f ↑₁ D)) f (fun x => None)).
+
+Record G_restr_D (G G'' : execution) : Prop :=
+  { sub_G : sub_execution G G'' ∅₂ ∅₂;
+    acts_D : acts_set G'' ≡₁ D;
+  }.
+
+Record __reexec
+  (G'' : execution)
+  (f f' : actid -> option actid)
+  (C : actid -> Prop) : Prop :=
+{ rf_sub_re : rfre ⊆ re;
+  rf_sub_f : rfre ⊆ Some ↓ (f ↑ rf');
+  d_wre_sub_f : D ∪₁ Wre ⊆₁ Some ↓₁ (f ↑₁ C);
+
+  cfg_wf : WF (Build_cfg G G' C f);
+  int_G_D : G_restr_D G G'';
+  cfg_steps : silent_cfg_add_step＊
+    (Build_cfg G'' G' C (f_restr_D f))
+    (Build_cfg G' G' C f');
+
+  c_correct : forall c (IN_C : C c), is_some (f c);
+  new_g_cons : IsCons G';
+}.
+
+Definition reexec : Prop := exists G'' f f' C, __reexec G'' f f' C.
+
+End ExecRexec.
 
 End Draft.
