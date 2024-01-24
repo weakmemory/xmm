@@ -340,15 +340,16 @@ Record cfg_correct := {
   c_subset : C ⊆₁ acts_set GC;
 }.
 
-Definition Wf : Prop :=
-  ⟪ WF_G : Wf G ⟫ /\
-  ⟪ WF_GC : Wf GC ⟫ /\
-  ⟪ F_INJ : inj_dom (fun x => acts_set GC x /\ is_some (f x)) f ⟫ /\
-  ⟪ F_TID : forall c (IN_C : C c), option_map tid (f c) = Some (tid c) ⟫  /\
-  ⟪ F_LAB : forall c (IN_C : C c), option_map lab (f c) = Some (labc c) ⟫ /\
-  ⟪ F_SB : Some ↓ (f ↑ (⦗C⦘ ⨾ sbc ⨾ ⦗C⦘)) ⊆ sb ⟫ /\
-  ⟪ F_RF : Some ↓ (f ↑ (⦗C⦘ ⨾ rfc ⨾ ⦗C⦘)) ⊆ rf ⟫ /\
-  ⟪ F_RMW : forall r (IS_R : R r), dom_rel (rf ⨾ ⦗eq r⦘) ⊆₁ W \/ (f ↑₁ C) (Some r)⟫.
+Record WF : Prop := {
+  wf_g : Wf G;
+  wf_gc : Wf GC;
+  f_inj : inj_dom (fun x => acts_set GC x /\ is_some (f x)) f;
+  f_tid : forall c (IN_C : C c), option_map tid (f c) = Some (tid c);
+  f_lab : forall c (IN_C : C c), option_map lab (f c) = Some (labc c);
+  f_sb : Some ↓ (f ↑ (⦗C⦘ ⨾ sbc ⨾ ⦗C⦘)) ⊆ sb;
+  f_rf : Some ↓ (f ↑ (⦗C⦘ ⨾ rfc ⨾ ⦗C⦘)) ⊆ rf;
+  f_rmw : forall r (IS_R : R r), dom_rel (rf ⨾ ⦗eq r⦘) ⊆₁ W \/ (f ↑₁ C) (Some r);
+}.
 
 End CoreDefs.
 
@@ -422,7 +423,7 @@ Record cfg_add_event
           | None => True
           | Some c => f' = upd f e (Some c)
           end;
-  wf_new_conf : Wf X';
+  wf_new_conf : WF X';
 }.
 
 End CfgAddEventStep.
