@@ -404,7 +404,7 @@ Notation "'f'" := (f X).
 Notation "'E'" := (acts_set G).
 Notation "'lab'" := (lab G).
 
-Record cfg_add_event
+Record __cfg_add_event
   (e : actid)
   (l : label)
   (r w : option actid)
@@ -425,6 +425,9 @@ Record cfg_add_event
           end;
   wf_new_conf : WF X';
 }.
+
+Definition cfg_add_event (e : actid) (l : label) : Prop :=
+  exists r w W1 W2 c, __cfg_add_event e l r w W1 W2 c.
 
 End CfgAddEventStep.
 
