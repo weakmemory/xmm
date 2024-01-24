@@ -320,6 +320,26 @@ Record cfg := {
   f : actid -> option actid;
 }.
 
+Definition empty_exec : execution :=
+  Build_execution ∅ ∅ (fun x => Afence Osc) ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂.
+
+Definition empty_cfg (G : execution) : cfg :=
+  Build_cfg G empty_exec ∅ (fun x => None).
+
+#[global]
+Hint Unfold empty_exec empty_cfg : unfolderDb.
+
+Section Consistency.
+
+Variable (G : execution).
+
+Record IsCons : Prop := {
+  (* TODO *)
+  dummy: G = G;
+}.
+
+End Consistency.
+
 Section CoreDefs.
 
 Variable (X : cfg).
@@ -430,5 +450,16 @@ Definition cfg_add_event (e : actid) (l : label) : Prop :=
   exists r w W1 W2 c, __cfg_add_event e l r w W1 W2 c.
 
 End CfgAddEventStep.
+
+Section ExecutionSteps.
+
+Variable (G G' : execution).
+
+Record exec_inst (e : actid) (l : label) : Prop := {
+  cfg_step : cfg_add_event (empty_cfg G) (empty_cfg G') e l;
+  is_cons : IsCons G';
+}.
+
+End ExecutionSteps.
 
 End Draft.
