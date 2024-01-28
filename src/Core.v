@@ -53,7 +53,7 @@ End Race.
 
 Module WCore.
 
-Record cfg := {
+Record t := {
   G : execution;
   GC : execution;
   C : actid -> Prop;
@@ -63,8 +63,8 @@ Record cfg := {
 Definition empty_exec : execution :=
   Build_execution ∅ ∅ (fun x => Afence Osc) ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂.
 
-Definition empty_cfg (G : execution) : cfg :=
-  Build_cfg G empty_exec ∅ (fun x => None).
+Definition empty_cfg (G : execution) : t :=
+  Build_t G empty_exec ∅ (fun x => None).
 
 #[global]
 Hint Unfold empty_exec empty_cfg : unfolderDb.
@@ -82,7 +82,7 @@ End Consistency.
 
 Section CoreDefs.
 
-Variable (X : cfg).
+Variable (X : t).
 Notation "'G'" := (G X).
 Notation "'GC'" := (GC X).
 Notation "'C'" := (C X).
@@ -138,7 +138,7 @@ Definition rf_delta_W (GC : execution) (f' : actid -> option actid) : relation a
   let Rc := codom_rel (⦗Wc⦘ ⨾ (rf GC)) in
   (eq e) × (Some ↓₁ (f' ↑₁ Rc)).
 
-Definition mo_delta (W1 W2 : actid -> Prop) : relation actid :=
+Definition co_delta (W1 W2 : actid -> Prop) : relation actid :=
   if is_w e then ((eq e) × W1) ∪ ((eq e) × W2)
   else ∅₂.
 
@@ -149,7 +149,7 @@ End DeltaDefs.
 
 Section CfgAddEventStep.
 
-Variable (X X' : cfg).
+Variable (X X' : t).
 Notation "'G''" := (G X').
 Notation "'GC''" := (GC X').
 Notation "'C''" := (C X').
@@ -164,7 +164,7 @@ Notation "'f'" := (f X).
 Notation "'E'" := (acts_set G).
 Notation "'lab'" := (lab G).
 
-Record __cfg_add_event
+Record cfg_add_event_gen
   (e : actid)
   (l : label)
   (r w : option actid)
@@ -176,7 +176,7 @@ Record __cfg_add_event
 
   (* Skipping condition for sb *)
   rf_new : rf G' ≡ (rf G) ∪ (rf_delta_R G e w) ∪ (rf_delta_W e GC f');
-  mo_new : co G' ≡ (co G) ∪ (mo_delta G e W1 W2);
+  mo_new : co G' ≡ (co G) ∪ (co_delta G e W1 W2);
   rmw_new : rmw G' ≡ (rmw G) ∪ (rmw_delta G e r);
 
   f_new : match c with
@@ -187,7 +187,7 @@ Record __cfg_add_event
 }.
 
 Definition cfg_add_event (e : actid) (l : label) : Prop :=
-  exists r w W1 W2 c, __cfg_add_event e l r w W1 W2 c.
+  exists r w W1 W2 c, cfg_add_event_gen e l r w W1 W2 c.
 
 End CfgAddEventStep.
 
@@ -226,7 +226,7 @@ Notation "'Rre'" := (codom_rel rfre).
 Notation "'Wre'" := (dom_rel rfre).
 Notation "'D'" := (E \₁ codom_rel (⦗Rre⦘ ⨾ (sb ∪ rf)＊)).
 
-Definition silent_cfg_add_step (X X' : cfg) : Prop :=
+Definition silent_cfg_add_step (X X' : t) : Prop :=
   exists e l, cfg_add_event X X' e l.
 Definition f_restr_D (f : actid -> option actid) : (actid -> option actid) :=
   (restr_fun (Some ↓₁ (f ↑₁ D)) f (fun x => None)).
@@ -236,7 +236,7 @@ Record G_restr_D (G G'' : execution) : Prop :=
     acts_D : acts_set G'' ≡₁ D;
   }.
 
-Record __reexec
+Record reexec_gen
   (G'' : execution)
   (f f' : actid -> option actid)
   (C : actid -> Prop) : Prop :=
@@ -244,17 +244,17 @@ Record __reexec
   rf_sub_f : rfre ⊆ Some ↓ (f ↑ rf');
   d_wre_sub_f : D ∪₁ Wre ⊆₁ Some ↓₁ (f ↑₁ C);
 
-  cfg_wf : WF (Build_cfg G G' C f);
+  cfg_wf : WF (Build_t G G' C f);
   int_G_D : G_restr_D G G'';
   cfg_steps : silent_cfg_add_step＊
-    (Build_cfg G'' G' C (f_restr_D f))
-    (Build_cfg G' G' C f');
+    (Build_t G'' G' C (f_restr_D f))
+    (Build_t G' G' C f');
 
   c_correct : forall c (IN_C : C c), is_some (f c);
   new_g_cons : IsCons G';
 }.
 
-Definition reexec : Prop := exists G'' f f' C, __reexec G'' f f' C.
+Definition reexec : Prop := exists G'' f f' C, reexec_gen G'' f f' C.
 
 End ExecRexec.
 
