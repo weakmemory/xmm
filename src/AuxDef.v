@@ -1,5 +1,32 @@
+From imm Require Import Events Execution imm_s_hb.
+From imm Require Import imm_s_ppo.
+From imm Require Import imm_s_hb.
+From imm Require Import imm_bob.
+
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
+
+Section HbAlt.
+
+Variable (G : execution).
+Notation "'lab'" := (lab G).
+Notation "'same_loc'" := (same_loc lab).
+Notation "'bob'" := (bob G).
+Notation "'rf'" := (rf G).
+Notation "'sb'" := (sb G).
+
+Definition ppo_alt := (sb ∩ same_loc ∪ bob)⁺.
+Definition hb_alt := (ppo_alt ∪ rf)⁺.
+
+End HbAlt.
+
+Definition edges_to {A} (e : A) := (fun _ _ => True) ⨾ ⦗eq e⦘.
+Hint Unfold edges_to : unfolderDb.
+
+Definition rmw_delta e e' : relation actid :=
+  eq e × eq_opt e'.
+#[global]
+Hint Unfold rmw_delta : unfolderDb.
 
 Lemma rel_compress_sub (A : Type) (S1 S2 : A -> Prop) (R1 R2 : relation A)
   (SUB : R1 ⊆ R2) (EQ : R2 ≡ ⦗S1⦘⨾ R2⨾ ⦗ S2⦘):

@@ -47,9 +47,6 @@ Definition one (s : actid -> Prop) : relation actid :=
 Definition race := restr_rel E (one W ∩ same_loc \ clos_sym hb).
 
 Definition race_mod (o : mode) := race ∩ one (fun e => mode_le (mod e) o).
-
-Definition ppo_alt := (sb ∩ same_loc ∪ bob)⁺.
-Definition hb_alt := (ppo_alt ∪ rf)⁺.
 End Race.
 
 Module WCore.
