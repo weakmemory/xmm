@@ -39,6 +39,7 @@ Notation "'ppo'" := (ppo G).
 Notation "'bob'" := (bob G).
 Notation "'rf'" := (rf G).
 Notation "'sb'" := (sb G).
+Notation "'eco'" := (eco G).
 
 Definition one (s : actid -> Prop) : relation actid :=
     fun x y => s x \/ s y.
@@ -72,10 +73,20 @@ Hint Unfold empty_exec empty_cfg : unfolderDb.
 Section Consistency.
 
 Variable (G : execution).
+Notation "'hb'" := (hb G).
+Notation "'fr'" := (fr G).
+Notation "'sb'" := (sb G).
+Notation "'eco'" := (eco G).
+Notation "'psc'" := (imm.psc G).
+
+Definition coherence := irreflexive (hb ⨾ eco^?).
+Definition atomicity := irreflexive (fr ⨾ sb).
+Definition sc := acyclic psc.
 
 Record IsCons : Prop := {
-  (* TODO *)
-  dummy: G = G;
+  Coh : coherence; 
+  At : atomicity;
+  Sc : sc;
 }.
 
 End Consistency.
