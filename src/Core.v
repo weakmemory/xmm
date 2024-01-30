@@ -76,14 +76,10 @@ Notation "'sb'" := (sb G).
 Notation "'eco'" := (eco G).
 Notation "'psc'" := (imm.psc G).
 
-Definition coherence := irreflexive (hb ⨾ eco^?).
-Definition atomicity := irreflexive (fr ⨾ sb).
-Definition sc := acyclic psc.
-
-Record IsCons : Prop := {
-  Coh : coherence;
-  At : atomicity;
-  Sc : sc;
+Record is_cons : Prop := {
+  cons_coherence : irreflexive (hb ⨾ eco^?);
+  cons_atomicity : irreflexive (fr ⨾ sb);
+  cons_sc : acyclic psc;
 }.
 
 End Consistency.
@@ -205,7 +201,7 @@ Variable (G G' : execution).
 
 Record exec_inst (e : actid) (l : label) : Prop := {
   cfg_step : cfg_add_event (empty_cfg G) (empty_cfg G') e l;
-  is_cons : IsCons G';
+  next_cons : is_cons G';
 }.
 
 End ExecAdd.
@@ -259,7 +255,7 @@ Record reexec_gen
     (Build_t G' G' C f');
 
   c_correct : forall c (IN_C : C c), is_some (f c);
-  new_g_cons : IsCons G';
+  new_g_cons : is_cons G';
 }.
 
 Definition reexec : Prop := exists G'' f f' C, reexec_gen G'' f f' C.
