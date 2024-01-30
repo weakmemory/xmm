@@ -184,7 +184,7 @@ Record cfg_add_event_gen
 
   (* Skipping condition for sb *)
   rf_new : rf G' ≡ (rf G) ∪ (rf_delta_R G e w) ∪ (rf_delta_W e GC f');
-  mo_new : co G' ≡ (co G) ∪ (co_delta G e W1 W2);
+  co_new : co G' ≡ (co G) ∪ (co_delta G e W1 W2);
   rmw_new : rmw G' ≡ (rmw G) ∪ (rmw_delta G e r);
 
   f_new : match c with
