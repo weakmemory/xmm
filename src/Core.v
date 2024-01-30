@@ -84,7 +84,7 @@ Definition atomicity := irreflexive (fr ⨾ sb).
 Definition sc := acyclic psc.
 
 Record IsCons : Prop := {
-  Coh : coherence; 
+  Coh : coherence;
   At : atomicity;
   Sc : sc;
 }.
@@ -111,7 +111,7 @@ Record cfg_correct := {
   c_subset : C ⊆₁ acts_set GC;
 }.
 
-Record WF : Prop := {
+Record wf : Prop := {
   wf_g : Wf G;
   wf_gc : Wf GC;
   f_inj : inj_dom (fun x => acts_set GC x /\ is_some (f x)) f;
@@ -194,7 +194,7 @@ Record cfg_add_event_gen
           | None => True
           | Some c => f' = upd f e (Some c)
           end;
-  wf_new_conf : WF X';
+  wf_new_conf : wf X';
 }.
 
 Definition cfg_add_event (e : actid) (l : label) : Prop :=
@@ -255,7 +255,7 @@ Record reexec_gen
   rf_sub_f : rfre ⊆ Some ↓ (f ↑ rf');
   d_wre_sub_f : D ∪₁ Wre ⊆₁ Some ↓₁ (f ↑₁ C);
 
-  cfg_wf : WF (Build_t G G' C f);
+  cfg_wf : wf (Build_t G G' C f);
   int_G_D : G_restr_D G G'';
   cfg_steps : silent_cfg_add_step＊
     (Build_t G'' G' C (f_restr_D f))
