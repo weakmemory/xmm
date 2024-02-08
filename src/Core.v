@@ -58,11 +58,14 @@ Record t := {
   f : actid -> option actid;
 }.
 
-Definition empty_exec : execution :=
-  Build_execution ∅ ∅ (fun x => Afence Osc) ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂.
+Print Build_execution.
+Print is_init.
+
+Definition init_exec (G : execution) : execution :=
+  Build_execution (acts_set G ∩₁ (fun x => is_init x)) ∅ (lab G) ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂.
 
 Definition empty_cfg (G : execution) : t :=
-  Build_t G empty_exec ∅ (fun x => None).
+  Build_t G (init_exec G) ∅ (fun x => None).
 
 #[global]
 Hint Unfold empty_exec empty_cfg : unfolderDb.
