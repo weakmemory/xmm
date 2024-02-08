@@ -62,7 +62,7 @@ Definition empty_cfg (G : execution) : t :=
   Build_t G (init_exec G) ∅ (fun x => None).
 
 #[global]
-Hint Unfold empty_exec empty_cfg : unfolderDb.
+Hint Unfold init_exec empty_cfg : unfolderDb.
 
 Section Consistency.
 
@@ -176,7 +176,7 @@ Definition thread_trace (t : thread_id) : trace label :=
   | left FIN =>
     trace_fin
         (map (fun e => lab e)
-          (isort (fun x y => False) 
+          (isort (fun x y => False)
             (undup
               (filterP S
                 (proj1_sig
@@ -259,7 +259,7 @@ Notation "'D'" := (E \₁ codom_rel (⦗Rre⦘ ⨾ (sb ∪ rf)＊)).
 
 Definition silent_cfg_add_step (X X' : t) : Prop :=
   exists e l, cfg_add_event traces X X' e l.
-  
+
 Definition f_restr_D (f : actid -> option actid) : (actid -> option actid) :=
   (restr_fun (Some ↓₁ (f ↑₁ D)) f (fun x => None)).
 
