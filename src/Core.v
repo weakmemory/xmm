@@ -3,6 +3,8 @@ Require Import AuxDef.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
+From hahn Require Import HahnTrace.
+From hahn Require Import HahnSorted.
 From hahnExt Require Import HahnExt.
 From imm Require Import Events Execution Execution_eco imm_s_hb.
 From imm Require Import imm_s_ppo.
@@ -148,6 +150,8 @@ End DeltaDefs.
 
 Section CfgAddEventStep.
 
+Variable (traces : thread_id -> trace label -> Prop).
+
 Variable (X X' : t).
 Notation "'G''" := (G X').
 Notation "'GC''" := (GC X').
@@ -163,6 +167,31 @@ Notation "'f'" := (f X).
 Notation "'E'" := (acts_set G).
 Notation "'lab'" := (lab G).
 
+Definition thread_events (t : thread_id) : actid -> Prop :=
+  (fun e => t = tid e) ∩₁ E.
+
+Definition thread_trace (t : thread_id) : trace label :=
+  let S := thread_events t in
+  match excluded_middle_informative (set_finite S) with
+  | left FIN =>
+    trace_fin
+        (map (fun e => lab e)
+          (isort (fun x y => False) 
+            (undup
+              (filterP S
+                (proj1_sig
+                    (IndefiniteDescription.constructive_indefinite_description
+                      (fun findom => forall x, S x -> In x findom)
+                      FIN))))))
+  | right _ => trace_inf (fun e => lab (ThreadEvent t e))
+  end.
+
+Definition new_event_correct (e : actid) : Prop :=
+  match thread_trace (tid e) with
+  | trace_inf _ => False
+  | trace_fin l => exists tr, traces (tid e) tr /\ trace_prefix (trace_fin l) tr
+  end.
+
 Record cfg_add_event_gen
   (e : actid)
   (l : label)
@@ -171,6 +200,7 @@ Record cfg_add_event_gen
   (c : option actid) : Prop :=
 { e_notin : ~(E e);
   e_new : E' ≡₁ E ∪₁ (eq e);
+  e_correct : new_event_correct e;
   lab_new : lab' = upd lab e l;
 
   (* Skipping condition for sb *)
@@ -193,9 +223,10 @@ End CfgAddEventStep.
 Section ExecAdd.
 
 Variable (G G' : execution).
+Variable (traces : thread_id -> trace label -> Prop).
 
 Record exec_inst (e : actid) (l : label) : Prop := {
-  cfg_step : cfg_add_event (empty_cfg G) (empty_cfg G') e l;
+  cfg_step : cfg_add_event traces (empty_cfg G) (empty_cfg G') e l;
   next_cons : is_cons G';
 }.
 
@@ -205,6 +236,7 @@ Section ExecRexec.
 
 Variable (G G' : execution).
 Variable (rfre : relation actid).
+Variable (traces : thread_id -> trace label -> Prop).
 
 Notation "'E'" := (acts_set G).
 Notation "'is_w'" := (is_w (lab G)).
@@ -226,7 +258,8 @@ Notation "'Wre'" := (dom_rel rfre).
 Notation "'D'" := (E \₁ codom_rel (⦗Rre⦘ ⨾ (sb ∪ rf)＊)).
 
 Definition silent_cfg_add_step (X X' : t) : Prop :=
-  exists e l, cfg_add_event X X' e l.
+  exists e l, cfg_add_event traces X X' e l.
+  
 Definition f_restr_D (f : actid -> option actid) : (actid -> option actid) :=
   (restr_fun (Some ↓₁ (f ↑₁ D)) f (fun x => None)).
 
