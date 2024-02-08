@@ -22,11 +22,6 @@ Set Implicit Arguments.
     <acts_set; threads_set; lab; rmw; data; addr; ctrl; rmw_dep; rf; co>
 .
 
-Inductive cont_label :=
-| CInit (tid : thread_id)
-| CEvent (e : actid)
-.
-
 Section Race.
 Variable (G : execution).
 Notation "'E'" := (acts_set G).
@@ -58,11 +53,8 @@ Record t := {
   f : actid -> option actid;
 }.
 
-Print Build_execution.
-Print is_init.
-
 Definition init_exec (G : execution) : execution :=
-  Build_execution (acts_set G ∩₁ (fun x => is_init x)) ∅ (lab G) ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂.
+  Build_execution (acts_set G ∩₁ (fun x => is_init x)) (threads_set G) (lab G) ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂.
 
 Definition empty_cfg (G : execution) : t :=
   Build_t G (init_exec G) ∅ (fun x => None).
