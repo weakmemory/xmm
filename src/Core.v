@@ -170,6 +170,12 @@ Notation "'lab'" := (lab G).
 Definition thread_events (t : thread_id) : actid -> Prop :=
   (fun e => t = tid e) ∩₁ E.
 
+Definition tid_order (x y : actid) : Prop :=
+  match x, y with
+  | ThreadEvent _ x', ThreadEvent _ y' => x' < y'
+  | _, _ => False
+  end.
+
 Definition thread_trace (t : thread_id) : trace label :=
   let S := thread_events t in
   match excluded_middle_informative (set_finite S) with
