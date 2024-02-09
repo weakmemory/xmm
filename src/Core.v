@@ -1,5 +1,6 @@
 Require Import Lia Setoid Program.Basics.
 Require Import AuxDef.
+Require Import ThreadTrace.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -167,33 +168,8 @@ Notation "'f'" := (f X).
 Notation "'E'" := (acts_set G).
 Notation "'lab'" := (lab G).
 
-Definition thread_events (t : thread_id) : actid -> Prop :=
-  (fun e => t = tid e) ∩₁ E.
-
-Definition tid_order (x y : actid) : Prop :=
-  match x, y with
-  | ThreadEvent _ x', ThreadEvent _ y' => x' < y'
-  | _, _ => False
-  end.
-
-Definition thread_trace (t : thread_id) : trace label :=
-  let S := thread_events t in
-  match excluded_middle_informative (set_finite S) with
-  | left FIN =>
-    trace_fin
-        (map (fun e => lab e)
-          (isort (fun x y => False)
-            (undup
-              (filterP S
-                (proj1_sig
-                    (IndefiniteDescription.constructive_indefinite_description
-                      (fun findom => forall x, S x -> In x findom)
-                      FIN))))))
-  | right _ => trace_inf (fun e => lab (ThreadEvent t e))
-  end.
-
 Definition new_event_correct (e : actid) : Prop :=
-  match thread_trace (tid e) with
+  match thread_trace G (tid e) with
   | trace_inf _ => False
   | trace_fin l => exists tr, traces (tid e) tr /\ trace_prefix (trace_fin l) tr
   end.
