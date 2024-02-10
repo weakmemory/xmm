@@ -171,7 +171,7 @@ Notation "'lab'" := (lab G).
 Definition new_event_correct (e : actid) : Prop :=
   match thread_trace G (tid e) with
   | trace_inf _ => False
-  | trace_fin l => exists tr, traces (tid e) tr /\ trace_prefix (trace_fin l) tr
+  | trace_fin l => exists tr, traces (tid e) tr /\ trace_prefix (trace_fin (l ++ [lab e])) tr
   end.
 
 Record cfg_add_event_gen
