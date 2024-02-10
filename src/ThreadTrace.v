@@ -113,15 +113,6 @@ Proof using.
   simpl. now rewrite length_map, seq_length.
 Qed.
 
-Lemma thread_actid_trace_correct_elemes (t : thread_id) :
-  trace_elems (thread_actid_trace t) ≡₁ thread_events t.
-Proof using.
-  unfolder.
-  splits; intros x HIN.
-  { admit. }
-  admit.
-Admitted.
-
 Lemma thread_actid_trace_correct (t : thread_id) (x y : nat)
   (CORR : NOmega.lt_nat_l y (trace_length (thread_actid_trace t)))
   (LT : x < y) :
