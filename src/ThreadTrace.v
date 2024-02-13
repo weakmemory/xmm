@@ -58,8 +58,11 @@ Proof using.
   replace (S n) with (n + 1) by lia.
   apply set_size_union_disjoint; auto.
   { apply set_size_single. }
-  admit.
-Admitted.
+  unfold set_disjoint; ins.
+  unfold seq_set in IN. apply in_map_iff in IN. 
+  destruct IN, H; subst x. apply in_seq in H0. 
+  injection IN'; lia.
+Qed.
 
 Lemma actid_form (t : thread_id) (n : nat)
   (LT : NOmega.lt_nat_l n (set_size (thread_events t))) :
