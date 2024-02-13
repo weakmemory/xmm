@@ -135,4 +135,11 @@ Qed.
 Definition thread_trace (t : thread_id) : trace label :=
   trace_map lab (thread_actid_trace t).
 
+Lemma trace_elems_thread_actid_trace (t : thread_id) :
+  trace_elems (thread_actid_trace t) ≡₁ thread_events t.
+Proof using.
+  admit.  
+Admitted.
+
+
 End ThreadTrace.

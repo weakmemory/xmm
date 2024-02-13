@@ -181,6 +181,7 @@ Record cfg_add_event_gen
   (W1 W2 : actid -> Prop)
   (c : option actid) : Prop :=
 { e_notin : ~(E e);
+  e_notinit : ~ is_init e; 
   e_new : E' ≡₁ E ∪₁ (eq e);
   e_correct : new_event_correct e;
   lab_new : lab' = upd lab e l;
