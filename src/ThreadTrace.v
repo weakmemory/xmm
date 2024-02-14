@@ -41,11 +41,9 @@ Lemma seq_set_step (n : nat) (t : thread_id) :
   seq_set t (S n) ≡₁ seq_set t n ∪₁ (eq (ThreadEvent t n)).
 Proof using.
   unfold seq_set. rewrite seqS, map_app.
-  simpl. unfolder; splits; intros x HIN.
-  { apply in_app_iff in HIN.
-    simpl in HIN. basic_solver. }
-  apply in_app_iff.
-  destruct HIN as [HIN|HIN]; simpl; auto.
+  unfolder. splits; intros x.
+  all: rewrite in_app_iff.
+  all: intro IN; desf; basic_solver.
 Qed.
 
 Lemma seq_set_size (t : thread_id) (n : nat):
@@ -56,12 +54,11 @@ Proof using.
     unfold seq_set. now rewrite seq0. }
   rewrite seq_set_step.
   replace (S n) with (n + 1) by lia.
-  apply set_size_union_disjoint; auto.
-  { apply set_size_single. }
-  unfold set_disjoint; ins.
-  unfold seq_set in IN. apply in_map_iff in IN.
-  destruct IN, H; subst x. apply in_seq in H0.
-  injection IN'; lia.
+  apply set_size_union_disjoint; auto using set_size_single.
+  apply set_disjoint_eq_r. unfold seq_set.
+  rewrite in_map_iff. intros (x & HEQ & IN).
+  rewrite in_seq in IN.
+  inv HEQ. lia.
 Qed.
 
 Lemma actid_form (t : thread_id) (n : nat)
@@ -73,9 +70,9 @@ Proof using THREAD_EVENTS.
   { right. apply set_subset_refl2. }
   destruct (THREAD_EVENTS t) as [N HEQ]; try auto.
   apply HEQ.
-  unfold seq_set. apply in_map.
-  apply in_seq.
-  simpl. splits; try lia.
+  unfold seq_set.
+  apply in_map, in_seq.
+  splits; try lia.
   now rewrite HEQ, seq_set_size in LT.
 Qed.
 
@@ -86,7 +83,7 @@ Lemma actid_form_inv (t : thread_id) (x : actid)
 Proof using THREAD_EVENTS.
   destruct (THREAD_EVENTS t) as [N HEQ]; try auto.
   apply HEQ in IN. rewrite HEQ.
-  rewrite seq_set_size. simpl.
+  rewrite seq_set_size.
   unfold seq_set in IN. apply in_map_iff in IN.
   destruct IN as [n [EQ IN]]. subst x. simpl.
   apply in_seq in IN. lia.
