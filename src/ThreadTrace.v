@@ -62,31 +62,19 @@ Proof using.
 Qed.
 
 Lemma actid_form (t : thread_id) (n : nat)
-  (NOT_INIT : t <> tid_init)
-  (LT : NOmega.lt_nat_l n (set_size (thread_events t))) :
-  E (ThreadEvent t n).
-Proof using THREAD_EVENTS.
-  eapply set_subset_inter_l.
-  { right. apply set_subset_refl2. }
-  destruct (THREAD_EVENTS t) as [N HEQ]; try auto.
-  apply HEQ.
-  unfold seq_set.
-  apply in_map, in_seq.
-  splits; try lia.
-  now rewrite HEQ, seq_set_size in LT.
-Qed.
-
-Lemma actid_form_inv (t : thread_id) (x : actid)
-  (NOT_INIT : t <> tid_init)
-  (IN : thread_events t x) :
-  NOmega.lt_nat_l (index x) (set_size (thread_events t)).
+  (NOT_INIT : t <> tid_init) :
+  NOmega.lt_nat_l n (set_size (thread_events t)) <-> thread_events t (ThreadEvent t n).
 Proof using THREAD_EVENTS.
   destruct (THREAD_EVENTS t) as [N HEQ]; try auto.
-  apply HEQ in IN. rewrite HEQ.
-  rewrite seq_set_size.
+  rewrite HEQ, seq_set_size. simpl.
+  split.
+  { intro LT. apply HEQ.
+    unfold seq_set. apply in_map, in_seq.
+    lia. }
+  intro IN. apply HEQ in IN.
   unfold seq_set in IN. apply in_map_iff in IN.
-  destruct IN as [n [EQ IN]]. subst x. simpl.
-  apply in_seq in IN. lia.
+  destruct IN as (x & EQ & IN). inv EQ.
+  now apply in_seq in IN.
 Qed.
 
 Definition thread_actid_trace (t : thread_id) : trace actid :=
@@ -136,19 +124,9 @@ Lemma trace_elems_thread_actid_trace (t : thread_id)
   (NOT_INIT : t <> tid_init) :
   trace_elems (thread_actid_trace t) ≡₁ thread_events t.
 Proof using THREAD_EVENTS.
-  unfolder; splits; intros e IN.
-  { apply trace_in_nth with (d := ThreadEvent t 0) in IN.
-    destruct IN as (n & LT & EQ). subst e.
-    rewrite thread_actid_trace_form by easy.
-    rewrite thread_actid_trace_size in LT.
-    unfold thread_events. unfolder.
-    splits; now apply actid_form || easy. }
-  destruct e. inv IN.
-  assert (TIDEQ : thread = t) by inv IN. subst thread.
-  apply actid_form_inv in IN; try auto.
-  rewrite <- thread_actid_trace_size in IN. simpl in IN.
-  rewrite <- thread_actid_trace_form by auto.
-  now apply trace_nth_in.
+  unfold thread_actid_trace.
+  destruct (THREAD_EVENTS t) as [N HEQ]; try auto.
+  now rewrite HEQ, seq_set_size.
 Qed.
 
 Definition thread_trace (t : thread_id) : trace label :=
