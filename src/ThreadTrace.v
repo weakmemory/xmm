@@ -22,7 +22,7 @@ Definition seq_set (t : thread_id) (n : nat) (x : actid) :=
   In x (map (ThreadEvent t) (List.seq 0 n)).
 
 Hypothesis WF : Wf G.
-Hypothesis THREAD_EVENTS : forall t, exists n, thread_events t ≡₁ seq_set t n.
+Hypothesis THREAD_EVENTS : forall t, t <> tid_init -> exists n, thread_events t ≡₁ seq_set t n.
 
 Lemma seq_set_fin (t : thread_id) (n : nat) : set_finite (seq_set t n).
 Proof.
@@ -31,9 +31,9 @@ Proof.
   now unfold seq_set.
 Qed.
 
-Lemma all_finite (t : thread_id) : set_finite (thread_events t).
+Lemma all_finite (t : thread_id) (NOT_INIT : t <> tid_init) : set_finite (thread_events t).
 Proof using THREAD_EVENTS.
-  destruct (THREAD_EVENTS t) as [n HEQ].
+  destruct (THREAD_EVENTS t) as [n HEQ]; try auto.
   rewrite HEQ. apply seq_set_fin.
 Qed.
 
@@ -59,18 +59,19 @@ Proof using.
   apply set_size_union_disjoint; auto.
   { apply set_size_single. }
   unfold set_disjoint; ins.
-  unfold seq_set in IN. apply in_map_iff in IN. 
-  destruct IN, H; subst x. apply in_seq in H0. 
+  unfold seq_set in IN. apply in_map_iff in IN.
+  destruct IN, H; subst x. apply in_seq in H0.
   injection IN'; lia.
 Qed.
 
 Lemma actid_form (t : thread_id) (n : nat)
+  (NOT_INIT : t <> tid_init)
   (LT : NOmega.lt_nat_l n (set_size (thread_events t))) :
   E (ThreadEvent t n).
 Proof using THREAD_EVENTS.
   eapply set_subset_inter_l.
   { right. apply set_subset_refl2. }
-  destruct (THREAD_EVENTS t) as [N HEQ].
+  destruct (THREAD_EVENTS t) as [N HEQ]; try auto.
   apply HEQ.
   unfold seq_set. apply in_map.
   apply in_seq.
@@ -79,10 +80,11 @@ Proof using THREAD_EVENTS.
 Qed.
 
 Lemma actid_form_inv (t : thread_id) (x : actid)
+  (NOT_INIT : t <> tid_init)
   (IN : thread_events t x) :
   NOmega.lt_nat_l (index x) (set_size (thread_events t)).
 Proof using THREAD_EVENTS.
-  destruct (THREAD_EVENTS t) as [N HEQ].
+  destruct (THREAD_EVENTS t) as [N HEQ]; try auto.
   apply HEQ in IN. rewrite HEQ.
   rewrite seq_set_size. simpl.
   unfold seq_set in IN. apply in_map_iff in IN.
@@ -117,6 +119,7 @@ Proof using.
 Qed.
 
 Lemma thread_actid_trace_correct (t : thread_id) (x y : nat)
+  (NOT_INIT : t <> tid_init)
   (CORR : NOmega.lt_nat_l y (trace_length (thread_actid_trace t)))
   (LT : x < y) :
   sb (trace_nth x (thread_actid_trace t) (ThreadEvent t 0))
@@ -128,18 +131,30 @@ Proof using THREAD_EVENTS.
   rewrite !thread_actid_trace_form by assumption.
   unfold sb, ext_sb.
   unfolder. splits; try easy.
-  all: try apply actid_form.
+  all: try apply actid_form; try auto.
   all: now rewrite <- thread_actid_trace_size.
+Qed.
+
+Lemma trace_elems_thread_actid_trace (t : thread_id)
+  (NOT_INIT : t <> tid_init) :
+  trace_elems (thread_actid_trace t) ≡₁ thread_events t.
+Proof using THREAD_EVENTS.
+  unfolder; splits; intros e IN.
+  { apply trace_in_nth with (d := ThreadEvent t 0) in IN.
+    destruct IN as (n & LT & EQ). subst e.
+    rewrite thread_actid_trace_form by easy.
+    rewrite thread_actid_trace_size in LT.
+    unfold thread_events. unfolder.
+    splits; now apply actid_form || easy. }
+  destruct e. inv IN.
+  assert (TIDEQ : thread = t) by inv IN. subst thread.
+  apply actid_form_inv in IN; try auto.
+  rewrite <- thread_actid_trace_size in IN. simpl in IN.
+  rewrite <- thread_actid_trace_form by auto.
+  now apply trace_nth_in.
 Qed.
 
 Definition thread_trace (t : thread_id) : trace label :=
   trace_map lab (thread_actid_trace t).
-
-Lemma trace_elems_thread_actid_trace (t : thread_id) :
-  trace_elems (thread_actid_trace t) ≡₁ thread_events t.
-Proof using.
-  admit.  
-Admitted.
-
 
 End ThreadTrace.
