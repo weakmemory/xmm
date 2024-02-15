@@ -168,23 +168,27 @@ Notation "'f'" := (f X).
 Notation "'E'" := (acts_set G).
 Notation "'lab'" := (lab G).
 
-Definition new_event_correct (e : actid) : Prop :=
+Definition new_event_correct (e : actid) (e' : option actid) : Prop :=
   match thread_trace G (tid e) with
   | trace_inf _ => False
-  | trace_fin l => exists tr, traces (tid e) tr /\ trace_prefix (trace_fin (l ++ [lab e])) tr
+  | trace_fin l => exists tr, traces (tid e) tr /\ trace_prefix (trace_fin
+      (l ++ map lab (e :: opt_to_list e'))
+    ) tr
   end.
 
 Record cfg_add_event_gen
   (e : actid)
   (l : label)
   (r w : option actid)
+  (rl : option label)
   (W1 W2 : actid -> Prop)
   (c : option actid) : Prop :=
-{ e_notin : ~(E e);
-  e_notinit : ~ is_init e; 
-  e_new : E' ≡₁ E ∪₁ (eq e);
-  e_correct : new_event_correct e;
-  lab_new : lab' = upd lab e l;
+{ r_label : opt_same_ctor r rl;
+  e_notin : eq e ∪₁ eq_opt r ⊆₁ set_compl E;
+  e_notinit : eq e ∪₁ eq_opt r ⊆₁ set_compl is_init;
+  e_new : E' ≡₁ E ∪₁ (eq e) ∪₁ (eq_opt r);
+  e_correct : new_event_correct e r;
+  lab_new : lab' = upd_opt (upd lab e l) r rl;
 
   (* Skipping condition for sb *)
   rf_new : rf G' ≡ (rf G) ∪ (rf_delta_R G e w) ∪ (rf_delta_W e GC f');
@@ -199,7 +203,7 @@ Record cfg_add_event_gen
 }.
 
 Definition cfg_add_event (e : actid) (l : label) : Prop :=
-  exists r w W1 W2 c, cfg_add_event_gen e l r w W1 W2 c.
+  exists r w rl W1 W2 c, cfg_add_event_gen e l r w rl W1 W2 c.
 
 End CfgAddEventStep.
 
