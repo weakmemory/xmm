@@ -21,7 +21,6 @@ Definition thread_events (t : thread_id) : actid -> Prop := (fun e => t = tid e)
 Definition seq_set (t : thread_id) (n : nat) (x : actid) :=
   In x (map (ThreadEvent t) (List.seq 0 n)).
 
-Hypothesis WF : Wf G.
 Hypothesis THREAD_EVENTS : forall t, t <> tid_init -> exists n, thread_events t ≡₁ seq_set t n.
 
 Lemma seq_set_fin (t : thread_id) (n : nat) : set_finite (seq_set t n).
