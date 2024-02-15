@@ -23,19 +23,6 @@ Definition seq_set (t : thread_id) (n : nat) (x : actid) :=
 
 Hypothesis THREAD_EVENTS : forall t, t <> tid_init -> exists n, thread_events t ≡₁ seq_set t n.
 
-Lemma seq_set_fin (t : thread_id) (n : nat) : set_finite (seq_set t n).
-Proof.
-  unfolder.
-  exists (map (ThreadEvent t) (List.seq 0 n)).
-  now unfold seq_set.
-Qed.
-
-Lemma all_finite (t : thread_id) (NOT_INIT : t <> tid_init) : set_finite (thread_events t).
-Proof using THREAD_EVENTS.
-  destruct (THREAD_EVENTS t) as [n HEQ]; try auto.
-  rewrite HEQ. apply seq_set_fin.
-Qed.
-
 Lemma seq_set_step (n : nat) (t : thread_id) :
   seq_set t (S n) ≡₁ seq_set t n ∪₁ (eq (ThreadEvent t n)).
 Proof using.
