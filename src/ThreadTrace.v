@@ -9,119 +9,125 @@ From imm Require Import imm_s_hb.
 From imm Require Import imm_bob.
 From imm Require Import SubExecution.
 
+Section ThreadSeqSet.
+
+Definition seq_set (N : nat) : nat -> Prop := fun x => x < N.
+Definition thread_seq_set (t : thread_id) (N : nat) : actid -> Prop :=
+  (ThreadEvent t) ↑₁ seq_set N.
+
+Lemma seq_set_step (N : nat) (t : thread_id) :
+thread_seq_set t (S N) ≡₁ thread_seq_set t N ∪₁ (eq (ThreadEvent t N)).
+Proof using.
+  unfold thread_seq_set, seq_set.
+  assert (HH : (fun x => x < S N) ≡₁ (fun x => x < N) ∪₁ eq N) by (
+    unfolder; splits; ins; desf; lia
+  ).
+  rewrite HH, set_collect_union. basic_solver.
+Qed.
+
+Lemma thread_seq_set_size (t : thread_id) (N : nat) :
+  set_size (thread_seq_set t N) = NOnum N.
+Proof using.
+  induction N.
+  { apply set_size_empty.
+    unfold thread_seq_set, seq_set.
+    assert (HH : (fun x => x < 0) ≡₁ ∅) by (unfolder; splits; lia).
+    rewrite HH; basic_solver. }
+  rewrite seq_set_step. replace (S N) with (N + 1) by lia.
+  apply set_size_union_disjoint; auto using set_size_single.
+  apply set_disjoint_eq_r. unfold thread_seq_set, seq_set.
+  unfolder; intro F; desf; lia.
+Qed.
+
+End ThreadSeqSet.
+
 Section ThreadTrace.
 
-Variable (G : execution).
+Variable (G : execution) (t : thread_id) (N : nat).
 
 Notation "'E'" := (acts_set G).
 Notation "'lab'" := (lab G).
 Notation "'sb'" := (sb G).
 
-Definition thread_events (t : thread_id) : actid -> Prop := (fun e => t = tid e) ∩₁ E.
-Definition seq_set (t : thread_id) (n : nat) (x : actid) :=
-  In x (map (ThreadEvent t) (List.seq 0 n)).
+Definition thread_events : actid -> Prop := (fun e => t = tid e) ∩₁ E.
 
-Hypothesis THREAD_EVENTS : forall t, t <> tid_init -> exists n, thread_events t ≡₁ seq_set t n.
+Hypothesis NOT_INIT : t <> tid_init.
+Hypothesis THREAD_EVENTS : thread_events ≡₁ thread_seq_set t N.
 
-Lemma seq_set_step (n : nat) (t : thread_id) :
-  seq_set t (S n) ≡₁ seq_set t n ∪₁ (eq (ThreadEvent t n)).
-Proof using.
-  unfold seq_set. rewrite seqS, map_app.
-  unfolder. splits; intros x.
-  all: rewrite in_app_iff.
-  all: intro IN; desf; basic_solver.
-Qed.
-
-Lemma seq_set_size (t : thread_id) (n : nat):
-  set_size (seq_set t n) = NOnum n.
-Proof using.
-  induction n.
-  { apply set_size_empty.
-    unfold seq_set. now rewrite seq0. }
-  rewrite seq_set_step.
-  replace (S n) with (n + 1) by lia.
-  apply set_size_union_disjoint; auto using set_size_single.
-  apply set_disjoint_eq_r. unfold seq_set.
-  rewrite in_map_iff. intros (x & HEQ & IN).
-  rewrite in_seq in IN.
-  inv HEQ. lia.
-Qed.
-
-Lemma actid_form (t : thread_id) (n : nat)
-  (NOT_INIT : t <> tid_init) :
-  NOmega.lt_nat_l n (set_size (thread_events t)) <-> thread_events t (ThreadEvent t n).
-Proof using THREAD_EVENTS.
-  destruct (THREAD_EVENTS t) as [N HEQ]; try auto.
-  rewrite HEQ, seq_set_size. simpl.
-  split.
-  { intro LT. apply HEQ.
-    unfold seq_set. apply in_map, in_seq.
-    lia. }
-  intro IN. apply HEQ in IN.
-  unfold seq_set in IN. apply in_map_iff in IN.
-  destruct IN as (x & EQ & IN). inv EQ.
-  now apply in_seq in IN.
-Qed.
-
-Definition thread_actid_trace (t : thread_id) : trace actid :=
+Definition thread_actid_trace : trace actid :=
   trace_map (ThreadEvent t) (
-    match set_size (thread_events t) with
+    match set_size (thread_events) with
     | NOinfinity => trace_inf (fun x => x)
     | NOnum n => trace_fin (List.seq 0 n)
     end
   ).
 
-Lemma thread_actid_trace_form (t : thread_id) (n : nat)
-  (LT : NOmega.lt_nat_l n (trace_length (thread_actid_trace t))):
-  trace_nth n (thread_actid_trace t) (ThreadEvent t 0) = ThreadEvent t n.
-Proof using.
-  unfold thread_actid_trace in *.
-  destruct set_size as [ | N] in *; try easy.
-  simpl in *. rewrite map_length, seq_length in LT.
-  now rewrite map_nth, seq_nth.
-Qed.
-
-Lemma thread_actid_trace_size (t : thread_id) :
-  trace_length (thread_actid_trace t) = set_size (thread_events t).
-Proof using.
-  unfold thread_actid_trace.
-  destruct set_size as [ | n ]; try easy.
-  simpl. now rewrite length_map, seq_length.
-Qed.
-
-Lemma thread_actid_trace_correct (t : thread_id) (x y : nat)
-  (NOT_INIT : t <> tid_init)
-  (CORR : NOmega.lt_nat_l y (trace_length (thread_actid_trace t)))
-  (LT : x < y) :
-  sb (trace_nth x (thread_actid_trace t) (ThreadEvent t 0))
-     (trace_nth y (thread_actid_trace t) (ThreadEvent t 0)).
-Proof using THREAD_EVENTS.
-  assert (HLT : NOmega.lt_nat_l x
-    (trace_length
-     (thread_actid_trace t))) by (eapply NOmega.lt_lt_nat; eauto).
-  rewrite !thread_actid_trace_form by assumption.
-  unfold sb, ext_sb.
-  unfolder. splits; try easy.
-  all: try apply actid_form; try auto.
-  all: now rewrite <- thread_actid_trace_size.
-Qed.
-
-Lemma trace_elems_thread_actid_trace (t : thread_id)
-  (NOT_INIT : t <> tid_init) :
-  trace_elems (thread_actid_trace t) ≡₁ thread_events t.
+Lemma thread_actid_trace_form :
+  thread_actid_trace = trace_map (ThreadEvent t) (trace_fin (List.seq 0 N)).
 Proof using THREAD_EVENTS.
   unfold thread_actid_trace.
-  destruct (THREAD_EVENTS t) as [N HEQ]; try auto.
-  now rewrite HEQ, seq_set_size.
+  now rewrite THREAD_EVENTS, thread_seq_set_size.
 Qed.
 
-Definition thread_trace (t : thread_id) : trace label :=
-  trace_map lab (thread_actid_trace t).
+Lemma thread_actid_trace_length :
+  trace_length thread_actid_trace = NOnum N.
+Proof using THREAD_EVENTS.
+  rewrite thread_actid_trace_form. simpl.
+  now rewrite map_length, seq_length.
+Qed.
 
-Lemma thread_trace_eq (t : thread_id)
-  (NOT_INIT : t <> tid_init) :
-  lab ↑₁ (thread_events t) ≡₁ trace_elems (thread_trace t).
+Lemma thread_actid_trace_nth n (d : actid) (LT : n < N) :
+  trace_nth n thread_actid_trace d = ThreadEvent t n.
+Proof using THREAD_EVENTS NOT_INIT.
+  rewrite trace_nth_indep with (d' := ThreadEvent t 0) by (rewrite thread_actid_trace_length; simpl; lia).
+  rewrite thread_actid_trace_form; simpl; by rewrite map_nth, seq_nth.
+Qed.
+
+Lemma trace_elems_eq_thread_events :
+  thread_events ≡₁ trace_elems thread_actid_trace.
+Proof using THREAD_EVENTS.
+  rewrite thread_actid_trace_form, THREAD_EVENTS, trace_elems_map.
+  unfold thread_seq_set, seq_set. simpl.
+  enough (HH : (fun x => x < N) ≡₁ (fun a => In a (List.seq 0 N))) by now rewrite HH.
+  unfolder; splits; intros x; by rewrite in_seq0_iff.
+Qed.
+
+Lemma thread_actid_nodup : trace_nodup thread_actid_trace.
+Proof using THREAD_EVENTS NOT_INIT.
+  unfold trace_nodup.
+  rewrite thread_actid_trace_length. simpl.
+  intros i j LT SZ d. rewrite !thread_actid_trace_nth by lia.
+  injection; lia.
+Qed.
+
+Lemma thread_actid_trace_correct :
+  trace_order thread_actid_trace ≡ restr_rel thread_events sb.
+Proof using THREAD_EVENTS NOT_INIT.
+  unfold trace_order, sb, ext_sb. unfolder.
+  splits; intros a b.
+  { intros (NODUP & i & j & LT & SZ & NA & NB). splits.
+    all: try rewrite <- NA; try rewrite <- NB.
+    all: try apply trace_elems_eq_thread_events, trace_nth_in; eauto with hahn.
+    rewrite thread_actid_trace_length in SZ; simpl in SZ.
+    rewrite !thread_actid_trace_nth by lia.
+    splits; auto. }
+  intros ((_ & SB & _) & IA & IB).
+  split; auto using thread_actid_nodup.
+  exists (index a), (index b).
+  apply THREAD_EVENTS in IA, IB.
+  unfold thread_seq_set, seq_set, set_collect in IA, IB.
+  desf; simpl.
+  rewrite thread_actid_trace_length, !thread_actid_trace_nth by lia.
+  splits; basic_solver.
+Qed.
+
+Definition thread_trace : trace label := trace_map lab thread_actid_trace.
+
+Lemma thread_trace_eq :
+  lab ↑₁ thread_events ≡₁ trace_elems thread_trace.
 Proof using THREAD_EVENTS.
   unfold thread_trace.
-  now rewrite trace_elems_map, trace_elems_thread_actid_trace by easy.
+  now rewrite trace_elems_map, trace_elems_eq_thread_events by easy.
 Qed.
+
+End ThreadTrace.
