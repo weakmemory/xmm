@@ -132,4 +132,10 @@ Qed.
 Definition thread_trace (t : thread_id) : trace label :=
   trace_map lab (thread_actid_trace t).
 
-End ThreadTrace.
+Lemma thread_trace_eq (t : thread_id)
+  (NOT_INIT : t <> tid_init) :
+  lab ↑₁ (thread_events t) ≡₁ trace_elems (thread_trace t).
+Proof using THREAD_EVENTS.
+  unfold thread_trace.
+  now rewrite trace_elems_map, trace_elems_thread_actid_trace by easy.
+Qed.
