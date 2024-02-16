@@ -26,7 +26,7 @@ Set Implicit Arguments.
 .
 
 Section Race.
-Variable (G : execution).
+Variable G : execution.
 Notation "'E'" := (acts_set G).
 Notation "'lab'" := (lab G).
 Notation "'same_loc'" := (same_loc lab).
@@ -56,10 +56,10 @@ Record t := {
   f : actid -> option actid;
 }.
 
-Definition init_exec (G : execution) : execution :=
+Definition init_exec G : execution :=
   Build_execution (acts_set G ∩₁ (fun x => is_init x)) (threads_set G) (lab G) ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂.
 
-Definition empty_cfg (G : execution) : t :=
+Definition empty_cfg G : t :=
   Build_t G (init_exec G) ∅ (fun x => None).
 
 #[global]
@@ -67,7 +67,7 @@ Hint Unfold init_exec empty_cfg : unfolderDb.
 
 Section Consistency.
 
-Variable (G : execution).
+Variable G : execution.
 Notation "'hb'" := (hb G).
 Notation "'fr'" := (fr G).
 Notation "'sb'" := (sb G).
@@ -84,7 +84,7 @@ End Consistency.
 
 Section CoreDefs.
 
-Variable (X : t).
+Variable X : t.
 Notation "'G'" := (G X).
 Notation "'GC'" := (GC X).
 Notation "'C'" := (C X).
@@ -119,10 +119,8 @@ Section DeltaDefs.
 
 Variable (G : execution).
 Variable (e : actid).
-Notation "'is_w'" := (is_w (lab G)).
-Notation "'is_r'" := (is_r (lab G)).
-Notation "'W'" := is_w.
-Notation "'R'" := is_r.
+Notation "'W'" := (is_w (lab G)).
+Notation "'R'" := (is_r (lab G)).
 Notation "'W_ex'" := (W_ex G).
 
 (* We do not need sb_delta as `sb` has an exact formula *)
@@ -131,29 +129,29 @@ Notation "'W_ex'" := (W_ex G).
 
 Definition rf_delta_R (w : option actid) : relation actid :=
   match w with
-  | Some w => (eq w) × (eq e) ∩ W × R
+  | Some w => eq w × eq e ∩ W × R
   | _ => ∅₂
   end.
 
 Definition rf_delta_W (GC : execution) (f' : actid -> option actid) : relation actid :=
-  let Wc := f' ↓₁ (eq (Some e)) in
-  let Rc := codom_rel (⦗Wc⦘ ⨾ (rf GC)) in
-  (eq e) × (Some ↓₁ (f' ↑₁ Rc)).
+  let Wc := f' ↓₁ eq (Some e) in
+  let Rc := codom_rel (⦗Wc⦘ ⨾ rf GC) in
+  eq e × (Some ↓₁ (f' ↑₁ Rc)).
 
 Definition co_delta (W1 W2 : actid -> Prop) : relation actid :=
-  if is_w e then ((eq e) × W1) ∪ ((eq e) × W2)
+  if W e then eq e × W1 ∪ eq e × W2
   else ∅₂.
 
 Definition rmw_delta (r : option actid) : relation actid :=
-  (R ∩₁ (eq_opt r)) × (W_ex ∩₁ (eq e)).
+  (R ∩₁ eq_opt r) × (W_ex ∩₁ eq e).
 
 End DeltaDefs.
 
 Section CfgAddEventStep.
 
-Variable (traces : thread_id -> trace label -> Prop).
+Variable traces : thread_id -> trace label -> Prop.
 
-Variable (X X' : t).
+Variable X X' : t.
 Notation "'G''" := (G X').
 Notation "'GC''" := (GC X').
 Notation "'C''" := (C X').
@@ -168,18 +166,16 @@ Notation "'f'" := (f X).
 Notation "'E'" := (acts_set G).
 Notation "'lab'" := (lab G).
 
-Definition new_event_correct (e : actid) : Prop :=
+Definition new_event_correct e : Prop :=
   match thread_trace G (tid e) with
   | trace_inf _ => False
-  | trace_fin l => exists tr, traces (tid e) tr /\ trace_prefix (trace_fin (l ++ [lab e])) tr
+  | trace_fin l => 
+    exists tr, traces (tid e) tr /\ 
+      trace_prefix (trace_fin (l ++ [lab e])
+    ) tr
   end.
 
-Record cfg_add_event_gen
-  (e : actid)
-  (l : label)
-  (r w : option actid)
-  (W1 W2 : actid -> Prop)
-  (c : option actid) : Prop :=
+Record cfg_add_event_gen e l r w W1 W2 c :=
 { e_notin : ~(E e);
   e_notinit : ~ is_init e; 
   e_new : E' ≡₁ E ∪₁ (eq e);
@@ -187,9 +183,9 @@ Record cfg_add_event_gen
   lab_new : lab' = upd lab e l;
 
   (* Skipping condition for sb *)
-  rf_new : rf G' ≡ (rf G) ∪ (rf_delta_R G e w) ∪ (rf_delta_W e GC f');
-  co_new : co G' ≡ (co G) ∪ (co_delta G e W1 W2);
-  rmw_new : rmw G' ≡ (rmw G) ∪ (rmw_delta G e r);
+  rf_new : rf G' ≡ rf G ∪ rf_delta_R G e w ∪ rf_delta_W e GC f';
+  co_new : co G' ≡ co G ∪ co_delta G e W1 W2;
+  rmw_new : rmw G' ≡ rmw G ∪ rmw_delta G e r;
 
   f_new : match c with
           | None => True
@@ -198,17 +194,17 @@ Record cfg_add_event_gen
   wf_new_conf : wf X';
 }.
 
-Definition cfg_add_event (e : actid) (l : label) : Prop :=
+Definition cfg_add_event (e : actid) (l : label) :=
   exists r w W1 W2 c, cfg_add_event_gen e l r w W1 W2 c.
 
 End CfgAddEventStep.
 
 Section ExecAdd.
 
-Variable (G G' : execution).
-Variable (traces : thread_id -> trace label -> Prop).
+Variables G G' : execution.
+Variable traces : thread_id -> trace label -> Prop.
 
-Record exec_inst (e : actid) (l : label) : Prop := {
+Record exec_inst (e : actid) (l : label) := {
   cfg_step : cfg_add_event traces (empty_cfg G) (empty_cfg G') e l;
   next_cons : is_cons G';
 }.
@@ -217,15 +213,13 @@ End ExecAdd.
 
 Section ExecRexec.
 
-Variable (G G' : execution).
-Variable (rfre : relation actid).
-Variable (traces : thread_id -> trace label -> Prop).
+Variables G G' : execution.
+Variable rfre : relation actid.
+Variable traces : thread_id -> trace label -> Prop.
 
 Notation "'E'" := (acts_set G).
-Notation "'is_w'" := (is_w (lab G)).
-Notation "'is_r'" := (is_r (lab G)).
-Notation "'W'" := is_w.
-Notation "'R'" := is_r.
+Notation "'W'" := (is_w (lab G)).
+Notation "'R'" := (is_r (lab G)).
 Notation "'race'" := (race G).
 Notation "'lab'" := (lab G).
 Notation "'same_loc'" := (same_loc lab).
@@ -240,10 +234,10 @@ Notation "'Rre'" := (codom_rel rfre).
 Notation "'Wre'" := (dom_rel rfre).
 Notation "'D'" := (E \₁ codom_rel (⦗Rre⦘ ⨾ (sb ∪ rf)＊)).
 
-Definition silent_cfg_add_step (X X' : t) : Prop :=
+Definition silent_cfg_add_step X X' :=
   exists e l, cfg_add_event traces X X' e l.
 
-Definition f_restr_D (f : actid -> option actid) : (actid -> option actid) :=
+Definition f_restr_D (f : actid -> option actid) : actid -> option actid :=
   (restr_fun (Some ↓₁ (f ↑₁ D)) f (fun x => None)).
 
 Record G_restr_D (G G'' : execution) : Prop :=
