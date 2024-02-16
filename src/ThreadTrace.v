@@ -11,32 +11,41 @@ From imm Require Import SubExecution.
 
 Section ThreadSeqSet.
 
-Definition seq_set (N : nat) : nat -> Prop := fun x => x < N.
-Definition thread_seq_set (t : thread_id) (N : nat) : actid -> Prop :=
-  (ThreadEvent t) ↑₁ seq_set N.
+Definition seq_set (n : nat) : nat -> Prop := fun x => x < n.
+Definition thread_seq_set t n : actid -> Prop :=
+  ThreadEvent t ↑₁ seq_set n.
+Hint Unfold seq_set thread_seq_set : unfolderDb.
 
-Lemma seq_set_step (N : nat) (t : thread_id) :
-thread_seq_set t (S N) ≡₁ thread_seq_set t N ∪₁ (eq (ThreadEvent t N)).
+Lemma seq_set_0 : seq_set 0 ≡₁ ∅.
 Proof using.
-  unfold thread_seq_set, seq_set.
-  assert (HH : (fun x => x < S N) ≡₁ (fun x => x < N) ∪₁ eq N) by (
-    unfolder; splits; ins; desf; lia
-  ).
-  rewrite HH, set_collect_union. basic_solver.
+  unfolder; splits; ins; desf; lia.
 Qed.
 
-Lemma thread_seq_set_size (t : thread_id) (N : nat) :
-  set_size (thread_seq_set t N) = NOnum N.
+Lemma seq_set_S n : seq_set (S n) ≡₁ seq_set n ∪₁ eq n.
+Proof using. unfolder; splits; ins; desf; lia. Qed.
+
+Lemma thread_set_S n t :
+  thread_seq_set t (1 + n) ≡₁ thread_seq_set t n ∪₁ eq (ThreadEvent t n).
 Proof using.
-  induction N.
+  unfold thread_seq_set.
+  rewrite seq_set_S, set_collect_union.
+  basic_solver.
+Qed.
+
+Lemma thread_seq_set_size t n :
+  set_size (thread_seq_set t n) = NOnum n.
+Proof using.
+  induction n.
   { apply set_size_empty.
-    unfold thread_seq_set, seq_set.
-    assert (HH : (fun x => x < 0) ≡₁ ∅) by (unfolder; splits; lia).
-    rewrite HH; basic_solver. }
-  rewrite seq_set_step. replace (S N) with (N + 1) by lia.
-  apply set_size_union_disjoint; auto using set_size_single.
-  apply set_disjoint_eq_r. unfold thread_seq_set, seq_set.
-  unfolder; intro F; desf; lia.
+    unfold thread_seq_set.
+    arewrite (seq_set 0 ≡₁ ∅).
+    2: basic_solver.
+    unfolder; ins; desf; splits; lia. }
+  rewrite thread_set_S.
+  erewrite set_size_union_disjoint with (a:=n) (b:=1);
+    auto using set_size_single.
+  { f_equal. lia. }
+  unfolder. ins. desf. lia.
 Qed.
 
 End ThreadSeqSet.
@@ -49,16 +58,17 @@ Notation "'E'" := (acts_set G).
 Notation "'lab'" := (lab G).
 Notation "'sb'" := (sb G).
 
-Definition thread_events : actid -> Prop := (fun e => t = tid e) ∩₁ E.
+(* Notation instead of Definition? *)
+Definition thread_events : actid -> Prop :=  E ∩₁ (fun e => t = tid e).
 
 Hypothesis NOT_INIT : t <> tid_init.
 Hypothesis THREAD_EVENTS : thread_events ≡₁ thread_seq_set t N.
 
 Definition thread_actid_trace : trace actid :=
   trace_map (ThreadEvent t) (
-    match set_size (thread_events) with
+    match set_size thread_events with
     | NOinfinity => trace_inf (fun x => x)
-    | NOnum n => trace_fin (List.seq 0 n)
+    | NOnum n    => trace_fin (List.seq 0 n)
     end
   ).
 
@@ -79,16 +89,19 @@ Qed.
 Lemma thread_actid_trace_nth n (d : actid) (LT : n < N) :
   trace_nth n thread_actid_trace d = ThreadEvent t n.
 Proof using THREAD_EVENTS NOT_INIT.
-  rewrite trace_nth_indep with (d' := ThreadEvent t 0) by (rewrite thread_actid_trace_length; simpl; lia).
-  rewrite thread_actid_trace_form; simpl; by rewrite map_nth, seq_nth.
+  rewrite trace_nth_indep with (d' := ThreadEvent t 0).
+  2: { rewrite thread_actid_trace_length; ins; lia. }
+  rewrite thread_actid_trace_form; ins.
+  now rewrite map_nth, seq_nth.
 Qed.
 
+(* TODO: make it a lemma about (List.seq 0 N)? *)
 Lemma trace_elems_eq_thread_events :
   thread_events ≡₁ trace_elems thread_actid_trace.
 Proof using THREAD_EVENTS.
   rewrite thread_actid_trace_form, THREAD_EVENTS, trace_elems_map.
-  unfold thread_seq_set, seq_set. simpl.
-  enough (HH : (fun x => x < N) ≡₁ (fun a => In a (List.seq 0 N))) by now rewrite HH.
+  unfold thread_seq_set. ins.
+  apply set_collect_more; auto.
   unfolder; splits; intros x; by rewrite in_seq0_iff.
 Qed.
 
@@ -127,7 +140,7 @@ Lemma thread_trace_eq :
   lab ↑₁ thread_events ≡₁ trace_elems thread_trace.
 Proof using THREAD_EVENTS.
   unfold thread_trace.
-  now rewrite trace_elems_map, trace_elems_eq_thread_events by easy.
+  now rewrite trace_elems_map, trace_elems_eq_thread_events.
 Qed.
 
 End ThreadTrace.
