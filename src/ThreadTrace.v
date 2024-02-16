@@ -9,11 +9,11 @@ From imm Require Import imm_s_hb.
 From imm Require Import imm_bob.
 From imm Require Import SubExecution.
 
-Section ThreadSeqSet.
-
 Definition seq_set (n : nat) : nat -> Prop := fun x => x < n.
 Definition thread_seq_set t n : actid -> Prop :=
   ThreadEvent t ↑₁ seq_set n.
+
+#[global]
 Hint Unfold seq_set thread_seq_set : unfolderDb.
 
 Lemma seq_set_0 : seq_set 0 ≡₁ ∅.
@@ -48,8 +48,6 @@ Proof using.
   unfolder. ins. desf. lia.
 Qed.
 
-End ThreadSeqSet.
-
 Section ThreadTrace.
 
 Variable (G : execution) (t : thread_id) (N : nat).
@@ -59,7 +57,7 @@ Notation "'lab'" := (lab G).
 Notation "'sb'" := (sb G).
 
 (* Notation instead of Definition? *)
-Definition thread_events : actid -> Prop :=  E ∩₁ (fun e => t = tid e).
+Definition thread_events : actid -> Prop := E ∩₁ (fun e => t = tid e).
 
 Hypothesis NOT_INIT : t <> tid_init.
 Hypothesis THREAD_EVENTS : thread_events ≡₁ thread_seq_set t N.
