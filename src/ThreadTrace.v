@@ -55,16 +55,14 @@ Variable (G : execution) (t : thread_id) (N : nat).
 Notation "'E'" := (acts_set G).
 Notation "'lab'" := (lab G).
 Notation "'sb'" := (sb G).
-
-(* Notation instead of Definition? *)
-Definition thread_events : actid -> Prop := E ∩₁ (fun e => t = tid e).
+Notation "'Et'" := (E ∩₁ (fun e => t = tid e)).
 
 Hypothesis NOT_INIT : t <> tid_init.
-Hypothesis THREAD_EVENTS : thread_events ≡₁ thread_seq_set t N.
+Hypothesis THREAD_EVENTS : Et ≡₁ thread_seq_set t N.
 
 Definition thread_actid_trace : trace actid :=
   trace_map (ThreadEvent t) (
-    match set_size thread_events with
+    match set_size Et with
     | NOinfinity => trace_inf (fun x => x)
     | NOnum n    => trace_fin (List.seq 0 n)
     end
@@ -95,7 +93,7 @@ Qed.
 
 (* TODO: make it a lemma about (List.seq 0 N)? *)
 Lemma trace_elems_eq_thread_events :
-  thread_events ≡₁ trace_elems thread_actid_trace.
+  Et ≡₁ trace_elems thread_actid_trace.
 Proof using THREAD_EVENTS.
   rewrite thread_actid_trace_form, THREAD_EVENTS, trace_elems_map.
   unfold thread_seq_set. ins.
@@ -112,7 +110,7 @@ Proof using THREAD_EVENTS NOT_INIT.
 Qed.
 
 Lemma thread_actid_trace_correct :
-  trace_order thread_actid_trace ≡ restr_rel thread_events sb.
+  trace_order thread_actid_trace ≡ restr_rel Et sb.
 Proof using THREAD_EVENTS NOT_INIT.
   unfold trace_order, sb, ext_sb. unfolder.
   splits; intros a b.
@@ -135,7 +133,7 @@ Qed.
 Definition thread_trace : trace label := trace_map lab thread_actid_trace.
 
 Lemma thread_trace_eq :
-  lab ↑₁ thread_events ≡₁ trace_elems thread_trace.
+  lab ↑₁ Et ≡₁ trace_elems thread_trace.
 Proof using THREAD_EVENTS.
   unfold thread_trace.
   now rewrite trace_elems_map, trace_elems_eq_thread_events.
