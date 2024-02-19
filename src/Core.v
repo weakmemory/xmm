@@ -204,7 +204,7 @@ Section ExecAdd.
 Variables G G' : execution.
 Variable traces : thread_id -> trace label -> Prop.
 
-Record exec_inst (e : actid) (l : label) := {
+Record exec_inst e l := {
   cfg_step : cfg_add_event traces (empty_cfg G) (empty_cfg G') e l;
   next_cons : is_cons G';
 }.
