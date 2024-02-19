@@ -73,8 +73,8 @@ Record reord : Prop :=
     map_co : co ≡ mapper ↓ co';
     map_rmw : rmw ≡ mapper ↓ rmw';
 
-    traces_corr : forall t' (IN : traces' T t'),
-        exists t, traces T t /\ trace_swapped (index a) (index b) t t';
+    traces_corr : forall t', traces' T t'
+        <-> exists t, traces T t /\ trace_swapped (index a) (index b) t t';
 }.
 
 Lemma same_tid (REORD : reord) : tid a = tid b.
