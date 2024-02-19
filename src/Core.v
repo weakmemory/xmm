@@ -195,8 +195,10 @@ Record cfg_add_event_gen e l r w rl W1 W2 c :=
   wf_new_conf : wf X';
 }.
 
-Definition cfg_add_event (e : actid) (l : label) :=
-  exists r w rl W1 W2 c, cfg_add_event_gen e l r w rl W1 W2 c.
+Definition cfg_add_event
+  (e : actid) (l : label)
+  (r : option actid) (rl : option label) :=
+  exists w W1 W2 c, cfg_add_event_gen e l r w rl W1 W2 c.
 
 End CfgAddEventStep.
 
@@ -205,8 +207,8 @@ Section ExecAdd.
 Variables G G' : execution.
 Variable traces : thread_id -> trace label -> Prop.
 
-Record exec_inst (e : actid) (l : label) := {
-  cfg_step : cfg_add_event traces (empty_cfg G) (empty_cfg G') e l;
+Record exec_inst e l r rl := {
+  cfg_step : cfg_add_event traces (empty_cfg G) (empty_cfg G') e l r rl;
   next_cons : is_cons G';
 }.
 
@@ -236,7 +238,7 @@ Notation "'Wre'" := (dom_rel rfre).
 Notation "'D'" := (E \₁ codom_rel (⦗Rre⦘ ⨾ (sb ∪ rf)＊)).
 
 Definition silent_cfg_add_step X X' :=
-  exists e l, cfg_add_event traces X X' e l.
+  exists e l r rl, cfg_add_event traces X X' e l r rl.
 
 Definition f_restr_D (f : actid -> option actid) : actid -> option actid :=
   (restr_fun (Some ↓₁ (f ↑₁ D)) f (fun x => None)).
