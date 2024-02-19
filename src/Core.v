@@ -52,8 +52,8 @@ Module WCore.
 Record t := {
   G : execution;
   GC : execution;
-  C : actid -> Prop;
-  f : actid -> option actid;
+  cmt : actid -> Prop;
+  g2gc : actid -> option actid;
 }.
 
 Definition init_exec G : execution :=
@@ -87,8 +87,8 @@ Section CoreDefs.
 Variable X : t.
 Notation "'G'" := (G X).
 Notation "'GC'" := (GC X).
-Notation "'C'" := (C X).
-Notation "'f'" := (f X).
+Notation "'C'" := (cmt X).
+Notation "'f'" := (g2gc X).
 Notation "'labc'" := (lab GC).
 Notation "'lab'" := (lab G).
 Notation "'R'" := (is_r lab).
@@ -154,15 +154,15 @@ Variable traces : thread_id -> trace label -> Prop.
 Variable X X' : t.
 Notation "'G''" := (G X').
 Notation "'GC''" := (GC X').
-Notation "'C''" := (C X').
-Notation "'f''" := (f X').
+Notation "'C''" := (cmt X').
+Notation "'f''" := (g2gc X').
 Notation "'E''" := (acts_set G').
 Notation "'lab''" := (lab G').
 
 Notation "'G'" := (G X).
 Notation "'GC'" := (GC X).
-Notation "'C'" := (C X).
-Notation "'f'" := (f X).
+Notation "'C'" := (cmt X).
+Notation "'f'" := (g2gc X).
 Notation "'E'" := (acts_set G).
 Notation "'lab'" := (lab G).
 
