@@ -95,7 +95,7 @@ Definition rmw_flag (b : bool) : nat := if b then 2 else 1.
 Definition rmws_sum l := fold_left plus (map rmw_flag l) 0.
 
 Record trace_rec_wf l := {
-  trace_fin : labs rec = trace_fin l;
+  trace_finite : labs rec = trace_fin l;
   trace_correct : length l = rmws_sum (is_rmws rec);
 }.
 
