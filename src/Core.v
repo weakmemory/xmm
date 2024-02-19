@@ -82,6 +82,40 @@ Record is_cons : Prop := {
 
 End Consistency.
 
+Section TraceStorage.
+
+Record trace_record : Set := {
+  labs : trace label;
+  is_rmws : list bool;
+}.
+
+Variable rec : trace_record.
+
+Definition rmw_flag (b : bool) : nat := if b then 2 else 1.
+Definition rmws_sum l := fold_left plus (map rmw_flag l) 0.
+
+Record trace_rec_wf l := {
+  trace_fin : labs rec = trace_fin l;
+  trace_correct : length l = rmws_sum (is_rmws rec);
+}.
+
+Fixpoint next_event_pos (N : nat) (rmws : list bool) : nat :=
+  match N, rmws with
+  | O , h :: _ => 0
+  | S N', false :: rmws' => 1 + (next_event_pos N' rmws')
+  | S (S N'), true :: rmws' => 1 + (next_event_pos N' rmws')
+  | _, _ => 0
+  end.
+
+Lemma next_event_pos_correct (N : nat) (rmws : list bool)
+  (LEN : N < rmws_sum rmws) :
+  rmws_sum (firstn (next_event_pos N rmws) rmws) = N.
+Proof using.
+  admit.
+Admitted.
+
+End TraceStorage.
+
 Section CoreDefs.
 
 Variable X : t.
