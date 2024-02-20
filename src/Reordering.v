@@ -16,6 +16,8 @@ From imm Require Import SubExecution.
 
 Section ReorderingDefs.
 
+Open Scope program_scope.
+
 Variable a b : actid.
 Variable traces traces' : thread_id -> trace label -> Prop.
 Variable G G' : execution.
@@ -28,6 +30,7 @@ Notation "'sb''" := (sb G').
 Notation "'rf''" := (rf G').
 Notation "'co''" := (co G').
 Notation "'rmw''" := (rmw G').
+Notation "'ppo''" := (ppo G').
 
 Notation "'lab'" := (lab G).
 Notation "'E'" := (acts_set G).
@@ -36,6 +39,10 @@ Notation "'sb'" := (sb G).
 Notation "'rf'" := (rf G).
 Notation "'co'" := (co G).
 Notation "'rmw'" := (rmw G).
+Notation "'ppo'" := (ppo G).
+Notation "'W'" := (is_w lab).
+Notation "'R'" := (is_r lab).
+
 
 Definition mapper (x : actid) : actid :=
     ifP x = a then b
@@ -83,4 +90,56 @@ Proof using.
     all: auto || (exfalso; now apply REORD).
 Qed.
 
+Definition P m a' : Prop := lab a' = lab a /\ immediate sb a' (m b).
+
+Record simrel_not_rw m : Prop :=
+{   not_rw : R a -> W b -> False;
+    reordered : reord;
+
+    m_inj : forall x y, m x = m y -> x = y;
+    m_comp : lab = lab' ∘ m;
+
+    m_case1 : ~ E' b -> ~ E' a -> E ≡₁ m ↑₁ E';
+    m_case2 :   E' b -> ~ E' a -> E ≡₁ m ↑₁ E' ∪₁ P m;
+    m_case3 :   E' b ->   E' a -> E ≡₁ m ↑₁ E';
+
+    m_ppo : ppo ≡ m ↑ ppo';
+    m_rf : rf ≡ m ↑ rf';
+    m_co : co ≡ m ↑ co;
+}.
+
 End ReorderingDefs.
+
+Section GraphDefs.
+
+Variable G : execution.
+Variable traces : thread_id -> trace label -> Prop.
+
+Notation "'lab'" := (lab G).
+Notation "'E'" := (acts_set G).
+Notation "'loc'" := (loc lab).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'rmw'" := (rmw G).
+Notation "'hb'" := (hb G).
+Notation "'W'" := (is_w lab).
+Notation "'R'" := (is_r lab).
+Notation "'psc'" := (imm.psc G).
+Notation "'same_loc'" := (same_loc lab).
+
+Definition trace_eq (t1 t2 : trace label) : Prop :=
+    forall n d, trace_nth n t1 d = trace_nth n t2 d.
+Definition thread_terminated thr : Prop :=
+    exists t, traces thr t /\ trace_eq t (thread_trace G thr).
+Definition machine_terminted := forall thr, thread_terminated thr.
+Definition behavior := co.
+
+Definition vf := ⦗W⦘ ⨾ rf^? ⨾ hb^? ⨾ psc^? ⨾ hb^?.
+Definition srf := (vf ∩ same_loc) ⨾ ⦗R⦘ \ (co ⨾ vf).
+
+End GraphDefs.
+
+(* TODO: G_init = ? *)
+(* TODO: simrel_not_rw -> G wcore consistent -> G' wcore consistent *)
+(* TODO: simrel_not_rw -> G WRC11 consistent -> G' WRC11 consistent *)
