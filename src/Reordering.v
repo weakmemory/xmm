@@ -14,6 +14,36 @@ From imm Require Import imm_s_hb.
 From imm Require Import imm_bob.
 From imm Require Import SubExecution.
 
+Section GraphDefs.
+
+Variable G : execution.
+Variable traces : thread_id -> trace label -> Prop.
+
+Notation "'lab'" := (lab G).
+Notation "'E'" := (acts_set G).
+Notation "'loc'" := (loc lab).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'rmw'" := (rmw G).
+Notation "'hb'" := (hb G).
+Notation "'W'" := (is_w lab).
+Notation "'R'" := (is_r lab).
+Notation "'psc'" := (imm.psc G).
+Notation "'same_loc'" := (same_loc lab).
+
+Definition trace_eq (t1 t2 : trace label) : Prop :=
+    forall n d, trace_nth n t1 d = trace_nth n t2 d.
+Definition thread_terminated thr : Prop :=
+    exists t, traces thr t /\ trace_eq t (thread_trace G thr).
+Definition machine_terminated := forall thr, thread_terminated thr.
+Definition behavior := co.
+
+Definition vf := ⦗W⦘ ⨾ rf^? ⨾ hb^? ⨾ psc^? ⨾ hb^?.
+Definition srf := (vf ∩ same_loc) ⨾ ⦗R⦘ \ (co ⨾ vf).
+
+End GraphDefs.
+
 Section ReorderingDefs.
 
 Open Scope program_scope.
@@ -127,35 +157,7 @@ Record simrel_not_rw m : Prop :=
 
 End ReorderingDefs.
 
-Section GraphDefs.
 
-Variable G : execution.
-Variable traces : thread_id -> trace label -> Prop.
-
-Notation "'lab'" := (lab G).
-Notation "'E'" := (acts_set G).
-Notation "'loc'" := (loc lab).
-Notation "'sb'" := (sb G).
-Notation "'rf'" := (rf G).
-Notation "'co'" := (co G).
-Notation "'rmw'" := (rmw G).
-Notation "'hb'" := (hb G).
-Notation "'W'" := (is_w lab).
-Notation "'R'" := (is_r lab).
-Notation "'psc'" := (imm.psc G).
-Notation "'same_loc'" := (same_loc lab).
-
-Definition trace_eq (t1 t2 : trace label) : Prop :=
-    forall n d, trace_nth n t1 d = trace_nth n t2 d.
-Definition thread_terminated thr : Prop :=
-    exists t, traces thr t /\ trace_eq t (thread_trace G thr).
-Definition machine_terminated := forall thr, thread_terminated thr.
-Definition behavior := co.
-
-Definition vf := ⦗W⦘ ⨾ rf^? ⨾ hb^? ⨾ psc^? ⨾ hb^?.
-Definition srf := (vf ∩ same_loc) ⨾ ⦗R⦘ \ (co ⨾ vf).
-
-End GraphDefs.
 
 (* TODO: G_init = ? *)
 (* TODO: simrel_not_rw -> G wcore consistent -> G' wcore consistent *)
