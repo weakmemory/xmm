@@ -115,7 +115,7 @@ Record simrel_not_rw m : Prop :=
 {   not_rw : R a -> W b -> False;
     reordered : reord;
 
-    m_inj : forall x y, m x = m y -> x = y;
+    m_inj : inj_dom ⊤₁ m;
     m_comp : lab = lab' ∘ m;
 
     m_case1 : ~ E' b -> ~ E' a -> E ≡₁ m ↑₁ E';
