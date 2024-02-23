@@ -113,18 +113,16 @@ Definition P m a' : Prop := lab a' = lab a /\ immediate sb a' (m b).
 
 Record simrel_not_rw m : Prop :=
 {   not_rw : R a -> W b -> False;
-    reordered : reord;
 
     m_inj : inj_dom ⊤₁ m;
     m_comp : lab = lab' ∘ m;
 
-    m_case1 : ~ E' b -> ~ E' a -> E ≡₁ m ↑₁ E';
-    m_case2 :   E' b -> ~ E' a -> E ≡₁ m ↑₁ E' ∪₁ P m;
-    m_case3 :   E' b ->   E' a -> E ≡₁ m ↑₁ E';
+    m_case1 :   forall (SAME : E' a <-> E' b), E ≡₁ m ↑₁ E';
+    m_case2 :   forall (INB : E' b) (NOTINA : ~ E' a), E ≡₁ m ↑₁ E' ∪₁ P m;
 
     m_ppo : ppo ≡ m ↑ ppo';
     m_rf : rf ≡ m ↑ rf';
-    m_co : co ≡ m ↑ co;
+    m_co : co ≡ m ↑ co';
 }.
 
 End ReorderingDefs.
