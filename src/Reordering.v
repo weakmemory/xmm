@@ -142,7 +142,7 @@ Record reord : Prop :=
 Definition P m a' : Prop := lab a' = lab a /\ immediate sb a' (m b).
 
 Record simrel_not_rw m : Prop :=
-{   not_rw : R a -> W b -> False;
+{   not_rw : forall (READ : R a) (WRITE : W b), False;
 
     m_inj : inj_dom ⊤₁ m;
     m_comp : lab = lab' ∘ m;
@@ -157,7 +157,19 @@ Record simrel_not_rw m : Prop :=
 
 End ReorderingDefs.
 
+Section ReorderingLemmas.
 
+Open Scope program_scope.
+
+Lemma simrel_init G G' traces traces' a b m (REORD : reord G G' traces traces' a b) 
+    (NOTRW : forall (READ : is_r (lab G) a) (WRITE : is_w (lab G) b), False) 
+    (M_INJ : inj_dom ⊤₁ m) (M_COMP : lab G = lab G' ∘ m):
+    simrel_not_rw (WCore.init_exec G) (WCore.init_exec G') a b m.
+Proof using.
+    admit. 
+Admitted.
+
+End ReorderingLemmas.
 
 (* TODO: G_init = ? *)
 (* TODO: simrel_not_rw -> G wcore consistent -> G' wcore consistent *)
