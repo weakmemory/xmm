@@ -44,15 +44,27 @@ Notation "'R'" := (is_r lab).
 Notation "'mapper'" := (upd (upd id a b) b a).
 
 Hypothesis EVENTS_ADJ : immediate sb a b.
+Hypothesis A_NOT_INIT : ~is_init a.
+
+Lemma same_tid : tid a = tid b.
+Proof using EVENTS_ADJ A_NOT_INIT.
+    now destruct (sb_tid_init (immediate_in EVENTS_ADJ)).
+Qed.
+
+Lemma b_not_init : ~is_init b.
+Proof using EVENTS_ADJ.
+    apply immediate_in, no_sb_to_init in EVENTS_ADJ.
+    unfolder in EVENTS_ADJ. apply EVENTS_ADJ.
+Qed.
 
 Lemma events_neq : a <> b.
-Proof using EVENTS_ADJ.
+Proof using EVENTS_ADJ A_NOT_INIT.
     intros F; subst a. destruct EVENTS_ADJ.
     eapply sb_irr; eauto.
 Qed.
 
 Lemma mapper_eq_a : mapper a = b.
-Proof using EVENTS_ADJ.
+Proof using EVENTS_ADJ A_NOT_INIT.
     rewrite updo, upds; auto using events_neq.
 Qed.
 
@@ -84,12 +96,7 @@ Proof using.
 Qed.
 
 Record reord : Prop :=
-{   a_not_init : ~is_init a;
-    b_not_init : ~is_init b;
-
-    (* events_imm : immediate sb a b;
-    events_diff : a <> b; *)
-    events_locs_diff : loc a <> loc b;
+{   events_locs_diff : loc a <> loc b;
     events_lab : lab' = upd (upd lab a (lab b)) b (lab a);
     events_same : E' ≡₁ E;
 
@@ -101,12 +108,6 @@ Record reord : Prop :=
         traces' (tid a) t' <->
         exists t, traces (tid a) t /\ trace_swapped (index a) (index b) t t';
 }.
-
-Lemma same_tid (REORD : reord) : tid a = tid b.
-Proof using.
-    destruct (sb_tid_init (immediate_in (events_imm REORD))); auto.
-    exfalso; now apply REORD.
-Qed.
 
 Definition P m a' : Prop := lab a' = lab a /\ immediate sb a' (m b).
 
