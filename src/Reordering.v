@@ -41,12 +41,30 @@ Notation "'rmw'" := (rmw G).
 Notation "'ppo'" := (ppo G).
 Notation "'W'" := (is_w lab).
 Notation "'R'" := (is_r lab).
+Notation "'mapper'" := (upd (upd id a b) b a).
 
+Hypothesis EVENTS_ADJ : immediate sb a b.
 
-Definition mapper (x : actid) : actid :=
-    ifP x = a then b
-    else ifP x = b then a
-    else x.
+Lemma events_neq : a <> b.
+Proof using EVENTS_ADJ.
+    intros F; subst a. destruct EVENTS_ADJ.
+    eapply sb_irr; eauto.
+Qed.
+
+Lemma mapper_eq_a : mapper a = b.
+Proof using EVENTS_ADJ.
+    rewrite updo, upds; auto using events_neq.
+Qed.
+
+Lemma mapper_eq_b : mapper b = a.
+Proof using.
+    now rewrite upds.
+Qed.
+
+Lemma mapper_neq x (NEQ_A : x <> a) (NEQ_B : x <> b) : mapper x = x.
+Proof using.
+    rewrite !updo; auto.
+Qed.
 
 Record trace_swapped_gen d n m (t t' : trace label) : Prop :=
 {   swap_n : trace_nth n t' d = trace_nth m t d;
@@ -69,8 +87,8 @@ Record reord : Prop :=
 {   a_not_init : ~is_init a;
     b_not_init : ~is_init b;
 
-    events_imm : immediate sb a b;
-    events_diff : a <> b;
+    (* events_imm : immediate sb a b;
+    events_diff : a <> b; *)
     events_locs_diff : loc a <> loc b;
     events_lab : lab' = upd (upd lab a (lab b)) b (lab a);
     events_same : E' ≡₁ E;
