@@ -18,11 +18,10 @@ Section ReorderingDefs.
 
 Open Scope program_scope.
 
-Variable a b : actid.
-Variable traces traces' : thread_id -> trace label -> Prop.
-Variable G G' : execution.
 
-Notation "'T'" := (tid a).
+Variable G G' : execution.
+Variable traces traces' : thread_id -> trace label -> Prop.
+Variable a b : actid.
 
 Notation "'lab''" := (lab G').
 Notation "'E''" := (acts_set G').
@@ -80,14 +79,15 @@ Record reord : Prop :=
     map_co : co ≡ mapper ↓ co';
     map_rmw : rmw ≡ mapper ↓ rmw';
 
-    traces_corr : forall t', traces' T t'
-        <-> exists t, traces T t /\ trace_swapped (index a) (index b) t t';
+    traces_corr : forall t' (SIZE : NOmega.lt (NOnum (index b)) (trace_length t')),
+        traces' (tid a) t' <->
+        exists t, traces (tid a) t /\ trace_swapped (index a) (index b) t t';
 }.
 
 Lemma same_tid (REORD : reord) : tid a = tid b.
 Proof using.
-    destruct (sb_tid_init (immediate_in (events_imm REORD))).
-    all: auto || (exfalso; now apply REORD).
+    destruct (sb_tid_init (immediate_in (events_imm REORD))); auto.
+    exfalso; now apply REORD.
 Qed.
 
 Definition P m a' : Prop := lab a' = lab a /\ immediate sb a' (m b).
@@ -132,7 +132,7 @@ Definition trace_eq (t1 t2 : trace label) : Prop :=
     forall n d, trace_nth n t1 d = trace_nth n t2 d.
 Definition thread_terminated thr : Prop :=
     exists t, traces thr t /\ trace_eq t (thread_trace G thr).
-Definition machine_terminted := forall thr, thread_terminated thr.
+Definition machine_terminated := forall thr, thread_terminated thr.
 Definition behavior := co.
 
 Definition vf := ⦗W⦘ ⨾ rf^? ⨾ hb^? ⨾ psc^? ⨾ hb^?.
