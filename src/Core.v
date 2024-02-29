@@ -237,10 +237,10 @@ Notation "'D'" := (E \₁ codom_rel (⦗Rre⦘ ⨾ (sb ∪ rf)＊)).
 Definition silent_cfg_add_step X X' :=
   exists e l, cfg_add_event traces X X' e l.
 
-Definition f_restr_D (f : actid -> option actid) : actid -> option actid :=
+Definition f_restr (D : actid -> Prop) (f : actid -> option actid) : actid -> option actid :=
   (restr_fun (Some ↓₁ (f ↑₁ D)) f (fun x => None)).
 
-Record G_restr_D (G G'' : execution) : Prop :=
+Record G_restr (D : actid -> Prop) (G G'' : execution) : Prop :=
   { sub_G : sub_execution G G'' ∅₂ ∅₂;
     acts_D : acts_set G'' ≡₁ D;
   }.
@@ -254,9 +254,9 @@ Record reexec_gen
   d_wre_sub_f : D ∪₁ Wre ⊆₁ Some ↓₁ (f ↑₁ C);
 
   cfg_wf : wf (Build_t G G' C f);
-  int_G_D : G_restr_D G G'';
+  int_G_D : G_restr D G G'';
   cfg_steps : silent_cfg_add_step＊
-    (Build_t G'' G' C (f_restr_D f))
+    (Build_t G'' G' C (f_restr D f))
     (Build_t G' G' C f');
 
   c_correct : forall c (IN_C : C c), is_some (f c);
