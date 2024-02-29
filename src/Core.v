@@ -25,6 +25,14 @@ Set Implicit Arguments.
     <acts_set; threads_set; lab; rmw; data; addr; ctrl; rmw_dep; rf; co>
 .
 
+Definition f_restr (D : actid -> Prop) (f : actid -> option actid) : actid -> option actid :=
+  (restr_fun (Some ↓₁ (f ↑₁ D)) f (fun x => None)).
+
+Record G_restr (D : actid -> Prop) (G G'' : execution) : Prop :=
+  { sub_G : sub_execution G G'' ∅₂ ∅₂;
+    acts_D : acts_set G'' ≡₁ D;
+  }.
+
 Section Race.
 Variable G : execution.
 Notation "'E'" := (acts_set G).
@@ -236,14 +244,6 @@ Notation "'D'" := (E \₁ codom_rel (⦗Rre⦘ ⨾ (sb ∪ rf)＊)).
 
 Definition silent_cfg_add_step X X' :=
   exists e l, cfg_add_event traces X X' e l.
-
-Definition f_restr (D : actid -> Prop) (f : actid -> option actid) : actid -> option actid :=
-  (restr_fun (Some ↓₁ (f ↑₁ D)) f (fun x => None)).
-
-Record G_restr (D : actid -> Prop) (G G'' : execution) : Prop :=
-  { sub_G : sub_execution G G'' ∅₂ ∅₂;
-    acts_D : acts_set G'' ≡₁ D;
-  }.
 
 Record reexec_gen
   (G'' : execution)

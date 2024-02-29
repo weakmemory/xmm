@@ -141,6 +141,116 @@ Record simrel_not_rw m : Prop :=
 
 End ReorderingDefs.
 
+Section ReorderingSubLemma.
+
+Variable G G' : execution.
+Variable C : actid -> Prop.
+Variable l : list actid.
+Variable traces : thread_id -> trace label -> Prop.
+
+Notation "'lab''" := (lab G').
+Notation "'E''" := (acts_set G').
+Notation "'sb''" := (sb G').
+Notation "'rmw''" := (rmw G').
+Notation "'data''" := (data G').
+Notation "'addr''" := (addr G').
+Notation "'ctrl''" := (ctrl G').
+Notation "'rmw_dep''" := (rmw_dep G').
+Notation "'rf''" := (rf G').
+Notation "'co''" := (co G').
+
+Notation "'lab'" := (lab G).
+Notation "'E'" := (acts_set G).
+Notation "'sb''" := (sb G).
+Notation "'rmw'" := (rmw G).
+Notation "'data'" := (data G).
+Notation "'addr'" := (addr G).
+Notation "'ctrl'" := (ctrl G).
+Notation "'rmw_dep'" := (rmw_dep G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+
+Notation "'U'" := (E' \₁ C).
+Notation "'f'" := (fun x => Some x).
+Notation "'D'" := (E' \₁ E).
+
+Notation "'enum_ord'" := (total_order_from_list l).
+
+Lemma sub_eq
+    (WF_G : Wf G')
+    (PREFIX : G_restr E G' G)
+    (ENUM_D : (fun x => In x []) ≡₁ D)
+     : G' = G.
+Proof using.
+    unfolder in ENUM_D. desf.
+    assert (E_EQ : E = E').
+    { apply set_extensionality.
+      unfolder. splits; try apply PREFIX. ins.
+      destruct (classic (E x)); auto.
+      exfalso; eauto. }
+    assert (TID_EQ : threads_set G = threads_set G').
+    { eapply set_extensionality, PREFIX. }
+    assert (LAB_EQ : lab = lab').
+    { apply PREFIX. }
+    assert (RMQ_EQ : rmw = rmw').
+    { apply rel_extensionality.
+      rewrite sub_rmw, E_EQ, <- wf_rmwE; auto.
+      apply PREFIX. }
+    assert (DATA_EQ : data = data').
+    { apply rel_extensionality.
+      rewrite sub_data, E_EQ, <- wf_dataE; auto.
+      apply PREFIX. }
+    assert (ADDR_EQ : addr = addr').
+    { apply rel_extensionality.
+      rewrite sub_addr, E_EQ, <- wf_addrE; auto.
+      apply PREFIX. }
+    assert (CTRL_EQ : ctrl = ctrl').
+    { apply rel_extensionality.
+      rewrite sub_ctrl, E_EQ, <- wf_ctrlE; auto.
+      apply PREFIX. }
+    assert (RMWDEP_EQ : rmw_dep = rmw_dep').
+    { apply rel_extensionality.
+      rewrite sub_frmw, E_EQ, <- wf_rmw_depE; auto.
+      apply PREFIX. }
+    assert (RF_EQ : rf = rf').
+    { apply rel_extensionality.
+      rewrite sub_rf, E_EQ, <- wf_rfE; auto.
+      apply PREFIX. }
+    assert (CO_EQ : co = co').
+    { apply rel_extensionality.
+      rewrite sub_co, E_EQ, <- wf_coE; auto.
+      apply PREFIX. }
+    destruct G, G'; ins; f_equal; auto.
+    Unshelve. repeat constructor. (* WHY?! *)
+Qed.
+
+Lemma steps
+    (WF : Wf G')
+    (PREFIX : G_restr E G' G)
+    (C_SUB : C ⊆₁ E')
+    (VALID_ENUM : NoDup l)
+    (ENUM_D : (fun x => In x l) ≡₁ D)
+    (ORD_SB : sb' ⊆ enum_ord)
+    (ORD_RF : rf' ⨾ ⦗U⦘ ⊆ enum_ord) :
+    exists f',
+    (WCore.silent_cfg_add_step traces)＊
+    (WCore.Build_t G G' C f)
+    (WCore.Build_t G' G' C f').
+Proof using.
+    generalize G G' C WF PREFIX C_SUB VALID_ENUM ENUM_D ORD_SB ORD_RF.
+    clear G G' C WF PREFIX C_SUB VALID_ENUM ENUM_D ORD_SB ORD_RF.
+    induction l as [ | hl tl IHl ]; ins.
+    { exists f.
+      enough (G' = G) by (subst; constructor).
+      apply sub_eq; eauto. }
+    eexists. eapply rt_trans.
+    { edestruct (IHl G); admit.
+    }
+    admit.
+Admitted.
+
+End ReorderingSubLemma.
+
 Section ReorderingLemmas.
 
 Open Scope program_scope.
