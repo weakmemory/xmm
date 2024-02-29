@@ -176,10 +176,31 @@ Notation "'D'" := (E' \₁ E).
 
 Notation "'enum_ord'" := (total_order_from_list l).
 
+Lemma sub_sym
+    (WF_G : Wf G')
+    (PREFIX : G_restr E G' G)
+    (ENUM_D : D ≡₁ ∅)
+    : sub_execution G G' ∅₂ ∅₂.
+Proof using.
+    unfolder in ENUM_D. desf.
+    assert (E_EQ : E = E').
+    { apply set_extensionality.
+      unfolder. splits; try apply PREFIX. ins.
+      destruct (classic (E x)); auto.
+      exfalso; eauto. }
+    constructor.
+    all: try solve [symmetry; apply PREFIX].
+    { now rewrite <- E_EQ. }
+    { rewrite wf_rmwE by auto.
+      rewrite sub_rmw with (G' := G) (G := G') by apply PREFIX.
+      rewrite E_EQ; basic_solver. }
+    all: admit.
+Admitted.
+
 Lemma sub_eq
     (WF_G : Wf G')
     (PREFIX : G_restr E G' G)
-    (ENUM_D : (fun x => In x []) ≡₁ D)
+    (ENUM_D : D ≡₁ ∅)
      : G' = G.
 Proof using.
     unfolder in ENUM_D. desf.
@@ -225,7 +246,7 @@ Proof using.
 Qed.
 
 Lemma steps
-    (WF : Wf G')
+    (WF : Wf G)
     (PREFIX : G_restr E G' G)
     (C_SUB : C ⊆₁ E')
     (VALID_ENUM : NoDup l)
@@ -242,8 +263,10 @@ Proof using.
     induction l as [ | hl tl IHl ]; ins.
     { exists f.
       enough (G' = G) by (subst; constructor).
-      apply sub_eq; eauto. }
-    eexists. eapply rt_trans.
+      apply sub_eq; eauto.
+      { admit. }
+      admit. }
+    eexists (upd ?[f] hl (Some hl)). eapply rt_trans.
     { edestruct (IHl G); admit.
     }
     admit.
