@@ -2,6 +2,7 @@ Require Import Lia Setoid Program.Basics.
 Require Import AuxDef.
 Require Import ThreadTrace.
 Require Import Core.
+Require Import TraceSwap.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -32,10 +33,8 @@ Notation "'R'" := (is_r lab).
 Notation "'psc'" := (imm.psc G).
 Notation "'same_loc'" := (same_loc lab).
 
-Definition trace_eq (t1 t2 : trace label) : Prop :=
-    forall n d, trace_nth n t1 d = trace_nth n t2 d.
 Definition thread_terminated thr : Prop :=
-    exists t, traces thr t /\ trace_eq t (thread_trace G thr).
+    exists t, traces thr t /\ t = thread_trace G thr.
 Definition machine_terminated := forall thr, thread_terminated thr.
 Definition behavior := co.
 
@@ -78,7 +77,8 @@ Hypothesis A_NOT_INIT : ~is_init a.
 
 Lemma same_tid : tid a = tid b.
 Proof using EVENTS_ADJ A_NOT_INIT.
-    now destruct (sb_tid_init (immediate_in EVENTS_ADJ)).
+    apply immediate_in, sb_tid_init in EVENTS_ADJ.
+    now destruct EVENTS_ADJ.
 Qed.
 
 Lemma b_not_init : ~is_init b.
@@ -89,13 +89,13 @@ Qed.
 
 Lemma events_neq : a <> b.
 Proof using EVENTS_ADJ A_NOT_INIT.
-    intros F; subst a. destruct EVENTS_ADJ.
-    eapply sb_irr; eauto.
+    intros F; subst a.
+    eapply sb_irr, immediate_in; eauto.
 Qed.
 
 Lemma mapper_eq_a : mapper a = b.
 Proof using EVENTS_ADJ A_NOT_INIT.
-    rewrite updo, upds; auto using events_neq.
+    rupd; auto using events_neq.
 Qed.
 
 Lemma mapper_eq_b : mapper b = a.
@@ -105,24 +105,7 @@ Qed.
 
 Lemma mapper_neq x (NEQ_A : x <> a) (NEQ_B : x <> b) : mapper x = x.
 Proof using.
-    rewrite !updo; auto.
-Qed.
-
-Record trace_swapped_gen d n m (t t' : trace label) : Prop :=
-{   swap_n : trace_nth n t' d = trace_nth m t d;
-    swap_m : trace_nth m t' d = trace_nth n t d;
-    swap_others : forall x (NEQ_N : x <> n) (NEQ_M : x <> m),
-        trace_nth x t' d = trace_nth x t d;
-}.
-
-Definition trace_swapped n m t t' : Prop := forall a, trace_swapped_gen a n m t t'.
-
-Lemma swapped_same_elems n m t t'
-    (SWAP : trace_swapped n m t t') :
-    trace_elems t ≡₁ trace_elems t.
-Proof using.
-    unfold trace_swapped in SWAP.
-    split; unfolder; ins.
+    rupd.
 Qed.
 
 Record reord : Prop :=
@@ -136,11 +119,12 @@ Record reord : Prop :=
 
     traces_corr : forall t' (SIZE : NOmega.lt (NOnum (index b)) (trace_length t')),
         traces' (tid a) t' <->
-        exists t, traces (tid a) t /\ trace_swapped (index a) (index b) t t';
+        exists t, traces (tid a) t /\ trace_swapped label t t' (index a) (index b);
 }.
 
 Definition P m a' : Prop := lab a' = lab a /\ immediate sb a' (m b).
 
+(* TODO: use `mapper` instead of m? *)
 Record simrel_not_rw m : Prop :=
 {   not_rw : forall (READ : R a) (WRITE : W b), False;
 
@@ -161,12 +145,12 @@ Section ReorderingLemmas.
 
 Open Scope program_scope.
 
-Lemma simrel_init G G' traces traces' a b m (REORD : reord G G' traces traces' a b) 
-    (NOTRW : forall (READ : is_r (lab G) a) (WRITE : is_w (lab G) b), False) 
+Lemma simrel_init G G' traces traces' a b m (REORD : reord G G' traces traces' a b)
+    (NOTRW : forall (READ : is_r (lab G) a) (WRITE : is_w (lab G) b), False)
     (M_INJ : inj_dom ⊤₁ m) (M_COMP : lab G = lab G' ∘ m):
     simrel_not_rw (WCore.init_exec G) (WCore.init_exec G') a b m.
 Proof using.
-    admit. 
+    admit.
 Admitted.
 
 End ReorderingLemmas.
