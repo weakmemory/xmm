@@ -28,6 +28,8 @@ Set Implicit Arguments.
 Definition f_restr (D : actid -> Prop) (f : actid -> option actid) : actid -> option actid :=
   (restr_fun (Some ↓₁ (f ↑₁ D)) f (fun x => None)).
 
+(* TODO: add prefixes to field names *)
+(* TODO: rename to exec_restrict *)
 Record G_restr (D : actid -> Prop) (G G'' : execution) : Prop :=
   { sub_G : sub_execution G G'' ∅₂ ∅₂;
     acts_D : acts_set G'' ≡₁ D;

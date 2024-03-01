@@ -170,79 +170,80 @@ Notation "'rmw_dep'" := (rmw_dep G).
 Notation "'rf'" := (rf G).
 Notation "'co'" := (co G).
 
+(* TODO: remove *)
 Notation "'U'" := (E' \₁ C).
 Notation "'f'" := (fun x => Some x).
 Notation "'D'" := (E' \₁ E).
 
 Notation "'enum_ord'" := (total_order_from_list l).
 
+Lemma equiv_seq_eq
+  A
+  (S : A -> Prop)
+  (r : relation A) :
+  ⦗S⦘ ⨾ r ⨾ ⦗S⦘ ≡ ⦗S⦘ ⨾ (⦗S⦘ ⨾ r ⨾ ⦗S⦘) ⨾ ⦗S⦘.
+Proof using.
+  basic_solver.
+Qed.
+
 Lemma sub_sym
     (WF_G : Wf G')
-    (PREFIX : G_restr E G' G)
+    (PREFIX : sub_execution G' G ∅₂ ∅₂)
     (ENUM_D : D ≡₁ ∅)
     : sub_execution G G' ∅₂ ∅₂.
 Proof using.
-    unfolder in ENUM_D. desf.
     assert (E_EQ : E = E').
     { apply set_extensionality.
-      unfolder. splits; try apply PREFIX. ins.
-      destruct (classic (E x)); auto.
-      exfalso; eauto. }
+      split; eauto using sub_E.
+      now apply set_subsetE. }
     constructor.
     all: try solve [symmetry; apply PREFIX].
     { now rewrite <- E_EQ. }
-    { rewrite wf_rmwE by auto.
-      rewrite sub_rmw with (G' := G) (G := G') by apply PREFIX.
-      rewrite E_EQ; basic_solver. }
-    all: admit.
-Admitted.
+    { rewrite wf_rmwE, (sub_rmw PREFIX), E_EQ by auto.
+      apply equiv_seq_eq. }
+    { rewrite wf_dataE, (sub_data PREFIX), E_EQ by auto.
+      apply equiv_seq_eq. }
+    { rewrite wf_addrE, (sub_addr PREFIX), E_EQ by auto.
+      apply equiv_seq_eq. }
+    { rewrite wf_ctrlE, (sub_ctrl PREFIX), E_EQ by auto.
+      apply equiv_seq_eq. }
+    { rewrite wf_rmw_depE, (sub_frmw PREFIX), E_EQ by auto.
+      apply equiv_seq_eq. }
+    { rewrite wf_rfE, (sub_rf PREFIX), E_EQ by auto.
+      apply equiv_seq_eq. }
+    { rewrite wf_coE, (sub_co PREFIX), E_EQ by auto.
+      apply equiv_seq_eq. }
+    basic_solver.
+Qed.
+
+Print execution.
 
 Lemma sub_eq
     (WF_G : Wf G')
-    (PREFIX : G_restr E G' G)
+    (PREFIX : sub_execution G' G ∅₂ ∅₂)
     (ENUM_D : D ≡₁ ∅)
-     : G' = G.
+     : G = G'.
 Proof using.
-    unfolder in ENUM_D. desf.
-    assert (E_EQ : E = E').
-    { apply set_extensionality.
-      unfolder. splits; try apply PREFIX. ins.
-      destruct (classic (E x)); auto.
-      exfalso; eauto. }
-    assert (TID_EQ : threads_set G = threads_set G').
-    { eapply set_extensionality, PREFIX. }
-    assert (LAB_EQ : lab = lab').
-    { apply PREFIX. }
-    assert (RMQ_EQ : rmw = rmw').
-    { apply rel_extensionality.
-      rewrite sub_rmw, E_EQ, <- wf_rmwE; auto.
-      apply PREFIX. }
-    assert (DATA_EQ : data = data').
-    { apply rel_extensionality.
-      rewrite sub_data, E_EQ, <- wf_dataE; auto.
-      apply PREFIX. }
-    assert (ADDR_EQ : addr = addr').
-    { apply rel_extensionality.
-      rewrite sub_addr, E_EQ, <- wf_addrE; auto.
-      apply PREFIX. }
-    assert (CTRL_EQ : ctrl = ctrl').
-    { apply rel_extensionality.
-      rewrite sub_ctrl, E_EQ, <- wf_ctrlE; auto.
-      apply PREFIX. }
-    assert (RMWDEP_EQ : rmw_dep = rmw_dep').
-    { apply rel_extensionality.
-      rewrite sub_frmw, E_EQ, <- wf_rmw_depE; auto.
-      apply PREFIX. }
-    assert (RF_EQ : rf = rf').
-    { apply rel_extensionality.
-      rewrite sub_rf, E_EQ, <- wf_rfE; auto.
-      apply PREFIX. }
-    assert (CO_EQ : co = co').
-    { apply rel_extensionality.
-      rewrite sub_co, E_EQ, <- wf_coE; auto.
-      apply PREFIX. }
-    destruct G, G'; ins; f_equal; auto.
-    Unshelve. repeat constructor. (* WHY?! *)
+  assert (PREFIX' : sub_execution G G' ∅₂ ∅₂).
+  { now apply sub_sym. }
+  assert (E_EQ : E = E').
+  { apply set_extensionality.
+    split; eauto using sub_E. }
+  destruct G eqn:HEQ, G' eqn:HEQ'. f_equal.
+  all: try apply rel_extensionality.
+  all: try apply PREFIX; auto.
+  { apply set_extensionality; apply PREFIX. }
+  { echange rmw with (rmw G).
+    rewrite sub_rmw.
+
+  }
+
+  assert (EQ_RMW : rmw = rmw').
+  { apply rel_extensionality.
+    rewrite sub_rmw, E_EQ, <- wf_rmwE; eauto. }
+  assert (EQ_RMW : rmw = rmw').
+  { apply rel_extensionality.
+    rewrite sub_rmw, E_EQ, <- wf_rmwE; eauto. }
 Qed.
 
 Lemma steps
