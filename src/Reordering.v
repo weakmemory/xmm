@@ -177,11 +177,9 @@ Notation "'D'" := (E' \₁ E).
 
 Notation "'enum_ord'" := (total_order_from_list l).
 
-Lemma equiv_seq_eq
-  A
-  (S : A -> Prop)
+Lemma equiv_seq_eq {A} (s : A -> Prop)
   (r : relation A) :
-  ⦗S⦘ ⨾ r ⨾ ⦗S⦘ ≡ ⦗S⦘ ⨾ (⦗S⦘ ⨾ r ⨾ ⦗S⦘) ⨾ ⦗S⦘.
+  ⦗s⦘ ⨾ (⦗s⦘ ⨾ r ⨾ ⦗s⦘) ⨾ ⦗s⦘ ≡ ⦗s⦘ ⨾ r ⨾ ⦗s⦘.
 Proof using.
   basic_solver.
 Qed.
@@ -197,26 +195,27 @@ Proof using.
       split; eauto using sub_E.
       now apply set_subsetE. }
     constructor.
-    all: try solve [symmetry; apply PREFIX].
-    { now rewrite <- E_EQ. }
-    { rewrite wf_rmwE, (sub_rmw PREFIX), E_EQ by auto.
-      apply equiv_seq_eq. }
-    { rewrite wf_dataE, (sub_data PREFIX), E_EQ by auto.
-      apply equiv_seq_eq. }
-    { rewrite wf_addrE, (sub_addr PREFIX), E_EQ by auto.
-      apply equiv_seq_eq. }
-    { rewrite wf_ctrlE, (sub_ctrl PREFIX), E_EQ by auto.
-      apply equiv_seq_eq. }
-    { rewrite wf_rmw_depE, (sub_frmw PREFIX), E_EQ by auto.
-      apply equiv_seq_eq. }
-    { rewrite wf_rfE, (sub_rf PREFIX), E_EQ by auto.
-      apply equiv_seq_eq. }
-    { rewrite wf_coE, (sub_co PREFIX), E_EQ by auto.
-      apply equiv_seq_eq. }
-    basic_solver.
+    all: try now symmetry; apply PREFIX.
+    all: try now rewrite seq_false_l, seq_false_r.
+    { now rewrite E_EQ. }
+    all: rewrite 1?wf_rmwE, 
+                 1?wf_dataE,
+                 1?wf_addrE,
+                 1?wf_ctrlE,
+                 1?wf_rmw_depE,
+                 1?wf_rfE,
+                 1?wf_coE; auto.
+    all: symmetry.
+    all: rewrite 1?sub_rmw, 
+                 1?sub_data,
+                 1?sub_addr,
+                 1?sub_ctrl,
+                 1?sub_frmw,
+                 1?sub_rf,
+                 1?sub_co; eauto.
+    all: rewrite E_EQ.
+    all: apply equiv_seq_eq.
 Qed.
-
-Print execution.
 
 Lemma sub_eq
     (WF_G : Wf G')
