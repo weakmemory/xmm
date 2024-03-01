@@ -15,6 +15,55 @@ From imm Require Import imm_s_hb.
 From imm Require Import imm_bob.
 From imm Require Import SubExecution.
 
+Record exec_equiv G G' : Prop := {
+  exeeqv_acts : acts_set G ≡₁ acts_set G';
+  exeeqv_threads : threads_set G ≡₁ threads_set G';
+  exeeqv_lab : lab G = lab G';
+  exeeqv_rmw : rmw G ≡ rmw G';
+  exeeqv_data : data G ≡ data G';
+  exeeqv_addr : addr G ≡ addr G';
+  exeeqv_ctrl : ctrl G ≡ ctrl G';
+  exeeqv_rmw_dep : rmw_dep G ≡ rmw_dep G';
+  exeeqv_rf : rf G ≡ rf G';
+  exeeqv_co : co G ≡ co G';
+}.
+
+Lemma exec_equiv_eq G G'
+  (EQV : exec_equiv G G') :
+  G = G'.
+Proof using.
+  destruct EQV, G, G'; f_equal.
+  all: try apply set_extensionality.
+  all: try apply rel_extensionality.
+  all: assumption.
+Qed.
+
+Lemma sub_sub_equiv sc sc' G G'
+  (WF : Wf G')
+  (SUB : sub_execution G G' sc sc')
+  (SUB' : sub_execution G' G sc' sc) :
+  exec_equiv G G'.
+Proof using.
+  assert (HEQ : acts_set G ≡₁ acts_set G').
+  { split; eauto using sub_E. }
+  constructor; eauto using sub_lab, sub_threads.
+  all: rewrite 1?sub_rmw,
+    1?sub_data,
+    1?sub_addr,
+    1?sub_ctrl,
+    1?sub_frmw,
+    1?sub_rf,
+    1?sub_co at 1; eauto.
+  all: try rewrite HEQ.
+  all: now rewrite <- 1?wf_rmwE,
+    <- 1?wf_dataE,
+    <- 1?wf_addrE,
+    <- 1?wf_ctrlE,
+    <- 1?wf_rmw_depE,
+    <- 1?wf_rfE,
+    <- 1?wf_coE; auto.
+Qed.
+
 Section GraphDefs.
 
 Variable G : execution.
@@ -198,7 +247,7 @@ Proof using.
     all: try now symmetry; apply PREFIX.
     all: try now rewrite seq_false_l, seq_false_r.
     { now rewrite E_EQ. }
-    all: rewrite 1?wf_rmwE, 
+    all: rewrite 1?wf_rmwE,
                  1?wf_dataE,
                  1?wf_addrE,
                  1?wf_ctrlE,
@@ -206,7 +255,7 @@ Proof using.
                  1?wf_rfE,
                  1?wf_coE; auto.
     all: symmetry.
-    all: rewrite 1?sub_rmw, 
+    all: rewrite 1?sub_rmw,
                  1?sub_data,
                  1?sub_addr,
                  1?sub_ctrl,
@@ -223,27 +272,27 @@ Lemma sub_eq
     (ENUM_D : D ≡₁ ∅)
      : G = G'.
 Proof using.
-  assert (PREFIX' : sub_execution G G' ∅₂ ∅₂).
-  { now apply sub_sym. }
-  assert (E_EQ : E = E').
-  { apply set_extensionality.
-    split; eauto using sub_E. }
-  destruct G eqn:HEQ, G' eqn:HEQ'. f_equal.
-  all: try apply rel_extensionality.
-  all: try apply PREFIX; auto.
-  { apply set_extensionality; apply PREFIX. }
-  { echange rmw with (rmw G).
-    rewrite sub_rmw.
-
-  }
-
-  assert (EQ_RMW : rmw = rmw').
-  { apply rel_extensionality.
-    rewrite sub_rmw, E_EQ, <- wf_rmwE; eauto. }
-  assert (EQ_RMW : rmw = rmw').
-  { apply rel_extensionality.
-    rewrite sub_rmw, E_EQ, <- wf_rmwE; eauto. }
+  eapply exec_equiv_eq, sub_sub_equiv; eauto.
+  now apply sub_sym.
 Qed.
+
+Lemma step_once h t (f : actid -> option actid)
+  (WF : WCore.wf (WCore.Build_t G G' C f))
+  (PREFIX : G_restr E G' G)
+  (C_SUB : C ⊆₁ E')
+  (VALID_ENUM : NoDup (h :: t))
+  (ENUM_D : (fun x => In x (h :: t)) ≡₁ D)
+  (ORD_SB : restr_rel (fun x => In x (h :: t)) sb' ⊆ total_order_from_list (h :: t))
+  (ORD_RF : restr_rel (fun x => In x (h :: t)) rf' ⨾ ⦗U⦘ ⊆ total_order_from_list (h :: t)) :
+  exists f' G'',
+  (WCore.silent_cfg_add_step traces)
+  (WCore.Build_t G G' C f)
+  (WCore.Build_t G'' G' C f').
+Proof using.
+  eexists (upd f h (Some h)), _, h, (lab' h).
+  destruct (lab' h) eqn:HEQ_LAB.
+  all: admit.
+Admitted.
 
 Lemma steps
     (WF : Wf G)
@@ -258,18 +307,7 @@ Lemma steps
     (WCore.Build_t G G' C f)
     (WCore.Build_t G' G' C f').
 Proof using.
-    generalize G G' C WF PREFIX C_SUB VALID_ENUM ENUM_D ORD_SB ORD_RF.
-    clear G G' C WF PREFIX C_SUB VALID_ENUM ENUM_D ORD_SB ORD_RF.
-    induction l as [ | hl tl IHl ]; ins.
-    { exists f.
-      enough (G' = G) by (subst; constructor).
-      apply sub_eq; eauto.
-      { admit. }
-      admit. }
-    eexists (upd ?[f] hl (Some hl)). eapply rt_trans.
-    { edestruct (IHl G); admit.
-    }
-    admit.
+  admit.
 Admitted.
 
 End ReorderingSubLemma.
