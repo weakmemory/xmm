@@ -261,7 +261,7 @@ Record reexec_gen
     (Build_t G'' G' C (f_restr D f))
     (Build_t G' G' C f');
 
-  c_correct : forall c (IN_C : C c), is_some (f c);
+  C_correct : forall c (IN_C : C c), is_some (f c);
   new_g_cons : is_cons G';
 }.
 
