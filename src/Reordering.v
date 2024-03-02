@@ -276,11 +276,68 @@ Proof using.
   now apply sub_sym.
 Qed.
 
+Lemma step_once_read h t (f : actid -> option actid)
+  (WF : WCore.wf (WCore.Build_t G G' C f))
+  (PREFIX : G_restr E G' G)
+  (C_SUB : C ⊆₁ E')
+  (VALID_ENUM : NoDup (h :: t))
+  (NOT_INIT : (fun x => In x (h :: t)) ⊆₁ set_compl (fun a => is_init a))
+  (ENUM_D : (fun x => In x (h :: t)) ≡₁ D)
+  (ORD_SB : restr_rel (fun x => In x (h :: t)) sb' ⊆ total_order_from_list (h :: t))
+  (ORD_RF : restr_rel (fun x => In x (h :: t)) rf' ⨾ ⦗U⦘ ⊆ total_order_from_list (h :: t))
+  (HEQ_REDA : is_r lab h) :
+  exists f' G'',
+  (WCore.silent_cfg_add_step traces)
+  (WCore.Build_t G G' C f)
+  (WCore.Build_t G'' G' C f').
+Proof using.
+  assert (H_NOTIN : ~ E h).
+  { apply ENUM_D; now constructor. }
+  exists (upd f h (Some h)).
+  exists {|
+    acts_set := E ∪₁ (eq h);
+	  threads_set := threads_set G;
+    lab := lab;
+    rmw := rmw;
+    data := data;
+    addr := addr;
+    ctrl := ctrl;
+    rmw_dep := rmw_dep;
+    rf := rf ∪ (rf' ⨾ ⦗eq h⦘);
+    co := co;
+  |}.
+  exists h, (lab' h), None, None.
+  eexists _, ∅, ∅, (Some h).
+  constructor; try easy; ins.
+  { unfolder; ins; desf; auto. }
+  { unfolder; ins; desf.
+    apply NOT_INIT; auto. }
+  { now rewrite eq_opt_noneE, set_union_empty_r. }
+  { admit. }
+  { rewrite eq_opt_someE; auto with hahn. }
+  { now erewrite sub_lab, updI by apply PREFIX. }
+  { admit. }
+  { unfold WCore.co_delta.
+    arewrite (is_w lab h = false); try now rewrite union_false_r.
+    generalize HEQ_REDA. unfold is_r, is_w.
+    destruct (lab h); auto. }
+  { unfold WCore.rmw_delta.
+    now rewrite eq_opt_noneE, set_inter_empty_r,
+                cross_false_l, union_false_r. }
+  constructor; ins.
+  { constructor; try now apply WF.
+    { unfolder; ins; desf; try now apply WF.
+      all: admit. }
+    all: admit. }
+  all: admit.
+Admitted.
+
 Lemma step_once h t (f : actid -> option actid)
   (WF : WCore.wf (WCore.Build_t G G' C f))
   (PREFIX : G_restr E G' G)
   (C_SUB : C ⊆₁ E')
   (VALID_ENUM : NoDup (h :: t))
+  (NOT_INIT : (fun x => In x (h :: t)) ⊆₁ set_compl (fun a => is_init a))
   (ENUM_D : (fun x => In x (h :: t)) ≡₁ D)
   (ORD_SB : restr_rel (fun x => In x (h :: t)) sb' ⊆ total_order_from_list (h :: t))
   (ORD_RF : restr_rel (fun x => In x (h :: t)) rf' ⨾ ⦗U⦘ ⊆ total_order_from_list (h :: t)) :
@@ -291,6 +348,11 @@ Lemma step_once h t (f : actid -> option actid)
 Proof using.
   eexists (upd f h (Some h)), _, h, (lab' h).
   destruct (lab' h) eqn:HEQ_LAB.
+  { exists None, None.
+    econstructor.
+    exists ∅, ∅, (Some h).
+    constructor; try easy; ins.
+    { unfolder. } }
   all: admit.
 Admitted.
 
