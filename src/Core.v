@@ -29,10 +29,11 @@ Definition f_restr (D : actid -> Prop) (f : actid -> option actid) : actid -> op
   (restr_fun (Some ↓₁ (f ↑₁ D)) f (fun x => None)).
 
 (* TODO: add prefixes to field names *)
-(* TODO: rename to exec_restrict *)
-Record G_restr (D : actid -> Prop) (G G'' : execution) : Prop :=
-  { sub_G : sub_execution G G'' ∅₂ ∅₂;
-    acts_D : acts_set G'' ≡₁ D;
+Record restr_exec (D : actid -> Prop) (G G'' : execution) : Prop :=
+  { restr_sub_G : sub_execution G G'' ∅₂ ∅₂;
+    restr_acts_D : acts_set G'' ≡₁ D;
+    restr_init_sub : acts_set G'' ∩₁ (fun x => is_init x) ≡₁
+      acts_set G ∩₁ (fun x => is_init x);
   }.
 
 Section Race.
@@ -260,7 +261,7 @@ Record reexec_gen
   d_wre_sub_f : D ∪₁ Wre ⊆₁ Some ↓₁ (f ↑₁ C);
 
   cfg_wf : wf (Build_t G G' C f);
-  int_G_D : G_restr D G G'';
+  int_G_D : restr_exec D G G'';
   cfg_steps : silent_cfg_add_step＊
     (Build_t G'' G' C (f_restr D f))
     (Build_t G' G' C f');

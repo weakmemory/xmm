@@ -279,7 +279,7 @@ Qed.
 
 Lemma step_once_read h t (f : actid -> option actid)
   (WF : WCore.wf (WCore.Build_t G G' C f))
-  (PREFIX : G_restr E G' G)
+  (PREFIX : restr_exec E G' G)
   (C_SUB : C ⊆₁ E')
   (VALID_ENUM : NoDup (h :: t))
   (NOT_INIT : (fun x => In x (h :: t)) ⊆₁ set_compl (fun a => is_init a))
@@ -371,9 +371,14 @@ Proof using.
       { generalize HEQ_REDA; unfold is_w, is_r.
         destruct (lab h); auto. }
       unfolder; splits; ins; desf. }
-    { enough (E (InitEvent l0)) by basic_solver.
-      apply WF; ins; desf; destruct H; eauto. (* FIXME: H is a bad name *)
-      admit. (* Use WF-ness of G'*) }
+    { left. desf.
+      destruct H; try now (apply WF; eauto); subst.
+      enough (IIN : (E ∩₁ (fun x => is_init x)) (InitEvent l0)).
+      { apply IIN. }
+      apply PREFIX. split; auto.
+      apply wf_init; try now apply WF.
+      erewrite <- sub_lab; try now apply PREFIX.
+      exists h; subst h; auto. }
     { setoid_transitivity (sb G); auto.
       now apply WF. }
     destruct EE; subst.
@@ -384,7 +389,7 @@ Admitted.
 
 Lemma step_once h t (f : actid -> option actid)
   (WF : WCore.wf (WCore.Build_t G G' C f))
-  (PREFIX : G_restr E G' G)
+  (PREFIX : restr_exec E G' G)
   (C_SUB : C ⊆₁ E')
   (VALID_ENUM : NoDup (h :: t))
   (NOT_INIT : (fun x => In x (h :: t)) ⊆₁ set_compl (fun a => is_init a))
@@ -408,7 +413,7 @@ Admitted.
 
 Lemma steps
     (WF : Wf G)
-    (PREFIX : G_restr E G' G)
+    (PREFIX : restr_exec E G' G)
     (C_SUB : C ⊆₁ E')
     (VALID_ENUM : NoDup l)
     (ENUM_D : (fun x => In x l) ≡₁ D)
