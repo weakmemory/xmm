@@ -32,8 +32,8 @@ Definition f_restr (D : actid -> Prop) (f : actid -> option actid) : actid -> op
 Record restr_exec (D : actid -> Prop) (G G'' : execution) : Prop :=
   { restr_sub_G : sub_execution G G'' ∅₂ ∅₂;
     restr_acts_D : acts_set G'' ≡₁ D;
-    restr_init_sub : acts_set G'' ∩₁ (fun x => is_init x) ≡₁
-      acts_set G ∩₁ (fun x => is_init x);
+    restr_init_sub : (fun x => is_init x) ∩₁ acts_set G'' ≡₁
+    (fun x => is_init x) ∩₁ acts_set G;
   }.
 
 Section Race.
