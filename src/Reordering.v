@@ -199,7 +199,6 @@ Variable traces : thread_id -> trace label -> Prop.
 
 Notation "'lab''" := (lab G').
 Notation "'E''" := (acts_set G').
-Notation "'sb''" := (sb G').
 Notation "'rmw''" := (rmw G').
 Notation "'data''" := (data G').
 Notation "'addr''" := (addr G').
@@ -210,7 +209,6 @@ Notation "'co''" := (co G').
 
 Notation "'lab'" := (lab G).
 Notation "'E'" := (acts_set G).
-Notation "'sb''" := (sb G).
 Notation "'rmw'" := (rmw G).
 Notation "'data'" := (data G).
 Notation "'addr'" := (addr G).
@@ -222,7 +220,7 @@ Notation "'W'" := (E ∩₁ (fun x => is_w lab x)).
 
 (* TODO: remove *)
 Notation "'U'" := (E' \₁ C).
-Notation "'f'" := (fun x => Some x).
+Notation "'f'" := (fun (x : actid) => Some x).
 Notation "'D'" := (E' \₁ E).
 
 Notation "'enum_ord'" := (total_order_from_list l).
@@ -284,7 +282,7 @@ Lemma step_once_read h t (f : actid -> option actid)
   (VALID_ENUM : NoDup (h :: t))
   (NOT_INIT : (fun x => In x (h :: t)) ⊆₁ set_compl (fun a => is_init a))
   (ENUM_D : (fun x => In x (h :: t)) ≡₁ D)
-  (ORD_SB : restr_rel (fun x => In x (h :: t)) sb' ⊆ total_order_from_list (h :: t))
+  (ORD_SB : restr_rel (fun x => In x (h :: t)) (sb G') ⊆ total_order_from_list (h :: t))
   (ORD_RF : restr_rel (fun x => In x (h :: t)) rf' ⨾ ⦗U⦘ ⊆ total_order_from_list (h :: t))
   (HEQ_REDA : is_r lab h) :
   exists f' G'',
@@ -399,7 +397,11 @@ Proof using.
     destruct EE; subst.
     { left; now apply WF. }
     now right. }
-  all: admit.
+  { setoid_transitivity (sb G); auto.
+    apply WF. }
+  { setoid_transitivity rf; try now apply WF.
+    basic_solver. }
+  admit.
 Admitted.
 
 Lemma step_once h t (f : actid -> option actid)
@@ -409,7 +411,7 @@ Lemma step_once h t (f : actid -> option actid)
   (VALID_ENUM : NoDup (h :: t))
   (NOT_INIT : (fun x => In x (h :: t)) ⊆₁ set_compl (fun a => is_init a))
   (ENUM_D : (fun x => In x (h :: t)) ≡₁ D)
-  (ORD_SB : restr_rel (fun x => In x (h :: t)) sb' ⊆ total_order_from_list (h :: t))
+  (ORD_SB : restr_rel (fun x => In x (h :: t)) (sb G') ⊆ total_order_from_list (h :: t))
   (ORD_RF : restr_rel (fun x => In x (h :: t)) rf' ⨾ ⦗U⦘ ⊆ total_order_from_list (h :: t)) :
   exists f' G'',
   (WCore.silent_cfg_add_step traces)
@@ -432,7 +434,7 @@ Lemma steps
     (C_SUB : C ⊆₁ E')
     (VALID_ENUM : NoDup l)
     (ENUM_D : (fun x => In x l) ≡₁ D)
-    (ORD_SB : sb' ⊆ enum_ord)
+    (ORD_SB : sb G' ⊆ enum_ord)
     (ORD_RF : rf' ⨾ ⦗U⦘ ⊆ enum_ord) :
     exists f',
     (WCore.silent_cfg_add_step traces)＊
