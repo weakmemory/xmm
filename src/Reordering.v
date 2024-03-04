@@ -358,8 +358,20 @@ Proof using.
       arewrite (lab = lab'); try apply PREFIX.
       setoid_transitivity rf'; try now apply WF.
       basic_solver. }
-    { admit. }
-    { admit. }
+    { apply funeq_union; try now apply WF.
+      arewrite (⦗W⦘ ⨾ rf' ⨾ ⦗eq h⦘ ⊆ rf') by basic_solver.
+      erewrite sub_lab; try now apply PREFIX.
+      now apply WF. }
+    { apply functional_union; try now apply WF.
+      { apply functional_mori with (x := flip rf').
+        { unfold flip. basic_solver. }
+        now apply WF. }
+      unfolder; ins; desf.
+      (* TODO PRETTIFY *)
+      apply wf_rfE with (G := G) in H; try now apply WF.
+      apply H_NOTIN.
+      unfolder in H.
+      apply H. }
     { rewrite wf_coE; try now apply WF.
       rewrite !seqA.
       arewrite (⦗E⦘ ⨾ ⦗E ∪₁ eq h⦘ ≡ ⦗E⦘) by basic_solver 4.
