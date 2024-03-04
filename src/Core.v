@@ -96,6 +96,9 @@ Section CoreDefs.
 
 Variable X : t.
 Notation "'G'" := (G X).
+Notation "'ctrl'" := (ctrl G).
+Notation "'data'" := (data G).
+Notation "'addr'" := (addr G).
 Notation "'GC'" := (GC X).
 Notation "'C'" := (cmt X).
 Notation "'f'" := (g2gc X).
@@ -108,11 +111,12 @@ Notation "'rfc'" := (rf GC).
 Notation "'sb'" := (sb G).
 Notation "'rf'" := (rf G).
 
-Record cfg_correct := {
-  c_subset : C ⊆₁ acts_set GC;
-}.
-
 Record wf : Prop := {
+  c_subset : C ⊆₁ acts_set GC;
+  c_ctrl_empty : ctrl ≡ ∅₂;
+  c_addr_empty : addr ≡ ∅₂;
+  c_data_empty : data ≡ ∅₂;
+
   wf_g : Wf G;
   wf_gc : Wf GC;
   f_inj : inj_dom (fun x => acts_set GC x /\ is_some (f x)) f;
