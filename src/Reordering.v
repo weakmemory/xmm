@@ -330,6 +330,9 @@ Proof using.
     now rewrite eq_opt_noneE, set_inter_empty_r,
                 cross_false_l, union_false_r. }
   constructor; ins; try now apply WF.
+  (* TODO: this looks wrong. Asks Evgenii *)
+  all: try (change (upd f h (Some h)) with (upd f h (f h)); rewrite !updI).
+  all: try now apply WF.
   { constructor; subst G''; ins; try now apply WF.
     { unfolder; ins; desf; try now apply WF.
       all: admit. }
