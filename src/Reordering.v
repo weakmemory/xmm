@@ -294,7 +294,7 @@ Lemma step_once_read h t (f : actid -> option actid)
 Proof using.
   set (G'' := {|
     acts_set := E ∪₁ (eq h);
-	  threads_set := threads_set G;
+	  threads_set := threads_set G ∪₁ (eq (tid h));
     lab := lab;
     rmw := rmw;
     data := ∅₂;
@@ -376,7 +376,9 @@ Proof using.
       admit. (* Use WF-ness of G'*) }
     { setoid_transitivity (sb G); auto.
       now apply WF. }
-   admit. (* Use WF-ness of G'*) }
+    destruct EE; subst.
+    { left; now apply WF. }
+    now right. }
   all: admit.
 Admitted.
 
