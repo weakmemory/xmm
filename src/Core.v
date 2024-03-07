@@ -120,6 +120,7 @@ Record wf : Prop := {
 
   wf_g : Wf G;
   wf_gc : Wf GC;
+  f_codom : (fun x => is_some (f x)) ⊆₁ acts_set G;
   f_inj : inj_dom (fun x => acts_set GC x /\ is_some (f x)) f;
   f_tid : forall c (IN_C : C c), option_map tid (f c) = Some (tid c);
   f_lab : forall c (IN_C : C c), option_map lab (f c) = Some (labc c);
