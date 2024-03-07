@@ -125,7 +125,7 @@ Record wf : Prop := {
   f_lab : forall c (IN_C : C c), option_map lab (f c) = Some (labc c);
   f_sb : Some ↓ (f ↑ (⦗C⦘ ⨾ sbc ⨾ ⦗C⦘)) ⊆ sb;
   f_rf : Some ↓ (f ↑ (⦗C⦘ ⨾ rfc ⨾ ⦗C⦘)) ⊆ rf;
-  f_rfD : R ⊆₁ codom_rel rf ∪₁ (Some ↓₁ (f ↑₁ C));
+  f_rfD : acts_set G ∩₁ R ⊆₁ codom_rel rf ∪₁ (Some ↓₁ (f ↑₁ C));
 }.
 
 End CoreDefs.
