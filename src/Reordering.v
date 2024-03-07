@@ -205,7 +205,8 @@ Notation "'ctrl''" := (ctrl G').
 Notation "'rmw_dep''" := (rmw_dep G').
 Notation "'rf''" := (rf G').
 Notation "'co''" := (co G').
-Notation "'R''" := (E' ∩₁ (fun x => is_r lab x)).
+Notation "'W''" := (fun x => is_w lab' x).
+Notation "'R''" := (fun x => is_r lab' x).
 
 Notation "'lab'" := (lab G).
 Notation "'E'" := (acts_set G).
@@ -216,11 +217,11 @@ Notation "'ctrl'" := (ctrl G).
 Notation "'rmw_dep'" := (rmw_dep G).
 Notation "'rf'" := (rf G).
 Notation "'co'" := (co G).
-Notation "'W'" := (E ∩₁ (fun x => is_w lab x)).
+Notation "'W'" := (fun x => is_w lab x).
+Notation "'R'" := (fun x => is_r lab x).
 
 (* TODO: remove *)
 Notation "'U'" := (E' \₁ C).
-Notation "'f'" := (fun (x : actid) => Some x).
 Notation "'D'" := (E' \₁ E).
 
 Hypothesis THREAD_EVENTS : forall t, exists N,
@@ -286,27 +287,25 @@ Proof using.
 Qed.
 
 Lemma step_once_read h t (f : actid -> option actid)
-  (WF : WCore.wf (WCore.Build_t G' G' C f))
+  (WF : WCore.wf (WCore.Build_t G G' C f))
+  (WF' : WCore.wf (WCore.Build_t G' G' C f))
   (PREFIX : restr_exec E G' G)
   (ENUM : reord_lemma_enum E E' C (h :: t))
-  (IS_R : is_r lab' h) :
+  (IS_R : R' h) :
   exists f' G'',
   (WCore.silent_cfg_add_step traces)
   (WCore.Build_t G G' C f)
   (WCore.Build_t G'' G' C f').
 Proof using THREAD_EVENTS.
-  assert (G_WF : Wf G).
-  { eapply sub_WF; try now apply PREFIX.
-    { rewrite <- restr_init_sub; eauto.
-      unfolder; ins; desf. }
-    apply WF. }
   assert (IN_D : D h).
   { apply ENUM; now constructor. }
-  assert (NOT_W : ~ is_w lab' h).
+  assert (NOT_W : ~ W' h).
   { generalize IS_R. unfold is_w, is_r.
     now destruct (lab' h). }
-
-  edestruct (WCore.f_rfD WF) as [RF | CMT]; eauto.
+  assert (R_IN_G' : (E' ∩₁ R') h).
+  { split; try apply IN_D; eauto. }
+  (* TODO: check if h is in C *)
+  destruct (WCore.f_rfD WF' R_IN_G') as [RF | CMT].
   { destruct RF as [w RF]; ins.
     set (G'' := {|
       acts_set := E ∪₁ (eq h);
@@ -321,99 +320,96 @@ Proof using THREAD_EVENTS.
       co := co;
     |}).
     assert (G_SB_SUB : sb G ⊆ sb G'').
-    { unfold sb; subst G''; ins.
-      basic_solver 2. }
-    exists f, G'', h, (lab' h), None, None, (Some w), ∅, ∅, (Some h).
-    constructor; try easy; ins.
-    { unfolder; ins; desf; apply IN_D. }
-    { unfolder; ins; desf; apply ENUM; now constructor. }
-    { now rewrite eq_opt_noneE, set_union_empty_r. }
+    { unfold sb; subst G''; ins. basic_solver 2. }
+    assert (IS_W : W' w).
+    { eapply wf_rfD in RF; try now apply WF. unfolder in RF; desf. }
+    exists (upd f h (Some h)), G'', h, (lab' h),
+            None, None, (Some w), ∅, ∅, (Some h).
+    constructor.
+    all: try easy.
+    all: ins; desf; try basic_solver.
+    { unfolder. ins. desf. apply IN_D. }
+    { unfolder. ins. desf.
+      apply ENUM; now constructor. }
     { admit. }
-    { rewrite eq_opt_someE; auto with hahn. }
     { now erewrite sub_lab, updI by apply PREFIX. }
     { unfold WCore.rf_delta_W.
-      arewrite (⦗f ↓₁ eq (Some h)⦘ ⨾ rf' ≡ ∅₂).
-      { rewrite wf_rfD, <- seqA; try now apply WF.
-        arewrite (⦗f ↓₁ eq (Some h)⦘ ⨾ ⦗fun a : actid => is_w lab' a⦘ ≡ ∅₂).
-        2: try basic_solver 1.
-        unfolder; splits; ins; desf. }
-      rewrite codom_empty, set_collect_empty, set_map_empty,
-            cross_false_r, union_false_r.
-      arewrite (eq w × eq h ∩ (fun a : actid => is_w lab a) ×
-        (fun a : actid => is_r lab a) ≡ eq w × eq h); auto.
-      apply wf_rfD in RF; try now apply WF. unfolder in RF.
+      erewrite sub_lab by now apply PREFIX.
+      arewrite (eq w × eq h ∩ W' × R' ≡ eq w × eq h); try basic_solver.
+      arewrite (⦗upd f h (Some h) ↓₁ eq (Some h)⦘ ⨾ rf' ≡ ∅₂); try basic_solver.
+      rewrite wf_rfD, <- seqA by apply WF.
+      arewrite (⦗upd f h (Some h) ↓₁ eq (Some h)⦘ ⨾ ⦗W'⦘ ≡ ∅₂); try basic_solver.
+      unfolder; split; ins; desf.
+      apply NOT_W.
+      admit. (* TODO: is_w x <-> is_w (f x) *) }
+    { unfold WCore.co_delta.
       erewrite sub_lab by now apply PREFIX.
       basic_solver. }
-    { unfold WCore.co_delta.
-      arewrite (is_w lab h = false); try now rewrite union_false_r.
-      erewrite sub_lab by now apply PREFIX.
-      destruct (is_w lab' h); auto.
-      exfalso; auto. }
-    { unfold WCore.rmw_delta.
-      now rewrite eq_opt_noneE, set_inter_empty_r,
-                  cross_false_l, union_false_r. }
-    { change (Some h) with (f h).
-      now rewrite updI. }
     constructor; ins; try now apply WF.
     { constructor; subst G''; ins.
-      { admit. }
       all: try now rewrite 1?seq_false_l, 1?seq_false_r.
-      all: try now apply G_WF.
-      { setoid_transitivity (immediate (sb G)); try now apply G_WF.
+      all: try now apply WF.
+      { admit. }
+      { setoid_transitivity (immediate (sb G)); try now apply WF.
         admit. (* Need info about new sb *) }
       { admit. } (* Need that w in E *)
-      { rewrite seq_union_l, seq_union_r, <- wf_rfD; auto.
-        arewrite (⦗fun a => is_w lab a⦘
-          ⨾ eq w × eq h ⨾ ⦗fun a => is_r lab a⦘ ≡ eq w × eq h); auto.
-        apply wf_rfD in RF; try now apply WF. unfolder in RF.
+      { rewrite seq_union_l, seq_union_r, <- wf_rfD; try now apply WF.
+        arewrite (⦗W⦘ ⨾ eq w × eq h ⨾ ⦗R⦘ ≡ eq w × eq h); auto.
         erewrite sub_lab by now apply PREFIX.
         basic_solver. }
-      { apply inclusion_union_l; try now apply G_WF.
+      { apply inclusion_union_l; try now apply WF.
         erewrite sub_lab by now apply PREFIX.
         setoid_transitivity rf'; try now apply WF.
         basic_solver. }
-      { apply funeq_union; try now apply G_WF.
+      { apply funeq_union; try now apply WF.
+        erewrite sub_lab by now apply PREFIX.
         arewrite (eq w × eq h ⊆ rf') by basic_solver.
-        erewrite sub_lab by now apply PREFIX.
         apply WF. }
-      { apply functional_union; try now apply G_WF.
-        { unfolder; ins; desf. }
-        unfolder.
-        intros h' [y RF'] [w' [HEQ1 HEQ2]].
-        subst w' h'. apply wf_rfE in RF'; auto.
-        unfolder in RF'.
-        apply IN_D, RF'. }
-      { rewrite wf_coE; try now apply G_WF.
-        rewrite !seqA.
+      { apply functional_union; try now apply WF.
+        all: try basic_solver.
+        assert (BAD : dom_rel (rf⁻¹) ⊆₁ E).
+        { rewrite dom_transp, wf_rfE; try now apply WF.
+          basic_solver. }
+        unfolder; ins.
+        apply IN_D, BAD.
+        basic_solver. }
+      { rewrite wf_coE; try now apply WF.
+        rewrite !seqA, <- seqA with (r1 := ⦗E ∪₁ eq h⦘).
         arewrite (⦗E⦘ ⨾ ⦗E ∪₁ eq h⦘ ≡ ⦗E⦘) by basic_solver 4.
-        rewrite <- seqA with (r1 := ⦗E ∪₁ eq h⦘).
         arewrite (⦗E ∪₁ eq h⦘ ⨾ ⦗E⦘ ≡ ⦗E⦘) by basic_solver 4. }
-      { arewrite ((E ∪₁ eq h) ∩₁ (fun a : actid => is_w lab a)
-        ≡₁ E ∩₁ (fun a : actid => is_w lab a)); try apply G_WF.
-        rewrite set_inter_union_l.
-        arewrite (eq h ∩₁ (fun a : actid => is_w lab a) ≡₁ ∅).
-        all: try now rewrite set_union_empty_r.
+      { arewrite ((E ∪₁ eq h) ∩₁ W ≡₁ E ∩₁ W); try apply WF.
         erewrite sub_lab by now apply PREFIX.
-        unfolder; splits; ins; desf. }
+        basic_solver. }
       { left. desf.
-        destruct H; try now (apply G_WF; eauto); subst.
-        enough (IIN : ((fun x => is_init x) ∩₁ E) (InitEvent l)).
-        { apply IIN. }
-        apply PREFIX. split; auto.
+        destruct H; subst; try now (apply WF; eauto).
+        enough (HIN : ((fun x => is_init x) ∩₁ E) (InitEvent l)).
+        { apply HIN. }
+        apply PREFIX.
+        split; try easy.
         apply wf_init; try now apply WF.
         erewrite <- sub_lab; try now apply PREFIX.
-        exists h; subst h; split; auto.
-        apply IN_D. }
+        eexists; split; eauto; try apply IN_D. }
       { setoid_transitivity (sb G); auto.
-        now apply G_WF. }
+        now apply WF. }
       destruct EE; subst.
-      { left; now apply G_WF. }
+      { left; now apply WF. }
       now right. }
-    { now erewrite sub_lab; try now apply PREFIX. }
+    { admit. (* TODO *) }
+    { (* setoid_transitivity (sb G); auto.
+      apply WF.  *)
+      admit. }
+    { (* setoid_transitivity (rf); try basic_solver.
+      apply WF. *)
+      admit. }
+    { admit. }
     { admit. }
     { admit. }
     admit. }
-  set (G'' := {|
+  (* TODO: we should be able to infer exalso *)
+  exfalso.
+  enough (IN : E h) by now apply IN_D.
+  admit.
+  (* set (G'' := {|
     acts_set := E ∪₁ (eq h);
     threads_set := threads_set G ∪₁ (eq (tid h));
     lab := lab;
@@ -430,68 +426,50 @@ Proof using THREAD_EVENTS.
   { unfold sb; subst G''; ins.
     basic_solver 2. }
   constructor; try easy; ins.
+  all: try basic_solver.
   { unfolder; ins; desf; apply IN_D. }
   { unfolder; ins; desf; apply ENUM; now constructor. }
-  { now rewrite eq_opt_noneE, set_union_empty_r. }
   { admit. }
-  { rewrite eq_opt_someE; auto with hahn. }
   { now erewrite sub_lab, updI by apply PREFIX. }
   { unfold WCore.rf_delta_W.
-    arewrite (⦗f ↓₁ eq (Some h)⦘ ⨾ rf' ≡ ∅₂).
-    { rewrite wf_rfD, <- seqA; try now apply WF.
-      arewrite (⦗f ↓₁ eq (Some h)⦘ ⨾ ⦗fun a : actid => is_w lab' a⦘ ≡ ∅₂).
-      2: try basic_solver 1.
-      unfolder; splits; ins; desf. }
-    now rewrite codom_empty, set_collect_empty, set_map_empty,
-          cross_false_r, !union_false_r. }
+    arewrite (⦗f ↓₁ eq (Some h)⦘ ⨾ rf' ≡ ∅₂); try basic_solver.
+    rewrite wf_rfD, <- seqA; try now apply WF.
+    basic_solver. }
   { unfold WCore.co_delta.
-    arewrite (is_w lab h = false); try now rewrite union_false_r.
-    erewrite sub_lab by now apply PREFIX.
-    destruct (is_w lab' h); auto.
-    exfalso; auto. }
-  { unfold WCore.rmw_delta.
-    now rewrite eq_opt_noneE, set_inter_empty_r,
-                cross_false_l, union_false_r. }
-  { change (Some h) with (f h).
-    now rewrite updI. }
+    desf; basic_solver. }
+  { change (Some h) with (f h). now rewrite updI. }
   constructor; ins; try now apply WF.
   { constructor; subst G''; ins.
     { admit. }
     all: try now rewrite 1?seq_false_l, 1?seq_false_r.
-    all: try now apply G_WF.
+    all: try now apply WF.
     { setoid_transitivity (immediate (sb G)); try now apply G_WF.
       admit. (* Need info about new sb *) }
     { admit. } (* Need that w in E *)
     { rewrite wf_coE; try now apply G_WF.
-      rewrite !seqA.
+      rewrite !seqA, <- seqA with (r1 := ⦗E ∪₁ eq h⦘).
       arewrite (⦗E⦘ ⨾ ⦗E ∪₁ eq h⦘ ≡ ⦗E⦘) by basic_solver 4.
-      rewrite <- seqA with (r1 := ⦗E ∪₁ eq h⦘).
       arewrite (⦗E ∪₁ eq h⦘ ⨾ ⦗E⦘ ≡ ⦗E⦘) by basic_solver 4. }
-    { arewrite ((E ∪₁ eq h) ∩₁ (fun a : actid => is_w lab a)
-      ≡₁ E ∩₁ (fun a : actid => is_w lab a)); try apply G_WF.
-      rewrite set_inter_union_l.
-      arewrite (eq h ∩₁ (fun a : actid => is_w lab a) ≡₁ ∅).
-      all: try now rewrite set_union_empty_r.
+    { arewrite ((E ∪₁ eq h) ∩₁ W ≡₁ E ∩₁ W); try apply WF.
       erewrite sub_lab by now apply PREFIX.
-      unfolder; splits; ins; desf. }
+      basic_solver. }
     { left. desf.
-      destruct H; try now (apply G_WF; eauto); subst.
-      enough (IIN : ((fun x => is_init x) ∩₁ E) (InitEvent l)).
-      { apply IIN. }
-      apply PREFIX. split; auto.
+      destruct H; subst; try now (apply WF; eauto).
+      enough (HIN : ((fun x => is_init x) ∩₁ E) (InitEvent l)).
+      { apply HIN. }
+      apply PREFIX.
+      split; try easy.
       apply wf_init; try now apply WF.
       erewrite <- sub_lab; try now apply PREFIX.
-      exists h; subst h; split; auto.
-      apply IN_D. }
+      eexists; split; eauto; try apply IN_D. }
     { setoid_transitivity (sb G); auto.
-      now apply G_WF. }
+      now apply WF. }
     destruct EE; subst.
-    { left; now apply G_WF. }
+    { left; now apply WF. }
     now right. }
-  { now erewrite sub_lab; try now apply PREFIX. }
-  { admit. }
-  { admit. }
-  admit.
+  { setoid_transitivity (sb G); auto.
+    apply WF. }
+  admit. *)
 Admitted.
 
 Lemma step_once h t (f : actid -> option actid)
