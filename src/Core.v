@@ -162,6 +162,9 @@ Definition rmw_delta (r : option actid) : relation actid :=
 
 End DeltaDefs.
 
+#[global]
+Hint Unfold rf_delta_R rf_delta_W co_delta rmw_delta : unfolderDb.
+
 Section CfgAddEventStep.
 
 Variable traces : thread_id -> trace label -> Prop.
