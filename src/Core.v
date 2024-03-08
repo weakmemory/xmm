@@ -278,4 +278,6 @@ Definition reexec : Prop := exists G'' f f' C, reexec_gen G'' f f' C.
 
 End ExecRexec.
 
+(* TODO: props *)
+
 End WCore.

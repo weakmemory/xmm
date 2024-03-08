@@ -236,6 +236,7 @@ Record reord_lemma_enum (E E' C : actid -> Prop) l : Prop :=
   relenum_rf : restr_rel (fun x => In x l) rf' ⨾ ⦗E' \₁ C⦘ ⊆ total_order_from_list l;
 }.
 
+(* TODO move to AuxDef.v *)
 Lemma equiv_seq_eq {A} (s : A -> Prop)
   (r : relation A) :
   ⦗s⦘ ⨾ (⦗s⦘ ⨾ r ⨾ ⦗s⦘) ⨾ ⦗s⦘ ≡ ⦗s⦘ ⨾ r ⨾ ⦗s⦘.
@@ -286,16 +287,20 @@ Proof using.
   now apply sub_sym.
 Qed.
 
+(*
+  TODO: connect graph to trace.
+  This condition should be on its own (trace with labels!!)
+*)
 Lemma step_once_read h t (f : actid -> option actid)
-  (WF : WCore.wf (WCore.Build_t G G' C f))
-  (WF' : WCore.wf (WCore.Build_t G' G' C f))
-  (PREFIX : restr_exec E G' G)
-  (ENUM : reord_lemma_enum E E' C (h :: t))
-  (IS_R : R' h) :
+    (WF : WCore.wf (WCore.Build_t G G' C f))
+    (WF' : WCore.wf (WCore.Build_t G' G' C f))
+    (PREFIX : restr_exec E G' G)
+    (ENUM : reord_lemma_enum E E' C (h :: t))
+    (IS_R : R' h) :
   exists f' G'',
-  (WCore.silent_cfg_add_step traces)
-  (WCore.Build_t G G' C f)
-  (WCore.Build_t G'' G' C f').
+    WCore.silent_cfg_add_step traces
+      (WCore.Build_t G   G' C f)
+      (WCore.Build_t G'' G' C f').
 Proof using THREAD_EVENTS.
   assert (IN_D : D h).
   { apply ENUM; now constructor. }
