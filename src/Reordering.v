@@ -332,30 +332,36 @@ Proof using THREAD_EVENTS.
             None, None, (Some w), ∅, ∅, (Some h).
     constructor.
     all: try easy.
-    all: ins; desf; try basic_solver.
+    all: ins; desf.
     { unfolder. ins. desf. apply IN_D. }
     { unfolder. ins. desf.
       apply ENUM; now constructor. }
+    { basic_solver. }
     { admit. }
+    { basic_solver. }
     { now erewrite sub_lab, updI by apply PREFIX. }
     { unfold WCore.rf_delta_W.
       erewrite sub_lab by now apply PREFIX.
-      arewrite (eq w × eq h ∩ W' × R' ≡ eq w × eq h); try basic_solver.
-      arewrite (⦗upd f h (Some h) ↓₁ eq (Some h)⦘ ⨾ rf' ≡ ∅₂); try basic_solver.
+      arewrite (eq w × eq h ∩ W' × R' ≡ eq w × eq h).
+      { basic_solver. }
+      split; [basic_solver|].
+      arewrite (⦗upd f h (Some h) ↓₁ eq (Some h)⦘ ⨾ rf' ⊆ ∅₂).
+      2: { basic_solver. }
       rewrite wf_rfD, <- seqA by apply WF.
-      arewrite (⦗upd f h (Some h) ↓₁ eq (Some h)⦘ ⨾ ⦗W'⦘ ≡ ∅₂); try basic_solver.
-      unfolder; split; ins; desf.
+      arewrite (⦗upd f h (Some h) ↓₁ eq (Some h)⦘ ⨾ ⦗W'⦘ ⊆ ∅₂); try basic_solver.
+      unfolder; ins; desf.
       apply NOT_W.
       admit. (* TODO: is_w x <-> is_w (f x) *) }
-    { unfold WCore.co_delta.
-      erewrite sub_lab by now apply PREFIX.
-      basic_solver. }
+    { split; [basic_solver|].
+      unfold WCore.co_delta. desf; basic_solver. }
+    { split; [basic_solver|].
+      unfold WCore.rmw_delta. basic_solver. }
     constructor; ins; try now apply WF.
     { constructor; subst G''; ins.
       all: try now rewrite 1?seq_false_l, 1?seq_false_r.
       all: try now apply WF.
       { admit. }
-      { setoid_transitivity (immediate (sb G)); try now apply WF.
+      { transitivity (immediate (sb G)); try now apply WF.
         admit. (* Need info about new sb *) }
       { admit. } (* Need that w in E *)
       { rewrite seq_union_l, seq_union_r, <- wf_rfD; try now apply WF.
@@ -372,33 +378,34 @@ Proof using THREAD_EVENTS.
         apply WF. }
       { apply functional_union; try now apply WF.
         all: try basic_solver.
-        assert (BAD : dom_rel (rf⁻¹) ⊆₁ E).
+        assert (BAD : dom_rel rf⁻¹ ⊆₁ E).
         { rewrite dom_transp, wf_rfE; try now apply WF.
           basic_solver. }
         unfolder; ins.
         apply IN_D, BAD.
         basic_solver. }
       { rewrite wf_coE; try now apply WF.
-        rewrite !seqA, <- seqA with (r1 := ⦗E ∪₁ eq h⦘).
-        arewrite (⦗E⦘ ⨾ ⦗E ∪₁ eq h⦘ ≡ ⦗E⦘) by basic_solver 4.
-        arewrite (⦗E ∪₁ eq h⦘ ⨾ ⦗E⦘ ≡ ⦗E⦘) by basic_solver 4. }
+        basic_solver 10. }
       { arewrite ((E ∪₁ eq h) ∩₁ W ≡₁ E ∩₁ W); try apply WF.
         erewrite sub_lab by now apply PREFIX.
         basic_solver. }
       { left. desf.
-        destruct H; subst; try now (apply WF; eauto).
-        enough (HIN : ((fun x => is_init x) ∩₁ E) (InitEvent l)).
+        match goal with
+        | A : (_ ∪₁ _) b |- _ => red in A; desf 
+        end.
+        { apply WF; eauto. }
+        apply PREFIX.
+        enough (HIN : (E ∩₁ is_init) (InitEvent l)).
         { apply HIN. }
         apply PREFIX.
         split; try easy.
         apply wf_init; try now apply WF.
         erewrite <- sub_lab; try now apply PREFIX.
         eexists; split; eauto; try apply IN_D. }
-      { setoid_transitivity (sb G); auto.
+      { transitivity (sb G); auto.
         now apply WF. }
-      destruct EE; subst.
-      { left; now apply WF. }
-      now right. }
+      red in EE. destruct EE; [left|right]; desf.
+      now apply WF. }
     { admit. (* TODO *) }
     { (* setoid_transitivity (sb G); auto.
       apply WF.  *)
@@ -482,7 +489,7 @@ Lemma step_once h t (f : actid -> option actid)
   (PREFIX : restr_exec E G' G)
   (C_SUB : C ⊆₁ E')
   (VALID_ENUM : NoDup (h :: t))
-  (NOT_INIT : (fun x => In x (h :: t)) ⊆₁ set_compl (fun a => is_init a))
+  (NOT_INIT : (fun x => In x (h :: t)) ⊆₁ set_compl is_init)
   (ENUM_D : (fun x => In x (h :: t)) ≡₁ D)
   (ORD_SB : restr_rel (fun x => In x (h :: t)) (sb G') ⊆ total_order_from_list (h :: t))
   (ORD_RF : restr_rel (fun x => In x (h :: t)) rf' ⨾ ⦗U⦘ ⊆ total_order_from_list (h :: t)) :
