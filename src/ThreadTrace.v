@@ -140,3 +140,13 @@ Proof using THREAD_EVENTS.
 Qed.
 
 End ThreadTrace.
+
+Record trace_coherent traces G : Prop := {
+  traceco_wf_acts : forall t (NOT_INIT : t <> tid_init),
+    exists N, acts_set G ∩₁ (fun x => tid x = t) ≡₁ thread_seq_set t N;
+  traceco_all_prefix : forall t (NOT_INIT : t <> tid_init),
+    exists tr,
+      ⟪ IN_TRACES : traces t tr ⟫ /\
+      ⟪ PREFIX : trace_prefix (thread_trace G t) tr ⟫;
+}.
+
