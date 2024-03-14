@@ -136,6 +136,7 @@ Record wf : Prop := {
   f_mod : forall c (IN : EC c), option_map (mod lab) (f c) = Some (mod labc c);
   f_read : forall c (IN : EC c), option_map (is_r lab) (f c) = Some (is_r labc c);
   f_write : forall c (IN : EC c), option_map (is_w lab) (f c) = Some (is_w labc c);
+  f_fence : forall c (IN : EC c), option_map (is_f lab) (f c) = Some (is_f labc c);
 
   actid_cont : forall thr,
     exists N, E ∩₁ (fun x => thr = tid x) ≡₁ thread_seq_set thr N;
@@ -329,6 +330,16 @@ Lemma wf_iff_write e ec
 Proof using WF.
   enough (HEQ : Some (is_w lab e) = Some (is_w labc ec)) by now inversion HEQ.
   change (Some (is_w lab e)) with (option_map (is_w lab) (Some e)).
+  rewrite <- MAPPED. now apply WF.
+Qed.
+
+Lemma wf_iff_fence e ec
+    (IN : EC ec)
+    (MAPPED : g2gc ec = Some e) :
+  is_f lab e <-> is_f labc ec.
+Proof using WF.
+  enough (HEQ : Some (is_f lab e) = Some (is_f labc ec)) by now inversion HEQ.
+  change (Some (is_f lab e)) with (option_map (is_f lab) (Some e)).
   rewrite <- MAPPED. now apply WF.
 Qed.
 
