@@ -1,6 +1,6 @@
 Require Import Lia Setoid Program.Basics.
 Require Import AuxDef.
-Require Import Core.  
+Require Import Core.
 Import WCore.
 
 From PromisingLib Require Import Language Basic.
@@ -12,11 +12,11 @@ From imm Require Import imm_s_hb.
 From imm Require Import imm_bob.
 From imm Require Import SubExecution.
 
-From RecordUpdate Require Import RecordSet. 
+From RecordUpdate Require Import RecordSet.
 
 Import ListNotations.
 
-Lemma add_step_same_committed (X X' : t) (STEP : add_step X X') : committed X' ≡₁ committed X.
+(* Lemma add_step_same_committed (X X' : t) (STEP : add_step X X') : committed X' ≡₁ committed X.
 Proof using.
   do 2 (red in STEP; desf).
   unfold committed. now rewrite COMMITENTR.
@@ -44,7 +44,7 @@ Proof using.
   all: injection as Heq; subst.
   all: eapply EVENT; eauto.
   all: clear; basic_solver.
-Qed. 
+Qed.
 
 Lemma commit_step_wf (X X' : t) (WF: wf X)
                 (cid : Commit.id) (e : actid)
@@ -66,7 +66,7 @@ Proof using.
   { intro F. now rewrite F, (cmt_centries STEP), upds in CIN. }
   rewrite (cmt_centries STEP), updo in CIN by auto.
   apply WF in CIN. apply (cmt_noncid STEP). basic_solver.
-Qed. 
+Qed.
 
 Lemma rf_change_step_disjoint (G : execution) (r : actid) (WF : Wf G) :
   set_disjoint ((fun a => is_init a) ∩₁ acts_set G) (codom_rel (⦗eq r⦘⨾ (sb G ∪ rf G)⁺)).
@@ -356,4 +356,4 @@ Proof using.
   { eapply rf_change_step_wf; eauto. }
   clear - RESTORE WF''. induction RESTORE; eauto.
   eapply add_step_wf; eauto.
-Qed.
+Qed. *)

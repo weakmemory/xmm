@@ -1,8 +1,11 @@
 Require Import Lia Setoid Program.Basics.
 Require Import AuxDef.
+Require Import ThreadTrace.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
+From hahn Require Import HahnTrace.
+From hahn Require Import HahnSorted.
 From hahnExt Require Import HahnExt.
 From imm Require Import Events Execution Execution_eco imm_s_hb.
 From imm Require Import imm_s_ppo.
@@ -17,28 +20,13 @@ Import ListNotations.
 
 Set Implicit Arguments.
 
-(* TODO: move *)
-Definition edges_to {A} (e : A) := (fun _ _ => True) ⨾ ⦗eq e⦘.
-Hint Unfold edges_to : unfolderDb.
-
 #[export] Instance eta_execution : Settable _ :=
   settable! Build_execution
     <acts_set; threads_set; lab; rmw; data; addr; ctrl; rmw_dep; rf; co>
 .
 
-(* TODO: move *)
-Definition rmw_delta e e' : relation actid :=
-  eq e × eq_opt e'.
-#[global]
-Hint Unfold rmw_delta : unfolderDb.
-
-Inductive cont_label :=
-| CInit (tid : thread_id)
-| CEvent (e : actid)
-.
-
 Section Race.
-Variable (G : execution).
+Variable G : execution.
 Notation "'E'" := (acts_set G).
 Notation "'lab'" := (lab G).
 Notation "'same_loc'" := (same_loc lab).
@@ -49,6 +37,7 @@ Notation "'ppo'" := (ppo G).
 Notation "'bob'" := (bob G).
 Notation "'rf'" := (rf G).
 Notation "'sb'" := (sb G).
+Notation "'eco'" := (eco G).
 
 Definition one (s : actid -> Prop) : relation actid :=
     fun x y => s x \/ s y.
@@ -56,206 +45,226 @@ Definition one (s : actid -> Prop) : relation actid :=
 Definition race := restr_rel E (one W ∩ same_loc \ clos_sym hb).
 
 Definition race_mod (o : mode) := race ∩ one (fun e => mode_le (mod e) o).
-
-Definition ppo_alt := (sb ∩ same_loc ∪ bob)⁺.
-Definition hb_alt := (ppo_alt ∪ rf)⁺.
 End Race.
-
-Module Commit.
-Definition id := nat.
-
-Inductive entry :=
-| InExec (e : actid)
-| ToRestore (l : label)
-.
-End Commit.
 
 Module WCore.
 
 Record t := {
-    G : execution;
-    sc : relation actid;
-    cont : cont_label ->
-            option { lang : Language.t (list label) &
-                            (Language.state lang) };
-
-    commit_entries : Commit.id -> option Commit.entry;
-    non_commit_ids : Commit.id -> Prop;
+  G : execution;
+  GC : execution;
+  cmt : actid -> Prop;
+  g2gc : actid -> option actid;
 }.
 
-Section WCoreDefs.
-Variable (X : t).
+Definition init_exec G : execution :=
+  Build_execution (acts_set G ∩₁ (fun x => is_init x)) (threads_set G) (lab G) ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂.
+
+Definition empty_cfg G : t :=
+  Build_t G (init_exec G) ∅ (fun x => None).
+
+#[global]
+Hint Unfold init_exec empty_cfg : unfolderDb.
+
+Section Consistency.
+
+Variable G : execution.
+Notation "'hb'" := (hb G).
+Notation "'fr'" := (fr G).
+Notation "'sb'" := (sb G).
+Notation "'eco'" := (eco G).
+Notation "'psc'" := (imm.psc G).
+
+Record is_cons : Prop := {
+  cons_coherence : irreflexive (hb ⨾ eco^?);
+  cons_atomicity : irreflexive (fr ⨾ sb);
+  cons_sc : acyclic psc;
+}.
+
+End Consistency.
+
+Section CoreDefs.
+
+Variable X : t.
 Notation "'G'" := (G X).
+Notation "'GC'" := (GC X).
+Notation "'C'" := (cmt X).
+Notation "'f'" := (g2gc X).
+Notation "'labc'" := (lab GC).
+Notation "'lab'" := (lab G).
+Notation "'R'" := (is_r lab).
+Notation "'W'" := (is_w lab).
+Notation "'sbc'" := (sb GC).
+Notation "'rfc'" := (rf GC).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+
+Record cfg_correct := {
+  c_subset : C ⊆₁ acts_set GC;
+}.
+
+Record wf : Prop := {
+  wf_g : Wf G;
+  wf_gc : Wf GC;
+  f_inj : inj_dom (fun x => acts_set GC x /\ is_some (f x)) f;
+  f_tid : forall c (IN_C : C c), option_map tid (f c) = Some (tid c);
+  f_lab : forall c (IN_C : C c), option_map lab (f c) = Some (labc c);
+  f_sb : Some ↓ (f ↑ (⦗C⦘ ⨾ sbc ⨾ ⦗C⦘)) ⊆ sb;
+  f_rf : Some ↓ (f ↑ (⦗C⦘ ⨾ rfc ⨾ ⦗C⦘)) ⊆ rf;
+  f_rmw : forall r (IS_R : R r), dom_rel (rf ⨾ ⦗eq r⦘) ⊆₁ W \/ (f ↑₁ C) (Some r);
+}.
+
+End CoreDefs.
+
+Section DeltaDefs.
+
+Variable (G : execution).
+Variable (e : actid).
+Notation "'W'" := (is_w (lab G)).
+Notation "'R'" := (is_r (lab G)).
+Notation "'W_ex'" := (W_ex G).
+
+(* We do not need sb_delta as `sb` has an exact formula *)
+(* Definition sb_delta : relation actid :=
+  (E ∩₁ (fun x => tid x = tid e)) × eq e. *)
+
+Definition rf_delta_R (w : option actid) : relation actid :=
+  match w with
+  | Some w => eq w × eq e ∩ W × R
+  | _ => ∅₂
+  end.
+
+Definition rf_delta_W (GC : execution) (f' : actid -> option actid) : relation actid :=
+  let Wc := f' ↓₁ eq (Some e) in
+  let Rc := codom_rel (⦗Wc⦘ ⨾ rf GC) in
+  eq e × (Some ↓₁ (f' ↑₁ Rc)).
+
+Definition co_delta (W1 W2 : actid -> Prop) : relation actid :=
+  if W e then eq e × W1 ∪ eq e × W2
+  else ∅₂.
+
+Definition rmw_delta (r : option actid) : relation actid :=
+  (R ∩₁ eq_opt r) × (W_ex ∩₁ eq e).
+
+End DeltaDefs.
+
+Section CfgAddEventStep.
+
+Variable traces : thread_id -> trace label -> Prop.
+
+Variable X X' : t.
+Notation "'G''" := (G X').
+Notation "'GC''" := (GC X').
+Notation "'C''" := (cmt X').
+Notation "'f''" := (g2gc X').
+Notation "'E''" := (acts_set G').
+Notation "'lab''" := (lab G').
+
+Notation "'G'" := (G X).
+Notation "'GC'" := (GC X).
+Notation "'C'" := (cmt X).
+Notation "'f'" := (g2gc X).
 Notation "'E'" := (acts_set G).
 Notation "'lab'" := (lab G).
+
+Definition new_event_correct e : Prop :=
+  match thread_trace G (tid e) with
+  | trace_inf _ => False
+  | trace_fin l => 
+    exists tr, traces (tid e) tr /\ 
+      trace_prefix (trace_fin (l ++ [lab e])
+    ) tr
+  end.
+
+Record cfg_add_event_gen e l r w W1 W2 c :=
+{ e_notin : ~(E e);
+  e_notinit : ~ is_init e; 
+  e_new : E' ≡₁ E ∪₁ (eq e);
+  e_correct : new_event_correct e;
+  lab_new : lab' = upd lab e l;
+
+  (* Skipping condition for sb *)
+  rf_new : rf G' ≡ rf G ∪ rf_delta_R G e w ∪ rf_delta_W e GC f';
+  co_new : co G' ≡ co G ∪ co_delta G e W1 W2;
+  rmw_new : rmw G' ≡ rmw G ∪ rmw_delta G e r;
+
+  f_new : match c with
+          | None => True
+          | Some c => f' = upd f e (Some c)
+          end;
+  wf_new_conf : wf X';
+}.
+
+Definition cfg_add_event (e : actid) (l : label) :=
+  exists r w W1 W2 c, cfg_add_event_gen e l r w W1 W2 c.
+
+End CfgAddEventStep.
+
+Section ExecAdd.
+
+Variables G G' : execution.
+Variable traces : thread_id -> trace label -> Prop.
+
+Record exec_inst e l := {
+  cfg_step : cfg_add_event traces (empty_cfg G) (empty_cfg G') e l;
+  next_cons : is_cons G';
+}.
+
+End ExecAdd.
+
+Section ExecRexec.
+
+Variables G G' : execution.
+Variable rfre : relation actid.
+Variable traces : thread_id -> trace label -> Prop.
+
+Notation "'E'" := (acts_set G).
+Notation "'W'" := (is_w (lab G)).
+Notation "'R'" := (is_r (lab G)).
+Notation "'race'" := (race G).
+Notation "'lab'" := (lab G).
 Notation "'same_loc'" := (same_loc lab).
-Notation "'mod'" := (mod lab).
-Notation "'hb'"  := (hb G).
-Notation "'eco'" := (eco G).
-Notation "'rf'"  := (rf G).
-Notation "'rmw'" := (rmw G).
-Notation "'W'"   := (is_w lab).
-Notation "'commit_entries'" := (commit_entries X).
-Notation "'non_commit_ids'" := (non_commit_ids X).
-Notation "'threads_set'" := (threads_set G).
+Notation "'hb'" := (hb G).
+Notation "'hbloc'" := (same_loc ∩ hb).
+Notation "'re'" := (⦗W⦘ ⨾ (race ∪ hbloc) ⨾ ⦗R⦘).
+Notation "'rf''" := (rf G').
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
 
-Definition committed : Commit.id -> Prop :=
-    fun cid => is_some (commit_entries cid).
+Notation "'Rre'" := (codom_rel rfre).
+Notation "'Wre'" := (dom_rel rfre).
+Notation "'D'" := (E \₁ codom_rel (⦗Rre⦘ ⨾ (sb ∪ rf)＊)).
 
-Record wf := {
-    wf_G : Wf G;
-    cont_defined : forall e (NINIT : ~ is_init e) (IN : E e) (NRMW : ~ dom_rel rmw e),
-    is_some (cont X (CEvent e));
-    cont_init : forall tid (IN : threads_set tid), is_some (cont X (CInit tid));
-    (* TODO: add property stating existence of continuation for some threads *)
+Definition silent_cfg_add_step X X' :=
+  exists e l, cfg_add_event traces X X' e l.
 
-    non_commit_ids_inf : set_size non_commit_ids = NOinfinity;
-    non_commit_ids_no_entry : forall cid (NCI : non_commit_ids cid),
-        commit_entries cid = None;
-    no_entry_non_commit_ids : forall cid (CIN : commit_entries cid = None),
-        non_commit_ids cid;
-}.
+Definition f_restr_D (f : actid -> option actid) : actid -> option actid :=
+  (restr_fun (Some ↓₁ (f ↑₁ D)) f (fun x => None)).
 
-Definition committed_actid_set :=
-    (fun e => exists cid,
-                match commit_entries cid with
-                | Some (Commit.InExec e') => e = e'
-                | _ => False
-                end).
-Notation "'E_C'" := (E ∩₁ committed_actid_set).
-
-Record consistency := {
-    hb_eco_irr     : irreflexive (hb ⨾ eco^?);
-    weak_atomicity : restr_rel (E_C ∩₁ dom_rel rmw) (rf⁻¹ ⨾ rf) ⊆ ∅₂;
-    (* psc_ac : acyclic (psc G); *)
-}.
-End WCoreDefs.
-
-Section WCoreSteps.
-
-Definition add_step_exec
-           (lang : Language.t (list label))
-           (k k' : cont_label)
-           (st st' : Language.state lang)
-           (e  : actid)
-           (e' : option actid)
-           (G G' : execution) : Prop :=
-  ⟪ WF_G' : Wf G' ⟫ /\
-  ⟪ EIMM : ⦗eq (opt_ext e e')⦘ ⨾ sb G' ≡ ∅₂⟫ /\
-  ⟪ EDEF    :
-    match e, e' with
-    | InitEvent _, _ => False
-    | _, Some (InitEvent _) => False
-    | ThreadEvent t n, Some (ThreadEvent t' n') =>
-      t' = t /\ n' = 1 + n
-    | _, _ => True
-    end ⟫ /\
-  ⟪ THREADS : threads_set G' ≡₁ threads_set G ⟫ /\
-  ⟪ EVENTS  : acts_set G' ≡₁ acts_set G ∪₁ (eq e ∪₁ eq_opt e') ⟫ /\
-  ⟪ EVENT   : eq e ∪₁ eq_opt e' ⊆₁ set_compl (acts_set G) ⟫ /\
-  exists lbl lbl',
-    let lbls := (opt_to_list lbl') ++ [lbl] in
-    ⟪ KCE     : k' =  CEvent (opt_ext e e') ⟫ /\
-    ⟪ STEP    : Language.step lang lbls st st' ⟫ /\
-    ⟪ LABEL'  : opt_same_ctor e' lbl' ⟫ /\
-    ⟪ LAB'    : lab G' = upd_opt (upd (lab G) e lbl ) e' lbl' ⟫ /\
-    ⟪ RF'     : rf G ⊆ rf G' ⟫ /\
-    ⟪ CO'     : co G ⊆ co G' ⟫ /\
-    ⟪ RMW'    : rmw G' ≡ rmw G ∪ rmw_delta e e' ⟫.
-
-(* NOTE: merge this definition with add_step_exec? Or move parts of add_step_exec here? *)
-Definition add_step_
-           (e  : actid)
-           (e' : option actid)
-           (X X' : t) : Prop :=
-  exists lang k k' st st',
-    ⟪ CONT    : cont X k = Some (existT _ lang st) ⟫ /\
-    ⟪ CONT'   : cont X' = upd (cont X) k' (Some (existT _ lang st')) ⟫ /\
-    ⟪ NCOMMITIDS : non_commit_ids X' ≡₁ non_commit_ids X ⟫ /\
-    ⟪ COMMITENTR : commit_entries X' =  commit_entries X ⟫ /\
-    add_step_exec lang k k' st st' e e' (G X) (G X').
-
-Definition add_step (X X' : t) : Prop := exists e e', add_step_ e e' X X'.
-
-(* TODO make into definition? *)
-Record commit_step
-           (cid : Commit.id)
-           (e  : actid)
-           (X X' : t) : Prop :=
-  { cmt_G : G X' = G X;
-    cmt_K : cont X' = cont X;
-
-    cmt_cid      : non_commit_ids X cid;
-    cmt_noncid   : non_commit_ids X' ≡₁ non_commit_ids X \₁ (eq cid);
-    cmt_centries : commit_entries X' = upd (commit_entries X) cid (Some (Commit.InExec e));
+Record G_restr_D (G G'' : execution) : Prop :=
+  { sub_G : sub_execution G G'' ∅₂ ∅₂;
+    acts_D : acts_set G'' ≡₁ D;
   }.
 
-Definition upd_rval (l : label) (new_val : option value) :=
-  match l with
-  | Aload rmw mode loc old => Aload rmw mode loc (opt_ext old new_val)
-  | _ => l
-  end.
+Record reexec_gen
+  (G'' : execution)
+  (f f' : actid -> option actid)
+  (C : actid -> Prop) : Prop :=
+{ rf_sub_re : rfre ⊆ re;
+  rf_sub_f : rfre ⊆ Some ↓ (f ↑ rf');
+  d_wre_sub_f : D ∪₁ Wre ⊆₁ Some ↓₁ (f ↑₁ C);
 
-Definition rfc_endG (r w : actid) (G : execution) :=
-    set lab (fun lab'' => upd lab'' r (upd_rval (lab'' r) (val lab'' w)))
-    (set rf (fun rf'' => (rf'' \ (edges_to r)) ∪ singl_rel w r) G).
+  cfg_wf : wf (Build_t G G' C f);
+  int_G_D : G_restr_D G G'';
+  cfg_steps : silent_cfg_add_step＊
+    (Build_t G'' G' C (f_restr_D f))
+    (Build_t G' G' C f');
 
-Definition rfc_remove_events (r : actid) (G : execution) : actid -> Prop :=
-  codom_rel (⦗eq r⦘⨾ (sb G ∪ rf G)⁺).
+  c_correct : forall c (IN_C : C c), is_some (f c);
+  new_g_cons : is_cons G';
+}.
 
-Record rf_change_step_ G'' sc'' (w r : actid) (X X' : t) :=
-  { rfc_r        : is_r (lab (G X)) r;
-    rfc_w        : is_w (lab (G X)) w;
-    rfc_act_r    : acts_set (G X) r;
-    rfc_act_w    : acts_set (G X) w;
-    rfc_same_loc : same_loc (lab (G X)) w r;
-    rfc_race      : (race (G X) ∪ hb (G X)) w r;
+Definition reexec : Prop := exists G'' f f' C, reexec_gen G'' f f' C.
 
-    rfc_ncom  : ~ committed_actid_set X r;
-    rfc_hbcom : dom_rel (hb_alt (G X) ⨾ ⦗eq r⦘) ⊆₁ committed_actid_set X;
-
-    rfc_sub      : sub_execution (G X) G'' (sc X) sc'';
-    rfc_acts     : acts_set G'' ≡₁ acts_set (G X) \₁ rfc_remove_events r (G X);
-    rfc_G        :  G  X' = rfc_endG r w G'';
-    rfc_sc       : sc X' = sc'';
-  }.
-(* TODO: add lemmas on *)
-
-(* TODO: how to update function with a set  *)
-
-Definition removed_commit_ids (r : actid) (X : t) : Commit.id -> Prop :=
-  commit_entries X ↓₁
-  ((fun e => Some (Commit.InExec e)) ↑₁ rfc_remove_events r (G X)).
-
-Definition rfc_new_commit_entries (r : actid) (X : t) (cid : Commit.id) : option Commit.entry :=
-  ifP removed_commit_ids r X cid then None
-  else commit_entries X cid.
-
-Definition rfc_new_cont (r : actid) (X : t) (clab : cont_label) : option {lang : Language.t (list label) & Language.state lang} :=
-  match clab with
-  | CInit tid => cont X clab
-  | CEvent e => ifP rfc_remove_events r (G X) e then None else cont X clab
-  end.
-
-Definition rf_change_step
-           (w    : actid)
-           (r    : actid)
-           (X X' : t) : Prop :=
-  exists G'' sc'',
-    ⟪ RFC : rf_change_step_ G'' sc'' w r X X' ⟫ /\
-    ⟪ NCOMMITIDS : non_commit_ids X' ≡₁ non_commit_ids X ∪₁ removed_commit_ids r X ⟫ /\
-    ⟪ COMMIT_ENTRIES : commit_entries X' = rfc_new_commit_entries r X ⟫ /\
-    ⟪ CONTINUATION : cont X' = rfc_new_cont r X ⟫.
-
-Definition reexec_step
-           (w    : actid)
-           (r    : actid)
-           (X X' : t) : Prop :=
-  exists X'',
-    ⟪ DROP : rf_change_step w r X X'' ⟫ /\
-    ⟪ COMMITTED : committed X' ≡₁ committed X ⟫ /\
-    ⟪ RESTORE : add_step＊  X'' X' ⟫.
-
-End WCoreSteps.
+End ExecRexec.
 
 End WCore.
