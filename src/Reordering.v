@@ -391,7 +391,7 @@ Proof using THREAD_EVENTS.
         basic_solver. }
       { left. desf.
         match goal with
-        | A : (_ ∪₁ _) b |- _ => red in A; desf 
+        | A : (_ ∪₁ _) b |- _ => red in A; desf
         end.
         { apply WF; eauto. }
         apply PREFIX.

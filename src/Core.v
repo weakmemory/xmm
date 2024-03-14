@@ -15,6 +15,7 @@ From imm Require Import SubExecution.
 
 From RecordUpdate Require Import RecordSet.
 (* Import RecordSetNotations. *)
+Open Scope program_scope.
 
 Import ListNotations.
 
@@ -28,7 +29,6 @@ Set Implicit Arguments.
 Definition f_restr (D : actid -> Prop) (f : actid -> option actid) : actid -> option actid :=
   (restr_fun (Some ↓₁ (f ↑₁ D)) f (fun x => None)).
 
-(* TODO: add prefixes to field names *)
 Record restr_exec (D : actid -> Prop) (G G'' : execution) : Prop :=
   { restr_sub_G : sub_execution G G'' ∅₂ ∅₂;
     restr_acts_D : acts_set G'' ≡₁ D;
@@ -74,7 +74,7 @@ Definition empty_cfg G : t :=
   Build_t G (init_exec G) ∅ (fun x => None).
 
 #[global]
-Hint Unfold init_exec empty_cfg : unfolderDb.
+Hint Unfold init_exec empty_cfg f_restr : unfolderDb.
 
 Section Consistency.
 
@@ -111,6 +111,8 @@ Notation "'sbc'" := (sb GC).
 Notation "'rfc'" := (rf GC).
 Notation "'sb'" := (sb G).
 Notation "'rf'" := (rf G).
+Notation "'EC'" := (acts_set GC).
+Notation "'E'" := (acts_set G).
 
 Record wf : Prop := {
   c_subset : C ⊆₁ acts_set GC;
@@ -120,13 +122,23 @@ Record wf : Prop := {
 
   wf_g : Wf G;
   wf_gc : Wf GC;
-  f_codom : (fun x => is_some (f x)) ⊆₁ acts_set G;
-  f_inj : inj_dom (fun x => acts_set GC x /\ is_some (f x)) f;
-  f_tid : forall c (IN_C : C c), option_map tid (f c) = Some (tid c);
-  f_lab : forall c (IN_C : C c), option_map lab (f c) = Some (labc c);
+  f_dom : is_some ∘ f ⊆₁ EC;
+  f_codom : Some ↓₁ (f ↑₁ EC) ⊆₁ E;
+  f_inj : inj_dom (EC ∩₁ (is_some ∘ f)) f;
+
+  f_tid : forall c (IN : C c), option_map tid (f c) = Some (tid c);
+  f_lab : forall c (IN : C c), option_map lab (f c) = Some (labc c);
   f_sb : Some ↓ (f ↑ (⦗C⦘ ⨾ sbc ⨾ ⦗C⦘)) ⊆ sb;
   f_rf : Some ↓ (f ↑ (⦗C⦘ ⨾ rfc ⨾ ⦗C⦘)) ⊆ rf;
-  f_rfD : acts_set G ∩₁ R ⊆₁ codom_rel rf ∪₁ (Some ↓₁ (f ↑₁ C));
+  f_rfD : E ∩₁ R ⊆₁ codom_rel rf ∪₁ (Some ↓₁ (f ↑₁ C));
+
+  f_loc : forall c (IN : EC c), option_map (loc lab) (f c) = Some (loc labc c);
+  f_mod : forall c (IN : EC c), option_map (mod lab) (f c) = Some (mod labc c);
+  f_read : forall c (IN : EC c), option_map (is_r lab) (f c) = Some (is_r labc c);
+  f_write : forall c (IN : EC c), option_map (is_w lab) (f c) = Some (is_w labc c);
+
+  actid_cont : forall thr,
+    exists N, E ∩₁ (fun x => thr = tid x) ≡₁ thread_seq_set thr N;
 }.
 
 End CoreDefs.
@@ -200,6 +212,7 @@ Record cfg_add_event_gen e l r w W1 W2 c :=
   e_new : E' ≡₁ E ∪₁ (eq e);
   e_correct : new_event_correct e;
   lab_new : lab' = upd lab e l;
+  cmt_graph_same : GC' = GC;
 
   (* Skipping condition for sb *)
   rf_new : rf G' ≡ rf G ∪ rf_delta_R G e w ∪ rf_delta_W e GC f';
@@ -253,7 +266,7 @@ Notation "'Rre'" := (codom_rel rfre).
 Notation "'Wre'" := (dom_rel rfre).
 Notation "'D'" := (E \₁ codom_rel (⦗Rre⦘ ⨾ (sb ∪ rf)＊)).
 
-Definition silent_cfg_add_step X X' :=
+Definition cfg_add_step_uninformative X X' :=
   exists e l, cfg_add_event traces X X' e l.
 
 Record reexec_gen
@@ -266,9 +279,9 @@ Record reexec_gen
 
   cfg_wf : wf (Build_t G G' C f);
   int_G_D : restr_exec D G G'';
-  cfg_steps : silent_cfg_add_step＊
+  cfg_steps : cfg_add_step_uninformative＊
     (Build_t G'' G' C (f_restr D f))
-    (Build_t G' G' C f');
+    (Build_t G'  G' C f');
 
   C_correct : forall c (IN_C : C c), is_some (f c);
   new_g_cons : is_cons G';
@@ -278,6 +291,174 @@ Definition reexec : Prop := exists G'' f f' C, reexec_gen G'' f f' C.
 
 End ExecRexec.
 
-(* TODO: props *)
+Section WCoreWfProps.
+
+Variable X : t.
+Variable WF : wf X.
+
+Notation "'G'" := (G X).
+Notation "'ctrl'" := (ctrl G).
+Notation "'data'" := (data G).
+Notation "'addr'" := (addr G).
+Notation "'GC'" := (GC X).
+Notation "'C'" := (cmt X).
+Notation "'g2gc'" := (g2gc X).
+Notation "'labc'" := (lab GC).
+Notation "'lab'" := (lab G).
+Notation "'sbc'" := (sb GC).
+Notation "'rfc'" := (rf GC).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'EC'" := (acts_set GC).
+Notation "'E'" := (acts_set G).
+
+Lemma wf_iff_read e ec
+    (IN : EC ec)
+    (MAPPED : g2gc ec = Some e) :
+  is_r lab e <-> is_r labc ec.
+Proof using WF.
+  enough (HEQ : Some (is_r lab e) = Some (is_r labc ec)) by now inversion HEQ.
+  change (Some (is_r lab e)) with (option_map (is_r lab) (Some e)).
+  rewrite <- MAPPED. now apply WF.
+Qed.
+
+Lemma wf_iff_write e ec
+    (IN : EC ec)
+    (MAPPED : g2gc ec = Some e) :
+  is_w lab e <-> is_w labc ec.
+Proof using WF.
+  enough (HEQ : Some (is_w lab e) = Some (is_w labc ec)) by now inversion HEQ.
+  change (Some (is_w lab e)) with (option_map (is_w lab) (Some e)).
+  rewrite <- MAPPED. now apply WF.
+Qed.
+
+Lemma wf_eq_loc e ec
+    (IN : EC ec)
+    (MAPPED : g2gc ec = Some e) :
+  loc lab e = loc labc ec.
+Proof using WF.
+  enough (HEQ : Some (loc lab e) = Some (loc labc ec)) by now inversion HEQ.
+  change (Some (loc lab e)) with (option_map (loc lab) (Some e)).
+  rewrite <- MAPPED. now apply WF.
+Qed.
+
+Lemma wf_set_sz e N
+    (SZ_EQ : set_size (E ∩₁ same_tid e) = NOnum N) :
+  E ∩₁ same_tid e ≡₁ thread_seq_set (tid e) N.
+Proof using WF.
+  unfold same_tid in *.
+  set (HEQ := actid_cont WF (tid e)). desf.
+  rewrite HEQ in *.
+  now apply thread_seq_N_eq_set_size.
+Qed.
+
+End WCoreWfProps.
+
+Section WCoreStepProps.
+
+Variable traces : thread_id -> trace label -> Prop.
+
+Variable X X' : t.
+Notation "'G''" := (G X').
+Notation "'GC''" := (GC X').
+Notation "'C''" := (cmt X').
+Notation "'f''" := (g2gc X').
+Notation "'E''" := (acts_set G').
+Notation "'lab''" := (lab G').
+
+Notation "'G'" := (G X).
+Notation "'GC'" := (GC X).
+Notation "'C'" := (cmt X).
+Notation "'f'" := (g2gc X).
+Notation "'E'" := (acts_set G).
+Notation "'lab'" := (lab G).
+
+Lemma add_step_acts_set_sz e l N
+    (ADD_STEP : cfg_add_event traces X X' e l)
+    (SZ_EQ : set_size (E ∩₁ same_tid e) = NOnum N) :
+  set_size (E' ∩₁ same_tid e) = NOnum (N + 1).
+Proof using.
+  red in ADD_STEP. desf.
+  rewrite e_new, set_inter_union_l by eauto.
+  arewrite (eq e ∩₁ same_tid e ≡₁ eq e).
+  { basic_solver. }
+  erewrite set_size_union_disjoint; auto using set_size_single.
+  enough (set_disjoint E (eq e)) by basic_solver.
+  unfolder; ins; desf.
+  now apply ADD_STEP.
+Qed.
+
+Lemma add_step_new_acts e l N
+    (WF : wf X)
+    (ADD_STEP : cfg_add_event traces X X' e l)
+    (SZ_EQ : set_size (E ∩₁ same_tid e) = NOnum N):
+  E' ∩₁ same_tid e ≡₁ thread_seq_set (tid e) (N + 1).
+Proof using.
+  rewrite wf_set_sz; eauto using add_step_acts_set_sz.
+  red in ADD_STEP; desf. apply ADD_STEP.
+Qed.
+
+Lemma add_step_actid e l N
+    (WF : wf X)
+    (ADD_STEP : cfg_add_event traces X X' e l)
+    (SZ_EQ : set_size (E ∩₁ same_tid e) = NOnum N):
+  E' ∩₁ same_tid e ≡₁ E ∩₁ same_tid e ∪₁ eq (ThreadEvent (tid e) N).
+Proof using.
+  erewrite add_step_new_acts, wf_set_sz; eauto.
+  now rewrite PeanoNat.Nat.add_1_r, thread_set_S.
+Qed.
+
+Lemma add_step_actid_value e l N
+    (WF : wf X)
+    (ADD_STEP : cfg_add_event traces X X' e l)
+    (SZ_EQ : set_size (E ∩₁ same_tid e) = NOnum N):
+  e = ThreadEvent (tid e) N.
+Proof using.
+  admit.
+Admitted.
+
+Lemma add_step_trace_eq e l N
+    (WF : wf X)
+    (ADD_STEP : cfg_add_event traces X X' e l)
+    (SZ_EQ : set_size (E ∩₁ same_tid e) = NOnum N):
+  thread_trace G' (tid e) =
+    trace_app (thread_trace G (tid e)) (trace_fin [lab' e]).
+Proof using.
+  red in ADD_STEP. desf.
+  assert (ADD_STEP' : cfg_add_event traces X X' e l).
+  { do 5 econstructor. apply ADD_STEP. }
+  unfold thread_trace.
+  erewrite !thread_actid_trace_form.
+  all: eauto using add_step_new_acts, wf_set_sz.
+  erewrite lab_new by eauto.
+  rewrite PeanoNat.Nat.add_1_r, seqS; ins.
+  f_equal.
+  rewrite !map_app; ins.
+  erewrite <- add_step_actid_value, upds; eauto.
+  f_equal.
+  admit.
+Admitted.
+
+Lemma add_step_trace_coh e l
+    (ADD_STEP : cfg_add_event traces X X' e l)
+    (G_COH : trace_coherent traces G) :
+  trace_coherent traces G'.
+Proof using.
+  red in ADD_STEP. desf.
+  red. ins.
+  set (PREFIX := e_correct ADD_STEP).
+  unfold new_event_correct in PREFIX.
+  ins.
+
+  { edestruct traceco_wf_acts with (thr:=thr) as [N OLD_ACTS]; eauto.
+    destruct (classic (thr = (tid e))); subst; [exists (N + 1) | exists N].
+    all: rewrite e_new, set_inter_union_l, OLD_ACTS; eauto.
+    { rewrite PeanoNat.Nat.add_1_r, thread_set_S.
+      admit. }
+    arewrite (eq e ∩₁ (fun x => tid x = thr) ≡₁ ∅); [basic_solver | ].
+    now rewrite set_union_empty_r. }
+Admitted.
+
+End WCoreStepProps.
 
 End WCore.

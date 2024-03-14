@@ -37,15 +37,21 @@ Lemma thread_seq_set_size t n :
 Proof using.
   induction n.
   { apply set_size_empty.
-    unfold thread_seq_set.
-    arewrite (seq_set 0 ≡₁ ∅).
-    2: basic_solver.
-    unfolder; ins; desf; splits; lia. }
+    unfold thread_seq_set. rewrite seq_set_0.
+    basic_solver. }
   rewrite thread_set_S.
   erewrite set_size_union_disjoint with (a:=n) (b:=1);
     auto using set_size_single.
   { f_equal. lia. }
   unfolder. ins. desf. lia.
+Qed.
+
+Lemma thread_seq_N_eq_set_size t n n'
+    (EQ : set_size (thread_seq_set t n') = NOnum n) :
+  thread_seq_set t n' ≡₁ thread_seq_set t n.
+Proof using.
+  rewrite thread_seq_set_size in EQ.
+  desf.
 Qed.
 
 Section ThreadTrace.
@@ -57,7 +63,7 @@ Notation "'lab'" := (lab G).
 Notation "'sb'" := (sb G).
 Notation "'Et'" := (E ∩₁ (fun e => t = tid e)).
 
-Hypothesis NOT_INIT : t <> tid_init.
+(* Hypothesis NOT_INIT : t <> tid_init. *)
 Hypothesis THREAD_EVENTS : Et ≡₁ thread_seq_set t N.
 
 Definition thread_actid_trace : trace actid :=
@@ -84,7 +90,7 @@ Qed.
 
 Lemma thread_actid_trace_nth n (d : actid) (LT : n < N) :
   trace_nth n thread_actid_trace d = ThreadEvent t n.
-Proof using THREAD_EVENTS NOT_INIT.
+Proof using THREAD_EVENTS.
   rewrite trace_nth_indep with (d' := ThreadEvent t 0).
   2: { rewrite thread_actid_trace_length; ins; lia. }
   rewrite thread_actid_trace_form; ins.
@@ -102,7 +108,7 @@ Proof using THREAD_EVENTS.
 Qed.
 
 Lemma thread_actid_nodup : trace_nodup thread_actid_trace.
-Proof using THREAD_EVENTS NOT_INIT.
+Proof using THREAD_EVENTS.
   unfold trace_nodup.
   rewrite thread_actid_trace_length. simpl.
   intros i j LT SZ d. rewrite !thread_actid_trace_nth by lia.
@@ -111,7 +117,7 @@ Qed.
 
 Lemma thread_actid_trace_correct :
   trace_order thread_actid_trace ≡ restr_rel Et sb.
-Proof using THREAD_EVENTS NOT_INIT.
+Proof using THREAD_EVENTS.
   unfold trace_order, sb, ext_sb. unfolder.
   splits; intros a b.
   { intros (NODUP & i & j & LT & SZ & NA & NB). splits.
@@ -141,12 +147,7 @@ Qed.
 
 End ThreadTrace.
 
-Record trace_coherent traces G : Prop := {
-  traceco_wf_acts : forall thr (NOT_INIT : thr <> tid_init),
-    exists N, acts_set G ∩₁ (fun x => tid x = thr) ≡₁ thread_seq_set thr N;
-  traceco_all_prefix : forall thr (NOT_INIT : thr <> tid_init),
-    exists tr,
-      ⟪ IN_TRACES : traces thr tr ⟫ /\
-      ⟪ PREFIX : trace_prefix (thread_trace G thr) tr ⟫;
-}.
-
+Definition trace_coherent traces G : Prop :=
+  forall thr, exists tr, (* TODO: bring back `NOT_INTI`? *)
+    ⟪ IN_TRACES : traces thr tr ⟫ /\
+    ⟪ PREFIX : trace_prefix (thread_trace G thr) tr ⟫.
