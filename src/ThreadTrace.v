@@ -148,6 +148,6 @@ Qed.
 End ThreadTrace.
 
 Definition trace_coherent traces G : Prop :=
-  forall thr, exists tr, (* TODO: bring back `NOT_INTI`? *)
+  forall thr (NOT_INIT : thr <> tid_init), exists tr,
     ⟪ IN_TRACES : traces thr tr ⟫ /\
     ⟪ PREFIX : trace_prefix (thread_trace G thr) tr ⟫.
