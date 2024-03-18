@@ -502,21 +502,15 @@ Proof using.
   unfold thread_trace.
   erewrite !thread_actid_trace_form.
   all: eauto using add_step_new_acts.
-  { erewrite lab_new by eauto.
-    rewrite PeanoNat.Nat.add_1_r, seqS; ins.
-    f_equal. rewrite !map_app; ins.
-    erewrite <- add_step_actid_value, upds; eauto.
-    f_equal.
-    rewrite map_upd_irr; eauto.
-    rewrite add_step_actid_value with (e := e) (l := l) (N := N); eauto.
-    ins. rewrite in_map_iff.
-    intro F; desf.
-    rewrite in_seq0_iff in F0. lia. }
-  (* TODO: lemma. This sequence of steps repeats too often *)
+  { ins. f_equal.
+    erewrite lab_new by eauto.
+    rewrite PeanoNat.Nat.add_1_r, seqS,
+            PeanoNat.Nat.add_0_l, !map_app.
+    ins. rewrite (add_step_actid_value WF ADD_STEP' SZ_EQ); eauto.
+    ins. rewrite !upds, map_upd_irr; eauto.
+    apply thread_seq_helper_inv. lia. }
   apply wf_set_sz with (thr := (tid e)); eauto.
-  apply wf_actid_tid with (X := X'); try now apply ADD_STEP.
-  split; try apply ADD_STEP.
-  now right.
+  eapply add_step_event_not_init_tid; eauto.
 Qed.
 
 Lemma set_union_inter_r_notinter:
