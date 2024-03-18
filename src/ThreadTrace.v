@@ -74,11 +74,39 @@ Definition thread_actid_trace : trace actid :=
     end
   ).
 
+Lemma thread_seq_helper thr K :
+  In (ThreadEvent thr K) (map (ThreadEvent thr) (List.seq 0 N)) <-> K < N.
+Proof using.
+  rewrite in_map_iff, <- in_seq0_iff.
+  split; ins; desf; eauto.
+Qed.
+
+Lemma thread_seq_helper_inv thr K
+    (LT : N <= K) :
+  ~In (ThreadEvent thr K) (map (ThreadEvent thr) (List.seq 0 N)).
+Proof using.
+  rewrite thread_seq_helper; lia.
+Qed.
+
 Lemma thread_actid_trace_form :
   thread_actid_trace = trace_map (ThreadEvent t) (trace_fin (List.seq 0 N)).
 Proof using THREAD_EVENTS.
   unfold thread_actid_trace.
   now rewrite THREAD_EVENTS, thread_seq_set_size.
+Qed.
+
+Lemma thread_actid_trace_iff K :
+  trace_elems thread_actid_trace (ThreadEvent t K) <-> K < N.
+Proof using THREAD_EVENTS.
+  rewrite thread_actid_trace_form; ins.
+  apply thread_seq_helper.
+Qed.
+
+Lemma thread_actid_trace_iff_inv K
+    (LT : N <= K) :
+  ~trace_elems thread_actid_trace (ThreadEvent t K).
+Proof using THREAD_EVENTS.
+  rewrite thread_actid_trace_iff; lia.
 Qed.
 
 Lemma thread_actid_trace_length :
