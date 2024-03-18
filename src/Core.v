@@ -510,6 +510,24 @@ Proof using.
   now right.
 Qed.
 
+Lemma set_union_inter_r_notinter:
+  forall [A : Type] (s s' s'' : A -> Prop) (HYP : s' ∩₁ s'' ≡₁ ∅),
+  (s ∪₁ s') ∩₁ s'' ≡₁ s ∩₁ s''.
+Proof using.
+  ins. rewrite set_inter_union_l.
+  rewrite HYP. basic_solver.
+Qed.
+
+Lemma map_upd_not_applicable:
+  forall (l : list actid) (x : actid) (y : label) (HYP : ~ In x l),
+  map (upd lab x y) l = map lab l.
+Proof using.
+  ins. induction l; ins.
+  apply not_or_and in HYP. desf.
+  apply IHl in HYP0. rewrite HYP0. f_equal.
+  unfold upd. desf.
+Qed.
+
 Lemma add_step_trace_coh e l
     (WF : wf X)
     (ADD_STEP : cfg_add_event traces X X' e l)
@@ -518,9 +536,11 @@ Lemma add_step_trace_coh e l
 Proof using.
   red. ins.
   destruct (classic (thr = (tid e))).
-  { subst.
-    erewrite add_step_trace_eq with (l := l); eauto.
-    2: admit. (* TODO, this one seems to be super obvious *)
+  { subst. destruct WF. apply actid_cont0 in NOT_INIT.
+    destruct NOT_INIT as [N N_EQ].
+    erewrite add_step_trace_eq with (l := l) (N := N); eauto; try basic_solver.
+    2: { unfold trace_coherent in G_COH. 
+        rewrite N_EQ. rewrite thread_seq_set_size. eauto. }
     red in ADD_STEP; desf.
     destruct (thread_trace G (tid e)) as [tr | inf] eqn:HEQ.
     (* TODO: trace lemma *)
@@ -530,9 +550,19 @@ Proof using.
   set (HCORR := G_COH thr NOT_INIT). desf.
   exists tr; split; auto.
   assert (NO_CHANGE : thread_trace G' thr = thread_trace G thr).
-  { admit. (* TODO*) }
-  now rewrite NO_CHANGE.
-Admitted.
+    { unfold thread_trace. unfold cfg_add_event in ADD_STEP. desf.
+      destruct ADD_STEP. rewrite lab_new0.
+      unfold thread_actid_trace. rewrite e_new0.
+      destruct WF. apply actid_cont0 in NOT_INIT.
+      destruct NOT_INIT as [N N_EQ].
+      rewrite set_union_inter_r_notinter. 
+      rewrite N_EQ. rewrite thread_seq_set_size.
+      { unfold trace_map. assert (HYP: ~ In e (map (ThreadEvent thr) (List.seq 0 N))). 
+        { intro F. apply in_map_iff in F. desf. }
+        rewrite map_upd_not_applicable. all: eauto. }
+      basic_solver. }
+    now rewrite NO_CHANGE.
+Qed.
 
 End WCoreStepProps.
 
