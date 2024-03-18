@@ -387,6 +387,16 @@ Proof using WF.
   now apply thread_seq_N_eq_set_size.
 Qed.
 
+Lemma wf_set_sz_helper e N
+    (NOT_INIT : (E ∩₁ set_compl is_init) e)
+    (SZ_EQ : set_size (E ∩₁ same_tid e) = NOnum N) :
+  E ∩₁ same_tid e ≡₁ thread_seq_set (tid e) N.
+Proof using WF.
+  apply wf_set_sz with (thr := tid e); auto.
+  intro EQ_TID; apply wf_g_acts with (X := X); auto.
+  exists e; split; [apply NOT_INIT | auto].
+Qed.
+
 End WCoreWfProps.
 
 Section WCoreStepProps.
@@ -417,6 +427,15 @@ Proof using.
   now right.
 Qed.
 
+Lemma add_step_event_not_init_tid e l
+    (ADD_STEP : cfg_add_event traces X X' e l) :
+    tid e <> tid_init.
+Proof using.
+  red in ADD_STEP. desf.
+  apply wf_actid_tid with (X := X'); try now apply ADD_STEP.
+  split; apply ADD_STEP; now right.
+Qed.
+
 Lemma add_step_acts_set_sz e l N
     (ADD_STEP : cfg_add_event traces X X' e l)
     (SZ_EQ : set_size (E ∩₁ same_tid e) = NOnum N) :
@@ -439,12 +458,10 @@ Lemma add_step_new_acts e l N
   E' ∩₁ same_tid e ≡₁ thread_seq_set (tid e) (N + 1).
 Proof using.
   unfold same_tid. rewrite wf_set_sz with (thr := (tid e)).
-  all: eauto using add_step_acts_set_sz, add_step_event_set.
-  { red in ADD_STEP; desf. apply ADD_STEP. }
-  red in ADD_STEP. desf.
-  apply wf_actid_tid with (X := X'); try now apply ADD_STEP.
-  split; try apply ADD_STEP.
-  now right.
+  all: eauto using add_step_acts_set_sz, add_step_event_set,
+          add_step_event_not_init_tid.
+  red in ADD_STEP; desf.
+  apply ADD_STEP.
 Qed.
 
 Lemma add_step_actid e l N
@@ -454,12 +471,8 @@ Lemma add_step_actid e l N
   E' ∩₁ same_tid e ≡₁ E ∩₁ same_tid e ∪₁ eq (ThreadEvent (tid e) N).
 Proof using.
   erewrite add_step_new_acts, wf_set_sz with (thr := (tid e)).
-  all: eauto using add_step_event_set.
-  { now rewrite PeanoNat.Nat.add_1_r, thread_set_S. }
-  red in ADD_STEP. desf.
-  apply wf_actid_tid with (X := X'); try now apply ADD_STEP.
-  split; try apply ADD_STEP.
-  now right.
+  all: eauto using add_step_event_set, add_step_event_not_init_tid.
+  now rewrite PeanoNat.Nat.add_1_r, thread_set_S.
 Qed.
 
 Lemma add_step_actid_value e l N
@@ -468,16 +481,12 @@ Lemma add_step_actid_value e l N
     (SZ_EQ : set_size (E ∩₁ same_tid e) = NOnum N):
   e = ThreadEvent (tid e) N.
 Proof using.
-  enough (HIN : (E' ∩₁ same_tid e) e).
-  { eapply add_step_actid in HIN; eauto.
-    red in ADD_STEP; desf.
-    destruct HIN as [HIN|HIN]; eauto.
-    exfalso. eapply e_notin; eauto.
-    apply HIN. }
-  red in ADD_STEP; desf.
-  enough (HIN : E' e) by basic_solver.
-  eapply e_new; eauto.
-  now right.
+  assert (HIN : (E' ∩₁ same_tid e) e).
+  { split; [apply (add_step_event_set ADD_STEP) | easy]. }
+  assert (NOTIN : ~E e).
+  { red in ADD_STEP; desf. apply ADD_STEP. }
+  eapply add_step_actid in HIN; eauto.
+  unfolder in HIN; desf.
 Qed.
 
 Lemma add_step_trace_eq e l N
@@ -539,7 +548,7 @@ Proof using.
   { subst. destruct WF. apply actid_cont0 in NOT_INIT.
     destruct NOT_INIT as [N N_EQ].
     erewrite add_step_trace_eq with (l := l) (N := N); eauto; try basic_solver.
-    2: { unfold trace_coherent in G_COH. 
+    2: { unfold trace_coherent in G_COH.
         rewrite N_EQ. rewrite thread_seq_set_size. eauto. }
     red in ADD_STEP; desf.
     destruct (thread_trace G (tid e)) as [tr | inf] eqn:HEQ.
@@ -555,9 +564,9 @@ Proof using.
       unfold thread_actid_trace. rewrite e_new0.
       destruct WF. apply actid_cont0 in NOT_INIT.
       destruct NOT_INIT as [N N_EQ].
-      rewrite set_union_inter_r_notinter. 
+      rewrite set_union_inter_r_notinter.
       rewrite N_EQ. rewrite thread_seq_set_size.
-      { unfold trace_map. assert (HYP: ~ In e (map (ThreadEvent thr) (List.seq 0 N))). 
+      { unfold trace_map. assert (HYP: ~ In e (map (ThreadEvent thr) (List.seq 0 N))).
         { intro F. apply in_map_iff in F. desf. }
         rewrite map_upd_not_applicable. all: eauto. }
       basic_solver. }
