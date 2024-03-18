@@ -207,9 +207,7 @@ Definition new_event_correct e : Prop :=
   match thread_trace G (tid e) with
   | trace_inf _ => False
   | trace_fin l =>
-    exists tr, traces (tid e) tr /\
-      trace_prefix (trace_fin (l ++ [lab' e])
-    ) tr
+    exists tr, traces (tid e) tr /\ trace_prefix (trace_fin (l ++ [lab' e])) tr
   end.
 
 Record cfg_add_event_gen e l r w W1 W2 c :=
@@ -399,6 +397,9 @@ Qed.
 
 End WCoreWfProps.
 
+Global Hint Resolve wf_actid_tid wf_set_sz wf_set_sz_helper :
+  xmm.
+
 Section WCoreStepProps.
 
 Variable traces : thread_id -> trace label -> Prop.
@@ -427,13 +428,19 @@ Proof using.
   now right.
 Qed.
 
+Lemma new_conf_wf e l
+    (ADD_STEP : cfg_add_event traces X X' e l) :
+    wf X'.
+Proof using.
+  red in ADD_STEP. desf.
+  apply ADD_STEP.
+Qed.
+
 Lemma add_step_event_not_init_tid e l
     (ADD_STEP : cfg_add_event traces X X' e l) :
     tid e <> tid_init.
 Proof using.
-  red in ADD_STEP. desf.
-  apply wf_actid_tid with (X := X'); try now apply ADD_STEP.
-  split; apply ADD_STEP; now right.
+  eauto using wf_actid_tid, new_conf_wf, add_step_event_set.
 Qed.
 
 Lemma add_step_acts_set_sz e l N
@@ -459,9 +466,7 @@ Lemma add_step_new_acts e l N
 Proof using.
   unfold same_tid. rewrite wf_set_sz with (thr := (tid e)).
   all: eauto using add_step_acts_set_sz, add_step_event_set,
-          add_step_event_not_init_tid.
-  red in ADD_STEP; desf.
-  apply ADD_STEP.
+          add_step_event_not_init_tid, new_conf_wf.
 Qed.
 
 Lemma add_step_actid e l N
@@ -496,21 +501,19 @@ Lemma add_step_trace_eq e l N
   thread_trace G' (tid e) =
     trace_app (thread_trace G (tid e)) (trace_fin [lab' e]).
 Proof using.
-  red in ADD_STEP. desf.
-  assert (ADD_STEP' : cfg_add_event traces X X' e l).
-  { do 5 econstructor. apply ADD_STEP. }
-  unfold thread_trace.
-  erewrite !thread_actid_trace_form.
-  all: eauto using add_step_new_acts.
-  { ins. f_equal.
-    erewrite lab_new by eauto.
-    rewrite PeanoNat.Nat.add_1_r, seqS,
-            PeanoNat.Nat.add_0_l, !map_app.
-    ins. rewrite (add_step_actid_value WF ADD_STEP' SZ_EQ); eauto.
-    ins. rewrite !upds, map_upd_irr; eauto.
-    apply thread_seq_helper_inv. lia. }
-  apply wf_set_sz with (thr := (tid e)); eauto.
-  eapply add_step_event_not_init_tid; eauto.
+  assert (HEQ_LAB : lab' = upd lab e l).
+  { red in ADD_STEP. desf. apply ADD_STEP. }
+  unfold thread_trace. erewrite !thread_actid_trace_form.
+  all: eauto using add_step_new_acts, wf_set_sz,
+        add_step_event_not_init_tid.
+  ins. f_equal.
+  rewrite PeanoNat.Nat.add_1_r, seqS,
+          PeanoNat.Nat.add_0_l, !map_app.
+  ins.
+  erewrite <- add_step_actid_value with (l := l),
+          app_inv_tail_iff, HEQ_LAB, map_upd_irr; eauto.
+  rewrite (add_step_actid_value WF ADD_STEP SZ_EQ).
+  now apply thread_seq_helper_inv.
 Qed.
 
 Lemma set_union_inter_r_notinter:
@@ -532,6 +535,16 @@ Proof using.
   unfold upd. desf.
 Qed.
 
+Lemma add_step_new_event_correct e l
+    (ADD_STEP : cfg_add_event traces X X' e l) :
+  exists tr, traces (tid e) tr /\
+    trace_prefix (trace_app (thread_trace G (tid e)) (trace_fin [lab' e])) tr.
+Proof using.
+  red in ADD_STEP. desf.
+  generalize (e_correct ADD_STEP).
+  unfold new_event_correct. desf.
+Qed.
+
 Lemma add_step_trace_coh e l
     (WF : wf X)
     (ADD_STEP : cfg_add_event traces X X' e l)
@@ -540,17 +553,12 @@ Lemma add_step_trace_coh e l
 Proof using.
   red. ins.
   destruct (classic (thr = (tid e))).
-  { subst. destruct WF. apply actid_cont0 in NOT_INIT.
-    destruct NOT_INIT as [N N_EQ].
-    erewrite add_step_trace_eq with (l := l) (N := N); eauto; try basic_solver.
-    2: { unfold trace_coherent in G_COH.
-        rewrite N_EQ. rewrite thread_seq_set_size. eauto. }
-    red in ADD_STEP; desf.
-    destruct (thread_trace G (tid e)) as [tr | inf] eqn:HEQ.
-    (* TODO: trace lemma *)
-    all: set (HCORR := e_correct ADD_STEP).
-    all: unfold new_event_correct in HCORR.
-    all: now rewrite HEQ in HCORR. }
+  { subst.
+    assert (HEQ : exists N, E ∩₁ same_tid e ≡₁ thread_seq_set (tid e) N).
+    { now apply WF. }
+    desf.
+    erewrite add_step_trace_eq; eauto using add_step_new_event_correct.
+    erewrite set_size_equiv, thread_seq_set_size; eauto. }
   set (HCORR := G_COH thr NOT_INIT). desf.
   exists tr; split; auto.
   assert (NO_CHANGE : thread_trace G' thr = thread_trace G thr).
