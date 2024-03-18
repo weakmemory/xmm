@@ -521,6 +521,7 @@ Proof using.
   rewrite HYP. basic_solver.
 Qed.
 
+(* NOTE: map_upd_irr *)
 Lemma map_upd_not_applicable:
   forall (l : list actid) (x : actid) (y : label) (HYP : ~ In x l),
   map (upd lab x y) l = map lab l.
