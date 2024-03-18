@@ -552,7 +552,7 @@ Lemma add_step_trace_coh e l
   trace_coherent traces G'.
 Proof using.
   red. ins.
-  destruct (classic (thr = (tid e))).
+  destruct (classic (thr = (tid e))) as [HEQ_TIDE|HEQ_TIDE].
   { subst.
     assert (HEQ : exists N, E ∩₁ same_tid e ≡₁ thread_seq_set (tid e) N).
     { now apply WF. }
@@ -577,5 +577,8 @@ Proof using.
 Qed.
 
 End WCoreStepProps.
+
+Global Hint Resolve new_conf_wf add_step_event_not_init_tid add_step_trace_coh :
+  xmm.
 
 End WCore.
