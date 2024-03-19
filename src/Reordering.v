@@ -190,6 +190,120 @@ Record simrel_not_rw m : Prop :=
 
 End ReorderingDefs.
 
+Section SubGraphLemma.
+
+Variable G G' : execution.
+Variable C : actid -> Prop.
+Variable traces : thread_id -> trace label -> Prop.
+
+Notation "'lab''" := (lab G').
+Notation "'E''" := (acts_set G').
+Notation "'rmw''" := (rmw G').
+Notation "'data''" := (data G').
+Notation "'addr''" := (addr G').
+Notation "'ctrl''" := (ctrl G').
+Notation "'rmw_dep''" := (rmw_dep G').
+Notation "'rf''" := (rf G').
+Notation "'co''" := (co G').
+Notation "'W''" := (fun x => is_w lab' x).
+Notation "'R''" := (fun x => is_r lab' x).
+
+Notation "'lab'" := (lab G).
+Notation "'E'" := (acts_set G).
+Notation "'rmw'" := (rmw G).
+Notation "'data'" := (data G).
+Notation "'addr'" := (addr G).
+Notation "'ctrl'" := (ctrl G).
+Notation "'rmw_dep'" := (rmw_dep G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'W'" := (fun x => is_w lab x).
+Notation "'R'" := (fun x => is_r lab x).
+
+Lemma partial_id_iff {A} (f : A -> option A) x
+    (F_ID : forall x y (SOME : f x = Some y), y = x) :
+  (is_some ∘ f) x <-> f x = Some x.
+Proof using.
+  unfold compose, is_some.
+  split; ins; desf.
+  f_equal. now apply F_ID.
+Qed.
+
+Lemma partial_id_rel {A} (f : A -> option A) (r : relation A)
+    (F_ID : forall x y (SOME : f x = Some y), y = x) :
+  Some ↓ (f ↑ r) ≡ restr_rel (is_some ∘ f) r.
+Proof using.
+  symmetry.
+  unfolder. splits; ins; desf.
+  { do 2 eexists. rewrite <- !partial_id_iff; auto. }
+  rewrite (F_ID x' x), (F_ID y' y); splits; auto.
+  all: unfold is_some, compose; desf.
+Qed.
+
+Lemma partial_id_set {A} (f : A -> option A) (s : A -> Prop)
+    (F_ID : forall x y (SOME : f x = Some y), y = x) :
+  Some ↓₁ (f ↑₁ s) ≡₁ s ∩₁ (is_some ∘ f).
+Proof using.
+  symmetry.
+  unfolder. splits; ins; desf.
+  { eexists. rewrite <- !partial_id_iff; auto. }
+  rewrite (F_ID y x); auto.
+  all: unfold is_some, compose; desf.
+Qed.
+
+Lemma over_exec_wf f
+    (WF : Wf G')
+    (CTRL : ctrl' ≡ ∅₂)
+    (ADDR : addr' ≡ ∅₂)
+    (DATA : data' ≡ ∅₂)
+    (F_ID : forall x y (SOME : f x = Some y), y = x)
+    (A_CORRECT : is_some ∘ f ⊆₁ E)
+    (C_CORRECT : C ⊆₁ is_some ∘ f)
+    (SUB_INIT : E' ∩₁ is_init ⊆₁ E)
+    (G_RF_D : E ∩₁ R ⊆₁ codom_rel rf ∪₁ (Some ↓₁ (f ↑₁ C)))
+    (G_TIDS : ~(tid ↑₁ (E' ∩₁ set_compl is_init)) tid_init)
+    (G_ACTS : forall thr (NOT_INIT : thr <> tid_init),
+      exists N, E ∩₁ (fun x => thr = tid x) ≡₁ thread_seq_set thr N)
+    (SUB : sub_execution G' G ∅₂ ∅₂) :
+  WCore.wf (WCore.Build_t G G' C f).
+Proof using.
+  assert (ACT_SUB : E ∩₁ set_compl is_init ⊆₁ E' ∩₁ set_compl is_init).
+  { apply set_subset_inter; auto; apply SUB. }
+  constructor; ins.
+  { rewrite sub_ctrl, CTRL; eauto; basic_solver. }
+  { rewrite sub_addr, ADDR; eauto; basic_solver. }
+  { rewrite sub_data, DATA; eauto; basic_solver. }
+  { eapply sub_WF; eauto. now rewrite set_interC. }
+  { unfolder; intro INIT_IN; desf.
+    apply G_TIDS. eexists.
+    split; eauto; now apply ACT_SUB. }
+  { transitivity E; auto. apply SUB. }
+  { rewrite partial_id_set; eauto.
+    basic_solver. }
+  { unfolder; ins; desf.
+    apply F_ID. rewrite <- EQ.
+    now apply partial_id_iff. }
+  { rewrite sub_sb with (G' := G); eauto.
+    rewrite partial_id_rel, !restr_relE; auto.
+    basic_solver. }
+  { rewrite sub_rf with (G' := G); eauto.
+    rewrite partial_id_rel, !restr_relE; auto.
+    basic_solver. }
+  { unfolder. intros x y (HEQ & XIN & YIN).
+    apply F_ID in HEQ; now subst. }
+  { unfold WCore.unwrap_g2gc, same_lab_u2v_dom,
+          is_some, compose.
+    unfolder. ins. desf.
+    erewrite sub_lab, (F_ID e a); eauto.
+    red. desf. }
+  apply C_CORRECT, partial_id_iff in IN; auto.
+  unfold WCore.unwrap_g2gc, val.
+  erewrite sub_lab; eauto.
+  ins. now rewrite IN.
+Qed.
+
+End SubGraphLemma.
+
 Section ReorderingSubLemma.
 
 Variable G G' : execution.
@@ -287,7 +401,6 @@ Proof using.
 Qed.
 
 Lemma new_event_not_in_C e f
-    (F_ID : forall x (SOME : is_some (f x)), f x = Some x)
     (WF : WCore.wf (WCore.Build_t G G' C f))
     (NEW : D e) :
   ~(Some ↓₁ (f ↑₁ C)) e.
@@ -300,74 +413,12 @@ Proof using.
   apply (WCore.C_sub_EC WF).
 Qed.
 
-Lemma over_exec_wf f
-    (WF : Wf G')
-    (CTRL : ctrl' ≡ ∅₂)
-    (ADDR : addr' ≡ ∅₂)
-    (DATA : data' ≡ ∅₂)
-    (F_ID : forall x y (SOME : f x = Some y), y = x)
-    (A_CORRECT : is_some ∘ f ⊆₁ E)
-    (C_CORRECT : C ⊆₁ is_some ∘ f)
-    (SUB : sub_execution G' G ∅₂ ∅₂)
-    (SUB_INIT : E' ∩₁ is_init ⊆₁ E)
-    (G_RF_D : E ∩₁ R ⊆₁ codom_rel rf ∪₁ (Some ↓₁ (f ↑₁ C)))
-    (G_TIDS : ~(tid ↑₁ (E' ∩₁ set_compl is_init)) tid_init)
-    (G_ACTS : forall thr (NOT_INIT : thr <> tid_init),
-      exists N, E ∩₁ (fun x => thr = tid x) ≡₁ thread_seq_set thr N) :
-  WCore.wf (WCore.Build_t G G' C f).
-Proof using.
-  assert (ACT_SUB : E ∩₁ set_compl is_init ⊆₁ E' ∩₁ set_compl is_init).
-  { apply set_subset_inter; auto; apply SUB. }
-  assert (F_ID' : forall x, (is_some ∘ f) x <-> f x = Some x).
-  { unfold compose, is_some.
-    split; ins; desf.
-    f_equal. now apply F_ID. }
-  assert (F_RESTR : forall r, Some ↓ (f ↑ r) ≡ restr_rel (is_some ∘ f) r).
-  { symmetry.
-    unfolder. splits; ins; desf.
-    { do 2 eexists. rewrite <- !F_ID'. splits; auto. }
-    rewrite (F_ID x' x), (F_ID y' y); splits; auto.
-    all: unfold is_some, compose; desf. }
-  constructor; ins.
-  { rewrite sub_ctrl, CTRL; eauto; basic_solver. }
-  { rewrite sub_addr, ADDR; eauto; basic_solver. }
-  { rewrite sub_data, DATA; eauto; basic_solver. }
-  { eapply sub_WF; eauto. now rewrite set_interC. }
-  { unfolder; intro INIT_IN; desf.
-    apply G_TIDS. eexists.
-    split; eauto; now apply ACT_SUB. }
-  { transitivity E; auto. apply SUB. }
-  { unfolder. ins. desf.
-    apply A_CORRECT, F_ID'.
-    rewrite (F_ID y x) at 1; auto. }
-  { unfolder; ins; desf.
-    apply F_ID. rewrite <- EQ.
-    now apply F_ID'. }
-  { rewrite sub_sb with (G' := G); eauto.
-    rewrite F_RESTR, !restr_relE.
-    basic_solver. }
-  { rewrite sub_rf with (G' := G); eauto.
-    rewrite F_RESTR, !restr_relE.
-    basic_solver. }
-  { unfolder. intros x y (HEQ & XIN & YIN).
-    apply F_ID in HEQ; now subst. }
-  { unfold WCore.unwrap_g2gc, same_lab_u2v_dom,
-          is_some, compose.
-    unfolder. ins. desf.
-    erewrite sub_lab, (F_ID e a); eauto.
-    red. desf. }
-  apply C_CORRECT, F_ID' in IN.
-  unfold WCore.unwrap_g2gc, val.
-  erewrite sub_lab; eauto.
-  ins. now rewrite IN.
-Qed.
-
 (*
   TODO: connect graph to trace.
   This condition should be on its own (trace with labels!!)
 *)
 Lemma step_once_read h t f
-    (F_ID : forall x (SOME : is_some (f x)), f x = Some x)
+    (F_ID : forall x y (SOME : f x = Some y), y = x)
     (WF : WCore.wf (WCore.Build_t G G' C f))
     (WF' : WCore.wf (WCore.Build_t G' G' C f))
     (PREFIX : restr_exec E G' G)
@@ -386,8 +437,8 @@ Proof using THREAD_EVENTS.
   assert (R_IN_G' : (E' ∩₁ R') h).
   { split; try apply IN_D; eauto. }
   (* TODO: check if h is in C *)
-  destruct (WCore.f_rfD WF' R_IN_G') as [RF | CMT].
-  all: try now (exfalso; eapply new_event_not_in_C; eauto).
+  destruct (WCore.f_rfD WF' R_IN_G') as [RF | CMT]; ins.
+  all: try now (exfalso; eapply new_event_not_in_C with (f := f); eauto).
   destruct RF as [w RF]; ins.
   set (G'' := {|
     acts_set := E ∪₁ (eq h);
@@ -432,67 +483,39 @@ Proof using THREAD_EVENTS.
     unfold WCore.co_delta. desf; basic_solver. }
   { split; [basic_solver|].
     unfold WCore.rmw_delta. basic_solver. }
-  constructor; ins; try now apply WF.
-  { constructor; subst G''; ins.
-    all: try now rewrite 1?seq_false_l, 1?seq_false_r.
-    all: try now apply WF.
-    { admit. }
-    { transitivity (immediate (sb G)); try now apply WF.
-      admit. (* Need info about new sb *) }
-    { admit. } (* Need that w in E *)
-    { rewrite seq_union_l, seq_union_r, <- wf_rfD; try now apply WF.
-      arewrite (⦗W⦘ ⨾ eq w × eq h ⨾ ⦗R⦘ ≡ eq w × eq h); auto.
-      erewrite sub_lab by now apply PREFIX.
-      basic_solver. }
-    { apply inclusion_union_l; try now apply WF.
-      erewrite sub_lab by now apply PREFIX.
-      setoid_transitivity rf'; try now apply WF.
-      basic_solver. }
-    { apply funeq_union; try now apply WF.
-      erewrite sub_lab by now apply PREFIX.
-      arewrite (eq w × eq h ⊆ rf') by basic_solver.
-      apply WF. }
-    { apply functional_union; try now apply WF.
-      all: try basic_solver.
-      assert (BAD : dom_rel rf⁻¹ ⊆₁ E).
-      { rewrite dom_transp, wf_rfE; try now apply WF.
-        basic_solver. }
-      unfolder; ins.
-      apply IN_D, BAD.
-      basic_solver. }
-    { rewrite wf_coE; try now apply WF.
-      basic_solver 10. }
-    { arewrite ((E ∪₁ eq h) ∩₁ W ≡₁ E ∩₁ W); try apply WF.
-      erewrite sub_lab by now apply PREFIX.
-      basic_solver. }
-    { left. desf.
-      match goal with
-      | A : (_ ∪₁ _) b |- _ => red in A; desf
-      end.
-      { apply WF; eauto. }
-      apply PREFIX.
-      enough (HIN : (E ∩₁ is_init) (InitEvent l)).
-      { apply HIN. }
-      apply PREFIX.
-      split; try easy.
-      apply wf_init; try now apply WF.
-      erewrite <- sub_lab; try now apply PREFIX.
-      eexists; split; eauto; try apply IN_D. }
-    { transitivity (sb G); auto.
-      now apply WF. }
-    red in EE. destruct EE; [left|right]; desf.
-    now apply WF. }
-  { admit. (* TODO *) }
-  { (* setoid_transitivity (sb G); auto.
-    apply WF.  *)
-    admit. }
-  { (* setoid_transitivity (rf); try basic_solver.
-    apply WF. *)
-    admit. }
-  { admit. }
-  { admit. }
-  { admit. }
-  all: admit.
+  apply over_exec_wf.
+  all: try apply WF'.
+  { intros x y.
+    destruct (classic (x = h)) as [EQ|NEQ]; desf.
+    { rewrite upds; congruence. }
+    rewrite updo; auto. }
+  { unfolder. unfold is_some, compose. ins.
+    destruct (classic (x = h)) as [EQ|NEQ]; desf.
+    { now right. }
+    rewrite updo in Heq; auto.
+    left. apply (WCore.f_codom WF). ins.
+    exists x. split.
+    { apply WF. ins.
+      unfold is_some, compose.
+      now rewrite Heq. }
+    rewrite <- (F_ID x a) at 2; auto. }
+  { transitivity (is_some ∘ f); try apply WF.
+    unfolder. unfold is_some, compose. ins.
+    destruct (classic (x = h)) as [EQ|NEQ]; desf.
+    { rewrite upds in Heq. congruence. }
+    rewrite updo in Heq; auto.
+    congruence. }
+  { subst G''. ins.
+    transitivity (E ∩₁ is_init); try apply PREFIX.
+    transitivity E; basic_solver. }
+  { subst G''. ins.
+    rewrite set_inter_union_l, codom_union.
+    admit.
+    (* split this into 2 refineable inclusions *) }
+  { subst G''. ins.
+    admit.
+    (* Infer it from trace coherency. *) }
+  admit.
 Admitted.
 
 Lemma step_once h t (f : actid -> option actid)
