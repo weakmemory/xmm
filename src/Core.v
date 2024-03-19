@@ -287,7 +287,7 @@ Record reexec_gen
 
   cfg_wf : wf (Build_t G G' C f);
   int_G_D : restr_exec D G G'';
-  cfg_steps : cfg_add_step_uninformative＊
+  cfg_steps : (cfg_add_step_uninformative traces)＊
     (Build_t G'' G' C (f_restr D f))
     (Build_t G'  G' C f');
 
@@ -297,6 +297,8 @@ Record reexec_gen
 Definition reexec : Prop := exists G'' f f' C, reexec_gen G'' f f' C.
 
 End ExecRexec.
+
+Global Hint Unfold reexec : unfolderDb.
 
 Section WCoreWfProps.
 
