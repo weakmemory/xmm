@@ -300,6 +300,83 @@ Proof using.
   apply (WCore.C_sub_EC WF).
 Qed.
 
+Lemma over_exec_wf f A
+    (WF : Wf G')
+    (CTRL : ctrl' ≡ ∅₂)
+    (ADDR : addr' ≡ ∅₂)
+    (DATA : data' ≡ ∅₂)
+    (F_ID : forall x y (SOME : f x = Some y), y = x)
+    (F_SOME : is_some ∘ f ≡₁ A)
+    (A_CORRECT : A ⊆₁ E)
+    (C_CORRECT : C ⊆₁ A)
+    (SUB : sub_execution G' G ∅₂ ∅₂)
+    (SUB_INIT : E' ∩₁ is_init ⊆₁ E)
+    (G_RF_D : E ∩₁ R ⊆₁ codom_rel rf ∪₁ (Some ↓₁ (f ↑₁ C)))
+    (G_TIDS : ~(tid ↑₁ (E' ∩₁ set_compl is_init)) tid_init)
+    (G_ACTS : forall thr (NOT_INIT : thr <> tid_init),
+      exists N, E ∩₁ (fun x => thr = tid x) ≡₁ thread_seq_set thr N) :
+  WCore.wf (WCore.Build_t G G' C f).
+Proof using.
+  assert (ACT_SUB : E ∩₁ set_compl is_init ⊆₁ E' ∩₁ set_compl is_init).
+  { apply set_subset_inter; auto; apply SUB. }
+  assert (F_ID' : forall x (SOME : (is_some ∘ f) x), f x = Some x).
+  { unfold compose, is_some. ins. desf.
+    f_equal. now apply F_ID. }
+  assert (F_IS_SOME : forall x y (SOME : f x = Some y), (is_some ∘ f) x).
+  { unfold compose, is_some.
+    ins. desf. }
+  assert (F_RESTR : forall r, Some ↓ (f ↑ r) ≡ restr_rel A r).
+  { unfolder. splits.
+    { intros x y (x' & y' & REL' & MAPX & MAPY).
+      rewrite (F_ID x' x), (F_ID y' y); auto.
+      splits; try apply F_SOME; eauto. }
+    intros x y (REL & INX & INY).
+    apply F_SOME in INX, INY.
+    exists x, y; splits; eauto. }
+  constructor; auto.
+  { rewrite sub_ctrl, CTRL; eauto; basic_solver. }
+  { rewrite sub_addr, ADDR; eauto; basic_solver. }
+  { rewrite sub_data, DATA; eauto; basic_solver. }
+  { eapply sub_WF; eauto.
+    now rewrite set_interC. }
+  { unfolder; intro INIT_IN; desf.
+    apply G_TIDS. eexists.
+    split; eauto; now apply ACT_SUB. }
+  { now rewrite F_SOME, <- (sub_E SUB). }
+  { arewrite (Some ↓₁ (f ↑₁ E') ≡₁ A); auto.
+    rewrite <- F_SOME.
+    unfolder; unfold is_some, compose; split.
+    { intros x [y [IN EQ]]. now rewrite (F_ID y x EQ), EQ. }
+    intros x IS_SOME.
+    exists x; split; auto.
+    now apply (sub_E SUB), A_CORRECT, F_SOME. }
+  { unfolder; ins; desf.
+    apply F_ID. rewrite <- EQ.
+    auto. }
+  { now rewrite F_SOME. }
+  { ins. rewrite sub_sb with (G' := G); eauto.
+    rewrite F_RESTR, !restr_relE.
+    basic_solver. }
+  { ins. rewrite sub_rf with (G' := G); eauto.
+    rewrite F_RESTR, !restr_relE.
+    basic_solver. }
+  { simpl; unfolder. intros x y (HEQ & XIN & YIN).
+    apply F_ID in HEQ; now subst. }
+  { unfold WCore.unwrap_g2gc, same_lab_u2v_dom,
+          is_some, compose.
+    unfolder. ins.
+    erewrite sub_lab; eauto.
+    desf.
+    rewrite (F_ID e a); auto.
+    red. desf. }
+  ins.
+  apply C_CORRECT, F_SOME, F_ID' in IN.
+  unfold WCore.unwrap_g2gc.
+  erewrite sub_lab; eauto.
+  unfold val. ins.
+  now rewrite IN.
+Qed.
+
 (*
   TODO: connect graph to trace.
   This condition should be on its own (trace with labels!!)
