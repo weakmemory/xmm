@@ -228,10 +228,9 @@ Hypothesis THREAD_EVENTS : forall t, exists N,
   E' ∩₁ (fun e => t = tid e) ≡₁ thread_seq_set t N.
 
 Record reord_lemma_enum (E E' C : actid -> Prop) l : Prop :=
-{ relenum_sub : C ⊆₁ E';
-  relenum_nodup : NoDup l;
+{ relenum_nodup : NoDup l;
   relenum_no_init : (fun x => In x l) ⊆₁ set_compl (fun a => is_init a);
-  relenum_d : (fun x => In x l) ≡₁ E' \₁ E;
+  relenum_d : (fun x => In x l) ≡₁ D;
   relenum_sb : restr_rel (fun x => In x l) (sb G') ⊆ total_order_from_list l;
   relenum_rf : restr_rel (fun x => In x l) rf' ⨾ ⦗E' \₁ C⦘ ⊆ total_order_from_list l;
 }.
@@ -287,18 +286,34 @@ Proof using.
   now apply sub_sym.
 Qed.
 
+Lemma new_event_not_in_C e f
+    (F_ID : forall x (SOME : is_some (f x)), f x = Some x)
+    (WF : WCore.wf (WCore.Build_t G G' C f))
+    (NEW : D e) :
+  ~C e.
+Proof using.
+  intro IN_C.
+  enough (E e) by now apply NEW.
+  apply (WCore.f_codom WF).
+  exists e; split.
+  { apply NEW. }
+  enough ((is_some ∘ f) e) by basic_solver.
+  now apply (WCore.f_c_some WF).
+Qed.
+
 (*
   TODO: connect graph to trace.
   This condition should be on its own (trace with labels!!)
 *)
-Lemma step_once_read h t (f : actid -> option actid)
+Lemma step_once_read h t f
+    (F_ID : forall x (SOME : is_some (f x)), f x = Some x)
     (WF : WCore.wf (WCore.Build_t G G' C f))
     (WF' : WCore.wf (WCore.Build_t G' G' C f))
     (PREFIX : restr_exec E G' G)
     (ENUM : reord_lemma_enum E E' C (h :: t))
     (IS_R : R' h) :
   exists f' G'',
-    WCore.silent_cfg_add_step traces
+    WCore.cfg_add_step_uninformative traces
       (WCore.Build_t G   G' C f)
       (WCore.Build_t G'' G' C f').
 Proof using THREAD_EVENTS.
