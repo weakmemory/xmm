@@ -121,7 +121,6 @@ Definition unwrap_g2gc x :=
   end.
 
 Record wf : Prop := {
-  c_subset : C ⊆₁ acts_set GC;
   c_ctrl_empty : ctrl ≡ ∅₂;
   c_addr_empty : addr ≡ ∅₂;
   c_data_empty : data ≡ ∅₂;
@@ -134,6 +133,7 @@ Record wf : Prop := {
   f_dom : is_some ∘ f ⊆₁ EC;
   f_codom : Some ↓₁ (f ↑₁ EC) ⊆₁ E;
   f_inj : inj_dom (EC ∩₁ (is_some ∘ f)) f;
+  f_c_some : C ⊆₁ is_some ∘ f;
 
   f_sb : Some ↓ (f ↑ restr_rel C sbc) ⊆ sb;
   f_rf : Some ↓ (f ↑ restr_rel C rfc) ⊆ rf;
@@ -148,6 +148,8 @@ Record wf : Prop := {
 }.
 
 End CoreDefs.
+
+Global Hint Resolve wf_g wf_gc actid_cont : xmm.
 
 Section DeltaDefs.
 
@@ -233,7 +235,12 @@ Record cfg_add_event_gen e l r w W1 W2 c :=
 Definition cfg_add_event (e : actid) (l : label) :=
   exists r w W1 W2 c, cfg_add_event_gen e l r w W1 W2 c.
 
+Definition cfg_add_step_uninformative := exists e l, cfg_add_event e l.
+
 End CfgAddEventStep.
+
+Global Hint Unfold new_event_correct cfg_add_event
+                  cfg_add_step_uninformative : unfolderDb.
 
 Section ExecAdd.
 
@@ -270,9 +277,6 @@ Notation "'Rre'" := (codom_rel rfre).
 Notation "'Wre'" := (dom_rel rfre).
 Notation "'D'" := (E \₁ codom_rel (⦗Rre⦘ ⨾ (sb ∪ rf)＊)).
 
-Definition cfg_add_step_uninformative X X' :=
-  exists e l, cfg_add_event traces X X' e l.
-
 Record reexec_gen
   (G'' : execution)
   (f f' : actid -> option actid)
@@ -287,7 +291,6 @@ Record reexec_gen
     (Build_t G'' G' C (f_restr D f))
     (Build_t G'  G' C f');
 
-  C_correct : forall c (IN_C : C c), is_some (f c);
   new_g_cons : is_cons G';
 }.
 
@@ -315,6 +318,12 @@ Notation "'sb'" := (sb G).
 Notation "'rf'" := (rf G).
 Notation "'EC'" := (acts_set GC).
 Notation "'E'" := (acts_set G).
+
+Lemma C_sub_EC :
+  C ⊆₁ EC.
+Proof using WF.
+  transitivity (is_some ∘ g2gc); apply WF.
+Qed.
 
 Lemma wf_g2gc_unwrap e c
     (MAPPED : g2gc c = Some e) :
