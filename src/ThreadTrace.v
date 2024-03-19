@@ -179,3 +179,11 @@ Definition trace_coherent traces G : Prop :=
   forall thr (NOT_INIT : thr <> tid_init), exists tr,
     ⟪ IN_TRACES : traces thr tr ⟫ /\
     ⟪ PREFIX : trace_prefix (thread_trace G thr) tr ⟫.
+
+Lemma trace_coherent_sub traces G G' sc sc'
+    (TRACE_COH : trace_coherent traces G)
+    (SUB : sub_execution G G' sc sc') :
+  trace_coherent traces G'.
+Proof using.
+  admit.
+Admitted.
