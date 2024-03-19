@@ -140,7 +140,7 @@ Record wf : Prop := {
   f_rfD : E ∩₁ R ⊆₁ codom_rel rf ∪₁ (Some ↓₁ (f ↑₁ C));
 
   f_tid : restr_rel EC (fun x y => f x = Some y) ⊆ same_tid;
-  f_u2v : same_lab_u2v_dom EC unwrap_g2gc labc;
+  f_u2v : same_lab_u2v_dom (EC ∩₁ (is_some ∘ f)) unwrap_g2gc labc;
   f_same_v : forall c (IN : C c), val unwrap_g2gc c = val labc c;
 
   actid_cont : forall thr (NOT_INIT : thr <> tid_init),
@@ -340,7 +340,9 @@ Lemma wf_C_eq_lab e
   unwrap_g2gc X e = labc e.
 Proof using WF.
   apply same_label_u2v_val; try now apply WF.
-  apply f_u2v; auto using C_sub_EC.
+  apply f_u2v; auto.
+  split; eauto using C_sub_EC.
+  now apply f_c_some.
 Qed.
 
 Lemma wf_eq_labs e c
@@ -352,25 +354,29 @@ Proof using WF.
 Qed.
 
 Lemma wf_iff_read :
-  EC ∩₁ is_r (unwrap_g2gc X) ≡₁ EC ∩₁ is_r labc.
+  (EC ∩₁ (is_some ∘ g2gc)) ∩₁ is_r (unwrap_g2gc X) ≡₁
+  (EC ∩₁ (is_some ∘ g2gc)) ∩₁ is_r labc.
 Proof using WF.
   apply same_lab_u2v_dom_is_r, WF.
 Qed.
 
 Lemma wf_iff_write :
-  EC ∩₁ is_w (unwrap_g2gc X) ≡₁ EC ∩₁ is_w labc.
+  (EC ∩₁ (is_some ∘ g2gc)) ∩₁ is_w (unwrap_g2gc X) ≡₁
+  (EC ∩₁ (is_some ∘ g2gc)) ∩₁ is_w labc.
 Proof using WF.
   apply same_lab_u2v_dom_is_w, WF.
 Qed.
 
 Lemma wf_iff_fence :
-  EC ∩₁ is_f (unwrap_g2gc X) ≡₁ EC ∩₁ is_f labc.
+  (EC ∩₁ (is_some ∘ g2gc)) ∩₁ is_f (unwrap_g2gc X) ≡₁
+  (EC ∩₁ (is_some ∘ g2gc)) ∩₁ is_f labc.
 Proof using WF.
   apply same_lab_u2v_dom_is_f, WF.
 Qed.
 
 Lemma wf_eq_loc :
-  restr_rel EC (same_loc (unwrap_g2gc X)) ≡ restr_rel EC (same_loc labc).
+  restr_rel (EC ∩₁ (is_some ∘ g2gc)) (same_loc (unwrap_g2gc X)) ≡
+  restr_rel (EC ∩₁ (is_some ∘ g2gc)) (same_loc labc).
 Proof using WF.
   apply same_lab_u2v_dom_same_loc, WF.
 Qed.
