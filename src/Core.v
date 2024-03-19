@@ -340,8 +340,7 @@ Lemma wf_C_eq_lab e
   unwrap_g2gc X e = labc e.
 Proof using WF.
   apply same_label_u2v_val; try now apply WF.
-  apply f_u2v; auto.
-  now apply WF.
+  apply f_u2v; auto using C_sub_EC.
 Qed.
 
 Lemma wf_eq_labs e c
@@ -402,8 +401,7 @@ Lemma wf_set_sz_helper e N
   E ∩₁ same_tid e ≡₁ thread_seq_set (tid e) N.
 Proof using WF.
   apply wf_set_sz with (thr := tid e); auto.
-  intro EQ_TID; apply wf_g_acts with (X := X); auto.
-  exists e; split; [apply NOT_INIT | auto].
+  now apply wf_actid_tid.
 Qed.
 
 End WCoreWfProps.
