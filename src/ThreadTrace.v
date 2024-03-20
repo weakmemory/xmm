@@ -180,8 +180,13 @@ Definition trace_coherent traces G : Prop :=
     ⟪ IN_TRACES : traces thr tr ⟫ /\
     ⟪ PREFIX : trace_prefix (thread_trace G thr) tr ⟫.
 
+Definition trace_prefix G G' : Prop :=
+  forall thr, trace_prefix (thread_trace G' thr) (thread_trace G thr).
+
+(* TODO: make G' prefix G *)
 Lemma trace_coherent_sub traces G G' sc sc'
     (TRACE_COH : trace_coherent traces G)
+    (PREFIX : trace_prefix G G')
     (SUB : sub_execution G G' sc sc') :
   trace_coherent traces G'.
 Proof using.
