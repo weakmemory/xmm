@@ -102,3 +102,20 @@ Proof using.
   destruct (TOTAL x X y Y NEQ).
   all: auto || exfalso; eauto.
 Qed.
+
+Lemma rmw_irr G
+    (WF : Wf G) :
+  irreflexive (rmw G).
+Proof using.
+  rewrite wf_rmwD; auto.
+  unfold is_r, is_w.
+  unfolder; ins; desf.
+Qed.
+
+Lemma rmw_dep_irr G
+    (WF : Wf G) :
+  irreflexive (rmw_dep G).
+Proof using.
+  eapply irreflexive_inclusion, sb_irr.
+  apply WF.
+Qed.

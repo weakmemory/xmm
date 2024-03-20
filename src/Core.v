@@ -391,6 +391,33 @@ Proof using WF.
   split; [apply NOT_INIT | exact F].
 Qed.
 
+Lemma in_restr_acts e :
+  E e <-> (E ∩₁ same_tid e) e.
+Proof using.
+  unfolder; split; ins; desf.
+Qed.
+
+Lemma sb_dense x y
+    (XNOT_INIT : tid x <> tid_init)
+    (IN : E y)
+    (SB : ext_sb x y) :
+  E x.
+Proof using WF.
+  assert (YNOT_INIT : ~is_init y).
+  { apply ext_sb_to_non_init in SB.
+    unfolder in SB; desf. }
+  assert (Y_TID : tid y = tid x).
+  { set (COND := ext_sb_tid_init x y SB).
+    destruct COND; auto. destruct x; ins. }
+  destruct x as [lx | tidx ix], y as [ly | tidy iy]; ins.
+  set (ACTS := actid_cont WF XNOT_INIT). desf.
+  rewrite in_restr_acts in *. unfold same_tid in *. ins.
+  apply ACTS; apply ACTS in IN.
+  unfolder; unfolder in IN; desf.
+  exists ix; split; auto; lia.
+Qed.
+
+
 Lemma wf_set_sz thr N
     (NOT_INIT : thr <> tid_init)
     (SZ_EQ : set_size (E ∩₁ (fun e => thr = tid e)) = NOnum N) :
