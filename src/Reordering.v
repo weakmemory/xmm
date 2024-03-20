@@ -436,7 +436,6 @@ Proof using THREAD_EVENTS.
     now destruct (lab' h). }
   assert (R_IN_G' : (E' ∩₁ R') h).
   { split; try apply IN_D; eauto. }
-  (* TODO: check if h is in C *)
   destruct (WCore.f_rfD WF' R_IN_G') as [RF | CMT]; ins.
   all: try now (exfalso; eapply new_event_not_in_C with (f := f); eauto).
   destruct RF as [w RF]; ins.
@@ -466,19 +465,23 @@ Proof using THREAD_EVENTS.
   { unfolder. ins. desf.
     apply ENUM; now constructor. }
   { admit. }
-  { admit. }
+  { erewrite sub_lab with (G := G'); try apply PREFIX.
+    apply functional_extensionality; ins.
+    destruct (classic (x = h)) as [EQ|NEQ]; subst.
+    all: now rupd. }
   { unfold WCore.rf_delta_W.
     erewrite sub_lab by now apply PREFIX.
     arewrite (eq w × eq h ∩ W' × R' ≡ eq w × eq h).
     { basic_solver. }
-    split; [basic_solver|].
-    arewrite (⦗upd f h (Some h) ↓₁ eq (Some h)⦘ ⨾ rf' ⊆ ∅₂).
-    2: { basic_solver. }
-    rewrite wf_rfD, <- seqA by apply WF.
-    arewrite (⦗upd f h (Some h) ↓₁ eq (Some h)⦘ ⨾ ⦗W'⦘ ⊆ ∅₂); try basic_solver.
-    unfolder; ins; desf.
-    apply NOT_W.
-    admit. (* TODO: is_w x <-> is_w (f x) *) }
+    arewrite (upd f h (Some h) ↓₁ eq (Some h) ≡₁ eq h).
+    { unfolder; split; intros x HEQ; subst.
+      { destruct (classic (h = x)) as [EQ|NEQ]; auto.
+        rewrite updo in HEQ; auto. }
+      now rewrite upds. }
+    arewrite (⦗eq h⦘ ⨾ rf' ≡ ∅₂).
+    { rewrite wf_rfD; try apply WF'.
+      basic_solver. }
+    basic_solver. }
   { split; [basic_solver|].
     unfold WCore.co_delta. desf; basic_solver. }
   { split; [basic_solver|].
@@ -494,11 +497,8 @@ Proof using THREAD_EVENTS.
     { now right. }
     rewrite updo in Heq; auto.
     left. apply (WCore.f_codom WF). ins.
-    exists x. split.
-    { apply WF. ins.
-      unfold is_some, compose.
-      now rewrite Heq. }
-    rewrite <- (F_ID x a) at 2; auto. }
+    assert (ID : f x = Some x) by now rewrite <- (F_ID x a) at 2.
+    exists x. split; [apply WF, partial_id_iff |]; auto. }
   { transitivity (is_some ∘ f); try apply WF.
     unfolder. unfold is_some, compose. ins.
     destruct (classic (x = h)) as [EQ|NEQ]; desf.
@@ -515,7 +515,29 @@ Proof using THREAD_EVENTS.
   { subst G''. ins.
     admit.
     (* Infer it from trace coherency. *) }
-  admit.
+  constructor; subst G''; ins.
+  { apply set_subset_union_l.
+    split; [apply PREFIX |].
+    unfolder; ins; desf.
+    apply IN_D. }
+  { admit. }
+  { apply PREFIX. }
+  { arewrite (⦗E ∪₁ eq h⦘ ≡ ⦗E⦘ ∪ ⦗eq h⦘); try basic_solver.
+    rewrite seq_union_l, !seq_union_r.
+    admit. (*TODO*) }
+  { rewrite (WCore.c_data_empty WF'); basic_solver. }
+  { rewrite (WCore.c_addr_empty WF'); basic_solver. }
+  { rewrite (WCore.c_ctrl_empty WF'); basic_solver. }
+  { arewrite (⦗E ∪₁ eq h⦘ ≡ ⦗E⦘ ∪ ⦗eq h⦘); try basic_solver.
+    rewrite seq_union_l, !seq_union_r.
+    admit. (*TODO*) }
+  { arewrite (⦗E ∪₁ eq h⦘ ≡ ⦗E⦘ ∪ ⦗eq h⦘); try basic_solver.
+    rewrite seq_union_l, !seq_union_r.
+    admit. (*TODO*) }
+  { arewrite (⦗E ∪₁ eq h⦘ ≡ ⦗E⦘ ∪ ⦗eq h⦘); try basic_solver.
+    rewrite seq_union_l, !seq_union_r.
+    admit. (*TODO*) }
+  basic_solver.
 Admitted.
 
 Lemma step_once h t (f : actid -> option actid)
