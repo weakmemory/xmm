@@ -464,7 +464,7 @@ Proof using THREAD_EVENTS.
   destruct RF as [w RF]; ins.
   set (G'' := {|
     acts_set := E ∪₁ (eq h);
-    threads_set := threads_set G ∪₁ (eq (tid h));
+    threads_set := threads_set G;
     lab := lab;
     rmw := rmw;
     data := ∅₂;
@@ -543,7 +543,7 @@ Proof using THREAD_EVENTS.
     split; [apply PREFIX |].
     unfolder; ins; desf.
     apply IN_D. }
-  { admit. }
+  { apply PREFIX. }
   { apply PREFIX. }
   { rewrite rel_domain_expansion.
     { apply PREFIX. }

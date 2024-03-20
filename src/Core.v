@@ -219,6 +219,7 @@ Record cfg_add_event_gen e l r w W1 W2 c :=
   e_correct : new_event_correct e;
   lab_new : lab' = upd lab e l;
   cmt_graph_same : GC' = GC;
+  thread_set_same : threads_set G' ≡₁ threads_set G;
 
   (* Skipping condition for sb *)
   rf_new : rf G' ≡ rf G ∪ rf_delta_R G e w ∪ rf_delta_W e GC f';
