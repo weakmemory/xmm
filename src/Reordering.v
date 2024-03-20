@@ -423,6 +423,7 @@ Lemma step_once_read h t f
     (WF' : WCore.wf (WCore.Build_t G' G' C f))
     (PREFIX : restr_exec E G' G)
     (ENUM : reord_lemma_enum E E' C (h :: t))
+    (COH : trace_coherent traces G')
     (IS_R : R' h) :
   exists f' G'',
     WCore.cfg_add_step_uninformative traces
