@@ -261,23 +261,21 @@ Proof using THREAD_EVENTS.
   (* Information about h *)
   assert (IN_D : D h).
   { apply ENUM; desf. }
+  assert (NOT_INIT : ~is_init h).
+  { apply ENUM; desf. }
+  assert (NOT_W : ~W' h).
+  { generalize IS_R; unfold is_w, is_r.
+    destruct (lab' h); auto. }
 
-  destruct (classic (C h)) as [INC|INC].
-  (* CASE 1: h is cmt *)
-  { admit. (*TODO*) }
+  destruct (classic (codom_rel rf' h)) as [[w RF] | NORF].
+  (* CASE 1: h is reading *)
+  { all: admit. (*TODO*) }
 
-  (* Case 2: h is not in cmt *)
-  assert (H_NOT_C : ~(Some ↓₁ (f' ↑₁ C)) h).
-  { intro F. apply partial_id_set in F; eauto.
-    apply INC, F. }
-  edestruct WCore.f_rfD with (X := WCore.Build_t G' G' C f') (x := h)
-    as [[w RF] | CMT]; ins.
-  { split; [apply IN_D | auto]. }
-  assert (W_IN_E : E w).
-  { eapply reord_lemma_enum_head; eauto.
-    unfolder. eauto. }
-  exists h, (lab' h), None, (Some w), ∅, ∅, (Some h).
-  constructor; ins.
+  (* CASE 2: h is commited *)
+  destruct (classic (C h)) as [INC|NINC].
+  { all: admit. (* TODO *) }
+
+  (* Case 3: ill-formed *)
   all: admit.
 (****************)
   (* assert (IN_D : D h).
