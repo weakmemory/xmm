@@ -267,6 +267,9 @@ Proof using THREAD_EVENTS.
   { admit. (*TODO*) }
 
   (* Case 2: h is not in cmt *)
+  assert (H_NOT_C : ~(Some ↓₁ (f' ↑₁ C)) h).
+  { intro F. apply partial_id_set in F; eauto.
+    apply INC, F. }
   edestruct WCore.f_rfD with (X := WCore.Build_t G' G' C f') (x := h)
     as [[w RF] | CMT]; ins.
   { split; [apply IN_D | auto]. }
