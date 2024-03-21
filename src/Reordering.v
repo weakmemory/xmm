@@ -273,7 +273,6 @@ Proof using THREAD_EVENTS.
   edestruct WCore.f_rfD with (X := WCore.Build_t G' G' C f') (x := h)
     as [[w RF] | CMT]; ins.
   { split; [apply IN_D | auto]. }
-  2: admit. (* show that then h is in C *)
   assert (W_IN_E : E w).
   { eapply reord_lemma_enum_head; eauto.
     unfolder. eauto. }
