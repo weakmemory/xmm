@@ -132,9 +132,9 @@ Record wf : Prop := {
   cc_data_empty : datac ≡ ∅₂;
 
   wf_g : Wf G;
-  wf_g_acts : ~(tid ↑₁ (E ∩₁ set_compl is_init)) tid_init;
+  wf_g_acts : (tid ↓₁ eq tid_init) ∩₁ E ⊆₁ is_init;
   wf_gc : Wf GC;
-  wf_gc_acts : ~(tid ↑₁ (EC ∩₁ set_compl is_init)) tid_init;
+  wf_gc_acts : (tid ↓₁ eq tid_init) ∩₁ EC ⊆₁ is_init;
 
   f_dom : is_some ∘ f ⊆₁ EC;
   f_codom : Some ↓₁ (f ↑₁ EC) ⊆₁ E;
@@ -389,19 +389,12 @@ Proof using WF.
 Qed.
 
 Lemma wf_actid_tid e
-    (NOT_INIT : (E ∩₁ set_compl is_init) e) :
-    tid e <> tid_init.
+    (IN : E e)
+    (NOT_INIT : ~is_init e) :
+  tid e <> tid_init.
 Proof using WF.
-  intro F.
-  eapply wf_g_acts; eauto.
-  unfolder. exists e.
-  split; [apply NOT_INIT | exact F].
-Qed.
-
-Lemma in_restr_acts e :
-  E e <-> (E ∩₁ same_tid e) e.
-Proof using.
-  unfolder; split; ins; desf.
+  intro F. enough (is_init e) by auto.
+  apply (wf_g_acts WF); basic_solver.
 Qed.
 
 Lemma ext_sb_dense x y
@@ -435,7 +428,8 @@ Proof using WF.
 Qed.
 
 Lemma wf_set_sz_helper e N
-    (NOT_INIT : (E ∩₁ set_compl is_init) e)
+    (IN : E e)
+    (NOT_INIT : ~is_init e)
     (SZ_EQ : set_size (E ∩₁ same_tid e) = NOnum N) :
   E ∩₁ same_tid e ≡₁ thread_seq_set (tid e) N.
 Proof using WF.
@@ -469,7 +463,7 @@ Notation "'lab'" := (lab G).
 
 Lemma add_step_event_set e l
     (ADD_STEP : cfg_add_event traces X X' e l) :
-    (E' ∩₁ set_compl is_init) e.
+  (E' ∩₁ set_compl is_init) e.
 Proof using.
   red in ADD_STEP. desf.
   split; try apply ADD_STEP.
@@ -478,7 +472,7 @@ Qed.
 
 Lemma new_conf_wf e l
     (ADD_STEP : cfg_add_event traces X X' e l) :
-    wf X'.
+  wf X'.
 Proof using.
   red in ADD_STEP. desf.
   apply ADD_STEP.
@@ -486,9 +480,10 @@ Qed.
 
 Lemma add_step_event_not_init_tid e l
     (ADD_STEP : cfg_add_event traces X X' e l) :
-    tid e <> tid_init.
+  tid e <> tid_init.
 Proof using.
-  eauto using wf_actid_tid, new_conf_wf, add_step_event_set.
+  eapply wf_actid_tid; eauto using new_conf_wf.
+  all: eapply add_step_event_set; eauto.
 Qed.
 
 Lemma add_step_acts_set_sz e l N
