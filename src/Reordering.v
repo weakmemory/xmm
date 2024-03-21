@@ -306,6 +306,23 @@ End SubGraphLemma.
 
 Section ReorderingSubLemma.
 
+(* G ⊂ G' *)
+Definition delta_G G G' e :=
+  {| acts_set := acts_set G ∪₁ eq e;
+     threads_set := threads_set G;
+     lab := lab G;
+     rmw := rmw G ∪ (⦗acts_set G⦘ ⨾ (rmw G') ⨾ ⦗eq e⦘);
+     data := ∅₂;
+     addr := ∅₂;
+     ctrl := ∅₂;
+     rmw_dep := ⦗acts_set G ∪₁ eq e⦘ ⨾ rmw_dep G' ⨾ ⦗acts_set G ∪₁ eq e⦘;
+     rf := rf G ∪ (⦗acts_set G⦘ ⨾ (rf G') ⨾ ⦗eq e⦘) ∪
+                  (⦗eq e⦘ ⨾ (rf G') ⨾ ⦗acts_set G⦘);
+     co := co G ∪ (⦗acts_set G⦘ ⨾ (co G') ⨾ ⦗eq e⦘) ∪
+                  (⦗eq e⦘ ⨾ (co G') ⨾ ⦗acts_set G⦘);
+  |}.
+
+
 Variable G G' : execution.
 Variable C : actid -> Prop.
 Variable traces : thread_id -> trace label -> Prop.
@@ -337,6 +354,64 @@ Notation "'R'" := (fun x => is_r lab x).
 (* TODO: remove *)
 Notation "'U'" := (E' \₁ C).
 Notation "'D'" := (E' \₁ E).
+
+Lemma delta_G_sub e f
+    (NOT_INIT : tid e <> tid_init)
+    (WF : WCore.wf (WCore.Build_t G G' C f))
+    (IN : E' e)
+    (NEW : ~E e)
+    (SUB : sub_execution G' G ∅₂ ∅₂) :
+  sub_execution G' (delta_G G G' e) ∅₂ ∅₂.
+Proof using.
+  assert (WF' : Wf G').
+  { apply WF. }
+  assert (SUBE : E ⊆₁ E').
+  { apply SUB. }
+  constructor; ins.
+  all: try apply SUB.
+  { unfolder. ins. desf.
+    now apply SUB. }
+  { rewrite !id_union, seq_union_l,
+            !seq_union_r, <- (sub_rmw SUB).
+    rewrite one_dir_irrefl; eauto using rmw_one_dir.
+    destruct (classic (dom_rel (rmw' ⨾ ⦗E⦘) e)) as [HIN1|HIN1].
+    { rewrite one_dir_assym_1, !union_false_r;
+        eauto using rmw_one_dir, one_dir_dom.
+      unfolder in HIN1. desf.
+      enough (EINE : E e).
+      { arewrite (⦗eq e⦘ ≡ ⦗eq e⦘ ⨾ ⦗E⦘); try basic_solver. }
+      apply wf_rmwi, immediate_in in HIN1; eauto.
+      change E with (acts_set (WCore.G {|
+        WCore.G := G;
+        WCore.GC := G';
+        WCore.cmt := C;
+        WCore.g2gc := f
+      |})).
+      eapply WCore.ext_sb_dense; eauto.
+      unfold sb in HIN1. unfolder in HIN1.
+      desf. }
+    destruct (classic (codom_rel (⦗E⦘ ⨾ rmw') e)) as [HIN2|HIN2].
+    { rewrite one_dir_assym_2, !union_false_r;
+      eauto using rmw_one_dir, one_dir_dom. }
+    rewrite one_dir_assym_helper_1, one_dir_assym_helper_2,
+            !union_false_r; eauto. }
+  { rewrite (WCore.cc_data_empty WF); basic_solver. }
+  { rewrite (WCore.cc_addr_empty WF); basic_solver. }
+  { rewrite (WCore.cc_ctrl_empty WF); basic_solver. }
+  { rewrite !id_union, seq_union_l,
+            !seq_union_r, <- (sub_rf SUB).
+    rewrite one_dir_irrefl; eauto using rf_one_dir.
+    now rewrite union_false_r. }
+  { rewrite !id_union, seq_union_l,
+            !seq_union_r, <- (sub_co SUB).
+    arewrite (⦗eq e⦘ ⨾ co' ⨾ ⦗eq e⦘ ≡ ∅₂).
+    { set (IRR := co_irr WF').
+      unfold irreflexive in IRR.
+      split; [| basic_solver].
+      unfolder; ins; desf; eauto. }
+    now rewrite union_false_r. }
+  basic_solver.
+Qed.
 
 Hypothesis THREAD_EVENTS : forall t, exists N,
   E' ∩₁ (fun e => t = tid e) ≡₁ thread_seq_set t N.
@@ -433,10 +508,6 @@ Proof using.
   now rewrite !union_false_r.
 Qed.
 
-(*
-  TODO: connect graph to trace.
-  This condition should be on its own (trace with labels!!)
-*)
 (* NOTE: do not change threads_set! It must remain constant *)
 (* TODO: either rename or move into module *)
 Lemma step_once_read h t f
@@ -462,18 +533,7 @@ Proof using THREAD_EVENTS.
   destruct (WCore.f_rfD WF' R_IN_G') as [RF | CMT]; ins.
   all: try now (exfalso; eapply new_event_not_in_C with (f := f); eauto).
   destruct RF as [w RF]; ins.
-  set (G'' := {|
-    acts_set := E ∪₁ (eq h);
-    threads_set := threads_set G;
-    lab := lab;
-    rmw := rmw;
-    data := ∅₂;
-    addr := ∅₂;
-    ctrl := ∅₂;
-    rmw_dep := rmw_dep;
-    rf := rf ∪ (eq w × eq h);
-    co := co;
-  |}).
+  set (G'' := delta_G G G' h).
   assert (G_SB_SUB : sb G ⊆ sb G'').
   { unfold sb; subst G''; ins. basic_solver 2. }
   assert (IS_W : W' w).
@@ -484,18 +544,19 @@ Proof using THREAD_EVENTS.
   constructor.
   all: try easy.
   all: ins; desf.
-  { unfolder. ins. desf. apply IN_D. }
-  { unfolder. ins. desf.
-    apply ENUM; now constructor. }
+  { apply IN_D. }
+  { apply ENUM; now constructor. }
   { admit. }
   { erewrite sub_lab with (G := G'); try apply PREFIX.
     apply functional_extensionality; ins.
     destruct (classic (x = h)) as [EQ|NEQ]; subst.
     all: now rupd. }
-  { unfold WCore.rf_delta_W.
-    erewrite sub_lab by now apply PREFIX.
-    arewrite (eq w × eq h ∩ W' × R' ≡ eq w × eq h).
-    { basic_solver. }
+  { apply union_more; [apply union_more; auto |].
+    { admit. }
+    rewrite wf_rfD, seqA; try apply WF.
+    unfold WCore.rf_delta_W.
+    arewrite (⦗eq h⦘ ⨾ ⦗W'⦘ ≡ ∅₂); try basic_solver.
+    rewrite seq_false_l.
     arewrite (upd f h (Some h) ↓₁ eq (Some h) ≡₁ eq h).
     { unfolder; split; intros x HEQ; subst.
       { destruct (classic (h = x)) as [EQ|NEQ]; auto.
@@ -505,10 +566,8 @@ Proof using THREAD_EVENTS.
     { rewrite wf_rfD; try apply WF'.
       basic_solver. }
     basic_solver. }
-  { split; [basic_solver|].
-    unfold WCore.co_delta. desf; basic_solver. }
-  { split; [basic_solver|].
-    unfold WCore.rmw_delta. basic_solver. }
+  { admit. }
+  { admit. }
   apply over_exec_wf.
   all: try apply WF'.
   { intros x y.
@@ -538,84 +597,12 @@ Proof using THREAD_EVENTS.
   { subst G''. ins.
     admit.
     (* Infer it from trace coherency. *) }
-  constructor; subst G''; ins.
-  { apply set_subset_union_l.
-    split; [apply PREFIX |].
-    unfolder; ins; desf.
-    apply IN_D. }
-  { apply PREFIX. }
-  { apply PREFIX. }
-  { rewrite rel_domain_expansion.
-    { apply PREFIX. }
-    { apply rmw_irr; apply WF. }
-    { intro F. unfolder in F. desf.
-      apply wf_rmwD in F0; try now apply WF.
-      unfolder in F0; desf. }
-    intro F. unfolder in F. desf.
-    apply wf_rmwi in F; try now apply WF.
-    apply immediate_in in F.
-    unfold sb in F; unfolder in F; desf.
-    eapply IN_D. change E with (acts_set (WCore.G
-    {|
-      WCore.G := G;
-      WCore.GC := G';
-      WCore.cmt := C;
-      WCore.g2gc := f
-    |})).
-    eapply WCore.sb_dense; eauto.
-    eapply WCore.wf_actid_tid; try apply WF'.
-    ins. split; try apply IN_D.
-    apply ENUM; now constructor. }
-  { rewrite (WCore.c_data_empty WF'); basic_solver. }
-  { rewrite (WCore.c_addr_empty WF'); basic_solver. }
-  { rewrite (WCore.c_ctrl_empty WF'); basic_solver. }
-  { rewrite rel_domain_expansion.
-    { apply PREFIX. }
-    { apply rmw_dep_irr; apply WF. }
-    { admit. }
-    intro F. unfolder in F. desf.
-    apply rmw_dep_in_sb in F; try now apply WF.
-    unfold sb in F; unfolder in F; desf.
-    eapply IN_D. change E with (acts_set (WCore.G
-    {|
-      WCore.G := G;
-      WCore.GC := G';
-      WCore.cmt := C;
-      WCore.g2gc := f
-    |})).
-    eapply WCore.sb_dense; eauto.
-    eapply WCore.wf_actid_tid; try apply WF'.
-    ins. split; try apply IN_D.
-    apply ENUM; now constructor. }
-  { arewrite (⦗E ∪₁ eq h⦘ ≡ ⦗E⦘ ∪ ⦗eq h⦘); try basic_solver.
-    rewrite wf_rfD with (G := G'), !seqA by apply WF.
-    rewrite <- seqA.
-    arewrite ((⦗E⦘ ∪ ⦗eq h⦘) ⨾ ⦗W'⦘ ≡ ⦗E⦘ ⨾ ⦗W'⦘).
-    { basic_solver. }
-    rewrite !seq_union_r. apply union_more.
-    { seq_rewrite <- wf_rfD; try apply WF.
-      apply PREFIX. }
-    arewrite (⦗R'⦘⨾ ⦗eq h⦘ ≡ ⦗eq h⦘).
-    { basic_solver. }
-    arewrite (⦗W'⦘⨾ rf' ⨾ ⦗eq h⦘ ≡ eq w × eq h).
-    { split; unfolder; ins; desf.
-      split; auto.
-      eapply wf_rff; try now apply WF'.
-      all: unfold flip, transp; ins; eauto. }
-    split; try basic_solver.
-    unfolder; ins; desf.
-    splits; auto.
-    admit. (* TODO w is from E! *) }
-  { rewrite rel_domain_expansion.
-    { apply PREFIX. }
-    { apply WF. }
-    { intro F. unfolder in F; desf.
-      apply wf_coD in F0; try now apply WF.
-      unfolder in F0; desf. }
-    intro F. unfolder in F; desf.
-    apply wf_coD in F; try now apply WF.
-    unfolder in F; desf. }
-  basic_solver.
+  subst G''. eapply delta_G_sub.
+  { admit. }
+  { apply WF. }
+  { apply IN_D. }
+  { apply IN_D. }
+  apply PREFIX.
 Admitted.
 
 Lemma step_once h t (f : actid -> option actid)

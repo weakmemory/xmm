@@ -119,3 +119,112 @@ Proof using.
   eapply irreflexive_inclusion, sb_irr.
   apply WF.
 Qed.
+
+Definition one_dir {A} s (r : relation A) : Prop :=
+  dom_rel (r ⨾ ⦗s⦘) ∩₁ codom_rel (⦗s⦘ ⨾ r) ≡₁ ∅.
+
+Lemma one_dir_assym_helper_1 {A} {a : A} {s r}
+    (NODOM : ~dom_rel (r ⨾ ⦗s⦘) a) :
+  ⦗eq a⦘ ⨾ r ⨾ ⦗s⦘ ≡ ∅₂.
+Proof using.
+  split; [| basic_solver].
+  unfolder. ins. desf.
+  apply NODOM. unfolder.
+  eauto.
+Qed.
+
+Lemma one_dir_assym_helper_2 {A} {a : A} {s r}
+    (NODOM : ~codom_rel (⦗s⦘ ⨾ r) a) :
+    ⦗s⦘ ⨾ r ⨾ ⦗eq a⦘ ≡ ∅₂.
+Proof using.
+  split; [| basic_solver].
+  unfolder. ins. desf.
+  apply NODOM. unfolder.
+  eauto.
+Qed.
+
+Lemma one_dir_assym_1 {A} {a : A} {s r}
+    (ONE_DIR : one_dir s r)
+    (IN : dom_rel (r ⨾ ⦗s⦘) a) :
+  ⦗s⦘ ⨾ r ⨾ ⦗eq a⦘ ≡ ∅₂.
+Proof using.
+  apply one_dir_assym_helper_2. intro F.
+  change False with (∅ a).
+  apply ONE_DIR; now split.
+Qed.
+
+Lemma one_dir_assym_2 {A} {a : A} {s r}
+    (ONE_DIR : one_dir s r)
+    (IN : codom_rel (⦗s⦘ ⨾ r) a) :
+  ⦗eq a⦘ ⨾ r ⨾ ⦗s⦘ ≡ ∅₂.
+Proof using.
+  apply one_dir_assym_helper_1. intro F.
+  change False with (∅ a).
+  apply ONE_DIR; now split.
+Qed.
+
+Lemma one_dir_irrefl {A} {a r} (s : A -> Prop)
+    (IN : s a)
+    (ONE_DIR : one_dir s r) :
+  ⦗eq a⦘ ⨾ r ⨾ ⦗eq a⦘ ≡ ∅₂.
+Proof using.
+  split; [| basic_solver].
+  unfolder; intros x y R. desf.
+  assert (LEFT : dom_rel (r ⨾ ⦗s⦘) y).
+  { unfolder. ins. eauto. }
+  assert (RIGHT : codom_rel (⦗s⦘ ⨾ r ) y).
+  { unfolder. ins. eauto. }
+  change False with (∅ y). apply ONE_DIR.
+  split; eauto.
+Qed.
+
+Lemma one_dir_dom {A} {s'} {r : relation A} s
+    (ONE_DIR : one_dir s r)
+    (SUB : s' ⊆₁ s) :
+  one_dir s' r.
+Proof using.
+  unfold one_dir in *.
+  split; [| basic_solver].
+  rewrite SUB. apply ONE_DIR.
+Qed.
+
+Lemma one_dir_sub {A} {s} (r r' : relation A)
+    (ONE_DIR : one_dir s r)
+    (SUB : r' ⊆ r) :
+  one_dir s r'.
+Proof using.
+  unfold one_dir.
+  split; [| basic_solver].
+  rewrite SUB. apply ONE_DIR.
+Qed.
+
+Lemma rmw_one_dir G
+    (WF : Wf G) :
+  one_dir (acts_set G) (rmw G).
+Proof using.
+  unfold one_dir.
+  rewrite wf_rmwD; auto.
+  unfold is_w, is_r.
+  unfolder; split; ins; desf.
+Qed.
+
+Lemma rf_one_dir G
+    (WF : Wf G) :
+  one_dir (acts_set G) (rf G).
+Proof using.
+  unfold one_dir.
+  rewrite wf_rfD; auto.
+  unfold is_w, is_r.
+  unfolder; split; ins; desf.
+Qed.
+
+Lemma rmw_dense G x y
+    (WF : Wf G)
+    (IN : (acts_set G) y)
+    (RMW : (rmw G) x y) :
+  (acts_set G) x.
+Proof using.
+  apply wf_rmwi, immediate_in in RMW; eauto.
+  unfold sb in RMW. unfolder in RMW.
+  desf.
+Qed.

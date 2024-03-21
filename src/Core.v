@@ -97,10 +97,13 @@ Section CoreDefs.
 
 Variable X : t.
 Notation "'G'" := (G X).
+Notation "'GC'" := (GC X).
+Notation "'ctrlc'" := (ctrl GC).
+Notation "'datac'" := (data GC).
+Notation "'addrc'" := (addr GC).
 Notation "'ctrl'" := (ctrl G).
 Notation "'data'" := (data G).
 Notation "'addr'" := (addr G).
-Notation "'GC'" := (GC X).
 Notation "'C'" := (cmt X).
 Notation "'f'" := (g2gc X).
 Notation "'labc'" := (lab GC).
@@ -124,6 +127,9 @@ Record wf : Prop := {
   c_ctrl_empty : ctrl ≡ ∅₂;
   c_addr_empty : addr ≡ ∅₂;
   c_data_empty : data ≡ ∅₂;
+  cc_ctrl_empty : ctrlc ≡ ∅₂;
+  cc_addr_empty : addrc ≡ ∅₂;
+  cc_data_empty : datac ≡ ∅₂;
 
   wf_g : Wf G;
   wf_g_acts : ~(tid ↑₁ (E ∩₁ set_compl is_init)) tid_init;
@@ -398,7 +404,7 @@ Proof using.
   unfolder; split; ins; desf.
 Qed.
 
-Lemma sb_dense x y
+Lemma ext_sb_dense x y
     (XNOT_INIT : tid x <> tid_init)
     (IN : E y)
     (SB : ext_sb x y) :
@@ -417,7 +423,6 @@ Proof using WF.
   unfolder; unfolder in IN; desf.
   exists ix; split; auto; lia.
 Qed.
-
 
 Lemma wf_set_sz thr N
     (NOT_INIT : thr <> tid_init)
