@@ -261,9 +261,12 @@ Proof using THREAD_EVENTS.
   (* Information about h *)
   assert (IN_D : D h).
   { apply ENUM; desf. }
+
   destruct (classic (C h)) as [INC|INC].
   (* CASE 1: h is cmt *)
   { admit. (*TODO*) }
+
+  (* Case 2: h is not in cmt *)
   edestruct WCore.f_rfD with (X := WCore.Build_t G' G' C f') (x := h)
     as [[w RF] | CMT]; ins.
   { split; [apply IN_D | auto]. }
