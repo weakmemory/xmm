@@ -422,6 +422,7 @@ Record reord_lemma_enum (E E' C : actid -> Prop) l : Prop :=
   relenum_d : (fun x => In x l) ≡₁ D;
   relenum_sb : restr_rel (fun x => In x l) (sb G') ⊆ total_order_from_list l;
   relenum_rf : restr_rel (fun x => In x l) rf' ⨾ ⦗E' \₁ C⦘ ⊆ total_order_from_list l;
+  relenum_rf_w : dom_rel (rf' ⨾ ⦗fun x => In x l⦘) ⊆₁ E ∪₁ fun x => In x l;
 }.
 
 (* TODO move to AuxDef.v *)
@@ -486,26 +487,6 @@ Proof using.
   enough (Some ↓₁ (f ↑₁ C) ⊆₁ Some ↓₁ (f ↑₁ E')) by auto.
   apply set_map_mori, set_subset_collect; eauto.
   apply (WCore.C_sub_EC WF).
-Qed.
-
-Lemma rel_domain_expansion {A} {r} {s} {a : A}
-    (IRREFL : irreflexive r)
-    (NO_BRIDGE1 : ~codom_rel (⦗s⦘ ⨾ r) a)
-    (NO_BRIDGE2 : ~dom_rel (r ⨾ ⦗s⦘) a) :
-  ⦗s ∪₁ eq a⦘ ⨾ r ⨾ ⦗s ∪₁ eq a⦘ ≡ ⦗s⦘ ⨾ r ⨾ ⦗s⦘.
-Proof using.
-  arewrite (⦗s ∪₁ eq a⦘ ≡ ⦗s⦘ ∪ ⦗eq a⦘); try basic_solver.
-  rewrite seq_union_l, !seq_union_r.
-  arewrite (⦗s⦘ ⨾ r ⨾ ⦗eq a⦘ ≡ ∅₂).
-  { unfolder; splits; ins; desf.
-    apply NO_BRIDGE1; unfolder; eauto. }
-  arewrite (⦗eq a⦘ ⨾ r ⨾ ⦗s⦘ ≡ ∅₂).
-  { unfolder; splits; ins; desf.
-    apply NO_BRIDGE2; unfolder; eauto. }
-  arewrite (⦗eq a⦘ ⨾ r ⨾ ⦗eq a⦘ ≡ ∅₂).
-  { unfolder; splits; ins; desf.
-    unfold irreflexive in IRREFL; eauto. }
-  now rewrite !union_false_r.
 Qed.
 
 (* NOTE: do not change threads_set! It must remain constant *)
