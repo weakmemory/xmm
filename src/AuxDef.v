@@ -270,43 +270,55 @@ Section PartialId.
 Variable A : Type.
 Variable f : A -> option A.
 
-Definition partial_id := forall x y (SOME : f x = Some y), y = x.
+Definition partial_id (g : A -> option A) :=
+  forall x y (SOME : g x = Some y), y = x.
 
-Hypothesis PARTIAL : partial_id.
+Definition partial_id_dom (g : A -> option A) : A -> Prop :=
+  is_some ∘ g.
 
+Hypothesis PARTIAL : partial_id f.
 
-Lemma partial_id_iff x : (is_some ∘ f) x <-> f x = Some x.
+Lemma partial_id_iff x : partial_id_dom f x <-> f x = Some x.
 Proof using PARTIAL.
-  unfold compose, is_some.
+  unfold partial_id_dom, compose, is_some.
   split; ins; desf.
   f_equal. now apply PARTIAL.
 Qed.
 
-Lemma partial_id_rel r : Some ↓ (f ↑ r) ≡ restr_rel (is_some ∘ f) r.
+Lemma partial_id_rel r : Some ↓ (f ↑ r) ≡ restr_rel (partial_id_dom f) r.
 Proof using PARTIAL.
   symmetry. unfolder; splits; ins; desf.
   { do 2 eexists. rewrite <- !partial_id_iff; auto. }
   rewrite PARTIAL with (x := x') (y := x),
           PARTIAL with (x := y') (y := y).
   all: splits; auto.
-  all: unfold is_some, compose; desf.
+  all: unfold partial_id_dom, is_some, compose; desf.
 Qed.
 
-Lemma partial_id_set s : Some ↓₁ (f ↑₁ s) ≡₁ s ∩₁ (is_some ∘ f).
+Lemma partial_id_set s : Some ↓₁ (f ↑₁ s) ≡₁ s ∩₁ (partial_id_dom f).
 Proof using PARTIAL.
   symmetry.
   unfolder. splits; ins; desf.
   { eexists. rewrite <- !partial_id_iff; auto. }
   rewrite PARTIAL with (x := y) (y := x); auto.
-  all: unfold is_some, compose; desf.
+  all: unfold partial_id_dom, is_some, compose; desf.
 Qed.
 
 Lemma partial_id_inj s :
-  inj_dom (s ∩₁ (is_some ∘ f)) f.
+  inj_dom (s ∩₁ partial_id_dom f) f.
 Proof using PARTIAL.
   unfolder; ins; desf.
   apply PARTIAL. rewrite <- EQ.
   now apply partial_id_iff.
+Qed.
+
+Lemma upd_partial_id x :
+  partial_id (upd f x (Some x)).
+Proof using PARTIAL.
+  unfold partial_id. intros x' y.
+  destruct (classic (x' = x)); subst; rupd.
+  { congruence. }
+  apply PARTIAL.
 Qed.
 
 Lemma partial_id_sub_eq :
@@ -314,6 +326,35 @@ Lemma partial_id_sub_eq :
 Proof using PARTIAL.
   unfolder; ins; desf.
   symmetry; now apply PARTIAL.
+Qed.
+
+Lemma partial_id_collect_eq a :
+  f ↓₁ (eq (Some a)) ≡₁ if f a then eq a else ∅.
+Proof using PARTIAL.
+  destruct (f a) eqn:HEQ; ins; eauto.
+  all: unfolder; split; ins; desf.
+  { apply PARTIAL; congruence. }
+  { symmetry; apply partial_id_iff.
+    unfold partial_id_dom, is_some, compose.
+    now rewrite HEQ. }
+  match goal with
+  | A : Some a = f x |- _ => rename x into a', A into HEQ'
+  end.
+  symmetry in HEQ'.
+  assert (HIN : partial_id_dom f a').
+  { unfold partial_id_dom, is_some, compose.
+    now rewrite HEQ'. }
+  rewrite (PARTIAL HEQ') in HEQ.
+  congruence.
+Qed.
+
+Lemma partial_id_upd_dom a :
+    partial_id_dom (upd f a (Some a)) ≡₁ partial_id_dom f ∪₁ eq a.
+Proof using.
+  unfold partial_id_dom, is_some, compose.
+  unfolder. split; intro x.
+  all: destruct (classic (a = x)); subst; rupd; eauto.
+  ins. desf.
 Qed.
 
 End PartialId.
@@ -345,6 +386,24 @@ Add Parametric Morphism A : (@partial_id A) with signature
 Proof using.
   unfolder; unfold sub_fun, partial_id.
   ins; auto.
+Qed.
+
+Add Parametric Morphism A : (@partial_id_dom A) with signature
+  sub_fun --> flip set_subset as partial_id_dom_mori.
+Proof using.
+  unfolder; unfold sub_fun, partial_id, partial_id_dom,
+                    is_some, compose.
+  intros f g EQ x MATCH; desf.
+  now erewrite EQ in Heq; eauto.
+Qed.
+
+Lemma partial_id_upd_sub {A} {f} (a : A)
+    (PARTIAL : partial_id f) :
+  sub_fun f (upd f a (Some a)).
+Proof using.
+  unfold sub_fun. intros x y HEQ.
+  destruct (classic (x = a)); subst; rupd.
+  f_equal. symmetry. now apply PARTIAL.
 Qed.
 
 End SubFunction.
