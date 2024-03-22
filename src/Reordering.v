@@ -198,8 +198,7 @@ Proof using.
   basic_solver.
 Qed.
 
-Hypothesis THREAD_EVENTS : forall t, exists N,
-  E' ∩₁ (fun e => t = tid e) ≡₁ thread_seq_set t N.
+Hypothesis THREAD_EVENTS : contigious_actids G'.
 
 Record reord_lemma_enum (E E' C : actid -> Prop) l : Prop :=
 { relenum_nodup : NoDup l;
@@ -267,6 +266,7 @@ Lemma step_once_read h t f f'
     (WF : WCore.wf (WCore.Build_t G G' C f))
     (WF' : WCore.wf (WCore.Build_t G' G' C f'))
     (PREFIX : restr_exec E G' G)
+    (SUB_TRACE : exec_trace_prefix G' G)
     (ENUM : reord_lemma_enum E E' C (h :: t))
     (COH : trace_coherent traces G')
     (IS_R : R' h) :
