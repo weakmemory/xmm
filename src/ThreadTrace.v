@@ -181,7 +181,10 @@ Definition trace_coherent traces G : Prop :=
     ⟪ PREFIX : trace_prefix (thread_trace G thr) tr ⟫.
 
 Definition trace_prefix G G' : Prop :=
-  forall thr, trace_prefix (thread_trace G' thr) (thread_trace G thr).
+  forall thr, trace_prefix (thread_actid_trace G' thr) (thread_actid_trace G thr).
+
+Definition contigious_actids G : Prop := forall t, exists N,
+  (acts_set G) ∩₁ (fun e => t = tid e) ≡₁ thread_seq_set t N.
 
 (* TODO: make G' prefix G *)
 Lemma trace_coherent_sub traces G G' sc sc'
@@ -189,6 +192,14 @@ Lemma trace_coherent_sub traces G G' sc sc'
     (PREFIX : trace_prefix G G')
     (SUB : sub_execution G G' sc sc') :
   trace_coherent traces G'.
+Proof using.
+  admit.
+Admitted.
+
+Lemma trace_form_sub G G'
+    (CONT : contigious_actids G)
+    (PREFIX : trace_prefix G G') :
+  contigious_actids G'.
 Proof using.
   admit.
 Admitted.
