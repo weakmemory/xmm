@@ -289,7 +289,6 @@ Proof using.
   now apply partial_id_iff.
 Qed.
 
-(* NOTE: do not change threads_set! It must remain constant *)
 (* TODO: either rename or move into module *)
 Lemma step_once_read h t f f'
     (F_ID : partial_id f')
