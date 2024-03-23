@@ -198,8 +198,8 @@ Definition trace_coherent traces G : Prop :=
 Definition exec_trace_prefix G G' : Prop :=
   forall thr, trace_prefix (thread_actid_trace G' thr) (thread_actid_trace G thr).
 
-Definition contigious_actids G : Prop := forall t, exists N,
-  (acts_set G) ∩₁ (fun e => t = tid e) ≡₁ thread_seq_set t N.
+Definition contigious_actids G : Prop := forall t (NOT_INIT : t <> tid_init),
+  exists N, (acts_set G) ∩₁ (fun e => t = tid e) ≡₁ thread_seq_set t N.
 
 Lemma thread_actid_trace_prefix t G G'
     (SUB : acts_set G' ∩₁ (fun e => t = tid e) ⊆₁

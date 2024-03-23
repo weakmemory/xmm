@@ -149,8 +149,7 @@ Record wf : Prop := {
   f_u2v : same_lab_u2v_dom (EC ∩₁ (is_some ∘ f)) unwrap_g2gc labc;
   f_same_v : forall c (IN : C c), val unwrap_g2gc c = val labc c;
 
-  actid_cont : forall thr (NOT_INIT : thr <> tid_init),
-    exists N, E ∩₁ (fun x => thr = tid x) ≡₁ thread_seq_set thr N;
+  actid_cont : contigious_actids G;
 }.
 
 End CoreDefs.
