@@ -24,6 +24,13 @@ Qed.
 Lemma seq_set_S n : seq_set (S n) ≡₁ seq_set n ∪₁ eq n.
 Proof using. unfolder; splits; ins; desf; lia. Qed.
 
+Lemma seq_set_sub n n'
+    (LE : n' <= n) :
+  seq_set n' ⊆₁ seq_set n.
+Proof using.
+  unfolder; ins; lia.
+Qed.
+
 Lemma thread_set_S n t :
   thread_seq_set t (1 + n) ≡₁ thread_seq_set t n ∪₁ eq (ThreadEvent t n).
 Proof using.
@@ -52,6 +59,14 @@ Lemma thread_seq_N_eq_set_size t n n'
 Proof using.
   rewrite thread_seq_set_size in EQ.
   desf.
+Qed.
+
+Lemma thread_seq_set_sub t n n'
+    (LE : n' <= n) :
+  thread_seq_set t n' ⊆₁ thread_seq_set t n.
+Proof using.
+  unfold thread_seq_set.
+  now apply set_subset_collect, seq_set_sub.
 Qed.
 
 Section ThreadTrace.
@@ -185,6 +200,29 @@ Definition exec_trace_prefix G G' : Prop :=
 
 Definition contigious_actids G : Prop := forall t, exists N,
   (acts_set G) ∩₁ (fun e => t = tid e) ≡₁ thread_seq_set t N.
+
+Lemma thread_actid_trace_prefix t G G'
+    (SUB : acts_set G' ∩₁ (fun e => t = tid e) ⊆₁
+           acts_set G ∩₁ (fun e => t = tid e)) :
+  trace_prefix (thread_actid_trace G' t) (thread_actid_trace G t).
+Proof using.
+  assert (LE : le_new (set_size (acts_set G' ∩₁ (fun e => t = tid e)))
+                      (set_size (acts_set G ∩₁ (fun e => t = tid e)))).
+  { now apply set_size_mori. }
+  unfold thread_actid_trace; desf; ins.
+  { setoid_rewrite Heq in LE. (* Interesting... *)
+    setoid_rewrite Heq0 in LE.
+    easy. }
+  { rewrite nth_indep with (d' := ThreadEvent t 0); auto.
+    rewrite map_nth, seq_nth; auto.
+    now autorewrite with calc_length in LLEN. }
+  setoid_rewrite Heq in LE. (* Interesting... *)
+  setoid_rewrite Heq0 in LE.
+  unfold le_new in LE.
+  exists (map (ThreadEvent t) (List.seq n (n0 - n))).
+  rewrite <- map_app, <- seq_app.
+  do 2 f_equal. lia.
+Qed.
 
 (* TODO: make G' prefix G *)
 Lemma trace_coherent_sub traces G G' sc sc'
