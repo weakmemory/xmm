@@ -418,6 +418,7 @@ Qed.
 
 (* TODO: fence case *)
 
+(* NOTE: xmm is doing only prefix restriction *)
 Lemma step_once h t (f : actid -> option actid)
   (WF : WCore.wf (WCore.Build_t G G' C f))
   (PREFIX : restr_exec E G' G)
