@@ -143,6 +143,18 @@ Notation "'R'" := (fun x => is_r lab x).
 Notation "'U'" := (E' \₁ C).
 Notation "'D'" := (E' \₁ E).
 
+Hypothesis THREAD_EVENTS : contigious_actids G'.
+
+Record reord_lemma_enum (E E' C : actid -> Prop) l : Prop :=
+{ relenum_nodup : NoDup l;
+  relenum_no_init : (fun x => In x l) ⊆₁ set_compl (fun a => is_init a);
+  relenum_d : (fun x => In x l) ≡₁ D;
+  relenum_sb : restr_rel (fun x => In x l) sb' ⊆ total_order_from_list l;
+  (* C substraction seems to be redundant *)
+  relenum_rf : restr_rel (fun x => In x l) rf' ⨾ ⦗E' \₁ C⦘ ⊆ total_order_from_list l;
+  relenum_rf_w : dom_rel (rf' ⨾ ⦗fun x => In x l⦘) ⊆₁ E ∪₁ fun x => In x l;
+}.
+
 Lemma delta_G_sub e f
     (NOT_INIT : tid e <> tid_init)
     (WF : WCore.wf (WCore.Build_t G G' C f))
@@ -198,17 +210,24 @@ Proof using.
   basic_solver.
 Qed.
 
-Hypothesis THREAD_EVENTS : contigious_actids G'.
-
-Record reord_lemma_enum (E E' C : actid -> Prop) l : Prop :=
-{ relenum_nodup : NoDup l;
-  relenum_no_init : (fun x => In x l) ⊆₁ set_compl (fun a => is_init a);
-  relenum_d : (fun x => In x l) ≡₁ D;
-  relenum_sb : restr_rel (fun x => In x l) sb' ⊆ total_order_from_list l;
-  (* C substraction seems to be redundant *)
-  relenum_rf : restr_rel (fun x => In x l) rf' ⨾ ⦗E' \₁ C⦘ ⊆ total_order_from_list l;
-  relenum_rf_w : dom_rel (rf' ⨾ ⦗fun x => In x l⦘) ⊆₁ E ∪₁ fun x => In x l;
-}.
+Lemma delta_G_prefix h t
+    (ENUM : reord_lemma_enum E E' C (h :: t))
+    (PREFIX : exec_trace_prefix G' G)
+    (SUB : sub_execution G' G ∅₂ ∅₂) :
+  exec_trace_prefix G' (delta_G G G' h).
+Proof using.
+  unfold exec_trace_prefix. ins.
+  destruct (classic (thr = (tid h))) as [HEQ|NEQ]; subst.
+  { assert (ESUB : E ∪₁ eq h ⊆₁ E').
+    { unfolder; ins; desf; [now apply SUB | apply ENUM; desf]. }
+    apply thread_actid_trace_prefix; ins.
+    now apply set_subset_inter. }
+  unfold thread_actid_trace; ins.
+  arewrite ((E ∪₁ eq h) ∩₁ (fun e => thr = tid e) ≡₁
+            E ∩₁ (fun e => thr = tid e)).
+  { unfolder; split; ins; desf; auto. }
+  apply PREFIX.
+Qed.
 
 Lemma new_event_not_in_C e f
     (F_ID : partial_id f)
@@ -348,7 +367,10 @@ Proof using THREAD_EVENTS.
       apply set_subset_union; eauto.
       rewrite !partial_id_set, partial_id_upd_dom; eauto.
       basic_solver. }
-    { admit. (* SEQsetnes. Infer from WF-ness? *) }
+    { enough (CONT : contigious_actids (delta_G G G' h)).
+      { now apply CONT. }
+      eapply trace_form_sub; [apply WF' | ]; ins.
+      eapply delta_G_prefix; eauto; apply PREFIX. }
     eapply delta_G_sub.
     { eapply WCore.wf_actid_tid; eauto.
       apply IN_D. }
