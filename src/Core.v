@@ -436,6 +436,16 @@ Proof using WF.
   now apply wf_actid_tid.
 Qed.
 
+Lemma all_trace_fin t
+    (NOT_INIT : t <> tid_init) :
+  trace_finite (thread_trace G t).
+Proof using WF.
+  set (CONT := actid_cont WF NOT_INIT). desf.
+  unfold thread_trace, trace_finite.
+  eexists. erewrite thread_actid_trace_form; eauto.
+  ins.
+Qed.
+
 End WCoreWfProps.
 
 Global Hint Resolve wf_actid_tid wf_set_sz wf_set_sz_helper :

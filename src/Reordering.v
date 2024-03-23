@@ -229,6 +229,18 @@ Proof using.
   apply PREFIX.
 Qed.
 
+Lemma delta_G_actid_trace_h f f' h t
+    (ENUM : reord_lemma_enum E E' C (h :: t))
+    (PREFIX : exec_trace_prefix G' G)
+    (SUB : sub_execution G' G ∅₂ ∅₂)
+    (WF : WCore.wf (WCore.Build_t G G' C f))
+    (WF' : WCore.wf (WCore.Build_t G' G' C f')) :
+  thread_trace (delta_G G G' h) (tid h) =
+  trace_app (thread_trace G (tid h)) (trace_fin [lab' h]).
+Proof using.
+  admit.
+Admitted.
+
 Lemma new_event_not_in_C e f
     (F_ID : partial_id f)
     (WF : WCore.wf (WCore.Build_t G G' C f))
@@ -284,7 +296,7 @@ Lemma step_once_read h t f f'
     (SUB_ID : sub_fun f f')
     (WF : WCore.wf (WCore.Build_t G G' C f))
     (WF' : WCore.wf (WCore.Build_t G' G' C f'))
-    (PREFIX : restr_exec E G' G)
+    (G_PREFIX : restr_exec E G' G)
     (SUB_TRACE : exec_trace_prefix G' G)
     (ENUM : reord_lemma_enum E E' C (h :: t))
     (COH : trace_coherent traces G')
@@ -298,11 +310,26 @@ Proof using THREAD_EVENTS.
   { apply ENUM; desf. }
   assert (NOT_INIT : ~is_init h).
   { apply ENUM; desf. }
+  assert (H_TID : tid h <> tid_init).
+  { eapply WCore.wf_actid_tid; eauto.
+    apply IN_D. }
   assert (NOT_W : ~W' h).
   { generalize IS_R; unfold is_w, is_r.
     destruct (lab' h); auto. }
   assert (PART : partial_id f).
   { eapply partial_id_mori; eauto. }
+  assert (DELTA_SUB : sub_execution G' (delta_G G G' h) ∅₂ ∅₂).
+  { eapply delta_G_sub.
+    { eapply WCore.wf_actid_tid; eauto.
+      apply IN_D. }
+    { apply WF. }
+    { apply IN_D. }
+    { apply IN_D. }
+    apply G_PREFIX. }
+  assert (DELTA_PREF : exec_trace_prefix G' (delta_G G G' h)).
+  { eapply delta_G_prefix; eauto; apply G_PREFIX. }
+  assert (DELTA_COH : trace_coherent traces (delta_G G G' h)).
+  { eapply trace_coherent_sub; eauto. }
 
   edestruct WCore.f_rfD as [[w RF] | CMT]; ins.
   { apply WF'. }
@@ -321,11 +348,21 @@ Proof using THREAD_EVENTS.
     exists h, (lab' h), None, (Some w), ∅, ∅, (Some h).
     constructor; ins.
     { apply IN_D. }
-    { admit. (* TODO: new event correctness. Firstly, we need the "subgraph" trace coherence *) }
-    { erewrite sub_lab; [now rewrite updI | apply PREFIX]. }
+    (* TODO: prettify *)
+    { set (DCOH := DELTA_COH (tid h) H_TID). ins. desf.
+      unfold WCore.new_event_correct. desf.
+      { exists tr.
+        erewrite sub_lab; eauto.
+        erewrite delta_G_actid_trace_h in PREFIX; eauto; try now apply G_PREFIX.
+        split; ins. now rewrite Heq in PREFIX. }
+      set (FIN := WCore.all_trace_fin WF H_TID).
+      ins. rewrite Heq in FIN.
+      unfold trace_finite in FIN. desf. }
+    { erewrite sub_lab; [now rewrite updI | apply G_PREFIX]. }
+    (* TODO: prettify? *)
     { apply union_more; [apply union_more; auto |].
       { split; [| basic_solver].
-        erewrite sub_lab by apply PREFIX.
+        erewrite sub_lab by apply G_PREFIX.
         intros w' h' (w'' & WINE' & h''' & RF' & WINH).
         destruct WINE', WINH; subst h''' w'' h'.
         erewrite wf_rff with (y := w') (z := w); eauto; try now apply WF.
@@ -337,7 +374,7 @@ Proof using THREAD_EVENTS.
       rewrite wf_rfD; [| apply WF].
       basic_solver. }
     { unfold WCore.co_delta.
-      erewrite sub_lab; [| apply PREFIX].
+      erewrite sub_lab; [| apply G_PREFIX].
       arewrite (is_w lab' h = false).
       { destruct (is_w lab' h); desf. }
       rewrite wf_coD with (G := G'); [| apply WF].
@@ -354,6 +391,7 @@ Proof using THREAD_EVENTS.
       now apply partial_id_dom_mori, partial_id_upd_sub. }
     { rewrite <- restr_init_sub; eauto.
       transitivity E; basic_solver. }
+    (* TODO prettify? *)
     { arewrite (⦗eq h⦘ ⨾ rf' ⨾ ⦗E⦘ ≡ ∅₂).
       { rewrite wf_rfD; [basic_solver | apply WF]. }
       rewrite union_false_r, codom_union, set_inter_union_l.
@@ -367,24 +405,15 @@ Proof using THREAD_EVENTS.
       apply set_subset_union; eauto.
       rewrite !partial_id_set, partial_id_upd_dom; eauto.
       basic_solver. }
-    { enough (CONT : contigious_actids (delta_G G G' h)).
-      { now apply CONT. }
-      eapply trace_form_sub; [apply WF' | ]; ins.
-      eapply delta_G_prefix; eauto; apply PREFIX. }
-    eapply delta_G_sub.
-    { eapply WCore.wf_actid_tid; eauto.
-      apply IN_D. }
-    { apply WF. }
-    { apply IN_D. }
-    { apply IN_D. }
-    { apply PREFIX. }
-  }
+    enough (CONT : contigious_actids (delta_G G G' h)).
+    { now apply CONT. }
+    eapply trace_form_sub; eauto. }
   (* CASE 2: h is commited *)
   exfalso.
   eapply new_event_not_in_C; eauto.
   apply partial_id_set in CMT; eauto.
   apply CMT.
-Admitted.
+Qed.
 
 (* TODO: write case *)
 
