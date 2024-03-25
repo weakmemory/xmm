@@ -673,7 +673,7 @@ Proof using THREAD_EVENTS.
 Admitted.
 
 
-Lemma step_once_fnece h t f f'
+Lemma step_once_fence h t f f'
     (F_ID : partial_id f')
     (SUB_ID : sub_fun f f')
     (WF : WCore.wf (WCore.Build_t G G' C f))
@@ -782,40 +782,49 @@ Proof using THREAD_EVENTS.
 Qed.
 
 (* NOTE: xmm is doing only prefix restriction *)
-Lemma step_once h t (f : actid -> option actid)
-  (WF : WCore.wf (WCore.Build_t G G' C f))
-  (PREFIX : restr_exec E G' G)
-  (C_SUB : C ⊆₁ E')
-  (VALID_ENUM : NoDup (h :: t))
-  (NOT_INIT : (fun x => In x (h :: t)) ⊆₁ set_compl is_init)
-  (ENUM_D : (fun x => In x (h :: t)) ≡₁ D)
-  (ORD_SB : restr_rel (fun x => In x (h :: t)) (sb G') ⊆ total_order_from_list (h :: t))
-  (ORD_RF : restr_rel (fun x => In x (h :: t)) rf' ⨾ ⦗U⦘ ⊆ total_order_from_list (h :: t)) :
-  exists f' G'',
-  (WCore.cfg_add_step_uninformative traces)
-  (WCore.Build_t G G' C f)
-  (WCore.Build_t G'' G' C f').
-Proof using.
-  eexists (upd f h (Some h)), _, h, (lab' h).
-  destruct (lab' h) eqn:HEQ_LAB.
-  all: admit.
-Admitted.
+Lemma step_once h t f f'
+    (F_ID : partial_id f')
+    (SUB_ID : sub_fun f f')
+    (WF : WCore.wf (WCore.Build_t G G' C f))
+    (WF' : WCore.wf (WCore.Build_t G' G' C f'))
+    (G_PREFIX : restr_exec E G' G)
+    (SUB_TRACE : exec_trace_prefix G' G)
+    (ENUM : reord_lemma_enum E E' C (h :: t))
+    (COH : trace_coherent traces G') :
+  WCore.cfg_add_step_uninformative traces
+    (WCore.Build_t G                G' C f)
+    (WCore.Build_t (delta_G G G' h) G' C (upd f h (Some h))).
+Proof using THREAD_EVENTS.
+  set (LAB := lab_rwf lab' h); desf.
+  { eapply step_once_read; eauto. }
+  { eapply step_once_write; eauto. }
+  eapply step_once_fence; eauto.
+Qed.
 
-(* Lemma steps l
-    (WF : Wf G)
-    (PREFIX : restr_exec E G' G)
-    (C_SUB : C ⊆₁ E')
-    (VALID_ENUM : NoDup l)
-    (ENUM_D : (fun x => In x l) ≡₁ D)
-    (ORD_SB : sb G' ⊆ enum_ord)
-    (ORD_RF : rf' ⨾ ⦗U⦘ ⊆ enum_ord) :
-    exists f',
-    (WCore.silent_cfg_add_step traces)＊
+Lemma steps l f f'
+    (F_ID : partial_id f')
+    (SUB_ID : sub_fun f f')
+    (WF : WCore.wf (WCore.Build_t G G' C f))
+    (WF' : WCore.wf (WCore.Build_t G' G' C f'))
+    (G_PREFIX : restr_exec E G' G)
+    (SUB_TRACE : exec_trace_prefix G' G)
+    (ENUM : reord_lemma_enum E E' C l)
+    (COH : trace_coherent traces G') :
+  (WCore.cfg_add_step_uninformative traces)＊
     (WCore.Build_t G G' C f)
     (WCore.Build_t G' G' C f').
-Proof using.
-  admit.
-Admitted. *)
+Proof using THREAD_EVENTS.
+  (*
+  do induction by l, generalizing G and f :
+    (∀ G f, SUB_ID -> WF -> G_PREFIX -> SUB_TRACE -> ENUM <G, G', C, f> =>＊ <G', G', C, f'>)
+  - l = [] is an obvious case (the only difficulty is shwowing that f' = f)
+  - l = h::t. We basically should show
+      <G, G', C, f> => <ΔG, G', C, upd f h (Some h)> =>＊ <G', G', C, f'>
+    1. We can step into ΔG easily. We just need to show that lemma conditions
+       get preserved when you add h to the left.
+    2. The second arrow becomes a mere induction hypothesis application
+  *)
+Admitted.
 
 End ReorderingSubLemma.
 Section GraphDefs.
