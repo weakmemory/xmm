@@ -180,11 +180,11 @@ Definition rf_delta_W (GC : execution) (f' : actid -> option actid) : relation a
   eq e × (Some ↓₁ (f' ↑₁ Rc)).
 
 Definition co_delta (W1 W2 : actid -> Prop) : relation actid :=
-  if W e then eq e × W1 ∪ eq e × W2
+  if W e then eq e × W1 ∪ W2 × eq e
   else ∅₂.
 
 Definition rmw_delta (r : option actid) : relation actid :=
-  (R ∩₁ eq_opt r) × (W_ex ∩₁ eq e).
+  (R ∩₁ eq_opt r) × (W ∩₁ eq e). (* FIXME: is_exclusive dropped *)
 
 End DeltaDefs.
 
@@ -487,65 +487,6 @@ Proof using.
   apply ADD_STEP.
 Qed.
 
-Lemma add_step_event_not_init_tid e l
-    (ADD_STEP : cfg_add_event traces X X' e l) :
-  tid e <> tid_init.
-Proof using.
-  eapply wf_actid_tid; eauto using new_conf_wf.
-  all: eapply add_step_event_set; eauto.
-Qed.
-
-Lemma add_step_acts_set_sz e l N
-    (ADD_STEP : cfg_add_event traces X X' e l)
-    (SZ_EQ : set_size (E ∩₁ same_tid e) = NOnum N) :
-  set_size (E' ∩₁ same_tid e) = NOnum (N + 1).
-Proof using.
-  red in ADD_STEP. desf.
-  rewrite e_new, set_inter_union_l by eauto.
-  arewrite (eq e ∩₁ same_tid e ≡₁ eq e).
-  { basic_solver. }
-  erewrite set_size_union_disjoint; auto using set_size_single.
-  enough (set_disjoint E (eq e)) by basic_solver.
-  unfolder; ins; desf.
-  now apply ADD_STEP.
-Qed.
-
-Lemma add_step_new_acts e l N
-    (WF : wf X)
-    (ADD_STEP : cfg_add_event traces X X' e l)
-    (SZ_EQ : set_size (E ∩₁ same_tid e) = NOnum N):
-  E' ∩₁ same_tid e ≡₁ thread_seq_set (tid e) (N + 1).
-Proof using.
-  unfold same_tid. rewrite wf_set_sz with (thr := (tid e)).
-  all: eauto using add_step_acts_set_sz, add_step_event_set,
-          add_step_event_not_init_tid, new_conf_wf.
-Qed.
-
-Lemma add_step_actid e l N
-    (WF : wf X)
-    (ADD_STEP : cfg_add_event traces X X' e l)
-    (SZ_EQ : set_size (E ∩₁ same_tid e) = NOnum N):
-  E' ∩₁ same_tid e ≡₁ E ∩₁ same_tid e ∪₁ eq (ThreadEvent (tid e) N).
-Proof using.
-  erewrite add_step_new_acts, wf_set_sz with (thr := (tid e)).
-  all: eauto using add_step_event_set, add_step_event_not_init_tid.
-  now rewrite PeanoNat.Nat.add_1_r, thread_set_S.
-Qed.
-
-Lemma add_step_actid_value e l N
-    (WF : wf X)
-    (ADD_STEP : cfg_add_event traces X X' e l)
-    (SZ_EQ : set_size (E ∩₁ same_tid e) = NOnum N):
-  e = ThreadEvent (tid e) N.
-Proof using.
-  assert (HIN : (E' ∩₁ same_tid e) e).
-  { split; [apply (add_step_event_set ADD_STEP) | easy]. }
-  assert (NOTIN : ~E e).
-  { red in ADD_STEP; desf. apply ADD_STEP. }
-  eapply add_step_actid in HIN; eauto.
-  unfolder in HIN; desf.
-Qed.
-
 Lemma add_step_trace_eq e l N
     (WF : wf X)
     (ADD_STEP : cfg_add_event traces X X' e l)
@@ -553,19 +494,12 @@ Lemma add_step_trace_eq e l N
   thread_trace G' (tid e) =
     trace_app (thread_trace G (tid e)) (trace_fin [lab' e]).
 Proof using.
-  assert (HEQ_LAB : lab' = upd lab e l).
-  { red in ADD_STEP. desf. apply ADD_STEP. }
-  unfold thread_trace. erewrite !thread_actid_trace_form.
-  all: eauto using add_step_new_acts, wf_set_sz,
-        add_step_event_not_init_tid.
-  ins. f_equal.
-  rewrite PeanoNat.Nat.add_1_r, seqS,
-          PeanoNat.Nat.add_0_l, !map_app.
-  ins.
-  erewrite <- add_step_actid_value with (l := l),
-          app_inv_tail_iff, HEQ_LAB, map_upd_irr; eauto.
-  rewrite (add_step_actid_value WF ADD_STEP SZ_EQ).
-  now apply thread_seq_helper_inv.
+  red in ADD_STEP. desf.
+  eapply add_event_to_trace.
+  all: try now apply ADD_STEP.
+  { eapply wf_actid_tid; apply ADD_STEP; now right. }
+  { apply SZ_EQ. }
+  apply WF.
 Qed.
 
 Lemma set_union_inter_r_notinter:
@@ -630,7 +564,7 @@ Qed.
 
 End WCoreStepProps.
 
-Global Hint Resolve new_conf_wf add_step_event_not_init_tid add_step_trace_coh :
+Global Hint Resolve new_conf_wf add_step_trace_coh :
   xmm.
 
 End WCore.

@@ -9,6 +9,8 @@ From imm Require Import imm_s_hb.
 From imm Require Import imm_bob.
 From imm Require Import SubExecution.
 
+Require Import AuxDef.
+
 Definition seq_set (n : nat) : nat -> Prop := fun x => x < n.
 Definition thread_seq_set t n : actid -> Prop :=
   ThreadEvent t ↑₁ seq_set n.
@@ -29,6 +31,12 @@ Lemma seq_set_sub n n'
   seq_set n' ⊆₁ seq_set n.
 Proof using.
   unfolder; ins; lia.
+Qed.
+
+Lemma seq_set_diff n n' :
+  seq_set n' \₁ seq_set n ≡₁ fun x => n <= x < n'.
+Proof using.
+  unfolder; split; ins; desf; lia.
 Qed.
 
 Lemma thread_set_S n t :
@@ -222,6 +230,92 @@ Proof using.
   exists (map (ThreadEvent t) (List.seq n (n0 - n))).
   rewrite <- map_app, <- seq_app.
   do 2 f_equal. lia.
+Qed.
+
+Lemma contactids_eq N t G
+    (NOT_INIT : t <> tid_init)
+    (CONT : contigious_actids G)
+    (SZ_EQ : set_size (acts_set G ∩₁ (fun e => t = tid e)) = NOnum N) :
+  acts_set G ∩₁ (fun e => t = tid e) ≡₁ thread_seq_set t N.
+Proof using.
+  set (CONT_APP := CONT t NOT_INIT). desf.
+  rewrite CONT_APP in SZ_EQ.
+  rewrite CONT_APP, thread_seq_N_eq_set_size; eauto.
+Qed.
+
+Lemma add_event_to_contigious e N G G'
+    (NOT_INIT : tid e <> tid_init)
+    (SZ_EQ : set_size (acts_set G ∩₁ same_tid e) = NOnum N)
+    (CONT : contigious_actids G)
+    (CONT' : contigious_actids G')
+    (NEW : ~ acts_set G e)
+    (ADD : acts_set G' ≡₁ acts_set G ∪₁ eq e) :
+  e = ThreadEvent (tid e) N.
+Proof using.
+  destruct e as [l | t idx]; ins.
+  f_equal; enough (N <= idx < N + 1) by lia.
+  apply seq_set_diff.
+  enough (HIN : (thread_seq_set t (N + 1) \₁ thread_seq_set t N)
+          (ThreadEvent t idx)).
+  { unfolder in HIN; split; desf; eauto. }
+  split; [| intro F; eapply NEW, in_restr_acts, contactids_eq; eauto ].
+  eapply contactids_eq, in_restr_acts, ADD; eauto; try now right.
+  change (fun e => t = tid e) with (same_tid (ThreadEvent t idx)).
+  erewrite new_event_plus, SZ_EQ; eauto.
+Qed.
+
+Lemma add_event_to_actid_trace e N G G'
+    (NOT_INIT : tid e <> tid_init)
+    (SZ_EQ : set_size (acts_set G ∩₁ same_tid e) = NOnum N)
+    (CONT : contigious_actids G)
+    (CONT' : contigious_actids G')
+    (NEW : ~ acts_set G e)
+    (ADD : acts_set G' ≡₁ acts_set G ∪₁ eq e) :
+  thread_actid_trace G' (tid e) =
+    trace_app (thread_actid_trace G (tid e)) (trace_fin [e]).
+Proof using.
+  erewrite add_event_to_contigious with (G := G) (G' := G') (e := e); ins.
+  all: eauto.
+  rewrite thread_actid_trace_form with (G := G ) (N := N    ),
+          thread_actid_trace_form with (G := G') (N := N + 1).
+  { ins. now rewrite PeanoNat.Nat.add_1_r, seqS,
+                     PeanoNat.Nat.add_0_l, !map_app. }
+  all: apply contactids_eq; eauto.
+  change (fun x => tid e = tid x) with (same_tid e).
+  erewrite new_event_plus, SZ_EQ; eauto.
+Qed.
+
+Lemma event_not_in_actid_trace e N G
+    (NOT_INIT : tid e <> tid_init)
+    (SZ_EQ : set_size (acts_set G ∩₁ same_tid e) = NOnum N)
+    (CONT : contigious_actids G)
+    (NOTIN : ~ acts_set G e) :
+  ~trace_elems (thread_actid_trace G (tid e)) e.
+Proof using.
+  intro F. eapply trace_elems_eq_thread_events in F.
+  { eapply NOTIN, in_restr_acts; eauto. }
+  apply contactids_eq; eauto.
+Qed.
+
+Lemma add_event_to_trace e l N G G'
+    (NOT_INIT : tid e <> tid_init)
+    (LABEQ : lab G' = upd (lab G) e l)
+    (SZ_EQ : set_size (acts_set G ∩₁ same_tid e) = NOnum N)
+    (CONT : contigious_actids G)
+    (CONT' : contigious_actids G')
+    (NEW : ~ acts_set G e)
+    (ADD : acts_set G' ≡₁ acts_set G ∪₁ eq e) :
+  thread_trace G' (tid e) =
+    trace_app (thread_trace G (tid e)) (trace_fin [lab G' e]).
+Proof using.
+  unfold thread_trace; erewrite add_event_to_actid_trace, LABEQ; eauto.
+  destruct (thread_actid_trace G (tid e)) eqn:Heq; ins.
+  { rewrite map_app, map_upd_irr; ins.
+    intro F; eapply event_not_in_actid_trace; eauto.
+    rewrite Heq; ins. }
+  exfalso.
+  erewrite thread_actid_trace_form in Heq; ins.
+  eapply contactids_eq; eauto.
 Qed.
 
 (* TODO: make G' prefix G *)

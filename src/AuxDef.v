@@ -111,6 +111,37 @@ Proof using.
   all: auto || exfalso; eauto.
 Qed.
 
+Lemma new_event_plus e G G'
+    (NEW : ~ acts_set G e)
+    (ADD : acts_set G' ≡₁ acts_set G ∪₁ eq e) :
+  set_size (acts_set G' ∩₁ same_tid e) =
+  NOmega.add
+    (set_size (acts_set G ∩₁ same_tid e))
+    (NOnum 1).
+Proof using.
+  rewrite ADD, set_inter_union_l.
+  arewrite (eq e ∩₁ same_tid e ≡₁ eq e).
+  { basic_solver. }
+  unfold NOmega.add. desf.
+  { now apply set_size_inf_union. }
+  apply set_size_union_disjoint; auto using set_size_single.
+  unfolder; ins; desf.
+Qed.
+
+Lemma new_event_plus_other_tid e t G G'
+    (DIFF : t <> tid e)
+    (NEW : ~ acts_set G e)
+    (ADD : acts_set G' ≡₁ acts_set G ∪₁ eq e) :
+  set_size (acts_set G' ∩₁ (fun e => t = tid e)) =
+  set_size (acts_set G  ∩₁ (fun e => t = tid e)).
+Proof using.
+  apply set_size_equiv.
+  rewrite ADD, set_inter_union_l.
+  arewrite (eq e ∩₁ (fun e => t = tid e) ≡₁ ∅).
+  { basic_solver. }
+  now rewrite set_union_empty_r.
+Qed.
+
 Lemma rmw_irr G
     (WF : Wf G) :
   irreflexive (rmw G).
