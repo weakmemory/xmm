@@ -821,8 +821,18 @@ Proof using THREAD_EVENTS.
   - l = h::t. We basically should show
       <G, G', C, f> => <ΔG, G', C, upd f h (Some h)> =>＊ <G', G', C, f'>
     1. We can step into ΔG easily. We just need to show that lemma conditions
-       get preserved when you add h to the left.
+       get preserved when you REMOVE h.
     2. The second arrow becomes a mere induction hypothesis application
+  *)
+  (*
+  Why do props get preserved?
+  - relenum_nodup <== removing an element preserved NoDup
+  - relenum_no_init <== the remaining elements remained not init
+  - relenum_d <== h is now part of ΔG. Before that exactly elems from h::t were absent
+  - relenum_sb <== We can show that h was the minimal element. Removing it preserves
+    rhe order stucture between other elems.
+  - relenum_rf <== h is either a minimal element or did not participate in any edges.
+  - relenum_rf_w <== If someone was actually reading from h, it is now in E
   *)
 Admitted.
 
