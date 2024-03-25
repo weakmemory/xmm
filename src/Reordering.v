@@ -212,6 +212,22 @@ Proof using.
   basic_solver.
 Qed.
 
+Lemma delta_G_final e f
+    (NOT_INIT : tid e <> tid_init)
+    (WF : WCore.wf (WCore.Build_t G G' C f))
+    (FINAL : E' \₁ E ≡₁ eq e)
+    (SUB : sub_execution G' G ∅₂ ∅₂) :
+  (delta_G G G' e) = G'.
+Proof using.
+  apply sub_eq.
+  { apply WF. }
+  { eapply delta_G_sub; eauto.
+    all: now apply FINAL. }
+  unfold delta_G; ins.
+  rewrite set_minus_union_r, FINAL.
+  basic_solver.
+Qed.
+
 Lemma delta_G_prefix h t
     (ENUM : reord_lemma_enum E E' C (h :: t))
     (PREFIX : exec_trace_prefix G' G)
