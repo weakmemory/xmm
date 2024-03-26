@@ -837,42 +837,94 @@ Proof using THREAD_EVENTS.
   eapply step_once_fence; eauto.
 Qed.
 
-Lemma steps l f f'
+End ReorderingSubLemma.
+
+Section ReorderingLemma.
+
+Variable traces : thread_id -> trace label -> Prop.
+
+Lemma steps C G G' l f f'
     (F_ID : partial_id f')
     (SUB_ID : sub_fun f f')
     (WF : WCore.wf (WCore.Build_t G G' C f))
     (WF' : WCore.wf (WCore.Build_t G' G' C f'))
-    (G_PREFIX : restr_exec E G' G)
+    (G_PREFIX : restr_exec (acts_set G) G' G)
     (SUB_TRACE : exec_trace_prefix G' G)
-    (ENUM : reord_lemma_enum E E' C l)
-    (COH : trace_coherent traces G') :
+    (ENUM : reord_lemma_enum G G' (acts_set G) (acts_set G') C l)
+    (COH : trace_coherent traces G')
+    (CONT : contigious_actids G') :
   (WCore.cfg_add_step_uninformative traces)＊
     (WCore.Build_t G G' C f)
     (WCore.Build_t G' G' C f').
-Proof using THREAD_EVENTS.
-  (*
-  do induction by l, generalizing G and f :
-    (∀ G f, SUB_ID -> WF -> G_PREFIX -> SUB_TRACE -> ENUM <G, G', C, f> =>＊ <G', G', C, f'>)
-  - l = [] is an obvious case (the only difficulty is shwowing that f' = f)
-  - l = h::t. We basically should show
-      <G, G', C, f> => <ΔG, G', C, upd f h (Some h)> =>＊ <G', G', C, f'>
-    1. We can step into ΔG easily. We just need to show that lemma conditions
-       get preserved when you REMOVE h.
-    2. The second arrow becomes a mere induction hypothesis application
-  *)
-  (*
-  Why do props get preserved?
-  - relenum_nodup <== removing an element preserved NoDup
-  - relenum_no_init <== the remaining elements remained not init
-  - relenum_d <== h is now part of ΔG. Before that exactly elems from h::t were absent
-  - relenum_sb <== We can show that h was the minimal element. Removing it preserves
-    rhe order stucture between other elems.
-  - relenum_rf <== h is either a minimal element or did not participate in any edges.
-  - relenum_rf_w <== If someone was actually reading from h, it is now in E
-  *)
+Proof using.
+  generalize f G SUB_ID WF G_PREFIX SUB_TRACE ENUM.
+  clear      f G SUB_ID WF G_PREFIX SUB_TRACE ENUM.
+  induction l as [ | h t IHl]; ins.
+  { admit. }
+  assert (STEP : WCore.cfg_add_step_uninformative traces
+    (WCore.Build_t G                G' C f)
+    (WCore.Build_t (delta_G G G' h) G' C (upd f h (Some h)))).
+  { eapply step_once; eauto. }
+  apply rt_trans with (y := (WCore.Build_t (delta_G G G' h) G' C (upd f h (Some h)))).
+  { now apply rt_step. }
+  apply IHl.
+  { unfold sub_fun; intros x y.
+    destruct (classic (x = h)); subst; rupd; eauto.
+    intro EQ; desf.
+    admit. }
+  { do 2 (red in STEP; desf). apply STEP. }
+  { constructor; ins.
+    { eapply delta_G_sub; eauto.
+      { eapply (WCore.wf_actid_tid WF'); apply ENUM; desf. }
+      { apply ENUM; desf. }
+      { apply ENUM; desf. }
+      apply G_PREFIX. }
+    rewrite set_inter_union_l.
+    arewrite (eq h ∩₁ is_init ≡₁ ∅).
+    { enough (~is_init h) by basic_solver.
+      apply ENUM; desf. }
+    rewrite set_union_empty_r.
+    apply G_PREFIX. }
+  { eapply delta_G_prefix; eauto.
+    apply G_PREFIX. }
+  constructor; ins.
+  { eapply nodup_consD, ENUM. }
+  { transitivity (fun x => In x (h :: t)); [ | apply ENUM].
+    unfolder; ins; desf; eauto. }
+  { arewrite ((fun x => In x t) ≡₁ (fun x => In x (h :: t)) \₁ eq h).
+    { ins; split; [| basic_solver].
+      intros x IN; unfolder; split; eauto.
+      intro F; subst.
+      apply nodup_cons with (x := x) (l := t); auto.
+      apply ENUM. }
+    rewrite relenum_d with (l := h :: t); eauto.
+    now rewrite set_minus_minus_l. }
+  { intros x y SB. unfolder in SB; desf.
+    assert (LT : total_order_from_list (h :: t) x y).
+    { eapply relenum_sb; unfolder; splits; ins; eauto. }
+    apply total_order_from_list_cons in LT; desf.
+    exfalso; eapply nodup_not_in.
+    { apply ENUM. }
+    { exact SB0. }
+    reflexivity. }
+  { intros x y RF. unfolder in RF; desf.
+    assert (LT : total_order_from_list (h :: t) x y).
+    { eapply relenum_rf; unfolder; splits; ins; eauto. }
+    apply total_order_from_list_cons in LT; desf.
+    exfalso; eapply nodup_not_in.
+    { apply ENUM. }
+    { exact RF2. }
+    reflexivity. }
+  intros x IN.
+  destruct (classic (h = x)) as [EQ|NEQ]; subst.
+  { now left; right. }
+  enough (HIN : (acts_set G ∪₁ (fun x => In x (h :: t))) x).
+  { ins; unfolder in HIN; unfolder; desf; eauto. }
+  eapply relenum_rf_w; eauto.
+  eapply dom_rel_mori; eauto; basic_solver.
 Admitted.
 
-End ReorderingSubLemma.
+End ReorderingLemma.
 Section GraphDefs.
 
 Variable G : execution.

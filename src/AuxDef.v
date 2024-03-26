@@ -283,6 +283,15 @@ Proof using.
   now left.
 Qed.
 
+Lemma nodup_not_in A (e h : A) t
+    (NODUP : NoDup (h :: t))
+    (IN : In e t) :
+  h <> e.
+Proof using.
+  inv NODUP.
+  now destruct (classic (h = e)); subst.
+Qed.
+
 Lemma equiv_seq_eq {A} (s : A -> Prop)
   (r : relation A) :
   ⦗s⦘ ⨾ (⦗s⦘ ⨾ r ⨾ ⦗s⦘) ⨾ ⦗s⦘ ≡ ⦗s⦘ ⨾ r ⨾ ⦗s⦘.
