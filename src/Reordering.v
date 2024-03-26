@@ -439,6 +439,43 @@ Proof using THREAD_EVENTS.
   apply CMT.
 Qed.
 
+Lemma step_once_write_rmw_helper e h t f
+    (WF : WCore.wf (WCore.Build_t G G' C f))
+    (G_PREFIX : restr_exec E G' G)
+    (SUB_TRACE : exec_trace_prefix G' G)
+    (RMW : rmw' e h)
+    (IS_R : R' e)
+    (ENUM : reord_lemma_enum E E' C (h :: t))
+    (NOT_INIT2 : tid h <> tid_init) :
+  E e.
+Proof using THREAD_EVENTS.
+  assert (IN_D : D h).
+  { apply ENUM; desf. }
+  assert (CONT : contigious_actids G).
+  { eapply trace_form_sub; eauto. }
+  assert (NOT_INIT1 : ~is_init e).
+  { intro F; destruct e as [l | tide ide]; auto.
+    unfold is_r in IS_R; rewrite wf_init_lab in IS_R; auto.
+    apply WF. }
+  set (CONTH := CONT (tid h) NOT_INIT2); desf.
+  assert (EQH : exists tidh, h = ThreadEvent tidh N).
+  { eexists; eapply add_event_to_contigious with (G' := delta_G G G' h).
+    all: eauto.
+    { rewrite CONTH; apply thread_seq_set_size. }
+    { eapply trace_form_sub, delta_G_prefix; eauto.
+      apply G_PREFIX. }
+    apply IN_D. }
+  destruct EQH as [tidh EQH]; subst.
+  apply wf_rmwi, immediate_in in RMW; [| apply WF].
+  assert (TIDEQ : tid e = tidh).
+  { apply sb_tid_init in RMW; desf. }
+  destruct e as [l | tide ide]; ins; subst.
+  apply in_restr_acts, CONTH.
+  unfold sb, ext_sb in RMW; unfolder in RMW; desf.
+  unfold thread_seq_set, seq_set; unfolder; eauto.
+Qed.
+
+
 (* FIXME: this proof contains a lot of copy-paste *)
 Lemma step_once_write h t f f'
     (F_ID : partial_id f')
@@ -483,8 +520,7 @@ Proof using THREAD_EVENTS.
     { apply wf_rmwD in RMW; [| apply WF].
       unfolder in RMW; desf. }
     assert (IN_E : E r).
-    { apply wf_rmwi, immediate_in in RMW; [| apply WF].
-      admit. (* r is before h. h has index N. Therefore, r must be in E *) }
+    { eapply step_once_write_rmw_helper; eauto. }
     exists h, (lab' h), (Some r), None,
       (codom_rel (⦗eq h⦘ ⨾ co' ⨾ ⦗E⦘)), (dom_rel (⦗E⦘ ⨾ co' ⨾ ⦗eq h⦘)), (Some h).
     constructor; ins.
@@ -670,7 +706,7 @@ Proof using THREAD_EVENTS.
   enough (CONT : contigious_actids (delta_G G G' h)).
   { now apply CONT. }
   eapply trace_form_sub; eauto.
-Admitted.
+Qed.
 
 
 Lemma step_once_fence h t f f'
