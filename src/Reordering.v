@@ -843,7 +843,11 @@ Section ReorderingLemma.
 
 Variable traces : thread_id -> trace label -> Prop.
 
+Definition final_f G f :=
+  fun x => ifP acts_set G x then f x else Some x.
+
 Lemma steps C G G' l f f'
+    (FFEQ : f' = final_f G f)
     (F_ID : partial_id f')
     (SUB_ID : sub_fun f f')
     (WF : WCore.wf (WCore.Build_t G G' C f))
@@ -857,10 +861,20 @@ Lemma steps C G G' l f f'
     (WCore.Build_t G G' C f)
     (WCore.Build_t G' G' C f').
 Proof using.
-  generalize f G SUB_ID WF G_PREFIX SUB_TRACE ENUM.
-  clear      f G SUB_ID WF G_PREFIX SUB_TRACE ENUM.
+  generalize f G FFEQ SUB_ID WF G_PREFIX SUB_TRACE ENUM.
+  clear      f G FFEQ SUB_ID WF G_PREFIX SUB_TRACE ENUM.
   induction l as [ | h t IHl]; ins.
-  { admit. }
+  { assert (GEQ : G = G').
+    { apply sub_eq.
+      { apply WF. }
+      { apply G_PREFIX. }
+      rewrite <- relenum_d; eauto; ins. }
+    assert (FEQ : f' = f).
+    { rewrite FFEQ. unfold final_f.
+      apply functional_extensionality; intro x; desf.
+      exfalso; apply n; apply WF'. unfold is_some, compose; ins.
+      unfold final_f. desf. }
+    rewrite GEQ, FEQ. apply rt_refl. }
   assert (STEP : WCore.cfg_add_step_uninformative traces
     (WCore.Build_t G                G' C f)
     (WCore.Build_t (delta_G G G' h) G' C (upd f h (Some h)))).
@@ -868,10 +882,15 @@ Proof using.
   apply rt_trans with (y := (WCore.Build_t (delta_G G G' h) G' C (upd f h (Some h)))).
   { now apply rt_step. }
   apply IHl.
-  { unfold sub_fun; intros x y.
-    destruct (classic (x = h)); subst; rupd; eauto.
-    intro EQ; desf.
-    admit. }
+  { rewrite FFEQ; unfold final_f; apply functional_extensionality.
+    intro x; desf; destruct (classic (x = h)); subst; rupd; auto.
+    { exfalso; eapply relenum_d; eauto; desf. }
+    { exfalso; apply n; ins. now right. }
+    { exfalso; apply n; ins. now left. }
+    exfalso; apply n; ins; unfolder in a; desf. }
+  { arewrite (Some h = f' h); auto using sub_fun_upd.
+    symmetry; rewrite FFEQ; unfold final_f.
+    desf. exfalso; eapply relenum_d; eauto; desf. }
   { do 2 (red in STEP; desf). apply STEP. }
   { constructor; ins.
     { eapply delta_G_sub; eauto.
@@ -922,7 +941,7 @@ Proof using.
   { ins; unfolder in HIN; unfolder; desf; eauto. }
   eapply relenum_rf_w; eauto.
   eapply dom_rel_mori; eauto; basic_solver.
-Admitted.
+Qed.
 
 End ReorderingLemma.
 Section GraphDefs.

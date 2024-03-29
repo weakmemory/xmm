@@ -299,6 +299,12 @@ Proof using.
   basic_solver.
 Qed.
 
+Lemma seq_eq_prod {A} (a : A) r :
+  ⦗eq a⦘ ⨾ r ≡ eq a × codom_rel (⦗eq a⦘ ⨾ r).
+Proof using.
+  basic_solver.
+Qed.
+
 Lemma in_restr_acts G e :
   acts_set G e <-> (acts_set G ∩₁ same_tid e) e.
 Proof using.
@@ -445,6 +451,25 @@ Proof using.
   destruct (classic (x = a)); subst; rupd.
   f_equal. symmetry. now apply PARTIAL.
 Qed.
+
+Lemma sub_fun_upd {A B} {f f' : A -> option B} x0
+    (SUB : sub_fun f f') :
+  sub_fun (upd f x0 (f' x0)) f'.
+Proof using.
+  unfold sub_fun. intros x y.
+  destruct (classic (x = x0)); subst; rupd; ins.
+  now apply SUB.
+Qed.
+
+Lemma sub_fun_upd_ext {A B} {f f' : A -> option B} x0
+    (SUB : sub_fun f f') :
+  sub_fun f (upd f x0 (f' x0)).
+Proof using.
+  unfold sub_fun. intros x y.
+  destruct (classic (x = x0)); subst; rupd; ins.
+  now apply SUB.
+Qed.
+
 
 End SubFunction.
 
