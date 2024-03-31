@@ -325,13 +325,33 @@ Lemma trace_coherent_sub traces G G' sc sc'
     (SUB : sub_execution G G' sc sc') :
   trace_coherent traces G'.
 Proof using.
-  admit.
-Admitted.
+  unfold trace_coherent, exec_trace_prefix in *.
+  ins. specialize (TRACE_COH thr NOT_INIT). desf.
+  exists tr. splits; auto. specialize (PREFIX thr).
+  assert (THREAD_PREF : trace_prefix (thread_trace G' thr) (thread_trace G thr)).
+  { unfold thread_trace. destruct SUB. rewrite sub_lab. 
+    unfold trace_map. desf.
+    { unfold trace_prefix. ins. desf.
+      exists (map (lab G) l'').
+      rewrite map_app. do 2 f_equal. }
+    { unfold trace_prefix. ins.
+      specialize (PREFIX i). rewrite length_map in LLEN.
+      specialize (PREFIX LLEN).
+      rewrite nth_indep with (d' := lab G (ThreadEvent thr 0)),
+      map_nth; [| now rewrite map_length].
+      now f_equal. }
+      unfold trace_prefix. ins. now f_equal. } 
+  eapply trace_prefix_trans. { apply THREAD_PREF. }
+  apply PREFIX0.
+Qed.
 
 Lemma trace_form_sub G G'
     (CONT : contigious_actids G)
     (PREFIX : exec_trace_prefix G G') :
   contigious_actids G'.
 Proof using.
-  admit.
-Admitted.
+  admit. 
+Admitted. 
+
+  
+  

@@ -502,25 +502,6 @@ Proof using.
   apply WF.
 Qed.
 
-Lemma set_union_inter_r_notinter:
-  forall [A : Type] (s s' s'' : A -> Prop) (HYP : s' ∩₁ s'' ≡₁ ∅),
-  (s ∪₁ s') ∩₁ s'' ≡₁ s ∩₁ s''.
-Proof using.
-  ins. rewrite set_inter_union_l.
-  rewrite HYP. basic_solver.
-Qed.
-
-(* NOTE: map_upd_irr *)
-Lemma map_upd_not_applicable:
-  forall (l : list actid) (x : actid) (y : label) (HYP : ~ In x l),
-  map (upd lab x y) l = map lab l.
-Proof using.
-  ins. induction l; ins.
-  apply not_or_and in HYP. desf.
-  apply IHl in HYP0. rewrite HYP0. f_equal.
-  unfold upd. desf.
-Qed.
-
 Lemma add_step_new_event_correct e l
     (ADD_STEP : cfg_add_event traces X X' e l) :
   exists tr, traces (tid e) tr /\
@@ -553,11 +534,15 @@ Proof using.
       unfold thread_actid_trace. rewrite e_new0.
       destruct WF. apply actid_cont0 in NOT_INIT.
       destruct NOT_INIT as [N N_EQ].
-      rewrite set_union_inter_r_notinter.
+      assert (NOTINTER : forall [A : Type] (s s' s'' : A -> Prop) (HYP : s' ∩₁ s'' ≡₁ ∅),
+                         (s ∪₁ s') ∩₁ s'' ≡₁ s ∩₁ s'').
+      { ins. rewrite set_inter_union_l.
+      rewrite HYP. basic_solver. }
+      rewrite NOTINTER.
       rewrite N_EQ. rewrite thread_seq_set_size.
       { unfold trace_map. assert (HYP: ~ In e (map (ThreadEvent thr) (List.seq 0 N))).
         { intro F. apply in_map_iff in F. desf. }
-        rewrite map_upd_not_applicable. all: eauto. }
+        rewrite map_upd_irr. all: eauto. }
       basic_solver. }
     now rewrite NO_CHANGE.
 Qed.
