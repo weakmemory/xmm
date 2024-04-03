@@ -14,6 +14,7 @@ From imm Require Import imm_s_ppo.
 From imm Require Import imm_s_hb.
 From imm Require Import imm_bob.
 From imm Require Import SubExecution.
+From imm Require Import CombRelations.
 
 Section SubGraphLemma.
 
@@ -708,7 +709,6 @@ Proof using THREAD_EVENTS.
   eapply trace_form_sub; eauto.
 Qed.
 
-
 Lemma step_once_fence h t f f'
     (F_ID : partial_id f')
     (SUB_ID : sub_fun f f')
@@ -884,20 +884,21 @@ Proof using.
   apply IHl.
   { rewrite FFEQ; unfold final_f; apply functional_extensionality.
     intro x; desf; destruct (classic (x = h)); subst; rupd; auto.
-    { exfalso; eapply relenum_d; eauto; desf. }
-    { exfalso; apply n; ins. now right. }
-    { exfalso; apply n; ins. now left. }
-    exfalso; apply n; ins; unfolder in a; desf. }
+    all: exfalso.
+    { eapply relenum_d; eauto; desf. }
+    all: apply n; ins.
+    { now right. }
+    { now left. }
+    unfolder in a; desf. }
   { arewrite (Some h = f' h); auto using sub_fun_upd.
     symmetry; rewrite FFEQ; unfold final_f.
     desf. exfalso; eapply relenum_d; eauto; desf. }
   { do 2 (red in STEP; desf). apply STEP. }
   { constructor; ins.
     { eapply delta_G_sub; eauto.
-      { eapply (WCore.wf_actid_tid WF'); apply ENUM; desf. }
-      { apply ENUM; desf. }
-      { apply ENUM; desf. }
-      apply G_PREFIX. }
+      all: try now apply G_PREFIX.
+      eapply (WCore.wf_actid_tid WF').
+      all: apply ENUM; desf. }
     rewrite set_inter_union_l.
     arewrite (eq h ∩₁ is_init ≡₁ ∅).
     { enough (~is_init h) by basic_solver.
@@ -962,16 +963,21 @@ Notation "'R'" := (is_r lab).
 Notation "'psc'" := (imm.psc G).
 Notation "'same_loc'" := (same_loc lab).
 
-Definition thread_terminated thr : Prop :=
-    exists t, traces thr t /\ t = thread_trace G thr.
-Definition machine_terminated := forall thr, thread_terminated thr.
+Definition thread_terminated (t : thread_id) : Prop :=
+  traces t (thread_trace G t).
+Definition machine_terminated := forall t, thread_terminated t.
+(* TODO: fix behavior to be a function from location to
+         ordered by co (possibly infinite) set of values written to the location *)
 Definition behavior := co.
 
+(* Remember that there is the furr relation in IMM,
+   which is essentially the same up to the change psc <-> sc.  *)
 Definition vf := ⦗W⦘ ⨾ rf^? ⨾ hb^? ⨾ psc^? ⨾ hb^?.
 Definition srf := (vf ∩ same_loc) ⨾ ⦗R⦘ \ (co ⨾ vf).
 
 End GraphDefs.
 
+(* TODO: make a module *)
 Section ReorderingDefs.
 
 Open Scope program_scope.
@@ -1050,7 +1056,11 @@ Record reord : Prop :=
         exists t, traces (tid a) t /\ trace_swapped label t t' (index a) (index b);
 }.
 
-Definition P m a' : Prop := lab a' = lab a /\ immediate sb a' (m b).
+(* TODO: rename! *)
+Definition P m a' : Prop :=
+  << LABEQ : lab a' = lab a >> /\
+  << IMMSB : immediate sb a' (m b) >>
+.
 
 (* TODO: use `mapper` instead of m? *)
 Record simrel_not_rw m : Prop :=
