@@ -136,10 +136,10 @@ Record wf : Prop := {
   wf_gc : Wf GC;
   wf_gc_acts : (tid ↓₁ eq tid_init) ∩₁ EC ⊆₁ is_init;
 
+  C_sub_EC : C ⊆₁ EC;
   f_dom : is_some ∘ f ⊆₁ EC;
   f_codom : Some ↓₁ (f ↑₁ EC) ⊆₁ E;
   f_inj : inj_dom (EC ∩₁ (is_some ∘ f)) f;
-  f_c_some : C ⊆₁ is_some ∘ f;
 
   f_sb : Some ↓ (f ↑ restr_rel C sbc) ⊆ sb;
   f_rf : Some ↓ (f ↑ restr_rel C rfc) ⊆ rf;
@@ -147,7 +147,8 @@ Record wf : Prop := {
 
   f_tid : restr_rel EC (fun x y => f x = Some y) ⊆ same_tid;
   f_u2v : same_lab_u2v_dom (EC ∩₁ (is_some ∘ f)) unwrap_g2gc labc;
-  f_same_v : forall c (IN : C c), val unwrap_g2gc c = val labc c;
+  f_same_v : forall c (IN : C c) (SOME : (is_some ∘ f) c),
+    val unwrap_g2gc c = val labc c;
 
   actid_cont : contigious_actids G;
 }.
@@ -287,7 +288,8 @@ Record reexec_gen
   (G'' : execution)
   (f f' : actid -> option actid)
   (C : actid -> Prop) : Prop :=
-{ rf_sub_re : rfre ⊆ re;
+{   f_c_some : C ⊆₁ is_some ∘ f;
+  rf_sub_re : rfre ⊆ re;
   rf_sub_f : rfre ⊆ Some ↓ (f ↑ rf');
   d_wre_sub_f : D ∪₁ Wre ⊆₁ Some ↓₁ (f ↑₁ C);
 
@@ -327,12 +329,6 @@ Notation "'rf'" := (rf G).
 Notation "'EC'" := (acts_set GC).
 Notation "'E'" := (acts_set G).
 
-Lemma C_sub_EC :
-  C ⊆₁ EC.
-Proof using WF.
-  transitivity (is_some ∘ g2gc); apply WF.
-Qed.
-
 Lemma wf_g2gc_unwrap e c
     (MAPPED : g2gc c = Some e) :
   unwrap_g2gc X c = lab e.
@@ -341,14 +337,14 @@ Proof using.
   now rewrite MAPPED.
 Qed.
 
-Lemma wf_C_eq_lab e
-    (INC : C e) :
-  unwrap_g2gc X e = labc e.
+Lemma wf_C_eq_lab e c
+    (IN : C c)
+    (MAPPED : g2gc c = Some e) :
+  unwrap_g2gc X c = labc c.
 Proof using WF.
-  apply same_label_u2v_val; try now apply WF.
-  apply f_u2v; auto.
-  split; eauto using C_sub_EC.
-  now apply f_c_some.
+  apply same_label_u2v_val; apply WF; try split.
+  all: auto; try now apply WF.
+  all: now unfold compose; rewrite MAPPED.
 Qed.
 
 Lemma wf_eq_labs e c
