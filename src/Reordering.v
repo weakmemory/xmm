@@ -331,7 +331,7 @@ Lemma step_once_read h t f f'
     (ENUM : reord_lemma_enum E E' C (h :: t))
     (COH : trace_coherent traces G')
     (IS_R : R' h) :
-  WCore.cfg_add_step_uninformative traces
+  WCore.cfg_add_event_uninformative traces
     (WCore.Build_t G                G' C f)
     (WCore.Build_t (delta_G G G' h) G' C (upd f h (Some h))).
 Proof using THREAD_EVENTS.
@@ -488,7 +488,7 @@ Lemma step_once_write h t f f'
     (ENUM : reord_lemma_enum E E' C (h :: t))
     (COH : trace_coherent traces G')
     (IS_W : W' h) :
-  WCore.cfg_add_step_uninformative traces
+  WCore.cfg_add_event_uninformative traces
     (WCore.Build_t G                G' C f)
     (WCore.Build_t (delta_G G G' h) G' C (upd f h (Some h))).
 Proof using THREAD_EVENTS.
@@ -719,7 +719,7 @@ Lemma step_once_fence h t f f'
     (ENUM : reord_lemma_enum E E' C (h :: t))
     (COH : trace_coherent traces G')
     (IS_F : F' h) :
-  WCore.cfg_add_step_uninformative traces
+  WCore.cfg_add_event_uninformative traces
     (WCore.Build_t G                G' C f)
     (WCore.Build_t (delta_G G G' h) G' C (upd f h (Some h))).
 Proof using THREAD_EVENTS.
@@ -827,7 +827,7 @@ Lemma step_once h t f f'
     (SUB_TRACE : exec_trace_prefix G' G)
     (ENUM : reord_lemma_enum E E' C (h :: t))
     (COH : trace_coherent traces G') :
-  WCore.cfg_add_step_uninformative traces
+  WCore.cfg_add_event_uninformative traces
     (WCore.Build_t G                G' C f)
     (WCore.Build_t (delta_G G G' h) G' C (upd f h (Some h))).
 Proof using THREAD_EVENTS.
@@ -857,7 +857,7 @@ Lemma steps C G G' l f f'
     (ENUM : reord_lemma_enum G G' (acts_set G) (acts_set G') C l)
     (COH : trace_coherent traces G')
     (CONT : contigious_actids G') :
-  (WCore.cfg_add_step_uninformative traces)＊
+  (WCore.cfg_add_event_uninformative traces)＊
     (WCore.Build_t G G' C f)
     (WCore.Build_t G' G' C f').
 Proof using.
@@ -875,7 +875,7 @@ Proof using.
       exfalso; apply n; apply WF'. unfold is_some, compose; ins.
       unfold final_f. desf. }
     rewrite GEQ, FEQ. apply rt_refl. }
-  assert (STEP : WCore.cfg_add_step_uninformative traces
+  assert (STEP : WCore.cfg_add_event_uninformative traces
     (WCore.Build_t G                G' C f)
     (WCore.Build_t (delta_G G G' h) G' C (upd f h (Some h)))).
   { eapply step_once; eauto. }
