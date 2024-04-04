@@ -241,12 +241,12 @@ Record cfg_add_event_gen e l r w W1 W2 c :=
 Definition cfg_add_event (e : actid) (l : label) :=
   exists r w W1 W2 c, cfg_add_event_gen e l r w W1 W2 c.
 
-Definition cfg_add_step_uninformative := exists e l, cfg_add_event e l.
+Definition cfg_add_event_uninformative := exists e l, cfg_add_event e l.
 
 End CfgAddEventStep.
 
 Global Hint Unfold new_event_correct cfg_add_event
-                  cfg_add_step_uninformative : unfolderDb.
+                   cfg_add_event_uninformative : unfolderDb.
 
 Section ExecAdd.
 
@@ -293,7 +293,7 @@ Record reexec_gen
 
   cfg_wf : wf (Build_t G G' C f);
   int_G_D : restr_exec D G G'';
-  cfg_steps : (cfg_add_step_uninformative traces)＊
+  cfg_steps : (cfg_add_event_uninformative traces)＊
     (Build_t G'' G' C (f_restr D f))
     (Build_t G'  G' C f');
 
