@@ -5,6 +5,8 @@ Import ListNotations.
 
 Open Scope list_scope.
 
+Module ListSwap.
+
 Record lsc A (a b l1 l2 : list A) x y : Prop :=
 {   L1_EQ : a = l1 ++ [x] ++ l2 ++ [y];
     L2_EQ : b = l1 ++ [y] ++ l2 ++ [x];
@@ -16,13 +18,7 @@ Definition ls A a b m n :=
         ⟪ L1_LEN : length l1 = m ⟫ /\
         ⟪ L2_LEN : length l1 + 1 + length l2 = n ⟫.
 
-Definition trace_swapped A t t' m n : Prop :=
-    exists l l' rest,
-        ⟪ SWAP : ls A l l' m n ⟫ /\
-        ⟪ STRUCT1 : t = trace_app (trace_fin l) rest ⟫ /\
-        ⟪ STRUCT2 : t' = trace_app (trace_fin l') rest ⟫.
-
-Global Hint Unfold ls trace_swapped : unfolderDb.
+Global Hint Unfold ls : unfolderDb.
 
 Section ListsSwappedConstr.
 
@@ -132,7 +128,7 @@ Qed.
 End ListsSwappedConstr.
 
 Global Hint Resolve lsc_sym lsc_len_eq lsc_len lsc_nth_1 lsc_nth_2 lsc_nth
-    lsc_impl_ls lsc_in : lsc.
+    lsc_impl_ls lsc_in : listswap.
 
 Section ListsSwapped.
 
@@ -150,13 +146,13 @@ Qed.
 Lemma ls_len_eq : length b = length a.
 Proof using SWAPPED.
     destruct SWAPPED; desc; subst n m.
-    eauto with lsc.
+    eauto with listswap.
 Qed.
 
 Lemma ls_len : length a = n + 1.
 Proof using SWAPPED.
     destruct SWAPPED; desc; subst n m.
-    eauto with lsc.
+    eauto with listswap.
 Qed.
 
 Lemma ls_lt_m : m < n.
@@ -175,7 +171,7 @@ Lemma ls_nth_1 N d
     nth N b d = nth N a d.
 Proof using SWAPPED.
     destruct SWAPPED; desc; subst n m.
-    eauto with lsc.
+    eauto with listswap.
 Qed.
 
 Lemma ls_nth_2 N d
@@ -184,21 +180,21 @@ Lemma ls_nth_2 N d
     nth N b d = nth N a d.
 Proof using SWAPPED.
     destruct SWAPPED; desc; subst n m.
-    eauto with lsc.
+    eauto with listswap.
 Qed.
 
 Lemma ls_nth_y d :
     nth n b d = nth m a d.
 Proof using SWAPPED.
     destruct SWAPPED; desc; subst n m.
-    now erewrite lsc_nth_x, lsc_nth_y by eauto with lsc.
+    now erewrite lsc_nth_x, lsc_nth_y by eauto with listswap.
 Qed.
 
 Lemma ls_nth_x d :
     nth m b d = nth n a d.
 Proof using SWAPPED.
     destruct SWAPPED; desc; subst n m.
-    now erewrite lsc_nth_x, lsc_nth_y by eauto with lsc.
+    now erewrite lsc_nth_x, lsc_nth_y by eauto with listswap.
 Qed.
 
 Lemma ls_nth N d
@@ -207,19 +203,29 @@ Lemma ls_nth N d
     nth N b d = nth N a d.
 Proof using SWAPPED.
     destruct SWAPPED; desc; subst n m.
-    eauto with lsc.
+    eauto with listswap.
 Qed.
 
 Lemma ls_in : (fun x => In x a) ≡₁ (fun x => In x b).
 Proof using SWAPPED.
     destruct SWAPPED; desc.
-    eauto with lsc.
+    eauto with listswap.
 Qed.
 
 End ListsSwapped.
 
 Global Hint Resolve ls_sym ls_len ls_len_eq ls_nth_1 ls_nth_2 ls_nth
-    ls_nth_x ls_nth_y ls_lt_m ls_lt_n ls_in : ls.
+    ls_nth_x ls_nth_y ls_lt_m ls_lt_n ls_in : listswap.
+
+End ListSwap.
+
+Definition trace_swapped A t t' m n : Prop :=
+    exists l l' rest,
+        ⟪ SWAP : ListSwap.ls A l l' m n ⟫ /\
+        ⟪ STRUCT1 : t = trace_app (trace_fin l) rest ⟫ /\
+        ⟪ STRUCT2 : t' = trace_app (trace_fin l') rest ⟫.
+
+Global Hint Unfold trace_swapped : unfolderDb.
 
 Section TracesSwapped.
 
@@ -232,7 +238,7 @@ Lemma trace_swapped_sym : trace_swapped A t' t m n.
 Proof using SWAPPED.
     destruct SWAPPED as (l & l' & SWAPPED'); desf.
     exists l', l, rest.
-    splits; eauto with ls.
+    splits; eauto with listswap.
 Qed.
 
 Lemma trace_swapped_len : trace_length t' = trace_length t.
@@ -241,13 +247,13 @@ Proof using SWAPPED.
     destruct rest; ins.
     autorewrite with calc_length.
     do 2 f_equal.
-    eauto with ls.
+    eauto with listswap.
 Qed.
 
 Lemma trace_swapped_lt_m : m < n.
 Proof using SWAPPED.
     destruct SWAPPED; desf.
-    eauto with ls.
+    eauto with listswap.
 Qed.
 
 Lemma trace_swapped_lt_n : NOmega.lt_nat_l n (trace_length t).
@@ -255,7 +261,7 @@ Proof using SWAPPED.
     destruct SWAPPED; desf.
     rewrite trace_length_app.
     destruct (trace_length rest); ins.
-    eauto using PeanoNat.Nat.lt_lt_add_r with ls.
+    eauto using PeanoNat.Nat.lt_lt_add_r with listswap.
 Qed.
 
 (* TODO: useful for hahn? *)
@@ -280,8 +286,8 @@ Lemma trace_swapped_nth_i_lt_m i d
 Proof using SWAPPED.
     assert (LT' : m < n) by apply trace_swapped_lt_m.
     destruct SWAPPED; desf.
-    rewrite !trace_nth_app1; ins; eauto with ls.
-    all: erewrite ls_len; eauto with ls; lia.
+    rewrite !trace_nth_app1; ins; eauto with listswap.
+    all: erewrite ListSwap.ls_len; eauto with listswap; lia.
 Qed.
 
 Lemma trace_swapped_nth_m_lt_i_lt_n i d
@@ -290,8 +296,8 @@ Lemma trace_swapped_nth_m_lt_i_lt_n i d
     trace_nth i t' d = trace_nth i t d.
 Proof using SWAPPED.
     destruct SWAPPED; desf.
-    rewrite !trace_nth_app1; ins; eauto with ls.
-    all: erewrite ls_len; eauto with ls; lia.
+    rewrite !trace_nth_app1; ins; eauto with listswap.
+    all: erewrite ListSwap.ls_len; eauto with listswap; lia.
 Qed.
 
 Lemma trace_swapped_nth_n_lt_i i d
@@ -300,7 +306,7 @@ Lemma trace_swapped_nth_n_lt_i i d
 Proof using SWAPPED.
     destruct SWAPPED; desf.
     rewrite !trace_nth_app2; ins.
-    all: erewrite !ls_len; eauto with ls; lia.
+    all: erewrite !ListSwap.ls_len; eauto with listswap; lia.
 Qed.
 
 Lemma trace_swapped_nth_y d :
@@ -308,8 +314,8 @@ Lemma trace_swapped_nth_y d :
 Proof using SWAPPED.
     assert (LT' : m < n) by apply trace_swapped_lt_m.
     destruct SWAPPED; desf.
-    rewrite !trace_nth_app1; simpl; eauto with ls.
-    erewrite ls_len; eauto with ls; lia.
+    rewrite !trace_nth_app1; simpl; eauto with listswap.
+    erewrite ListSwap.ls_len; eauto with listswap; lia.
 Qed.
 
 Lemma trace_swapped_nth_x d :
@@ -317,8 +323,8 @@ Lemma trace_swapped_nth_x d :
 Proof using SWAPPED.
     assert (LT' : m < n) by apply trace_swapped_lt_m.
     destruct SWAPPED; desf.
-    rewrite !trace_nth_app1; simpl; eauto with ls.
-    erewrite ls_len; eauto with ls; lia.
+    rewrite !trace_nth_app1; simpl; eauto with listswap.
+    erewrite ListSwap.ls_len; eauto with listswap; lia.
 Qed.
 
 Lemma trace_swapped_nth N d
@@ -328,20 +334,18 @@ Lemma trace_swapped_nth N d
 Proof using SWAPPED.
     destruct SWAPPED; desf.
     destruct (PeanoNat.Nat.lt_ge_cases N (n + 1)).
-    { rewrite !trace_nth_app1; simpl; eauto with ls.
-      all: erewrite ls_len; eauto with ls; lia. }
+    { rewrite !trace_nth_app1; simpl; eauto with listswap.
+      all: erewrite ListSwap.ls_len; eauto with listswap; lia. }
     rewrite !trace_nth_app2.
-    all: erewrite !ls_len; eauto with ls.
+    all: erewrite !ListSwap.ls_len; eauto with listswap.
 Qed.
 
 Lemma trace_swapped_elems : trace_elems t ≡₁ trace_elems t'.
 Proof using SWAPPED.
     destruct SWAPPED; desf.
     rewrite !trace_elems_app. simpl.
-    rewrite ls_in by eauto.
-    enough (FIN : forall (l : list A), trace_finite (trace_fin l)).
-    { desf. }
-    ins. red; eauto.
+    rewrite ListSwap.ls_in by eauto.
+    unfold trace_finite; desf; exfalso; eauto.
 Qed.
 
 End TracesSwapped.
