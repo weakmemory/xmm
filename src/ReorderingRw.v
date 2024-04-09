@@ -171,4 +171,14 @@ End SimrelPreservations.
 
 (* Lemma sim_rel_step : about any step *)
 
+(*
+ forall traces P_src, P_trgt. If target is a reordereing of src, then
+ <..> (clarify cuz the theorem statement looks weird)
+*)
+(* Theorem reordering_rw : TODO.
+Proof using.
+  admit.
+Admitted. *)
+
+
 End ReordRwSimRelProps.
