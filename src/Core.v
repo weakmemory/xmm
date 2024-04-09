@@ -123,16 +123,12 @@ Notation "'EC'" := (acts_set GC).
 Notation "'E'" := (acts_set G).
 
 Record wf : Prop := {
-  c_ctrl_empty : ctrl ≡ ∅₂;
-  c_addr_empty : addr ≡ ∅₂;
-  c_data_empty : data ≡ ∅₂;
   cc_ctrl_empty : ctrlc ≡ ∅₂;
   cc_addr_empty : addrc ≡ ∅₂;
   cc_data_empty : datac ≡ ∅₂;
 
-  wf_g : Wf G;
-  wf_g_acts : (tid ↓₁ eq tid_init) ∩₁ E ⊆₁ is_init;
   wf_gc : Wf GC;
+  wf_g_init : is_init ∩₁ EC ⊆₁ E;
   wf_gc_acts : (tid ↓₁ eq tid_init) ∩₁ EC ⊆₁ is_init;
 
   C_sub_EC : cmt ⊆₁ EC;
@@ -145,7 +141,7 @@ Record wf : Prop := {
 
 End CoreDefs.
 
-Global Hint Resolve wf_g wf_gc : xmm.
+Global Hint Resolve wf_gc : xmm.
 
 Section DeltaDefs.
 
@@ -311,13 +307,25 @@ Notation "'rf'" := (rf G).
 Notation "'EC'" := (acts_set GC).
 Notation "'E'" := (acts_set G).
 
+Lemma wf_g : Wf G.
+Proof using WF.
+  eapply sub_WF; try now apply WF.
+Qed.
+
+Lemma wf_g_acts : (tid ↓₁ eq tid_init) ∩₁ E ⊆₁ is_init.
+Proof using WF.
+  transitivity (tid ↓₁ eq tid_init ∩₁ EC); try now apply WF.
+  apply set_subset_inter; try now apply WF.
+  now apply set_map_mori.
+Qed.
+
 Lemma wf_actid_tid e
     (IN : E e)
     (NOT_INIT : ~is_init e) :
   tid e <> tid_init.
 Proof using WF.
   intro F. enough (is_init e) by auto.
-  apply (wf_g_acts WF); basic_solver.
+  apply wf_g_acts; basic_solver.
 Qed.
 
 Lemma ext_sb_dense x y
