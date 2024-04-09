@@ -36,6 +36,14 @@ Record restr_exec (D : actid -> Prop) (G G'' : execution) : Prop :=
                      acts_set G ∩₁ is_init;
   }.
 
+(* G' is prefix of G *)
+Record prefix G G' : Prop := {
+  pfx_sub : sub_execution G G' ∅₂ ∅₂;
+  pfx_cont1 : contigious_actids G;
+  pfx_cont2 : contigious_actids G';
+}.
+
+
 Section Race.
 Variable G : execution.
 Notation "'E'" := (acts_set G).
@@ -64,14 +72,13 @@ Record t := {
   G : execution;
   GC : execution;
   cmt : actid -> Prop;
-  g2gc : actid -> option actid;
 }.
 
 Definition init_exec G : execution :=
   Build_execution (acts_set G ∩₁ is_init) (threads_set G) (lab G) ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂.
 
-Definition empty_cfg G : t :=
-  Build_t G (init_exec G) ∅ (fun x => None).
+Definition empty_cfg G : t := {| GC := G; G := (init_exec G); cmt := ∅ |}.
+Definition triv_cfg G : t := {| GC := G; G := G; cmt := ∅ |}.
 
 #[global]
 Hint Unfold init_exec empty_cfg f_restr : unfolderDb.
@@ -104,9 +111,7 @@ Notation "'addrc'" := (addr GC).
 Notation "'ctrl'" := (ctrl G).
 Notation "'data'" := (data G).
 Notation "'addr'" := (addr G).
-Notation "'C'" := (cmt X).
-Notation "'f'" := (g2gc X).
-Notation "'labc'" := (lab GC).
+Notation "'cmt'" := (cmt X).
 Notation "'lab'" := (lab G).
 Notation "'R'" := (is_r lab).
 Notation "'W'" := (is_w lab).
@@ -116,12 +121,6 @@ Notation "'sb'" := (sb G).
 Notation "'rf'" := (rf G).
 Notation "'EC'" := (acts_set GC).
 Notation "'E'" := (acts_set G).
-
-Definition unwrap_g2gc x :=
-  match (f x) with
-  | Some y => lab y
-  | None => Afence Orlx
-  end.
 
 Record wf : Prop := {
   c_ctrl_empty : ctrl ≡ ∅₂;
@@ -136,49 +135,41 @@ Record wf : Prop := {
   wf_gc : Wf GC;
   wf_gc_acts : (tid ↓₁ eq tid_init) ∩₁ EC ⊆₁ is_init;
 
-  C_sub_EC : C ⊆₁ EC;
-  f_dom : is_some ∘ f ⊆₁ EC;
-  f_codom : Some ↓₁ (f ↑₁ EC) ⊆₁ E;
-  f_inj : inj_dom (EC ∩₁ (is_some ∘ f)) f;
+  C_sub_EC : cmt ⊆₁ EC;
+  sub_sb : restr_rel (cmt ∩₁ E) sbc ⊆ sb;
+  sub_rf : restr_rel (cmt ∩₁ E) rfc ⊆ rf;
+  sub_rfD : E ∩₁ R ⊆₁ codom_rel rf ∪₁ cmt;
 
-  f_sb : Some ↓ (f ↑ restr_rel C sbc) ⊆ sb;
-  f_rf : Some ↓ (f ↑ restr_rel C rfc) ⊆ rf;
-  f_rfD : E ∩₁ R ⊆₁ codom_rel rf ∪₁ (Some ↓₁ (f ↑₁ C));
-
-  f_tid : restr_rel EC (fun x y => f x = Some y) ⊆ same_tid;
-  f_u2v : same_lab_u2v_dom (EC ∩₁ (is_some ∘ f)) unwrap_g2gc labc;
-  f_same_v : forall c (IN : C c) (SOME : (is_some ∘ f) c),
-    val unwrap_g2gc c = val labc c;
-
-  actid_cont : contigious_actids G;
+  pfx : prefix GC G;
 }.
 
 End CoreDefs.
 
-Global Hint Resolve wf_g wf_gc actid_cont : xmm.
+Global Hint Resolve wf_g wf_gc : xmm.
 
 Section DeltaDefs.
 
-Variable (G : execution).
-Variable (e : actid).
-Notation "'W'" := (is_w (lab G)).
-Notation "'R'" := (is_r (lab G)).
-Notation "'W_ex'" := (W_ex G).
+Variable GC : execution.
+Variable e : actid.
+
+Notation "'W'" := (is_w (lab GC)).
+Notation "'R'" := (is_r (lab GC)).
+Notation "'rfc'" := (rf GC).
+Notation "'W_ex'" := (W_ex GC).
 
 (* We do not need sb_delta as `sb` has an exact formula *)
 (* Definition sb_delta : relation actid :=
   (E ∩₁ (fun x => tid x = tid e)) × eq e. *)
 
-Definition rf_delta_R (w : option actid) : relation actid :=
+Definition rf_delta_R (w : option actid) :=
   match w with
-  | Some w => eq w × eq e ∩ W × R
+  | Some w => singl_rel w e ∩ W × R
   | _ => ∅₂
   end.
 
-Definition rf_delta_W (GC : execution) (f' : actid -> option actid) : relation actid :=
-  let Wc := f' ↓₁ eq (Some e) in
-  let Rc := codom_rel (⦗Wc⦘ ⨾ rf GC) in
-  eq e × (Some ↓₁ (f' ↑₁ Rc)).
+Definition rf_delta_W : relation actid :=
+  if R e then ⦗eq e⦘ ⨾ rfc
+  else ∅₂.
 
 Definition co_delta (W1 W2 : actid -> Prop) : relation actid :=
   if W e then eq e × W1 ∪ W2 × eq e
@@ -199,17 +190,14 @@ Variable traces : thread_id -> trace label -> Prop.
 Variable X X' : t.
 Notation "'G''" := (G X').
 Notation "'GC''" := (GC X').
-Notation "'C''" := (cmt X').
-Notation "'f''" := (g2gc X').
+Notation "'cmt''" := (cmt X').
 Notation "'E''" := (acts_set G').
 Notation "'lab''" := (lab G').
 
 Notation "'G'" := (G X).
 Notation "'GC'" := (GC X).
-Notation "'C'" := (cmt X).
-Notation "'f'" := (g2gc X).
+Notation "'cmt'" := (cmt X).
 Notation "'E'" := (acts_set G).
-Notation "'lab'" := (lab G).
 
 Definition new_event_correct e : Prop :=
   match thread_trace G (tid e) with
@@ -218,31 +206,26 @@ Definition new_event_correct e : Prop :=
     exists tr, traces (tid e) tr /\ trace_prefix (trace_fin (l ++ [lab' e])) tr
   end.
 
-Record cfg_add_event_gen e l r w W1 W2 c :=
+Record cfg_add_event_gen e r w W1 W2 :=
 { e_notin : ~(E e);
   e_notinit : ~ is_init e;
   e_new : E' ≡₁ E ∪₁ (eq e);
   e_correct : new_event_correct e;
-  lab_new : lab' = upd lab e l;
+
   cmt_graph_same : GC' = GC;
-  thread_set_same : threads_set G' ≡₁ threads_set G;
 
   (* Skipping condition for sb *)
-  rf_new : rf G' ≡ rf G ∪ rf_delta_R G e w ∪ rf_delta_W e GC f';
-  co_new : co G' ≡ co G ∪ co_delta G e W1 W2;
-  rmw_new : rmw G' ≡ rmw G ∪ rmw_delta G e r;
+  rf_new : rf G' ≡ rf G ∪ rf_delta_R GC e w ∪ rf_delta_W GC e;
+  co_new : co G' ≡ co G ∪ co_delta GC e W1 W2;
+  rmw_new : rmw G' ≡ rmw G ∪ rmw_delta GC e r;
 
-  f_new : match c with
-          | None => True
-          | Some c => f' = upd f e (Some c)
-          end;
   wf_new_conf : wf X';
 }.
 
-Definition cfg_add_event (e : actid) (l : label) :=
-  exists r w W1 W2 c, cfg_add_event_gen e l r w W1 W2 c.
+Definition cfg_add_event (e : actid) :=
+  exists r w W1 W2, cfg_add_event_gen e r w W1 W2.
 
-Definition cfg_add_event_uninformative := exists e l, cfg_add_event e l.
+Definition cfg_add_event_uninformative := exists e, cfg_add_event e.
 
 End CfgAddEventStep.
 
@@ -254,8 +237,8 @@ Section ExecAdd.
 Variables G G' : execution.
 Variable traces : thread_id -> trace label -> Prop.
 
-Record exec_inst e l := {
-  cfg_step : cfg_add_event traces (empty_cfg G) (empty_cfg G') e l;
+Record exec_inst e := {
+  add_event : cfg_add_event traces (triv_cfg G) (triv_cfg G') e;
   next_cons : is_cons G';
 }.
 
@@ -267,6 +250,7 @@ Variables G G' : execution.
 Variable rfre : relation actid.
 Variable traces : thread_id -> trace label -> Prop.
 
+Notation "'E''" := (acts_set G').
 Notation "'E'" := (acts_set G).
 Notation "'W'" := (is_w (lab G)).
 Notation "'R'" := (is_r (lab G)).
@@ -284,25 +268,24 @@ Notation "'Rre'" := (codom_rel rfre).
 Notation "'Wre'" := (dom_rel rfre).
 Notation "'D'" := (E \₁ codom_rel (⦗Rre⦘ ⨾ (sb ∪ rf)＊)).
 
-Record reexec_gen
-  (G'' : execution)
-  (f f' : actid -> option actid)
-  (C : actid -> Prop) : Prop :=
-{   f_c_some : C ⊆₁ is_some ∘ f;
-  rf_sub_re : rfre ⊆ re;
+(* f : E' -> E *)
+Record reexec_gen f : Prop :=
+{ (* Correct mapping *)
+  f_dom : is_some ∘ f ⊆₁ E';
+  f_inj : inj_dom (is_some ∘ f) f;
+  d_wre_sub_f : D ∪₁ Wre ⊆₁ is_some ∘ f;
   rf_sub_f : rfre ⊆ Some ↓ (f ↑ rf');
-  d_wre_sub_f : D ∪₁ Wre ⊆₁ Some ↓₁ (f ↑₁ C);
-
-  cfg_wf : wf (Build_t G G' C f);
-  int_G_D : restr_exec D G G'';
+  (* Correct start *)
+  rf_sub_re : rfre ⊆ re;
+  cfg_wf : wf (Build_t G G' (is_some ∘ f));
+  (* Reproducable steps *)
   cfg_steps : (cfg_add_event_uninformative traces)＊
-    (Build_t G'' G' C (f_restr D f))
-    (Build_t G'  G' C f');
-
+    (Build_t (restrict G D) G' (is_some ∘ f))
+    (Build_t G'             G' (is_some ∘ f));
   new_g_cons : is_cons G';
 }.
 
-Definition reexec : Prop := exists G'' f f' C, reexec_gen G'' f f' C.
+Definition reexec : Prop := exists f, reexec_gen f.
 
 End ExecRexec.
 
@@ -318,8 +301,7 @@ Notation "'ctrl'" := (ctrl G).
 Notation "'data'" := (data G).
 Notation "'addr'" := (addr G).
 Notation "'GC'" := (GC X).
-Notation "'C'" := (cmt X).
-Notation "'g2gc'" := (g2gc X).
+Notation "'cmt'" := (cmt X).
 Notation "'labc'" := (lab GC).
 Notation "'lab'" := (lab G).
 Notation "'sbc'" := (sb GC).
@@ -328,60 +310,6 @@ Notation "'sb'" := (sb G).
 Notation "'rf'" := (rf G).
 Notation "'EC'" := (acts_set GC).
 Notation "'E'" := (acts_set G).
-
-Lemma wf_g2gc_unwrap e c
-    (MAPPED : g2gc c = Some e) :
-  unwrap_g2gc X c = lab e.
-Proof using.
-  unfold unwrap_g2gc.
-  now rewrite MAPPED.
-Qed.
-
-Lemma wf_C_eq_lab e c
-    (IN : C c)
-    (MAPPED : g2gc c = Some e) :
-  unwrap_g2gc X c = labc c.
-Proof using WF.
-  apply same_label_u2v_val; apply WF; try split.
-  all: auto; try now apply WF.
-  all: now unfold compose; rewrite MAPPED.
-Qed.
-
-Lemma wf_eq_labs e c
-    (INC : C c)
-    (MAPPED : g2gc c = Some e) :
-  labc c = lab e.
-Proof using WF.
-  erewrite <- wf_g2gc_unwrap, wf_C_eq_lab; eauto.
-Qed.
-
-Lemma wf_iff_read :
-  (EC ∩₁ (is_some ∘ g2gc)) ∩₁ is_r (unwrap_g2gc X) ≡₁
-  (EC ∩₁ (is_some ∘ g2gc)) ∩₁ is_r labc.
-Proof using WF.
-  apply same_lab_u2v_dom_is_r, WF.
-Qed.
-
-Lemma wf_iff_write :
-  (EC ∩₁ (is_some ∘ g2gc)) ∩₁ is_w (unwrap_g2gc X) ≡₁
-  (EC ∩₁ (is_some ∘ g2gc)) ∩₁ is_w labc.
-Proof using WF.
-  apply same_lab_u2v_dom_is_w, WF.
-Qed.
-
-Lemma wf_iff_fence :
-  (EC ∩₁ (is_some ∘ g2gc)) ∩₁ is_f (unwrap_g2gc X) ≡₁
-  (EC ∩₁ (is_some ∘ g2gc)) ∩₁ is_f labc.
-Proof using WF.
-  apply same_lab_u2v_dom_is_f, WF.
-Qed.
-
-Lemma wf_eq_loc :
-  restr_rel (EC ∩₁ (is_some ∘ g2gc)) (same_loc (unwrap_g2gc X)) ≡
-  restr_rel (EC ∩₁ (is_some ∘ g2gc)) (same_loc labc).
-Proof using WF.
-  apply same_lab_u2v_dom_same_loc, WF.
-Qed.
 
 Lemma wf_actid_tid e
     (IN : E e)
@@ -405,7 +333,7 @@ Proof using WF.
   { set (COND := ext_sb_tid_init x y SB).
     destruct COND; auto. destruct x; ins. }
   destruct x as [lx | tidx ix], y as [ly | tidy iy]; ins.
-  set (ACTS := actid_cont WF XNOT_INIT). desf.
+  set (ACTS := pfx_cont2 (pfx WF) XNOT_INIT). desf.
   rewrite in_restr_acts in *. unfold same_tid in *. ins.
   apply ACTS; apply ACTS in IN.
   unfolder; unfolder in IN; desf.
@@ -417,7 +345,7 @@ Lemma wf_set_sz thr N
     (SZ_EQ : set_size (E ∩₁ (fun e => thr = tid e)) = NOnum N) :
   E ∩₁ (fun e => thr = tid e) ≡₁ thread_seq_set thr N.
 Proof using WF.
-  set (HEQ := actid_cont WF NOT_INIT). desf.
+  set (HEQ := pfx_cont2 (pfx WF) NOT_INIT). desf.
   rewrite HEQ in *.
   now apply thread_seq_N_eq_set_size.
 Qed.
@@ -436,7 +364,7 @@ Lemma all_trace_fin t
     (NOT_INIT : t <> tid_init) :
   trace_finite (thread_trace G t).
 Proof using WF.
-  set (CONT := actid_cont WF NOT_INIT). desf.
+  set (CONT := pfx_cont2 (pfx WF) NOT_INIT). desf.
   unfold thread_trace, trace_finite.
   eexists. erewrite thread_actid_trace_form; eauto.
   ins.
@@ -454,20 +382,18 @@ Variable traces : thread_id -> trace label -> Prop.
 Variable X X' : t.
 Notation "'G''" := (G X').
 Notation "'GC''" := (GC X').
-Notation "'C''" := (cmt X').
-Notation "'f''" := (g2gc X').
+Notation "'cmt''" := (cmt X').
 Notation "'E''" := (acts_set G').
 Notation "'lab''" := (lab G').
 
 Notation "'G'" := (G X).
 Notation "'GC'" := (GC X).
-Notation "'C'" := (cmt X).
-Notation "'f'" := (g2gc X).
+Notation "'cmt'" := (cmt X).
 Notation "'E'" := (acts_set G).
 Notation "'lab'" := (lab G).
 
-Lemma add_step_event_set e l
-    (ADD_STEP : cfg_add_event traces X X' e l) :
+Lemma add_step_event_set e
+    (ADD_STEP : cfg_add_event traces X X' e) :
   (E' ∩₁ set_compl is_init) e.
 Proof using.
   red in ADD_STEP. desf.
@@ -475,31 +401,46 @@ Proof using.
   now right.
 Qed.
 
-Lemma new_conf_wf e l
-    (ADD_STEP : cfg_add_event traces X X' e l) :
+Lemma new_conf_wf e
+    (ADD_STEP : cfg_add_event traces X X' e) :
   wf X'.
 Proof using.
   red in ADD_STEP. desf.
   apply ADD_STEP.
 Qed.
 
-Lemma add_step_trace_eq e l N
+Lemma same_lab e
+  (WF : wf X)
+  (ADD_STEP : cfg_add_event traces X X' e) :
+  lab' = lab.
+Proof using.
+  red in ADD_STEP. desf.
+  erewrite sub_lab with (G' := G)  (G := GC),
+           sub_lab with (G' := G') (G := GC').
+  { f_equal; apply ADD_STEP. }
+  { apply ADD_STEP. }
+  apply WF.
+Qed.
+
+Lemma add_step_trace_eq e N
     (WF : wf X)
-    (ADD_STEP : cfg_add_event traces X X' e l)
+    (ADD_STEP : cfg_add_event traces X X' e)
     (SZ_EQ : set_size (E ∩₁ same_tid e) = NOnum N):
   thread_trace G' (tid e) =
     trace_app (thread_trace G (tid e)) (trace_fin [lab' e]).
 Proof using.
+  assert (SAME : lab' = lab) by (eapply same_lab; eauto).
   red in ADD_STEP. desf.
   eapply add_event_to_trace.
   all: try now apply ADD_STEP.
   { eapply wf_actid_tid; apply ADD_STEP; now right. }
+  { now rewrite updI. }
   { apply SZ_EQ. }
   apply WF.
 Qed.
 
-Lemma add_step_new_event_correct e l
-    (ADD_STEP : cfg_add_event traces X X' e l) :
+Lemma add_step_new_event_correct e
+    (ADD_STEP : cfg_add_event traces X X' e) :
   exists tr, traces (tid e) tr /\
     trace_prefix (trace_app (thread_trace G (tid e)) (trace_fin [lab' e])) tr.
 Proof using.
@@ -508,9 +449,9 @@ Proof using.
   unfold new_event_correct. desf.
 Qed.
 
-Lemma add_step_trace_coh e l
+Lemma add_step_trace_coh e
     (WF : wf X)
-    (ADD_STEP : cfg_add_event traces X X' e l)
+    (ADD_STEP : cfg_add_event traces X X' e)
     (G_COH : trace_coherent traces G) :
   trace_coherent traces G'.
 Proof using.
@@ -524,23 +465,14 @@ Proof using.
     erewrite set_size_equiv, thread_seq_set_size; eauto. }
   set (HCORR := G_COH thr NOT_INIT). desf.
   exists tr; split; auto.
-  assert (NO_CHANGE : thread_trace G' thr = thread_trace G thr).
-    { unfold thread_trace. unfold cfg_add_event in ADD_STEP. desf.
-      destruct ADD_STEP. rewrite lab_new0.
-      unfold thread_actid_trace. rewrite e_new0.
-      destruct WF. apply actid_cont0 in NOT_INIT.
-      destruct NOT_INIT as [N N_EQ].
-      assert (NOTINTER : forall [A : Type] (s s' s'' : A -> Prop) (HYP : s' ∩₁ s'' ≡₁ ∅),
-                         (s ∪₁ s') ∩₁ s'' ≡₁ s ∩₁ s'').
-      { ins. rewrite set_inter_union_l.
-      rewrite HYP. basic_solver. }
-      rewrite NOTINTER.
-      rewrite N_EQ. rewrite thread_seq_set_size.
-      { unfold trace_map. assert (HYP: ~ In e (map (ThreadEvent thr) (List.seq 0 N))).
-        { intro F. apply in_map_iff in F. desf. }
-        rewrite map_upd_irr. all: eauto. }
-      basic_solver. }
-    now rewrite NO_CHANGE.
+  enough (NO_CHANGE : thread_trace G' thr = thread_trace G thr).
+  { now rewrite NO_CHANGE. }
+  unfold thread_trace. erewrite same_lab; eauto.
+  f_equal. red in ADD_STEP; desf.
+  unfold thread_actid_trace.
+  rewrite e_new; eauto.
+  arewrite ((E ∪₁ eq e) ∩₁ (fun x => thr = tid x) ≡₁ E ∩₁ (fun x => thr = tid x)).
+  all: basic_solver.
 Qed.
 
 End WCoreStepProps.
