@@ -730,3 +730,511 @@ Qed.
 End SuBToFullExecCases.
 
 End SubToFullExecInternal.
+
+(*
+
+Lemma step_once_write_rmw_helper e h t f
+    (WF : WCore.wf (WCore.Build_t G G' C f))
+    (G_PREFIX : restr_exec E G' G)
+    (SUB_TRACE : exec_trace_prefix G' G)
+    (RMW : rmw' e h)
+    (IS_R : R' e)
+    (ENUM : reord_lemma_enum E E' C (h :: t))
+    (NOT_INIT2 : tid h <> tid_init) :
+  E e.
+Proof using THREAD_EVENTS.
+  assert (IN_D : D h).
+  { apply ENUM; desf. }
+  assert (CONT : contigious_actids G).
+  { eapply trace_form_sub; eauto. }
+  assert (NOT_INIT1 : ~is_init e).
+  { intro F; destruct e as [l | tide ide]; auto.
+    unfold is_r in IS_R; rewrite wf_init_lab in IS_R; auto.
+    apply WF. }
+  set (CONTH := CONT (tid h) NOT_INIT2); desf.
+  assert (EQH : exists tidh, h = ThreadEvent tidh N).
+  { eexists; eapply add_event_to_contigious with (G' := delta_G G G' h).
+    all: eauto.
+    { rewrite CONTH; apply thread_seq_set_size. }
+    { eapply trace_form_sub, delta_G_prefix; eauto.
+      apply G_PREFIX. }
+    apply IN_D. }
+  destruct EQH as [tidh EQH]; subst.
+  apply wf_rmwi, immediate_in in RMW; [| apply WF].
+  assert (TIDEQ : tid e = tidh).
+  { apply sb_tid_init in RMW; desf. }
+  destruct e as [l | tide ide]; ins; subst.
+  apply in_restr_acts, CONTH.
+  unfold sb, ext_sb in RMW; unfolder in RMW; desf.
+  unfold thread_seq_set, seq_set; unfolder; eauto.
+Qed.
+
+
+(* FIXME: this proof contains a lot of copy-paste *)
+Lemma step_once_write h t f f'
+    (F_ID : partial_id f')
+    (SUB_ID : sub_fun f f')
+    (WF : WCore.wf (WCore.Build_t G G' C f))
+    (WF' : WCore.wf (WCore.Build_t G' G' C f'))
+    (G_PREFIX : restr_exec E G' G)
+    (SUB_TRACE : exec_trace_prefix G' G)
+    (ENUM : reord_lemma_enum E E' C (h :: t))
+    (COH : trace_coherent traces G')
+    (IS_W : W' h) :
+  WCore.cfg_add_event_uninformative traces
+    (WCore.Build_t G                G' C f)
+    (WCore.Build_t (delta_G G G' h) G' C (upd f h (Some h))).
+Proof using THREAD_EVENTS.
+  (* Information about h *)
+  assert (IN_D : D h).
+  { apply ENUM; desf. }
+  assert (NOT_INIT : ~is_init h).
+  { apply ENUM; desf. }
+  assert (H_TID : tid h <> tid_init).
+  { eapply WCore.wf_actid_tid; eauto.
+    apply IN_D. }
+  assert (NOT_R : ~R' h).
+  { generalize IS_W; unfold is_w, is_r.
+    destruct (lab' h); auto. }
+  assert (PART : partial_id f).
+  { eapply partial_id_mori; eauto. }
+  assert (DELTA_SUB : sub_execution G' (delta_G G G' h) ∅₂ ∅₂).
+  { eapply delta_G_sub; eauto; try now apply IN_D.
+    apply G_PREFIX. }
+  assert (DELTA_PREF : exec_trace_prefix G' (delta_G G G' h)).
+  { eapply delta_G_prefix; eauto; apply G_PREFIX. }
+  assert (DELTA_COH : trace_coherent traces (delta_G G G' h)).
+  { eapply trace_coherent_sub; eauto. }
+  assert (UPDID : partial_id (upd f h (Some h))).
+  { apply upd_partial_id. eapply partial_id_mori; eauto. }
+
+  (* Case 1: h is part of an RMW *)
+  destruct (classic (codom_rel rmw' h)) as [[r RMW] | NRMW].
+  { assert (IS_R : R' r).
+    { apply wf_rmwD in RMW; [| apply WF].
+      unfolder in RMW; desf. }
+    assert (IN_E : E r).
+    { eapply step_once_write_rmw_helper; eauto. }
+    exists h, (lab' h), (Some r), None,
+      (codom_rel (⦗eq h⦘ ⨾ co' ⨾ ⦗E⦘)), (dom_rel (⦗E⦘ ⨾ co' ⨾ ⦗eq h⦘)), (Some h).
+    constructor; ins.
+    { apply IN_D. }
+    { set (DCOH := DELTA_COH (tid h) H_TID). ins. desf.
+      unfold WCore.new_event_correct. desf.
+      { exists tr.
+        erewrite sub_lab; eauto.
+        erewrite delta_G_actid_trace_h in PREFIX; eauto; try now apply G_PREFIX.
+        split; ins. now rewrite Heq in PREFIX. }
+      set (FIN := WCore.all_trace_fin WF H_TID).
+      ins. rewrite Heq in FIN.
+      unfold trace_finite in FIN. desf. }
+    { erewrite sub_lab; [now rewrite updI | apply G_PREFIX]. }
+    { apply union_more; [apply union_more; auto |].
+      { rewrite wf_rfD; [basic_solver | apply WF]. }
+      unfold WCore.rf_delta_W.
+      rewrite partial_id_collect_eq, upds, partial_id_set.
+      all: eauto using upd_partial_id.
+      rewrite partial_id_upd_dom, set_inter_union_r.
+      arewrite (codom_rel (⦗eq h⦘ ⨾ rf') ∩₁ eq h ≡₁ ∅).
+      { rewrite wf_rfD; [basic_solver | apply WF]. }
+      rewrite set_union_empty_r.
+      split; intros h' y REL.
+      { unfolder in REL; desf; unfolder; splits; eauto.
+        enough (IN : (C ∩₁ partial_id_dom f) y).
+        { apply IN. }
+        apply partial_id_set; auto.
+        enough (IN : (codom_rel rf ∪₁ (Some ↓₁ (f ↑₁ C))) y).
+        { destruct IN as [IN|IN]; auto.
+          exfalso; enough (E h') by now apply IN_D.
+          unfolder in IN; desf.
+          erewrite wf_rff with (G := G') (y := h') (z := x); eauto; try now apply WF.
+          { apply wf_rfE in IN; [|apply WF]. unfolder in IN; desf. }
+          eapply sub_rf in IN; [| apply G_PREFIX].
+          unfolder in IN; desf. }
+        apply WF; ins; split; auto.
+        erewrite sub_lab; [| apply G_PREFIX].
+        apply wf_rfD in REL0; [| apply WF].
+        unfolder in REL0; desf.  }
+      unfolder in REL; desf.
+      unfolder; splits; auto.
+      apply WF; ins. apply partial_id_set; auto.
+      split; auto. unfold partial_id_dom in REL1.
+      change E' with (acts_set (WCore.GC (WCore.Build_t G' G' C f'))).
+      eapply WCore.f_dom; ins.
+      eapply partial_id_dom_mori; eauto. }
+    { unfold WCore.co_delta. erewrite sub_lab; [| apply G_PREFIX].
+      rewrite unionA; apply union_more; auto.
+      rewrite unionC, IS_W; apply union_more; basic_solver 5. }
+    { apply union_more; auto.
+      unfold WCore.rmw_delta, eq_opt, W_ex.
+      split; [| basic_solver].
+      intros x y RMW'; unfolder in RMW'; desf.
+      erewrite sub_lab; [| apply G_PREFIX].
+      arewrite (x = r); [| basic_solver].
+      assert (IS_R' : R' x).
+      { apply wf_rmwD in RMW'0; [| apply WF].
+        unfolder in RMW'0; desf. }
+      apply wf_rmwi in RMW'0; [| apply WF].
+      apply wf_rmwi in RMW; [| apply WF].
+      assert (X_NINIT : ~is_init x).
+      { unfold is_r in IS_R'; destruct x; auto.
+        now rewrite wf_init_lab in IS_R'; [| apply WF]. }
+      assert (R_NINIT : ~is_init r). (* TODO: move *)
+      (* TODO: shorthand lemma *)
+      { unfold is_r in IS_R; destruct r; auto.
+        now rewrite wf_init_lab in IS_R; [| apply WF]. }
+      eapply total_immediate_unique with
+        (P := (E' \₁ is_init) ∩₁ (fun x => tid x = tid y)).
+      all: eauto using sb_total.
+      all: unfolder; splits; eauto.
+      all: try now apply G_PREFIX.
+      { apply immediate_in, sb_tid_init in RMW'0; desf. }
+      { apply immediate_in, sb_tid_init in RMW; desf. }
+      apply IN_D. }
+    apply over_exec_wf; ins.
+    all: try now apply WF.
+    { rewrite partial_id_upd_dom. apply set_subset_union; auto.
+      apply wf_partial_id_dome; eauto. }
+    { rewrite <- restr_init_sub; eauto.
+      transitivity E; basic_solver. }
+    (* TODO prettify? *)
+    { arewrite (⦗E⦘ ⨾ rf' ⨾ ⦗eq h⦘ ≡ ∅₂).
+      { rewrite wf_rfD; [basic_solver | apply WF]. }
+      rewrite union_false_r, codom_union, set_inter_union_l.
+      arewrite (eq h ∩₁ R ≡₁ ∅).
+      { erewrite sub_lab; [| apply G_PREFIX]. basic_solver. }
+      rewrite set_union_empty_r. intros x IN.
+      apply WF in IN; ins.
+      destruct IN as [RF|CMT].
+      { left; left; auto. }
+      right.
+      apply partial_id_set in CMT; auto.
+      apply partial_id_set; auto.
+      split; [apply CMT|].
+      apply partial_id_upd_dom.
+      destruct (classic (x = h)); subst; rupd.
+      { now right. }
+      left; apply CMT. }
+    enough (CONT : contigious_actids (delta_G G G' h)).
+    { now apply CONT. }
+    eapply trace_form_sub; eauto. }
+
+  (* Case 2: no rmw *)
+  exists h, (lab' h), None, None,
+    (codom_rel (⦗eq h⦘ ⨾ co' ⨾ ⦗E⦘)), (dom_rel (⦗E⦘ ⨾ co' ⨾ ⦗eq h⦘)), (Some h).
+  constructor; ins.
+  { apply IN_D. }
+  { set (DCOH := DELTA_COH (tid h) H_TID). ins. desf.
+    unfold WCore.new_event_correct. desf.
+    { exists tr.
+      erewrite sub_lab; eauto.
+      erewrite delta_G_actid_trace_h in PREFIX; eauto; try now apply G_PREFIX.
+      split; ins. now rewrite Heq in PREFIX. }
+    set (FIN := WCore.all_trace_fin WF H_TID).
+    ins. rewrite Heq in FIN.
+    unfold trace_finite in FIN. desf. }
+  { erewrite sub_lab; [now rewrite updI | apply G_PREFIX]. }
+  { apply union_more; [apply union_more; auto |].
+    { rewrite wf_rfD; [basic_solver | apply WF]. }
+    unfold WCore.rf_delta_W.
+    rewrite partial_id_collect_eq, upds, partial_id_set.
+    all: eauto using upd_partial_id.
+    rewrite partial_id_upd_dom, set_inter_union_r.
+    arewrite (codom_rel (⦗eq h⦘ ⨾ rf') ∩₁ eq h ≡₁ ∅).
+    { rewrite wf_rfD; [basic_solver | apply WF]. }
+    rewrite set_union_empty_r.
+    split; intros h' y REL.
+    { unfolder in REL; desf; unfolder; splits; eauto.
+      enough (IN : (C ∩₁ partial_id_dom f) y).
+      { apply IN. }
+      apply partial_id_set; auto.
+      enough (IN : (codom_rel rf ∪₁ (Some ↓₁ (f ↑₁ C))) y).
+      { destruct IN as [IN|IN]; auto.
+        exfalso; enough (E h') by now apply IN_D.
+        unfolder in IN; desf.
+        erewrite wf_rff with (G := G') (y := h') (z := x); eauto; try now apply WF.
+        { apply wf_rfE in IN; [|apply WF]. unfolder in IN; desf. }
+        eapply sub_rf in IN; [| apply G_PREFIX].
+        unfolder in IN; desf. }
+      apply WF; ins; split; auto.
+      erewrite sub_lab; [| apply G_PREFIX].
+      apply wf_rfD in REL0; [| apply WF].
+      unfolder in REL0; desf.  }
+    unfolder in REL; desf.
+    unfolder; splits; auto.
+    apply WF; ins. apply partial_id_set; auto.
+    split; auto. unfold partial_id_dom in REL1.
+    change E' with (acts_set (WCore.GC (WCore.Build_t G' G' C f'))).
+    eapply WCore.f_dom; ins.
+    eapply partial_id_dom_mori; eauto. }
+  { unfold WCore.co_delta. erewrite sub_lab; [| apply G_PREFIX].
+    rewrite unionA; apply union_more; auto.
+    rewrite unionC, IS_W; apply union_more; basic_solver 5. }
+  { apply union_more; auto.
+    unfold WCore.rmw_delta, eq_opt, W_ex.
+    split; [| basic_solver].
+    intros x y RMW'; unfolder in RMW'; desf.
+    exfalso; unfolder in NRMW; eauto. }
+  apply over_exec_wf; ins.
+  all: try now apply WF.
+  { rewrite partial_id_upd_dom. apply set_subset_union; auto.
+    apply wf_partial_id_dome; eauto. }
+  { rewrite <- restr_init_sub; eauto.
+    transitivity E; basic_solver. }
+  (* TODO prettify? *)
+  { arewrite (⦗E⦘ ⨾ rf' ⨾ ⦗eq h⦘ ≡ ∅₂).
+    { rewrite wf_rfD; [basic_solver | apply WF]. }
+    rewrite union_false_r, codom_union, set_inter_union_l.
+    arewrite (eq h ∩₁ R ≡₁ ∅).
+    { erewrite sub_lab; [| apply G_PREFIX]. basic_solver. }
+    rewrite set_union_empty_r. intros x IN.
+    apply WF in IN; ins.
+    destruct IN as [RF|CMT].
+    { left; left; auto. }
+    right.
+    apply partial_id_set in CMT; auto.
+    apply partial_id_set; auto.
+    split; [apply CMT|].
+    apply partial_id_upd_dom.
+    destruct (classic (x = h)); subst; rupd.
+    { now right. }
+    left; apply CMT. }
+  enough (CONT : contigious_actids (delta_G G G' h)).
+  { now apply CONT. }
+  eapply trace_form_sub; eauto.
+Qed.
+
+Lemma step_once_fence h t f f'
+    (F_ID : partial_id f')
+    (SUB_ID : sub_fun f f')
+    (WF : WCore.wf (WCore.Build_t G G' C f))
+    (WF' : WCore.wf (WCore.Build_t G' G' C f'))
+    (G_PREFIX : restr_exec E G' G)
+    (SUB_TRACE : exec_trace_prefix G' G)
+    (ENUM : reord_lemma_enum E E' C (h :: t))
+    (COH : trace_coherent traces G')
+    (IS_F : F' h) :
+  WCore.cfg_add_event_uninformative traces
+    (WCore.Build_t G                G' C f)
+    (WCore.Build_t (delta_G G G' h) G' C (upd f h (Some h))).
+Proof using THREAD_EVENTS.
+  (* Information about h *)
+  assert (IN_D : D h).
+  { apply ENUM; desf. }
+  assert (NOT_INIT : ~is_init h).
+  { apply ENUM; desf. }
+  assert (H_TID : tid h <> tid_init).
+  { eapply WCore.wf_actid_tid; eauto.
+    apply IN_D. }
+  assert (NOT_R : ~R' h).
+  { generalize IS_F; unfold is_f, is_r.
+    destruct (lab' h); auto. }
+  assert (NOT_W : ~W' h).
+  { generalize IS_F; unfold is_f, is_w.
+    destruct (lab' h); auto. }
+  assert (PART : partial_id f).
+  { eapply partial_id_mori; eauto. }
+  assert (DELTA_SUB : sub_execution G' (delta_G G G' h) ∅₂ ∅₂).
+  { eapply delta_G_sub; eauto; try now apply IN_D.
+    apply G_PREFIX. }
+  assert (DELTA_PREF : exec_trace_prefix G' (delta_G G G' h)).
+  { eapply delta_G_prefix; eauto; apply G_PREFIX. }
+  assert (DELTA_COH : trace_coherent traces (delta_G G G' h)).
+  { eapply trace_coherent_sub; eauto. }
+  assert (UPDID : partial_id (upd f h (Some h))).
+  { apply upd_partial_id. eapply partial_id_mori; eauto. }
+
+  exists h, (lab' h), None, None, ∅, ∅, (Some h).
+  constructor; ins.
+  { apply IN_D. }
+  { set (DCOH := DELTA_COH (tid h) H_TID). ins. desf.
+    unfold WCore.new_event_correct. desf.
+    { exists tr.
+      erewrite sub_lab; eauto.
+      erewrite delta_G_actid_trace_h in PREFIX; eauto; try now apply G_PREFIX.
+      split; ins. now rewrite Heq in PREFIX. }
+    set (FIN := WCore.all_trace_fin WF H_TID).
+    ins. rewrite Heq in FIN.
+    unfold trace_finite in FIN. desf. }
+  { erewrite sub_lab; [now rewrite updI | apply G_PREFIX]. }
+  { apply union_more; [apply union_more; auto |].
+    { rewrite wf_rfD; [basic_solver | apply WF]. }
+    unfold WCore.rf_delta_W.
+    rewrite partial_id_collect_eq, upds, partial_id_set.
+    all: eauto using upd_partial_id.
+    arewrite (codom_rel (⦗eq h⦘ ⨾ rf') ≡₁ ∅).
+    { rewrite wf_rfD; [basic_solver | apply WF]. }
+    arewrite (⦗eq h⦘ ⨾ rf' ⨾ ⦗E⦘ ≡ ∅₂).
+    { rewrite wf_rfD; [basic_solver | apply WF]. }
+    basic_solver. }
+  { unfold WCore.co_delta. erewrite sub_lab; [| apply G_PREFIX].
+    arewrite (⦗eq h⦘ ⨾ co' ⨾ ⦗E⦘ ≡ ∅₂).
+    { rewrite wf_coD; [basic_solver | apply WF]. }
+    arewrite (⦗E⦘ ⨾ co' ⨾ ⦗eq h⦘ ≡ ∅₂).
+    { rewrite wf_coD; [basic_solver | apply WF]. }
+    desf; basic_solver. }
+  { apply union_more; auto.
+    arewrite (⦗E⦘ ⨾ rmw' ⨾ ⦗eq h⦘ ≡ ∅₂).
+    { rewrite wf_rmwD; [basic_solver | apply WF]. }
+    unfold WCore.rmw_delta; basic_solver. }
+  apply over_exec_wf; ins.
+  all: try now apply WF.
+  { rewrite partial_id_upd_dom. apply set_subset_union; auto.
+    apply wf_partial_id_dome; eauto. }
+  { rewrite <- restr_init_sub; eauto.
+    transitivity E; basic_solver. }
+  (* TODO prettify? *)
+  { arewrite (⦗E⦘ ⨾ rf' ⨾ ⦗eq h⦘ ≡ ∅₂).
+    { rewrite wf_rfD; [basic_solver | apply WF]. }
+    arewrite (⦗eq h⦘ ⨾ rf' ⨾ ⦗E⦘ ≡ ∅₂).
+    { rewrite wf_rfD; [basic_solver | apply WF]. }
+    rewrite union_false_r, codom_union, set_inter_union_l,
+            codom_empty, set_union_empty_r.
+    arewrite (eq h ∩₁ R ≡₁ ∅).
+    { erewrite sub_lab; [| apply G_PREFIX]. basic_solver. }
+    rewrite set_union_empty_r.
+    intros x IN. apply WF in IN; ins.
+    destruct IN as [RF|CMT].
+    { left; auto. }
+    right.
+    (* TODO: this repeats. Lemma? *)
+    apply partial_id_set in CMT; auto.
+    apply partial_id_set; auto.
+    split; [apply CMT|].
+    apply partial_id_upd_dom.
+    destruct (classic (x = h)); subst; rupd.
+    { now right. }
+    left; apply CMT. }
+  enough (CONT : contigious_actids (delta_G G G' h)).
+  { now apply CONT. }
+  eapply trace_form_sub; eauto.
+Qed.
+
+(* NOTE: xmm is doing only prefix restriction *)
+Lemma step_once h t f f'
+    (F_ID : partial_id f')
+    (SUB_ID : sub_fun f f')
+    (WF : WCore.wf (WCore.Build_t G G' C f))
+    (WF' : WCore.wf (WCore.Build_t G' G' C f'))
+    (G_PREFIX : restr_exec E G' G)
+    (SUB_TRACE : exec_trace_prefix G' G)
+    (ENUM : reord_lemma_enum E E' C (h :: t))
+    (COH : trace_coherent traces G') :
+  WCore.cfg_add_event_uninformative traces
+    (WCore.Build_t G                G' C f)
+    (WCore.Build_t (delta_G G G' h) G' C (upd f h (Some h))).
+Proof using THREAD_EVENTS.
+  set (LAB := lab_rwf lab' h); desf.
+  { eapply step_once_read; eauto. }
+  { eapply step_once_write; eauto. }
+  eapply step_once_fence; eauto.
+Qed.
+
+End ReorderingSubLemma.
+
+Section ReorderingLemma.
+
+Variable traces : thread_id -> trace label -> Prop.
+
+Definition final_f G f :=
+  fun x => ifP acts_set G x then f x else Some x.
+
+Lemma steps C G G' l f f'
+    (FFEQ : f' = final_f G f)
+    (F_ID : partial_id f')
+    (SUB_ID : sub_fun f f')
+    (WF : WCore.wf (WCore.Build_t G G' C f))
+    (WF' : WCore.wf (WCore.Build_t G' G' C f'))
+    (G_PREFIX : restr_exec (acts_set G) G' G)
+    (SUB_TRACE : exec_trace_prefix G' G)
+    (ENUM : reord_lemma_enum G G' (acts_set G) (acts_set G') C l)
+    (COH : trace_coherent traces G')
+    (CONT : contigious_actids G') :
+  (WCore.cfg_add_event_uninformative traces)＊
+    (WCore.Build_t G G' C f)
+    (WCore.Build_t G' G' C f').
+Proof using.
+  generalize f G FFEQ SUB_ID WF G_PREFIX SUB_TRACE ENUM.
+  clear      f G FFEQ SUB_ID WF G_PREFIX SUB_TRACE ENUM.
+  induction l as [ | h t IHl]; ins.
+  { assert (GEQ : G = G').
+    { apply sub_eq.
+      { apply WF. }
+      { apply G_PREFIX. }
+      rewrite <- relenum_d; eauto; ins. }
+    assert (FEQ : f' = f).
+    { rewrite FFEQ. unfold final_f.
+      apply functional_extensionality; intro x; desf.
+      exfalso; apply n.
+      change G' with (WCore.GC (WCore.Build_t G' G' C (final_f G' f))).
+      eapply WCore.f_dom; ins.
+      unfold is_some, compose; ins.
+      unfold final_f. desf. }
+    rewrite GEQ, FEQ. apply rt_refl. }
+  assert (STEP : WCore.cfg_add_event_uninformative traces
+    (WCore.Build_t G                G' C f)
+    (WCore.Build_t (delta_G G G' h) G' C (upd f h (Some h)))).
+  { eapply step_once; eauto. }
+  apply rt_trans with (y := (WCore.Build_t (delta_G G G' h) G' C (upd f h (Some h)))).
+  { now apply rt_step. }
+  apply IHl.
+  { rewrite FFEQ; unfold final_f; apply functional_extensionality.
+    intro x; desf; destruct (classic (x = h)); subst; rupd; auto.
+    all: exfalso.
+    { eapply relenum_d; eauto; desf. }
+    all: apply n; ins.
+    { now right. }
+    { now left. }
+    unfolder in a; desf. }
+  { arewrite (Some h = f' h); auto using sub_fun_upd.
+    symmetry; rewrite FFEQ; unfold final_f.
+    desf. exfalso; eapply relenum_d; eauto; desf. }
+  { do 2 (red in STEP; desf). apply STEP. }
+  { constructor; ins.
+    { eapply delta_G_sub; eauto.
+      all: try now apply G_PREFIX.
+      eapply (WCore.wf_actid_tid WF').
+      all: apply ENUM; desf. }
+    rewrite set_inter_union_l.
+    arewrite (eq h ∩₁ is_init ≡₁ ∅).
+    { enough (~is_init h) by basic_solver.
+      apply ENUM; desf. }
+    rewrite set_union_empty_r.
+    apply G_PREFIX. }
+  { eapply delta_G_prefix; eauto.
+    apply G_PREFIX. }
+  constructor; ins.
+  { eapply nodup_consD, ENUM. }
+  { transitivity (fun x => In x (h :: t)); [ | apply ENUM].
+    unfolder; ins; desf; eauto. }
+  { arewrite ((fun x => In x t) ≡₁ (fun x => In x (h :: t)) \₁ eq h).
+    { ins; split; [| basic_solver].
+      intros x IN; unfolder; split; eauto.
+      intro F; subst.
+      apply nodup_cons with (x := x) (l := t); auto.
+      apply ENUM. }
+    rewrite relenum_d with (l := h :: t); eauto.
+    now rewrite set_minus_minus_l. }
+  { intros x y SB. unfolder in SB; desf.
+    assert (LT : total_order_from_list (h :: t) x y).
+    { eapply relenum_sb; unfolder; splits; ins; eauto. }
+    apply total_order_from_list_cons in LT; desf.
+    exfalso; eapply nodup_not_in.
+    { apply ENUM. }
+    { exact SB0. }
+    reflexivity. }
+  { intros x y RF. unfolder in RF; desf.
+    assert (LT : total_order_from_list (h :: t) x y).
+    { eapply relenum_rf; unfolder; splits; ins; eauto. }
+    apply total_order_from_list_cons in LT; desf.
+    exfalso; eapply nodup_not_in.
+    { apply ENUM. }
+    { exact RF2. }
+    reflexivity. }
+  intros x IN.
+  destruct (classic (h = x)) as [EQ|NEQ]; subst.
+  { apply ENUM; desf. }
+  eapply relenum_rf_w; eauto.
+  eapply dom_rel_mori; eauto; basic_solver.
+Qed.
+*)
