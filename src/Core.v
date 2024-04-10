@@ -199,7 +199,7 @@ Definition new_event_correct e : Prop :=
   match thread_trace G (tid e) with
   | trace_inf _ => False
   | trace_fin l =>
-    exists tr, traces (tid e) tr /\ trace_exec_prefix (trace_fin (l ++ [lab' e])) tr
+    exists tr, traces (tid e) tr /\ trace_prefix (trace_fin (l ++ [lab' e])) tr
   end.
 
 Record cfg_add_event_gen e r w W1 W2 :=
@@ -259,7 +259,6 @@ Notation "'hbloc'" := (same_loc ∩ hb).
 Notation "'re'" := (⦗W⦘ ⨾ (race ∪ hbloc) ⨾ ⦗R⦘).
 Notation "'rf''" := (rf G').
 Notation "'sb''" := (sb G).
-Notation "'rf''" := (rf G).
 Notation "'sb'" := (sb G).
 Notation "'rf'" := (rf G).
 
@@ -458,7 +457,7 @@ Qed.
 Lemma add_step_new_event_correct e
     (ADD_STEP : cfg_add_event traces X X' e) :
   exists tr, traces (tid e) tr /\
-    trace_exec_prefix (trace_app (thread_trace G (tid e)) (trace_fin [lab' e])) tr.
+    trace_prefix (trace_app (thread_trace G (tid e)) (trace_fin [lab' e])) tr.
 Proof using.
   red in ADD_STEP. desf.
   generalize (e_correct ADD_STEP).
