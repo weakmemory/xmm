@@ -251,12 +251,15 @@ Notation "'E'" := (acts_set G).
 Notation "'W'" := (is_w (lab G)).
 Notation "'R'" := (is_r (lab G)).
 Notation "'race'" := (race G).
+Notation "'lab''" := (lab G).
 Notation "'lab'" := (lab G).
 Notation "'same_loc'" := (same_loc lab).
 Notation "'hb'" := (hb G).
 Notation "'hbloc'" := (same_loc ∩ hb).
 Notation "'re'" := (⦗W⦘ ⨾ (race ∪ hbloc) ⨾ ⦗R⦘).
 Notation "'rf''" := (rf G').
+Notation "'sb''" := (sb G).
+Notation "'rf''" := (rf G).
 Notation "'sb'" := (sb G).
 Notation "'rf'" := (rf G).
 
@@ -271,6 +274,11 @@ Record reexec_gen f : Prop :=
   f_inj : inj_dom (is_some ∘ f) f;
   d_wre_sub_f : D ∪₁ Wre ⊆₁ is_some ∘ f;
   rf_sub_f : rfre ⊆ Some ↓ (f ↑ rf');
+  f_rfD : E ∩₁ R ⊆₁ codom_rel rf ∪₁ (Some ↓₁ (f ↑₁ E'));
+  f_sb : Some ↓ (f ↑ restr_rel (is_some ∘ f) sb') ⊆ sb;
+  f_rf : Some ↓ (f ↑ restr_rel (is_some ∘ f) rf') ⊆ rf;
+  f_tid : (fun x y => f x = Some y) ⊆ same_tid;
+  f_lab : forall ec e (MAPPED : f e = Some ec), lab' ec = lab e;
   (* Correct start *)
   rf_sub_re : rfre ⊆ re;
   cfg_wf : wf (Build_t G G' (is_some ∘ f));
