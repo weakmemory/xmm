@@ -311,6 +311,61 @@ Proof using.
   unfolder; split; ins; desf.
 Qed.
 
+Lemma wf_rmwf G
+    (WF : Wf G) :
+  functional (rmw G).
+Proof using.
+  unfolder; intros x y z RMW1 RMW2.
+  assert (XR : is_r (lab G) x).
+  { apply wf_rmwD in RMW1; auto. unfolder in RMW1; desf. }
+  assert (XE : acts_set G x).
+  { apply wf_rmwE in RMW1; auto. unfolder in RMW1; desf. }
+  assert (NINIT : ~is_init x).
+  { intro F. destruct x as [l | ]; ins.
+    unfold is_r in XR. rewrite wf_init_lab in XR; desf. }
+  destruct (classic (y = z)) as [EQ|EQ]; ins.
+  apply wf_rmwi, immediateE in RMW1, RMW2; auto.
+  unfolder in RMW1; unfolder in RMW2; desf.
+  destruct sb_total with (G := G) (t := tid x)
+                         (a := y) (b := z); ins.
+  all: try now exfalso; eauto.
+  all: unfolder; splits.
+  all: try by (symmetry; eapply ninit_sb_same_tid; unfolder; split; eauto).
+  { unfold sb in RMW1; unfolder in RMW1; desf. }
+  { apply no_sb_to_init in RMW1; unfolder in RMW1; desf. }
+  { unfold sb in RMW2; unfolder in RMW2; desf. }
+  apply no_sb_to_init in RMW2; unfolder in RMW2; desf.
+Qed.
+
+Lemma wf_rmwf2 G
+    (WF : Wf G) :
+  functional ((rmw G) ⁻¹).
+Proof using.
+  unfolder; intros x y z RMW1 RMW2.
+  assert (YR : is_r (lab G) y).
+  { apply wf_rmwD in RMW1; auto. unfolder in RMW1; desf. }
+  assert (ZR : is_r (lab G) z).
+  { apply wf_rmwD in RMW2; auto. unfolder in RMW2; desf. }
+  assert (YE : acts_set G y).
+  { apply wf_rmwE in RMW1; auto. unfolder in RMW1; desf. }
+  assert (ZE : acts_set G z).
+  { apply wf_rmwE in RMW2; auto. unfolder in RMW2; desf. }
+  assert (YNINIT : ~is_init y).
+  { intro F. destruct y as [l | ]; ins.
+    unfold is_r in YR. rewrite wf_init_lab in YR; desf. }
+  assert (ZNINIT : ~is_init z).
+  { intro F. destruct z as [l | ]; ins.
+    unfold is_r in ZR. rewrite wf_init_lab in ZR; desf. }
+  destruct (classic (y = z)) as [EQ|EQ]; ins.
+  apply wf_rmwi, immediateE in RMW1, RMW2; auto.
+  unfolder in RMW1; unfolder in RMW2; desf.
+  destruct sb_total with (G := G) (t := tid x)
+                         (a := y) (b := z); ins.
+  all: try now exfalso; eauto.
+  all: unfolder; splits; eauto.
+  all: try by (eapply ninit_sb_same_tid; unfolder; split; eauto).
+Qed.
+
 Section PartialId.
 
 Variable A : Type.

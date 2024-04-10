@@ -690,10 +690,31 @@ Proof using.
   unfold thread_seq_set, seq_set; unfolder; eauto.
 Qed.
 
+Lemma step_once_write_helper
+    (WF : WCore.wf X)
+    (NIN : ~E h) :
+  ⦗eq h⦘ ⨾ rf' ⨾ ⦗E⦘ ≡ ⦗eq h⦘ ⨾ rf' ⨾ ⦗cmt ∩₁ E⦘.
+Proof using.
+  split; [| basic_solver].
+  unfolder. intros h' r (EQ & RF & INE); subst h'.
+  splits; auto. edestruct (WCore.sub_rfD) as [RFD | CMT]; eauto.
+  { split; auto. apply wf_rfD in RF; [| apply WF].
+    ins; unfolder in RF; desf.
+    erewrite sub_lab with (G := G'); ins.
+    apply WF. }
+  exfalso.
+  unfolder in RFD; ins; desf.
+  eapply sub_rf in RFD; [| apply WF].
+  unfolder in RFD; ins; desf.
+  apply NIN; erewrite wf_rff with (y := h) (z := x).
+  all: eauto.
+  apply WF.
+Qed.
+
 (* FIXME: this proof contains a lot of copy-paste *)
 Lemma step_once_write
-    (WF : WCore.wf (WCore.Build_t G G' cmt))
-    (WF' : WCore.wf (WCore.Build_t G' G' cmt))
+    (WF : WCore.wf X)
+    (WF' : WCore.wf X_fin)
     (ENUM : enumd_diff G G' cmt (h :: t))
     (COH : trace_coherent traces G')
     (IS_W : W' h) :
@@ -723,8 +744,7 @@ Proof using.
     { apply union_more; [apply union_more; auto |].
       { rewrite wf_rfD; [basic_solver | apply WF]. }
       unfold WCore.rf_delta_W. rewrite IS_W.
-      split; [| basic_solver].
-      admit. }
+      apply step_once_write_helper; auto; apply IN_D. }
     { unfold WCore.co_delta. rewrite IS_W.
       rewrite unionA; apply union_more; auto.
       rewrite unionC; apply union_more; basic_solver 5. }
@@ -733,26 +753,7 @@ Proof using.
       split; [| basic_solver].
       intros x y RMW'; unfolder in RMW'; desf.
       arewrite (x = r); [| basic_solver].
-      assert (IS_R' : R' x).
-      { apply wf_rmwD in RMW'0; [| apply WF].
-        unfolder in RMW'0; desf. }
-      apply wf_rmwi in RMW'0; [| apply WF].
-      apply wf_rmwi in RMW; [| apply WF].
-      assert (X_NINIT : ~is_init x).
-      { unfold is_r in IS_R'; destruct x; auto.
-        now rewrite wf_init_lab in IS_R'; [| apply WF]. }
-      assert (R_NINIT : ~is_init r). (* TODO: move *)
-      (* TODO: shorthand lemma *)
-      { unfold is_r in IS_R; destruct r; auto.
-        now rewrite wf_init_lab in IS_R; [| apply WF]. }
-      eapply total_immediate_unique with
-        (P := (E' \₁ is_init) ∩₁ (fun x => tid x = tid y)).
-      all: eauto using sb_total.
-      all: unfolder; splits; eauto.
-      all: try now apply (pfx_sub (WCore.pfx WF)).
-      { apply immediate_in, sb_tid_init in RMW'0; desf. }
-      { apply immediate_in, sb_tid_init in RMW; desf. }
-      apply IN_D. }
+      eapply wf_rmwf2 with (G := G'); eauto; apply WF. }
     apply X_prime_wf_helper; eauto; apply IN_D. }
 
   (* Case 2: no rmw *)
@@ -764,8 +765,7 @@ Proof using.
   { apply union_more; [apply union_more; auto |].
     { rewrite wf_rfD; [basic_solver | apply WF]. }
     unfold WCore.rf_delta_W. rewrite IS_W.
-    split; [| basic_solver].
-    admit. }
+    apply step_once_write_helper; auto; apply IN_D. }
   { unfold WCore.co_delta. rewrite IS_W.
     rewrite unionA; apply union_more; auto.
     rewrite unionC; apply union_more; basic_solver 5. }
@@ -775,7 +775,7 @@ Proof using.
     intros x y RMW'; unfolder in RMW'; desf.
     exfalso; unfolder in NRMW; eauto. }
   apply X_prime_wf_helper; eauto; apply IN_D.
-Admitted.
+Qed.
 
 Lemma step_once_fence
     (WF : WCore.wf X)
