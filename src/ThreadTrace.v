@@ -26,6 +26,11 @@ Qed.
 Lemma seq_set_S n : seq_set (S n) ≡₁ seq_set n ∪₁ eq n.
 Proof using. unfolder; splits; ins; desf; lia. Qed.
 
+Lemma seq_nset n k : ~seq_set n k <-> n <= k.
+Proof using.
+  unfolder; lia.
+Qed.
+
 Lemma seq_set_sub n n'
     (LE : n' <= n) :
   seq_set n' ⊆₁ seq_set n.
@@ -75,6 +80,35 @@ Lemma thread_seq_set_sub t n n'
 Proof using.
   unfold thread_seq_set.
   now apply set_subset_collect, seq_set_sub.
+Qed.
+
+Lemma thread_set_iff t k n :
+  thread_seq_set t n (ThreadEvent t k) <-> k < n.
+Proof using.
+  unfolder; split; ins; desf. eauto.
+Qed.
+
+Lemma thread_set_niff t k n :
+  ~thread_seq_set t n (ThreadEvent t k) <-> n <= k.
+Proof using.
+  unfolder; split.
+  { destruct (classic (k < n)) as [LT|LT]; try lia.
+    ins; exfalso; eauto. }
+  intros LE F; desf. lia.
+Qed.
+
+Lemma thread_set_diff t n n' :
+  thread_seq_set t n' \₁ thread_seq_set t n ≡₁
+  ThreadEvent t ↑₁ (fun x => n <= x < n').
+Proof using.
+  rewrite <- seq_set_diff.
+  unfolder; split; ins; desf.
+  { exists y; split; try easy.
+    split; try easy.
+    destruct (classic (y < n)) as [LT|LT]; eauto. }
+  split; eauto.
+  apply all_not_not_ex.
+  intros n'' F; desf.
 Qed.
 
 Section ThreadTrace.
@@ -329,7 +363,7 @@ Proof using.
   ins. specialize (TRACE_COH thr NOT_INIT). desf.
   exists tr. splits; auto. specialize (PREFIX thr).
   assert (THREAD_PREF : trace_prefix (thread_trace G' thr) (thread_trace G thr)).
-  { unfold thread_trace. destruct SUB. rewrite sub_lab. 
+  { unfold thread_trace. destruct SUB. rewrite sub_lab.
     unfold trace_map. desf.
     { unfold trace_prefix. ins. desf.
       exists (map (lab G) l'').
@@ -340,7 +374,7 @@ Proof using.
       rewrite nth_indep with (d' := lab G (ThreadEvent thr 0)),
       map_nth; [| now rewrite map_length].
       now f_equal. }
-      unfold trace_prefix. ins. now f_equal. } 
+      unfold trace_prefix. ins. now f_equal. }
   eapply trace_prefix_trans. { apply THREAD_PREF. }
   apply PREFIX0.
 Qed.
@@ -350,8 +384,7 @@ Lemma trace_form_sub G G'
     (PREFIX : exec_trace_prefix G G') :
   contigious_actids G'.
 Proof using.
-  admit. 
-Admitted. 
+  admit.
+Admitted.
 
-  
-  
+
