@@ -22,7 +22,6 @@ Section DeltaGraph.
 
 Variable G G' : execution.
 Variable cmt : actid -> Prop.
-Variable g2gc : actid -> option actid.
 Variable h : actid.
 
 Notation "'lab''" := (lab G').
@@ -53,11 +52,6 @@ Notation "'W'" := (fun x => is_w lab x).
 Notation "'R'" := (fun x => is_r lab x).
 Notation "'F'" := (fun x => is_r lab x).
 
-Definition g2gc_fin x :=
-    ifP E x then g2gc x
-    else ifP E' x then Some x
-    else None.
-
 Definition delta_G := {|
   acts_set := E ∪₁ eq h;
   threads_set := threads_set G;
@@ -74,67 +68,18 @@ Definition delta_G := {|
 Notation "'X'" := ({|
   WCore.G := G;
   WCore.GC := G';
-  WCore.g2gc := g2gc;
   WCore.cmt := cmt;
 |}).
 Notation "'X''" := ({|
   WCore.G := delta_G;
   WCore.GC := G';
-  WCore.g2gc := upd g2gc h (Some h);
   WCore.cmt := cmt;
 |}).
 Notation "'X_fin'" := ({|
   WCore.G := G';
   WCore.GC := G';
-  WCore.g2gc := g2gc_fin;
   WCore.cmt := cmt;
 |}).
-
-
-Lemma over_exec_wf
-    (WF : Wf G')
-    (F_ID : partial_id g2gc)
-    (CTRL : ctrl' ≡ ∅₂)
-    (ADDR : addr' ≡ ∅₂)
-    (DATA : data' ≡ ∅₂)
-    (A_CORRECT : partial_id_dom g2gc ⊆₁ E)
-    (C_CORRECT : cmt ⊆₁ E')
-    (SUB_INIT : E' ∩₁ is_init ⊆₁ E)
-    (G_RF_D : E ∩₁ R ⊆₁ codom_rel rf ∪₁ (Some ↓₁ (g2gc ↑₁ cmt)))
-    (G_TIDS : (tid ↓₁ eq tid_init) ∩₁ E' ⊆₁ is_init)
-    (G_ACTS : forall thr (NOT_INIT : thr <> tid_init),
-      exists N, E ∩₁ (fun x => thr = tid x) ≡₁ thread_seq_set thr N)
-    (SUB : sub_execution G' G ∅₂ ∅₂) :
-  WCore.wf X.
-Proof using.
-  unfold partial_id_dom in *.
-  assert (ACT_SUB : E ⊆₁ E').
-  { apply SUB. }
-  constructor; ins.
-  { rewrite sub_ctrl, CTRL; eauto; basic_solver. }
-  { rewrite sub_addr, ADDR; eauto; basic_solver. }
-  { rewrite sub_data, DATA; eauto; basic_solver. }
-  { eapply sub_WF; eauto. now rewrite set_interC. }
-  { now rewrite ACT_SUB. }
-  { transitivity E; auto; apply A_CORRECT. }
-  { rewrite partial_id_set; eauto; basic_solver. }
-  { now apply partial_id_inj. }
-  { rewrite sub_sb with (G' := G), partial_id_rel, !restr_relE; eauto.
-    basic_solver. }
-  { rewrite sub_rf with (G' := G), partial_id_rel, !restr_relE; eauto.
-    basic_solver. }
-  { rewrite partial_id_sub_eq; auto; basic_solver. }
-  { unfold WCore.unwrap_g2gc, same_lab_u2v_dom,
-          is_some, compose.
-    unfolder. ins. desf.
-    erewrite sub_lab, (F_ID e a); eauto.
-    red. desf. }
-  unfold compose, is_some in SOME.
-  unfold WCore.unwrap_g2gc, val.
-  erewrite sub_lab; eauto.
-  ins. destruct (g2gc c) eqn:HEQ; ins.
-  apply F_ID in HEQ; now subst.
-Qed.
 
 Lemma delta_G_sub
     (NOT_INIT : tid h <> tid_init)
@@ -202,15 +147,42 @@ Qed.
 
 Lemma delta_G_cont_ids
     (HIN : E' h)
-    (PREFIX : exec_trace_prefix G' G)
-    (CONTFIN : contigious_actids G')
-    (CONT : contigious_actids G)
-    (NEXT : dom_rel (same_tid ∩ (sb ⨾ ⦗eq h⦘)) ≡₁ same_tid h ∩₁ E)
+    (NIN : ~E h)
+    (PREFIX : exec_prefix G' G)
+    (NEXT : forall x (IN_D : (E' \₁ E) x), ~ sb' x h)
     (SUB : sub_execution G' G ∅₂ ∅₂) :
   contigious_actids delta_G.
 Proof using.
-  apply trace_form_sub with (G := G'); auto.
-  now apply delta_G_prefix.
+  unfold contigious_actids; ins.
+  set (CONT1 := pfx_cont1 PREFIX NOT_INIT).
+  set (CONT2 := pfx_cont2 PREFIX NOT_INIT).
+  destruct CONT1 as [N1 CONT1], CONT2 as [N2 CONT2].
+  destruct (classic (t = tid h)); subst.
+  { exists (1 + N2).
+    rewrite thread_set_S, set_inter_union_l, CONT2.
+    arewrite (eq h ∩₁ same_tid h ≡₁ eq h) by basic_solver.
+    apply set_union_more; auto. apply set_equiv_single_single.
+    destruct h as [l | ht hid]; unfold same_tid in *; ins.
+    f_equal.
+    assert (LT : hid < N1).
+    { eapply thread_set_iff, CONT1.
+      split; auto. }
+    apply PeanoNat.Nat.le_antisymm.
+    { apply Compare_dec.not_gt. intro GT.
+      apply NEXT with (x := ThreadEvent ht (hid - 1)).
+      { apply set_subset_single_l.
+        transitivity ((E' ∩₁ (fun e => ht = tid e)) \₁
+                      (E ∩₁ (fun e => ht = tid e))); [| basic_solver].
+        rewrite CONT1, CONT2, thread_set_diff. apply set_subset_single_l.
+        unfolder; ins; desf. exists (hid - 1). split; auto.
+        lia. }
+      unfold sb, ext_sb; ins. unfolder; splits; auto; try lia.
+      apply in_restr_acts, CONT1, thread_set_iff. lia. }
+    eapply thread_set_niff. intro F.
+    apply CONT2, in_restr_acts in F; auto. }
+  exists N2.
+  rewrite set_inter_union_l, CONT2.
+  arewrite (eq h ∩₁ (fun e => t = tid e) ≡₁ ∅); basic_solver.
 Qed.
 
 Lemma delta_G_actid_trace_h
