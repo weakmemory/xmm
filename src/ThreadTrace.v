@@ -378,13 +378,3 @@ Proof using.
   eapply trace_prefix_trans. { apply THREAD_PREF. }
   apply PREFIX0.
 Qed.
-
-Lemma trace_form_sub G G'
-    (CONT : contigious_actids G)
-    (PREFIX : exec_trace_prefix G G') :
-  contigious_actids G'.
-Proof using.
-  admit.
-Admitted.
-
-
