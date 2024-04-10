@@ -36,8 +36,8 @@ Record restr_exec (D : actid -> Prop) (G G'' : execution) : Prop :=
                      acts_set G ∩₁ is_init;
   }.
 
-(* G' is prefix of G *)
-Record prefix G G' : Prop := {
+(* G' is exec_prefix of G *)
+Record exec_prefix G G' : Prop := {
   pfx_sub : sub_execution G G' ∅₂ ∅₂;
   pfx_cont1 : contigious_actids G;
   pfx_cont2 : contigious_actids G';
@@ -136,7 +136,7 @@ Record wf : Prop := {
   sub_rf : restr_rel (cmt ∩₁ E) rfc ⊆ rf;
   sub_rfD : E ∩₁ R ⊆₁ codom_rel rf ∪₁ cmt;
 
-  pfx : prefix GC G;
+  pfx : exec_prefix GC G;
 }.
 
 End CoreDefs.
@@ -199,7 +199,7 @@ Definition new_event_correct e : Prop :=
   match thread_trace G (tid e) with
   | trace_inf _ => False
   | trace_fin l =>
-    exists tr, traces (tid e) tr /\ trace_prefix (trace_fin (l ++ [lab' e])) tr
+    exists tr, traces (tid e) tr /\ trace_exec_prefix (trace_fin (l ++ [lab' e])) tr
   end.
 
 Record cfg_add_event_gen e r w W1 W2 :=
@@ -458,7 +458,7 @@ Qed.
 Lemma add_step_new_event_correct e
     (ADD_STEP : cfg_add_event traces X X' e) :
   exists tr, traces (tid e) tr /\
-    trace_prefix (trace_app (thread_trace G (tid e)) (trace_fin [lab' e])) tr.
+    trace_exec_prefix (trace_app (thread_trace G (tid e)) (trace_fin [lab' e])) tr.
 Proof using.
   red in ADD_STEP. desf.
   generalize (e_correct ADD_STEP).
