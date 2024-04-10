@@ -26,16 +26,6 @@ Set Implicit Arguments.
     <acts_set; threads_set; lab; rmw; data; addr; ctrl; rmw_dep; rf; co>
 .
 
-Definition f_restr (D : actid -> Prop) (f : actid -> option actid) : actid -> option actid :=
-  (restr_fun (Some ↓₁ (f ↑₁ D)) f (fun x => None)).
-
-Record restr_exec (D : actid -> Prop) (G G'' : execution) : Prop :=
-  { restr_sub_G : sub_execution G G'' ∅₂ ∅₂;
-    restr_acts_D : acts_set G'' ≡₁ D;
-    restr_init_sub : acts_set G'' ∩₁ is_init ≡₁
-                     acts_set G ∩₁ is_init;
-  }.
-
 (* G' is exec_prefix of G *)
 Record exec_prefix G G' : Prop := {
   pfx_sub : sub_execution G G' ∅₂ ∅₂;
@@ -77,11 +67,8 @@ Record t := {
 Definition init_exec G : execution :=
   Build_execution (acts_set G ∩₁ is_init) (threads_set G) (lab G) ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂.
 
-Definition empty_cfg G : t := {| GC := G; G := (init_exec G); cmt := ∅ |}.
-Definition triv_cfg G : t := {| GC := G; G := G; cmt := ∅ |}.
-
 #[global]
-Hint Unfold init_exec empty_cfg f_restr : unfolderDb.
+Hint Unfold init_exec : unfolderDb.
 
 Section Consistency.
 
@@ -234,7 +221,10 @@ Variables G G' : execution.
 Variable traces : thread_id -> trace label -> Prop.
 
 Record exec_inst e := {
-  add_event : cfg_add_event traces (triv_cfg G) (triv_cfg G') e;
+  add_event : cfg_add_event traces
+    (Build_t G G' ∅)
+    (Build_t G' G' ∅)
+    e;
   next_cons : is_cons G';
 }.
 
@@ -251,7 +241,7 @@ Notation "'E'" := (acts_set G).
 Notation "'W'" := (is_w (lab G)).
 Notation "'R'" := (is_r (lab G)).
 Notation "'race'" := (race G).
-Notation "'lab''" := (lab G).
+Notation "'lab''" := (lab G').
 Notation "'lab'" := (lab G).
 Notation "'same_loc'" := (same_loc lab).
 Notation "'hb'" := (hb G).
@@ -319,6 +309,16 @@ Proof using WF.
   eapply sub_WF; try now apply WF.
 Qed.
 
+Lemma wf_g_cont : contigious_actids G.
+Proof using WF.
+  apply WF.
+Qed.
+
+Lemma wf_gc_cont : contigious_actids GC.
+Proof using WF.
+  apply WF.
+Qed.
+
 Lemma wf_g_acts : (tid ↓₁ eq tid_init) ∩₁ E ⊆₁ is_init.
 Proof using WF.
   transitivity (tid ↓₁ eq tid_init ∩₁ EC); try now apply WF.
@@ -345,14 +345,12 @@ Proof using WF.
   { apply ext_sb_to_non_init in SB.
     unfolder in SB; desf. }
   assert (Y_TID : tid y = tid x).
-  { set (COND := ext_sb_tid_init x y SB).
-    destruct COND; auto. destruct x; ins. }
-  destruct x as [lx | tidx ix], y as [ly | tidy iy]; ins.
-  set (ACTS := pfx_cont2 (pfx WF) XNOT_INIT). desf.
-  rewrite in_restr_acts in *. unfold same_tid in *. ins.
-  apply ACTS; apply ACTS in IN.
-  unfolder; unfolder in IN; desf.
-  exists ix; split; auto; lia.
+  { destruct (ext_sb_tid_init x y SB); auto.
+    destruct x; ins. }
+  unfold ext_sb in SB; desf; ins; desf.
+  set (ACTS := wf_g_cont XNOT_INIT). desf.
+  apply in_restr_acts, ACTS, thread_set_iff in IN.
+  apply ACTS, thread_set_iff. lia.
 Qed.
 
 Lemma wf_set_sz thr N
@@ -360,7 +358,7 @@ Lemma wf_set_sz thr N
     (SZ_EQ : set_size (E ∩₁ (fun e => thr = tid e)) = NOnum N) :
   E ∩₁ (fun e => thr = tid e) ≡₁ thread_seq_set thr N.
 Proof using WF.
-  set (HEQ := pfx_cont2 (pfx WF) NOT_INIT). desf.
+  set (HEQ := wf_g_cont NOT_INIT). desf.
   rewrite HEQ in *.
   now apply thread_seq_N_eq_set_size.
 Qed.
@@ -379,7 +377,7 @@ Lemma all_trace_fin t
     (NOT_INIT : t <> tid_init) :
   trace_finite (thread_trace G t).
 Proof using WF.
-  set (CONT := pfx_cont2 (pfx WF) NOT_INIT). desf.
+  set (CONT := wf_g_cont NOT_INIT). desf.
   unfold thread_trace, trace_finite.
   eexists. erewrite thread_actid_trace_form; eauto.
   ins.
@@ -464,6 +462,7 @@ Proof using.
   unfold new_event_correct. desf.
 Qed.
 
+(* NOTE: might be good as a standalone lemma *)
 Lemma add_step_trace_coh e
     (WF : wf X)
     (ADD_STEP : cfg_add_event traces X X' e)
@@ -472,10 +471,7 @@ Lemma add_step_trace_coh e
 Proof using.
   red. ins.
   destruct (classic (thr = (tid e))) as [HEQ_TIDE|HEQ_TIDE].
-  { subst.
-    assert (HEQ : exists N, E ∩₁ same_tid e ≡₁ thread_seq_set (tid e) N).
-    { now apply WF. }
-    desf.
+  { subst. set (EQ := wf_g_cont WF NOT_INIT). desf.
     erewrite add_step_trace_eq; eauto using add_step_new_event_correct.
     erewrite set_size_equiv, thread_seq_set_size; eauto. }
   set (HCORR := G_COH thr NOT_INIT). desf.
@@ -484,10 +480,10 @@ Proof using.
   { now rewrite NO_CHANGE. }
   unfold thread_trace. erewrite same_lab; eauto.
   f_equal. red in ADD_STEP; desf.
-  unfold thread_actid_trace.
-  rewrite e_new; eauto.
-  arewrite ((E ∪₁ eq e) ∩₁ (fun x => thr = tid x) ≡₁ E ∩₁ (fun x => thr = tid x)).
-  all: basic_solver.
+  unfold thread_actid_trace. rewrite ADD_STEP.(e_new).
+  rewrite set_inter_union_l.
+  arewrite (eq e ∩₁ (fun x => thr = tid x) ≡₁ ∅); [basic_solver |].
+  now rewrite set_union_empty_r.
 Qed.
 
 End WCoreStepProps.
