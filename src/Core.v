@@ -115,7 +115,7 @@ Record wf : Prop := {
   cc_data_empty : datac ≡ ∅₂;
 
   wf_gc : Wf GC;
-  wf_g_init : is_init ∩₁ EC ⊆₁ E;
+  wf_g_init : EC ∩₁ is_init ⊆₁ E;
   wf_gc_acts : (tid ↓₁ eq tid_init) ∩₁ EC ⊆₁ is_init;
 
   C_sub_EC : cmt ⊆₁ EC;
@@ -150,8 +150,8 @@ Definition rf_delta_R (w : option actid) :=
   | _ => ∅₂
   end.
 
-Definition rf_delta_W : relation actid :=
-  if R e then ⦗eq e⦘ ⨾ rfc
+Definition rf_delta_W E : relation actid :=
+  if W e then ⦗eq e⦘ ⨾ rfc ⨾ ⦗E⦘
   else ∅₂.
 
 Definition co_delta (W1 W2 : actid -> Prop) : relation actid :=
@@ -198,7 +198,7 @@ Record cfg_add_event_gen e r w W1 W2 :=
   cmt_graph_same : GC' = GC;
 
   (* Skipping condition for sb *)
-  rf_new : rf G' ≡ rf G ∪ rf_delta_R GC e w ∪ rf_delta_W GC e;
+  rf_new : rf G' ≡ rf G ∪ rf_delta_R GC e w ∪ rf_delta_W GC e (cmt ∩₁ E);
   co_new : co G' ≡ co G ∪ co_delta GC e W1 W2;
   rmw_new : rmw G' ≡ rmw G ∪ rmw_delta GC e r;
 
@@ -307,6 +307,7 @@ Notation "'E'" := (acts_set G).
 Lemma wf_g : Wf G.
 Proof using WF.
   eapply sub_WF; try now apply WF.
+  rewrite set_interC; apply WF.
 Qed.
 
 Lemma wf_g_cont : contigious_actids G.
@@ -381,6 +382,13 @@ Proof using WF.
   unfold thread_trace, trace_finite.
   eexists. erewrite thread_actid_trace_form; eauto.
   ins.
+Qed.
+
+Lemma wf_trace_prefix : exec_trace_prefix GC G.
+Proof using WF.
+  unfold exec_trace_prefix; ins.
+  apply thread_actid_trace_prefix, set_subset_inter; auto.
+  apply WF.
 Qed.
 
 End WCoreWfProps.
