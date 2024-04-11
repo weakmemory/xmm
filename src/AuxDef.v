@@ -366,6 +366,15 @@ Proof using.
   all: try by (eapply ninit_sb_same_tid; unfolder; split; eauto).
 Qed.
 
+Lemma set_minus_union_r A (s1 s2 s3 : A -> Prop) :
+  s1 \₁ (s2 ∪₁ s3) ≡₁ s1 \₁ s2 \₁ s3.
+Proof using.
+  split; unfolder; ins; desf.
+  { splits; auto. }
+  splits; auto.
+  apply and_not_or; auto.
+Qed.
+
 Section PartialId.
 
 Variable A : Type.

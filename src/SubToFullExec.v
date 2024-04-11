@@ -300,6 +300,13 @@ Notation "'X_fin'" := ({|
   WCore.cmt := cmt;
 |}).
 
+Lemma enumd_elems_inter l
+    (ENUM : enumd_diff l) :
+  (fun x => In x l) ∩₁ E' ≡₁ (fun x => In x l).
+Proof using.
+  rewrite <- ENUM.(diff_elems l); basic_solver.
+Qed.
+
 Lemma enumd_head_most_sb h t
     (ENUM : enumd_diff (h :: t)) :
   forall x (IN_D : (E' \₁ E) x), ~ sb' x h.
@@ -841,117 +848,55 @@ End SuBToFullExecCases.
 
 End SubToFullExecInternal.
 
-(*
-
-
-
-(* NOTE: xmm is doing only prefix restriction *)
-
-End ReorderingSubLemma.
-
-Section ReorderingLemma.
+Section SubToFullExec.
 
 Variable traces : thread_id -> trace label -> Prop.
 
-Definition final_f G f :=
-  fun x => ifP acts_set G x then f x else Some x.
-
-Lemma steps C G G' l f f'
-    (FFEQ : f' = final_f G f)
-    (F_ID : partial_id f')
-    (SUB_ID : sub_fun f f')
-    (WF : WCore.wf (WCore.Build_t G G' C f))
-    (WF' : WCore.wf (WCore.Build_t G' G' C f'))
-    (G_PREFIX : restr_exec (acts_set G) G' G)
-    (SUB_TRACE : exec_trace_prefix G' G)
-    (ENUM : reord_lemma_enum G G' (acts_set G) (acts_set G') C l)
-    (COH : trace_coherent traces G')
-    (CONT : contigious_actids G') :
+Lemma sub_to_full_exec G G' cmt l
+    (WF : WCore.wf (WCore.Build_t G G' cmt))
+    (WF' : WCore.wf (WCore.Build_t G' G' cmt))
+    (ENUM : SubToFullExecInternal.enumd_diff G G' cmt l)
+    (COH : trace_coherent traces G') :
   (WCore.cfg_add_event_uninformative traces)＊
-    (WCore.Build_t G G' C f)
-    (WCore.Build_t G' G' C f').
+    (WCore.Build_t G G' cmt)
+    (WCore.Build_t G' G' cmt).
 Proof using.
-  generalize f G FFEQ SUB_ID WF G_PREFIX SUB_TRACE ENUM.
-  clear      f G FFEQ SUB_ID WF G_PREFIX SUB_TRACE ENUM.
+  generalize G WF ENUM.
+  clear      G WF ENUM.
   induction l as [ | h t IHl]; ins.
-  { assert (GEQ : G = G').
-    { apply sub_eq.
-      { apply WF. }
-      { apply G_PREFIX. }
-      rewrite <- relenum_d; eauto; ins. }
-    assert (FEQ : f' = f).
-    { rewrite FFEQ. unfold final_f.
-      apply functional_extensionality; intro x; desf.
-      exfalso; apply n.
-      change G' with (WCore.GC (WCore.Build_t G' G' C (final_f G' f))).
-      eapply WCore.f_dom; ins.
-      unfold is_some, compose; ins.
-      unfold final_f. desf. }
-    rewrite GEQ, FEQ. apply rt_refl. }
+  { arewrite (G = G'); [| apply rt_refl].
+    eapply SubToFullExecInternal.enum_diff_done; eauto. }
+  set (delta_G := SubToFullExecInternal.delta_G G G' h).
   assert (STEP : WCore.cfg_add_event_uninformative traces
-    (WCore.Build_t G                G' C f)
-    (WCore.Build_t (delta_G G G' h) G' C (upd f h (Some h)))).
-  { eapply step_once; eauto. }
-  apply rt_trans with (y := (WCore.Build_t (delta_G G G' h) G' C (upd f h (Some h)))).
-  { now apply rt_step. }
-  apply IHl.
-  { rewrite FFEQ; unfold final_f; apply functional_extensionality.
-    intro x; desf; destruct (classic (x = h)); subst; rupd; auto.
-    all: exfalso.
-    { eapply relenum_d; eauto; desf. }
-    all: apply n; ins.
-    { now right. }
-    { now left. }
-    unfolder in a; desf. }
-  { arewrite (Some h = f' h); auto using sub_fun_upd.
-    symmetry; rewrite FFEQ; unfold final_f.
-    desf. exfalso; eapply relenum_d; eauto; desf. }
-  { do 2 (red in STEP; desf). apply STEP. }
-  { constructor; ins.
-    { eapply delta_G_sub; eauto.
-      all: try now apply G_PREFIX.
-      eapply (WCore.wf_actid_tid WF').
-      all: apply ENUM; desf. }
-    rewrite set_inter_union_l.
-    arewrite (eq h ∩₁ is_init ≡₁ ∅).
-    { enough (~is_init h) by basic_solver.
-      apply ENUM; desf. }
-    rewrite set_union_empty_r.
-    apply G_PREFIX. }
-  { eapply delta_G_prefix; eauto.
-    apply G_PREFIX. }
+    (WCore.Build_t G                G' cmt)
+    (WCore.Build_t delta_G          G' cmt)).
+  { eapply SubToFullExecInternal.step_once; eauto. }
+  eapply rt_trans; [apply rt_step; eauto | ].
+  red in STEP; desf.
+  apply IHl; [eapply WCore.new_conf_wf; eauto |].
   constructor; ins.
   { eapply nodup_consD, ENUM. }
-  { transitivity (fun x => In x (h :: t)); [ | apply ENUM].
-    unfolder; ins; desf; eauto. }
-  { arewrite ((fun x => In x t) ≡₁ (fun x => In x (h :: t)) \₁ eq h).
-    { ins; split; [| basic_solver].
-      intros x IN; unfolder; split; eauto.
-      intro F; subst.
-      apply nodup_cons with (x := x) (l := t); auto.
-      apply ENUM. }
-    rewrite relenum_d with (l := h :: t); eauto.
-    now rewrite set_minus_minus_l. }
+  { rewrite set_minus_union_r, SubToFullExecInternal.diff_elems,
+            set_inter_minus_r, SubToFullExecInternal.enumd_elems_inter.
+    all: eauto.
+    ins; split; [basic_solver |].
+    unfolder; ins; splits; eauto. intro F; subst.
+    eapply nodup_cons; [apply ENUM | ins]. }
   { intros x y SB. unfolder in SB; desf.
     assert (LT : total_order_from_list (h :: t) x y).
-    { eapply relenum_sb; unfolder; splits; ins; eauto. }
+    { eapply SubToFullExecInternal.diff_sb; unfolder; splits; ins; eauto. }
     apply total_order_from_list_cons in LT; desf.
-    exfalso; eapply nodup_not_in.
-    { apply ENUM. }
-    { exact SB0. }
-    reflexivity. }
+    exfalso; eauto. }
   { intros x y RF. unfolder in RF; desf.
     assert (LT : total_order_from_list (h :: t) x y).
-    { eapply relenum_rf; unfolder; splits; ins; eauto. }
+    { eapply SubToFullExecInternal.diff_rf; unfolder; splits; ins; eauto. }
     apply total_order_from_list_cons in LT; desf.
-    exfalso; eapply nodup_not_in.
-    { apply ENUM. }
-    { exact RF2. }
-    reflexivity. }
+    exfalso; eauto. }
   intros x IN.
   destruct (classic (h = x)) as [EQ|NEQ]; subst.
   { apply ENUM; desf. }
-  eapply relenum_rf_w; eauto.
+  eapply SubToFullExecInternal.diff_rf_d; eauto.
   eapply dom_rel_mori; eauto; basic_solver.
 Qed.
-*)
+
+End SubToFullExec.
