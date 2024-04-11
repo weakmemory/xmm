@@ -92,6 +92,11 @@ Notation "'R'" := (is_r lab).
 
 
 Definition mapper := upd (upd id a b) b a.
+Definition traces_swapped :=
+    forall t' (B_LT_SZ : NOmega.lt (NOnum (index b)) (trace_length t')),
+      traces' (tid a) t' <-> exists t,
+      << IN : traces (tid a) t >> /\
+      << SWAP : trace_swapped label t t' (index a) (index b) >>.
 
 (* TODO computational swap_trace? *)
 Record reord : Prop :=
@@ -112,9 +117,7 @@ Record reord : Prop :=
   map_rmw : rmw' ≡ mapper ↑ rmw;
   map_rpo : rpo' ≡ mapper ↑ rpo;
 
-  traces_corr : forall t' (B_LT_SZ : NOmega.lt (NOnum (index b)) (trace_length t')),
-    traces' (tid a) t' <->
-    exists t, traces (tid a) t /\ trace_swapped label t t' (index a) (index b);
+  traces_corr : traces_swapped;
 }.
 
 Hypothesis REORD : reord.

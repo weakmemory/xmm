@@ -86,18 +86,17 @@ Variable a b : actid.
 
 Notation "'mapper'" := (ReordCommon.mapper a b).
 
-(* Hypothesis SWAPPED_TRACES : traces_swapped traces traces'. *)
-Hypothesis SWAPPED_TRACES : True.
+Hypothesis SWAPPED_TRACES : ReordCommon.traces_swapped traces traces' a b.
 
-Lemma simrel_exec_not_a_not_b e l
+Lemma simrel_exec_not_a_not_b e
     (E_NOT_A : e <> a)
     (E_NOT_B : e <> b)
     (CONS : WCore.is_cons Gt)
     (CONS' : WCore.is_cons Gs)
     (SIM : reord_simrel_rw Gs Gt a b)
-    (STEP : WCore.exec_inst Gt Gt' traces e l) :
+    (STEP : WCore.exec_inst Gt Gt' traces e) :
   exists Gs',
-    << STEP' : WCore.exec_inst Gs Gs' traces' e l >> /\
+    << STEP' : WCore.exec_inst Gs Gs' traces' e >> /\
     << SIM' : reord_simrel_rw Gs' Gt' a b >>.
 Proof using SWAPPED_TRACES.
   admit.
@@ -107,10 +106,10 @@ Lemma simrel_exec_b
     (CONS : WCore.is_cons Gt)
     (CONS' : WCore.is_cons Gs)
     (SIM : reord_simrel_rw Gs Gt a b)
-    (STEP : WCore.exec_inst Gt Gt' traces b (lab Gt b)) :
+    (STEP : WCore.exec_inst Gt Gt' traces b) :
   exists Gs'_int Gs' a',
-    << STEP1 : WCore.exec_inst Gs Gs'_int traces' a' (lab Gt' a') >> /\
-    << STEP2 : WCore.exec_inst Gs'_int Gs' traces' (mapper b) (lab Gt' (mapper b)) >> /\
+    << STEP1 : WCore.exec_inst Gs Gs'_int traces' a' >> /\
+    << STEP2 : WCore.exec_inst Gs'_int Gs' traces' (mapper b) >> /\
     << SIM' : reord_simrel_rw Gs' Gt' a b >>.
 Proof using SWAPPED_TRACES.
   admit.
@@ -121,7 +120,7 @@ Lemma simrel_exec_a w
     (CONS' : WCore.is_cons Gs)
     (RF : Gt.(rf) w a)
     (SIM : reord_simrel_rw Gs Gt a b)
-    (STEP : WCore.exec_inst Gt Gt' traces a (lab Gt a)) :
+    (STEP : WCore.exec_inst Gt Gt' traces a) :
   exists Gs' rfre,
     << STEP : WCore.reexec Gs Gs' rfre traces' >> /\
     << SIM' : reord_simrel_rw Gs' Gt' a b >>.
