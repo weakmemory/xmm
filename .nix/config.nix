@@ -38,7 +38,7 @@
     coqPackages.hahn.override.version = "1.18.0";
     coqPackages.hahnExt.override.version = "0.9.4";
     coqPackages.sflib.override.version = "master";
-    coqPackages.promising-lib.override.version = "master";
+    coqPackages.promising-lib.override.version = "1.19.0";
     coqPackages.imm.override.version = "1.6.1";
   };
 
