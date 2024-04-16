@@ -35,7 +35,7 @@
     push-branches = [ "**" ];
     coqPackages.vscoq-language-server.override.version = "v2.0.2+coq8.18";
     coqPackages.coq.override.version = "8.18";
-    coqPackages.hahn.override.version = "master";
+    coqPackages.hahn.override.version = "1.18.0";
     coqPackages.hahnExt.override.version = "0.9.4";
     coqPackages.sflib.override.version = "master";
     coqPackages.promising-lib.override.version = "master";
