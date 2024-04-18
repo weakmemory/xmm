@@ -98,36 +98,25 @@ Proof using.
   constructor; ins.
   all: try apply SUB.
   { unfolder. ins. desf. now apply SUB. }
-  { rewrite !id_union, seq_union_l,
-            !seq_union_r, <- (sub_rmw SUB).
-    rewrite one_dir_irrefl; eauto using rmw_one_dir.
-    destruct (classic (dom_rel (rmw' ⨾ ⦗E⦘) h)) as [HIN1|HIN1].
-    { rewrite one_dir_assym_1, !union_false_r;
-        eauto using rmw_one_dir, one_dir_dom.
-      unfolder in HIN1. desf.
-      enough (EINE : E h).
-      { arewrite (⦗eq h⦘ ≡ ⦗eq h⦘ ⨾ ⦗E⦘); try basic_solver. }
-      apply wf_rmwi, immediate_in in HIN1; eauto.
-      change G with (WCore.G X).
-      eapply WCore.ext_sb_dense; eauto.
-      unfold sb in HIN1. unfolder in HIN1.
-      desf. }
-    destruct (classic (codom_rel (⦗E⦘ ⨾ rmw') h)) as [HIN2|HIN2].
-    { rewrite one_dir_assym_2, !union_false_r;
-      eauto using rmw_one_dir, one_dir_dom. }
-    rewrite one_dir_assym_helper_1, one_dir_assym_helper_2,
-            !union_false_r; eauto. }
-  { rewrite (WCore.cc_data_empty WF); basic_solver. }
-  { rewrite (WCore.cc_addr_empty WF); basic_solver. }
-  { rewrite (WCore.cc_ctrl_empty WF); basic_solver. }
-  { rewrite !id_union, seq_union_l, !seq_union_r, <- (sub_rf SUB).
-    rewrite one_dir_irrefl; eauto using rf_one_dir.
-    now rewrite union_false_r. }
-  { rewrite !id_union, seq_union_l, !seq_union_r, <- (sub_co SUB).
-    arewrite (⦗eq h⦘ ⨾ co' ⨾ ⦗eq h⦘ ≡ ∅₂); [| now rewrite union_false_r].
-    split; [| basic_solver]. unfolder; ins; desf.
-    eapply co_irr; eauto. }
-  basic_solver.
+  { rewrite (sub_rmw SUB), <- !restr_relE, restr_set_union.
+    rewrite restr_irrefl_eq; eauto using rmw_irr.
+    arewrite (⦗eq h⦘ ⨾ rmw' ⨾ ⦗E⦘ ≡ ∅₂); [| now rewrite !union_false_r].
+    split; [|basic_solver]. unfolder; ins; desf.
+    change G with (WCore.G X) in NEW.
+    enough (EXT : ext_sb x y); eauto using WCore.ext_sb_dense.
+    enough (SB : sb' x y); try now apply wf_rmwi; ins.
+    unfold sb in SB; unfolder in SB; desf. }
+  { rewrite (WCore.cc_data_empty WF).
+    now rewrite seq_false_l, seq_false_r. }
+  { rewrite (WCore.cc_addr_empty WF).
+    now rewrite seq_false_l, seq_false_r. }
+  { rewrite (WCore.cc_ctrl_empty WF).
+    now rewrite seq_false_l, seq_false_r. }
+  { rewrite (sub_rf SUB), <- !restr_relE, restr_set_union.
+    erewrite restr_irrefl_eq, union_false_r; eauto using rf_irr. }
+  { rewrite (sub_co SUB), <- !restr_relE, restr_set_union.
+    erewrite restr_irrefl_eq, union_false_r; eauto using co_irr. }
+  now rewrite seq_false_l, seq_false_r.
 Qed.
 
 Lemma delta_G_trace_prefix
@@ -158,30 +147,23 @@ Proof using.
   set (CONT2 := WCore.wf_g_cont WF NOT_INIT).
   destruct CONT1 as [N1 CONT1], CONT2 as [N2 CONT2].
   destruct (classic (t = tid h)); subst.
-  { exists (1 + N2).
-    rewrite thread_set_S, set_inter_union_l, CONT2.
+  { exists (1 + N2). rewrite thread_set_S, set_inter_union_l, CONT2.
     arewrite (eq h ∩₁ same_tid h ≡₁ eq h) by basic_solver.
-    apply set_union_more; auto. apply set_equiv_single_single.
+    apply set_union_more; [auto | apply set_equiv_single_single].
     destruct h as [l | ht hid]; unfold same_tid in *; ins.
-    f_equal.
-    assert (LT : hid < N1).
-    { eapply thread_set_iff, CONT1.
-      split; auto. }
+    f_equal. assert (LT : hid < N1).
+    { eapply thread_set_iff, CONT1; now split. }
     apply PeanoNat.Nat.le_antisymm.
+    assert (IN : E' (ThreadEvent ht (hid - 1))).
+    { apply in_restr_acts, CONT1, thread_set_iff; lia. }
     { apply Compare_dec.not_gt. intro GT.
       apply NEXT with (x := ThreadEvent ht (hid - 1)).
-      { apply set_subset_single_l.
-        transitivity ((E' ∩₁ (fun e => ht = tid e)) \₁
-                      (E ∩₁ (fun e => ht = tid e))); [| basic_solver].
-        rewrite CONT1, CONT2, thread_set_diff. apply set_subset_single_l.
-        unfolder; ins; desf. exists (hid - 1). split; auto.
-        lia. }
-      unfold sb, ext_sb; ins. unfolder; splits; auto; try lia.
-      apply in_restr_acts, CONT1, thread_set_iff. lia. }
+      { split; auto.
+        intro F; apply in_restr_acts, CONT2, thread_set_iff in F; lia. }
+      unfold sb, ext_sb; ins. unfolder; splits; auto; try lia. }
     eapply thread_set_niff. intro F.
     apply CONT2, in_restr_acts in F; auto. }
-  exists N2.
-  rewrite set_inter_union_l, CONT2.
+  exists N2. rewrite set_inter_union_l, CONT2.
   arewrite (eq h ∩₁ (fun e => t = tid e) ≡₁ ∅); basic_solver.
 Qed.
 
@@ -196,33 +178,6 @@ Proof using.
   constructor; try now apply WF.
   all: apply delta_G_sub || apply delta_G_cont_ids.
   all: auto; apply WF.
-Qed.
-
-Lemma delta_G_suffix
-    (IN : ~E h)
-    (WF : WCore.wf X) :
-  sub_execution delta_G G ∅₂ ∅₂.
-Proof using.
-  constructor; ins.
-  { basic_solver. }
-  { rewrite wf_rmwE at 1; [basic_solver |].
-    change G with (WCore.G X); auto using WCore.wf_g. }
-  { arewrite (data ≡ ∅₂); [| basic_solver].
-    erewrite sub_data; [| apply WF].
-    rewrite WF.(WCore.cc_data_empty); basic_solver. }
-  { arewrite (addr ≡ ∅₂); [| basic_solver].
-    erewrite sub_addr; [| apply WF].
-    rewrite WF.(WCore.cc_addr_empty); basic_solver. }
-  { arewrite (ctrl ≡ ∅₂); [| basic_solver].
-    erewrite sub_ctrl; [| apply WF].
-    rewrite WF.(WCore.cc_ctrl_empty); basic_solver. }
-  { rewrite sub_frmw with (G := G') at 1; [basic_solver 7 |].
-    apply WF. }
-  { rewrite wf_rfE at 1; [basic_solver 7 |].
-    change G with (WCore.G X); auto using WCore.wf_g. }
-  { rewrite wf_coE at 1; [basic_solver 7 |].
-    change G with (WCore.G X); auto using WCore.wf_g. }
-  basic_solver.
 Qed.
 
 Lemma delta_G_actid_trace_h

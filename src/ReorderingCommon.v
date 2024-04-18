@@ -59,6 +59,45 @@ Definition machine_terminated := forall t, thread_terminated t.
          ordered by co (possibly infinite) set of values written to the location *)
 Definition behavior := co.
 
+Lemma wf_rpoE
+    (WF : Wf G) :
+  rpo ≡ ⦗E⦘ ⨾ rpo ⨾ ⦗E⦘.
+Proof using.
+  unfold rpo.
+  rewrite !seq_union_l, !seq_union_r.
+  repeat apply union_more.
+  all: rewrite wf_sbE at 1; try rewrite !seq_seq_inter.
+  all: basic_solver 7.
+Qed.
+
+Lemma wf_vfE
+    (WF : Wf G) :
+  vf ≡ ⦗E⦘ ⨾ vf ⨾ ⦗E⦘.
+Proof using.
+  unfold vf.
+  admit.
+  (* rewrite wf_hbE, wf_pscE. *)
+Admitted.
+
+Lemma wf_srfE
+    (WF : Wf G) :
+  srf ≡ ⦗E⦘ ⨾ srf ⨾ ⦗E⦘.
+Proof using.
+  unfold srf. rewrite wf_vfE, wf_coE; auto.
+  admit.
+Admitted.
+
+Lemma wf_rhbE
+    (WF : Wf G) :
+  rhb ≡ ⦗E⦘ ⨾ rhb ⨾ ⦗E⦘.
+Proof using.
+  unfold rhb. rewrite wf_swE, wf_rpoE; auto.
+  arewrite (⦗E⦘ ⨾ rpo ⨾ ⦗E⦘ ∪ ⦗E⦘ ⨾ sw ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ (rpo ⨾ ⦗E⦘ ∪ ⦗E⦘ ⨾ sw) ⨾ ⦗E⦘).
+  { basic_solver 7. }
+  rewrite <- seqA with (r2 := rpo ⨾ ⦗E⦘ ∪ ⦗E⦘ ⨾ sw) at 2.
+  now rewrite <- ct_seq_eqv_r, seqA, <- ct_seq_eqv_l.
+Qed.
+
 End ExtraRel.
 
 Module ReordCommon.
@@ -78,6 +117,7 @@ Notation "'rf''" := (rf G').
 Notation "'co''" := (co G').
 Notation "'rmw''" := (rmw G').
 Notation "'rpo''" := (rpo G').
+Notation "'rmw_dep''" := (rmw_dep G').
 
 Notation "'lab'" := (lab G).
 Notation "'E'" := (acts_set G).
@@ -87,6 +127,7 @@ Notation "'rf'" := (rf G).
 Notation "'co'" := (co G).
 Notation "'rmw'" := (rmw G).
 Notation "'rpo'" := (rpo G).
+Notation "'rmw_dep'" := (rmw_dep G).
 Notation "'W'" := (is_w lab).
 Notation "'R'" := (is_r lab).
 
@@ -97,15 +138,28 @@ Definition traces_swapped :=
       traces' (tid a) t' <-> exists t,
       << IN : traces (tid a) t >> /\
       << SWAP : trace_swapped label t t' (index a) (index b) >>.
+Definition mapped_G : execution := {|
+  acts_set := mapper ↑₁ E;
+  threads_set := threads_set G;
+  lab := lab ∘ mapper;
+  rmw := mapper ↑ rmw;
+  data := ∅₂;
+  addr := ∅₂;
+  ctrl := ∅₂;
+  rmw_dep := mapper ↑ rmw_dep;
+  rf := mapper ↑ rf;
+  co := mapper ↑ co;
+|}.
 
 (* TODO computational swap_trace? *)
 Record reord : Prop :=
 { a_not_init : ~is_init a;
   events_diff : a <> b;
   events_locs_diff : loc a <> loc b;
-  events_lab : lab' = upd (upd lab a (lab b)) b (lab a);
-  events_same : E' ≡₁ E;
+  events_lab : lab' = lab ∘ mapper;
+  events_same : E' ≡₁ mapper ↑₁ E;
   events_imm : immediate sb a b;
+  event_threadset : threads_set G' ≡₁ threads_set G;
 
   events_no_rpo1 : ~rpo a b;
   events_no_rpo2 : ~rpo' b a;
@@ -116,11 +170,72 @@ Record reord : Prop :=
   map_co : co' ≡ mapper ↑ co;
   map_rmw : rmw' ≡ mapper ↑ rmw;
   map_rpo : rpo' ≡ mapper ↑ rpo;
+  map_rmw_dep : rmw_dep' ≡ mapper ↑ rmw_dep;
 
   traces_corr : traces_swapped;
+
+  g_data : data G ≡ ∅₂;
+  g_addr : addr G ≡ ∅₂;
+  g_ctrl : ctrl G ≡ ∅₂;
+  gp_data : data G' ≡ ∅₂;
+  gp_addr : addr G' ≡ ∅₂;
+  gp_ctrl : ctrl G' ≡ ∅₂;
 }.
 
 Hypothesis REORD : reord.
+
+Lemma mapped_exec_equiv : exec_equiv G' mapped_G.
+Proof using REORD.
+  constructor; ins; apply REORD.
+Qed.
+
+Lemma mapped_exec_acts_iff
+    (SAME : E a <-> E b) :
+  acts_set mapped_G ≡₁ E.
+Proof using.
+  unfold mapped_G; ins.
+  unfold mapper; unfolder; split; ins; desf.
+  { destruct (classic (y = a)) as [EQA|EQA],
+             (classic (y = b)) as [EQB|EQB].
+    all: try subst y; subst.
+    all: try now (rupd; eauto).
+    rewrite EQB; rupd; eauto. }
+  destruct (classic (x = a)) as [EQA|EQA],
+           (classic (x = b)) as [EQB|EQB].
+  all: try subst x; subst.
+  all: eexists; try now (split; ins; rupd; eauto).
+  { split; [now apply SAME0 | now rupd]. }
+  split; [eauto | rupd].
+Qed.
+
+Lemma mapped_exec_acts_diff
+    (INA : E a)
+    (NINB : ~E b) :
+  acts_set mapped_G ≡₁ E \₁ eq a ∪₁ eq b.
+Proof using.
+  unfold mapped_G; ins.
+  unfold mapper; unfolder; split; ins; desf.
+  { destruct (classic (y = a)) as [EQA|EQA],
+             (classic (y = b)) as [EQB|EQB].
+    all: try subst y; subst.
+    all: try now (rupd; eauto).
+    exfalso; apply NINB; now rewrite <- EQB. }
+  { exists x; rupd; [congruence |].
+    intro F; apply NINB; now rewrite <- F. }
+  exists a; split; ins; rupd; ins.
+  intro F; apply NINB; now rewrite <- F.
+Qed.
+
+Lemma mapper_rel r r'
+    (MAPPED : r' ≡ mapper ↑ r) :
+  mapper ↓ r' ≡ r.
+Proof using.
+  rewrite MAPPED.
+  split; [| apply map_collect_id].
+  unfold mapper; unfolder; unfold upd, id.
+  intros x y HEQ; desf.
+  all: congruence.
+Qed.
 
 Lemma eq_tid : tid a = tid b.
 Proof using REORD.
@@ -136,14 +251,16 @@ Proof using REORD.
   apply no_sb_to_init, immediate_in, REORD.
 Qed.
 
-Lemma mapper_eq_a : mapper a = b.
-Proof using REORD.
-  unfold mapper; rupd; eauto using events_diff.
-Qed.
-
 Lemma mapper_eq_b : mapper b = a.
 Proof using.
   unfold mapper; now rewrite upds.
+Qed.
+
+Lemma mapper_eq_a : mapper a = b.
+Proof using.
+  destruct (classic (a = b)) as [EQ|EQ].
+  { unfold mapper. rewrite EQ. now rupd. }
+  unfold mapper; rupd; eauto.
 Qed.
 
 Lemma mapper_neq x (NEQ_A : x <> a) (NEQ_B : x <> b) : mapper x = x.

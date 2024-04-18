@@ -51,6 +51,7 @@ Definition rsrw_a_subst a' : Prop :=
   << IMMSB : immediate sb a' (mapper b) >>
 .
 
+(* TODO: ban ~E' b /\ E' a *)
 Record reord_simrel_rw : Prop :=
 { rsrw_ninit1 : ~is_init a;
   rsrw_ninit2 : ~is_init b;
@@ -61,21 +62,94 @@ Record reord_simrel_rw : Prop :=
                 E ≡₁ mapper ↓₁ E' ∪₁ rsrw_a_subst;
   rsrw_no_rpo1 : ~rpo a b;
   rsrw_no_rpo2 : ~rpo' a b;
-  rsrw_rpo : rpo ≡ mapper ↓ rpo;
+  rsrw_rpo : rpo' ≡ mapper ↓ rpo;
   rsrw_rf1 : forall (SAME : E' a <-> E' b), rf' ≡ mapper ↓ rf;
   rsrw_rf2 : forall (INB : E' b) (NOTINA : ~ E' a),
-                rf ≡ mapper ↓ rf' ∪ mapper ↓ srf' ⨾ ⦗rsrw_a_subst⦘;
-  rsrw_co : co ≡ mapper ↓ co';
+                    mapper ↓ rf ≡ rf' ∪ mapper ↓ srf' ⨾ ⦗rsrw_a_subst⦘;
+  rsrw_co : co' ≡ mapper ↓ co;
 }.
 
 End SimRel.
 
 Module ReordRwSimRelProps.
 
-Lemma sim_rel_init G G' a b :
+Lemma mapper_init G a b
+    (ANIT : ~is_init a)
+    (BNIT : ~is_init b) :
+  ReordCommon.mapper a b ↓₁ (acts_set G ∩₁ is_init) ≡₁ acts_set G ∩₁ is_init.
+Proof using.
+  unfold ReordCommon.mapper.
+  unfolder; split; desf; intros x.
+  { destruct (classic (x = a)) as [HA|HA],
+             (classic (x = b)) as [HB|HB].
+    all: subst; rupd; ins; desf; exfalso; eauto. }
+  destruct (classic (x = a)) as [HA|HA],
+             (classic (x = b)) as [HB|HB].
+  all: subst; rupd; ins; desf; exfalso; eauto.
+Qed.
+
+Lemma mapper_rsrw_a_subst G' a b
+    (SAME : acts_set G' a <-> acts_set G' b)
+    (NOTINA : ~acts_set G' a) :
+  rsrw_a_subst (ReordCommon.mapped_G G' a b) a b ≡₁ ∅.
+Proof using.
+  unfold rsrw_a_subst; split; [| basic_solver].
+  unfolder; ins; desf. apply NOTINA.
+  rewrite ReordCommon.mapper_eq_b in IMMSB.
+  unfold sb in IMMSB; unfolder in IMMSB; desf.
+  now apply ReordCommon.mapped_exec_acts_iff in IMMSB2.
+Qed.
+
+Lemma mapper_simrel G' a b
+    (ANIT : ~is_init a)
+    (BNIT : ~is_init b)
+    (SAME : acts_set G' a <-> acts_set G' b)
+    (RPO : ~ rpo G' a b) :
+  reord_simrel_rw (ReordCommon.mapped_G G' a b) G' a b.
+Proof using.
+  constructor; ins.
+  all: try now (rewrite ReordCommon.mapper_rel; eauto).
+  { unfold compose. apply functional_extensionality. intro x.
+    rewrite ReordCommon.mapper_eq_a, ReordCommon.mapper_eq_b.
+    destruct (classic (x = a)) as [EQA|EQA],
+             (classic (x = b)) as [EQB|EQB].
+    all: try subst x; subst; rupd; auto.
+    now rewrite ReordCommon.mapper_neq. }
+  { admit. } (* medium *)
+  { rewrite mapper_rsrw_a_subst, set_union_empty_r; ins.
+    admit. }
+  { admit. } (* Should be easy *)
+  { admit. } (* Should be easy *)
+  rewrite mapper_rsrw_a_subst; auto.
+  rewrite eqv_empty, seq_false_r, union_false_r.
+  rewrite ReordCommon.mapper_rel; eauto.
+Admitted.
+
+
+Lemma sim_rel_init G G' a b
+    (INIT_WF : Wf (WCore.init_exec G))
+    (INIT_WF' : Wf (WCore.init_exec G'))
+    (ANIT : ~is_init a)
+    (BNIT : ~is_init b)
+    (INIT : acts_set G ∩₁ is_init ≡₁ acts_set G' ∩₁ is_init)
+    (LAB : lab G' = upd (upd (lab G) a (lab G b)) b (lab G a)) :
   reord_simrel_rw (WCore.init_exec G) (WCore.init_exec G') a b.
 Proof using.
-  admit.
+  constructor; ins.
+  all: try rewrite mapper_init; ins.
+  { arewrite (rsrw_a_subst (WCore.init_exec G) a b ≡₁ ∅).
+    all: try now rewrite set_union_empty_r.
+    unfold rsrw_a_subst; split; [| basic_solver].
+    intros a' [_ IMM]; unfolder.
+    apply immediate_in in IMM. unfold sb in IMM.
+    unfolder in IMM; desf; ins; desf.
+    rewrite ReordCommon.mapper_eq_b in IMM2; eauto. }
+  { intro F; apply wf_rpoE in F; auto.
+    unfolder in F; desf; ins; desf; eauto. }
+  { intro F; apply wf_rpoE in F; auto.
+    unfolder in F; desf; ins; desf; eauto. }
+  { admit. }
+  rewrite map_rel_false.
 Admitted.
 
 Section ExecutionSteps.
@@ -99,6 +173,8 @@ Lemma simrel_exec_not_a_not_b e
     << STEP' : WCore.exec_inst Gs Gs' traces' e >> /\
     << SIM' : reord_simrel_rw Gs' Gt' a b >>.
 Proof using SWAPPED_TRACES.
+  exists (ReordCommon.mapped_G Gt' a b); split.
+  { admit. }
   admit.
 Admitted.
 

@@ -375,6 +375,12 @@ Proof using.
   apply and_not_or; auto.
 Qed.
 
+Lemma seq_seq_inter A (a b c d : A -> Prop) r :
+  ⦗a⦘ ⨾ (⦗b⦘ ⨾ r ⨾ ⦗c⦘) ⨾ ⦗d⦘ ≡ ⦗a ∩₁ b⦘ ⨾ r ⨾ ⦗c ∩₁ d⦘.
+Proof using.
+  basic_solver.
+Qed.
+
 Section PartialId.
 
 Variable A : Type.
