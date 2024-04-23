@@ -212,7 +212,7 @@ Lemma simrel_exec_a w
     (SIM : reord_simrel_rw Gs Gt a b)
     (STEP : WCore.exec_inst Gt Gt' traces a) :
   exists Gs' rfre,
-    << STEP : WCore.reexec Gs Gs' rfre traces' >> /\
+    << STEP : WCore.reexec Gs Gs' traces' rfre >> /\
     << SIM' : reord_simrel_rw Gs' Gt' a b >>.
 Proof using SWAPPED_TRACES.
   admit.
@@ -222,9 +222,9 @@ Lemma simrel_reexec rfre
     (CONS : WCore.is_cons Gt)
     (CONS' : WCore.is_cons Gs)
     (SIM : reord_simrel_rw Gs Gt a b)
-    (STEP : WCore.reexec Gt Gt' rfre traces) :
+    (STEP : WCore.reexec Gt Gt' traces rfre) :
   exists Gs' rfre,
-    << STEP : WCore.reexec Gs Gs' (mapper ↓ rfre) traces' >> /\
+    << STEP : WCore.reexec Gs Gs' traces' (mapper ↓ rfre) >> /\
     << SIM' : reord_simrel_rw Gs' Gt' a b >>.
 Proof using SWAPPED_TRACES.
   admit.
