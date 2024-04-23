@@ -138,6 +138,7 @@ Definition traces_swapped :=
       traces' (tid a) t' <-> exists t,
       << IN : traces (tid a) t >> /\
       << SWAP : trace_swapped label t t' (index a) (index b) >>.
+
 Definition mapped_G : execution := {|
   acts_set := mapper ↑₁ E;
   threads_set := threads_set G;
@@ -189,11 +190,10 @@ Proof using REORD.
   constructor; ins; apply REORD.
 Qed.
 
-Lemma mapped_exec_acts_iff
-    (SAME : E a <-> E b) :
-  acts_set mapped_G ≡₁ E.
+Lemma mapper_set_iff s
+    (SAME : s a <-> s b) :
+  mapper ↑₁ s ≡₁ s.
 Proof using.
-  unfold mapped_G; ins.
   unfold mapper; unfolder; split; ins; desf.
   { destruct (classic (y = a)) as [EQA|EQA],
              (classic (y = b)) as [EQB|EQB].
@@ -224,17 +224,6 @@ Proof using.
     intro F; apply NINB; now rewrite <- F. }
   exists a; split; ins; rupd; ins.
   intro F; apply NINB; now rewrite <- F.
-Qed.
-
-Lemma mapper_rel r r'
-    (MAPPED : r' ≡ mapper ↑ r) :
-  mapper ↓ r' ≡ r.
-Proof using.
-  rewrite MAPPED.
-  split; [| apply map_collect_id].
-  unfold mapper; unfolder; unfold upd, id.
-  intros x y HEQ; desf.
-  all: congruence.
 Qed.
 
 Lemma eq_tid : tid a = tid b.
@@ -277,6 +266,12 @@ Proof using.
            (classic (x = b)) as [HEQXB|HEQXB].
   all: subst; rupd; ins.
   all: unfold id in *; congruence.
+Qed.
+
+Lemma mapper_inj_dom s (NEQ : a <> b) : inj_dom s mapper.
+Proof using.
+  unfold inj_dom; ins.
+  apply mapper_inj; ins.
 Qed.
 
 End ReorderingDefs.
