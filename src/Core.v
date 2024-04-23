@@ -122,6 +122,7 @@ Record wf : Prop := {
   sub_sb : restr_rel (cmt ∩₁ E) sbc ⊆ sb;
   sub_rf : restr_rel (cmt ∩₁ E) rfc ⊆ rf;
   sub_rfD : E ∩₁ R ⊆₁ codom_rel rf ∪₁ cmt;
+  sub_rfW : cmt ∩₁ R ⊆₁ codom_rel (⦗cmt⦘ ⨾ rfc);
 
   pfx : exec_prefix GC G;
 }.
@@ -233,8 +234,8 @@ End ExecAdd.
 Section ExecRexec.
 
 Variables G G' : execution.
-Variable rfre : relation actid.
 Variable traces : thread_id -> trace label -> Prop.
+Variable rfre : relation actid.
 
 Notation "'E''" := (acts_set G').
 Notation "'E'" := (acts_set G).
@@ -251,34 +252,52 @@ Notation "'rf''" := (rf G').
 Notation "'sb''" := (sb G).
 Notation "'sb'" := (sb G).
 Notation "'rf'" := (rf G).
+Notation "'sb_rf'" := ((sb ∪ rf)⁺).
+Notation "'sb_rf''" := ((sb' ∪ rf')⁺).
 
 Notation "'Rre'" := (codom_rel rfre).
 Notation "'Wre'" := (dom_rel rfre).
-Notation "'D'" := (E \₁ codom_rel (⦗Rre⦘ ⨾ (sb ∪ rf)＊)).
 
-(* f : E' -> E *)
-Record reexec_gen f : Prop :=
-{ (* Correct mapping *)
-  f_dom : is_some ∘ f ⊆₁ E';
-  f_inj : inj_dom (is_some ∘ f) f;
-  d_wre_sub_f : D ∪₁ Wre ⊆₁ is_some ∘ f;
-  rf_sub_f : rfre ⊆ Some ↓ (f ↑ rf');
-  f_rfD : E ∩₁ R ⊆₁ codom_rel rf ∪₁ (Some ↓₁ (f ↑₁ E'));
-  f_sb : Some ↓ (f ↑ restr_rel (is_some ∘ f) sb') ⊆ sb;
-  f_rf : Some ↓ (f ↑ restr_rel (is_some ∘ f) rf') ⊆ rf;
-  f_tid : (fun x y => f x = Some y) ⊆ same_tid;
-  f_lab : forall ec e (MAPPED : f e = Some ec), lab' ec = lab e;
-  (* Correct start *)
-  rf_sub_re : rfre ⊆ re;
-  cfg_wf : wf (Build_t G G' (is_some ∘ f));
+Definition f_cmt (f : actid -> option actid) := is_some ∘ f.
+Definition sb_rfre := (sb ∪ rf ⨾ ⦗E \₁ Rre⦘ ∪ rfre ⨾ ⦗Rre⦘)⁺.
+
+Record correct_embeding f : Prop :=
+{ reexec_embd_inj : inj_dom (f_cmt f) f;
+  reexec_embd_dom : f_cmt f ⊆₁ E';
+  reexec_embd_tid : (fun x y => f x = Some y) ⊆ same_tid;
+  reexec_embd_lab : forall ec e (MAPPED : f e = Some ec),
+                      lab' ec = lab e;
+  reexec_embd_sb : Some ↓ (f ↑ restr_rel (f_cmt f) sb') ⊆ sb;
+  reexec_embd_rf : Some ↓ (f ↑ restr_rel (f_cmt f) rf') ⊆ rf; }.
+
+Record stable_uncmt_reads_gen f r w : Prop :=
+{ surg_is_r : R r;
+  surg_is_w : W w;
+  surg_ncmt : ~f_cmt f r;
+  surg_sb : sb w r;
+  surg_sbrf : dom_rel (rf ⨾ ⦗eq r⦘) ∩₁ codom_rel (⦗eq w⦘ ⨾ sb_rf^?) ⊆₁
+              dom_rel (sb_rf^? ⨾ sb ⨾ ⦗eq r⦘); }.
+
+Record reexec_gen f dtrmt : Prop :=
+{ (* Correct start *)
+  rfre_racy : rfre ⊆ re;
+  dtrmt_not_reexec : dtrmt ⊆₁ E \₁ codom_rel (⦗Rre⦘ ⨾ (sb ∪ rf)＊);
+  dtrmt_cmt : dtrmt ⊆₁ (f_cmt f);
+  rfre_writes_cmt : Wre ⊆₁ (f_cmt f);
+  rfrre_embd_gc : rfre ⊆ Some ↓ (f ↑ rf');
+  reexec_sur : forall r w, stable_uncmt_reads_gen f r w;
+  (* Correct embedding *)
+  reexec_embd_corr : correct_embeding f;
+  reexec_embd_sbrfe : Some ↓ (f ↑ restr_rel (f_cmt f) sb_rf') ⊆
+                      restr_rel (Some ↓₁ (f ↑₁ (f_cmt f))) sb_rfre;
   (* Reproducable steps *)
-  cfg_steps : (cfg_add_event_uninformative traces)＊
-    (Build_t (restrict G D) G' (is_some ∘ f))
-    (Build_t G'             G' (is_some ∘ f));
-  new_g_cons : is_cons G';
-}.
+  reexec_start_wf : wf (Build_t G G' (f_cmt f));
+  reexec_steps : (cfg_add_event_uninformative traces)＊
+    (Build_t (restrict G dtrmt) G' (f_cmt f))
+    (Build_t G'                 G' (f_cmt f));
+  rexec_final_cons : is_cons G'; }.
 
-Definition reexec : Prop := exists f, reexec_gen f.
+Definition reexec : Prop := exists f dtrmt, reexec_gen f dtrmt.
 
 End ExecRexec.
 
