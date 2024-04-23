@@ -78,10 +78,11 @@ Notation "'fr'" := (fr G).
 Notation "'sb'" := (sb G).
 Notation "'eco'" := (eco G).
 Notation "'psc'" := (imm.psc G).
+Notation "'rmw'" := (rmw G).
 
 Record is_cons : Prop := {
   cons_coherence : irreflexive (hb ⨾ eco^?);
-  cons_atomicity : irreflexive (fr ⨾ sb);
+  cons_atomicity : rmw ∩ (fr ⨾ sb) ≡ ∅₂;
   cons_sc : acyclic psc;
 }.
 
