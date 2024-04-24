@@ -20,50 +20,63 @@ From imm Require Import CombRelations.
 
 Section SimRel.
 
-(* G -- source, G' -- target *)
-Variable G G' : execution.
+Variable G_s G_t : execution.
 Variable a b : actid.
 
-Notation "'lab''" := (lab G').
-Notation "'E''" := (acts_set G').
-Notation "'sb''" := (sb G').
-Notation "'rf''" := (rf G').
-Notation "'co''" := (co G').
-Notation "'rmw''" := (rmw G').
-Notation "'rpo''" := (rpo G').
-Notation "'srf''" := (srf G').
+Notation "'lab_t'" := (lab G_t).
+Notation "'val_t'" := (val lab_t).
+Notation "'E_t'" := (acts_set G_t).
+Notation "'sb_t'" := (sb G_t).
+Notation "'rf_t'" := (rf G_t).
+Notation "'co_t'" := (co G_t).
+Notation "'rmw_t'" := (rmw G_t).
+Notation "'rpo_t'" := (rpo G_t).
+Notation "'rmw_dep_t'" := (rmw_dep G_t).
+Notation "'data_t'" := (data G_t).
+Notation "'ctrl_t'" := (ctrl G_t).
+Notation "'addr_t'" := (addr G_t).
+Notation "'srf_t'" := (srf G_t).
 
-Notation "'lab'" := (lab G).
-Notation "'E'" := (acts_set G).
-Notation "'loc'" := (loc lab).
-Notation "'sb'" := (sb G).
-Notation "'rf'" := (rf G).
-Notation "'co'" := (co G).
-Notation "'rmw'" := (rmw G).
-Notation "'rpo'" := (rpo G).
-Notation "'W'" := (is_w lab).
-Notation "'R'" := (is_r lab).
+Notation "'lab_s'" := (lab G_s).
+Notation "'val_s'" := (val lab_s).
+Notation "'E_s'" := (acts_set G_s).
+Notation "'loc_s'" := (loc lab_s).
+Notation "'sb_s'" := (sb G_s).
+Notation "'rf_s'" := (rf G_s).
+Notation "'co_s'" := (co G_s).
+Notation "'rmw_s'" := (rmw G_s).
+Notation "'rpo_s'" := (rpo G_s).
+Notation "'rmw_dep_s'" := (rmw_dep G_s).
+Notation "'data_s'" := (data G_s).
+Notation "'ctrl_s'" := (ctrl G_s).
+Notation "'addr_s'" := (addr G_s).
+Notation "'W_s'" := (is_w lab_s).
+Notation "'R_s'" := (is_r lab_s).
 
 Notation "'mapper'" := (ReordCommon.mapper a b).
 
-Definition rsrw_a_subst a' : Prop :=
-  << LABEQU2V : same_label_u2v (lab a') (lab a) >> /\
-  << IMMSB : immediate sb a' (mapper b) >>
-.
-
 (* TODO: ban ~E' b /\ E' a *)
+(* We should require srf *)
+(* srf is functional *)
+(* psc -> sc *)
 Record reord_simrel_rw : Prop :=
 { rsrw_ninit1 : ~is_init a;
   rsrw_ninit2 : ~is_init b;
 
-  rsrw_lab : lab' = upd (upd lab a (lab b)) b (lab a);
-  rsrw_actids1 : forall (SAME : E' a <-> E' b), mapper ↑₁ E ≡₁ E';
-  rsrw_actids2 : forall (INB : E' b) (NOTINA : ~ E' a),
-                mapper ↑₁ E ≡₁ E' ∪₁ rsrw_a_subst;
-  rsrw_rf1 : forall (SAME : E' a <-> E' b), mapper ↑ rf' ≡ rf;
-  rsrw_rf2 : forall (INB : E' b) (NOTINA : ~ E' a),
-                    rf ≡ mapper ↑ rf' ∪ srf' ⨾ ⦗rsrw_a_subst⦘;
-  rsrw_co : co ≡ mapper ↑ co';
+  rsrw_lab_u2v : same_lab_u2v lab_s (lab_t ∘ mapper);
+  rsrw_lab_v : forall e (NOTA : e <> a), val_s e = (val_t ∘ mapper) e;
+  rsrw_actids_t_ord : forall (INA : E_t a) (NOTINB : ~E_t b), False;
+
+  rsrw_sb1 : forall (SAME : E_t a <-> E_t b), immediate sb_s ≡ immediate sb_t;
+  rsrw_sb2 : forall (INB : E_t b) (NOTINA : ~E_t a),
+                immediate sb_s ≡ immediate sb_t ∪ singl_rel (mapper b) (mapper a);
+  rsrw_actids1 : forall (SAME : E_t a <-> E_t b), E_s ≡₁ E_t;
+  rsrw_actids2 : forall (INB : E_t b) (NOTINA : ~E_t a),
+                 E_s ≡₁ E_t ∪₁ eq (mapper b);
+  rsrw_rf1 : forall (SAME : E_t a <-> E_t b), rf_s ≡ mapper ↑ rf_t;
+  rsrw_rf2 : forall (INB : E_t b) (NOTINA : ~ E_t a),
+                    rf_s ≡ mapper ↑ rf_t ∪ srf_t ⨾ ⦗eq (mapper a)⦘;
+  rsrw_co : co_s ≡ mapper ↑ co_t;
 }.
 
 End SimRel.
@@ -88,44 +101,36 @@ Proof using.
   exists x; rupd.
 Qed.
 
-Lemma mapper_rsrw_a_subst G' a b
-    (SAME : acts_set G' a <-> acts_set G' b)
-    (NOTINA : ~acts_set G' a) :
-  rsrw_a_subst (ReordCommon.mapped_G G' a b) a b ≡₁ ∅.
-Proof using.
-  unfold rsrw_a_subst; split; [| basic_solver].
-  unfolder; ins; desf. apply NOTINA.
-  rewrite ReordCommon.mapper_eq_b in IMMSB.
-  unfold sb in IMMSB; unfolder in IMMSB; desf.
-  now apply ReordCommon.mapper_set_iff in IMMSB2.
-Qed.
-
-Lemma mapper_simrel G' a b
+Lemma mapper_simrel_iff G' a b
     (ANIT : ~is_init a)
     (BNIT : ~is_init b)
     (SAME : acts_set G' a <-> acts_set G' b)
     (NEQ : a <> b) :
-  reord_simrel_rw (ReordCommon.mapped_G G' a b) G' a b.
+  reord_simrel_rw (ReordCommon.mapped_G_t G' a b) G' a b.
 Proof using.
-  assert (SAME_ACTS : ReordCommon.mapper a b ↑₁
-    (ReordCommon.mapper a b ↑₁ acts_set G') ≡₁ acts_set G').
-  { rewrite !ReordCommon.mapper_set_iff; ins.
-    rewrite <- 2!set_subset_single_l with (A := actid).
-    rewrite !ReordCommon.mapper_set_iff; ins.
-    now rewrite !set_subset_single_l with (A := actid). }
-
   constructor; ins.
-  { unfold compose. apply functional_extensionality. intro x.
-    rewrite ReordCommon.mapper_eq_a, ReordCommon.mapper_eq_b.
-    destruct (classic (x = a)) as [EQA|EQA],
-             (classic (x = b)) as [EQB|EQB].
-    all: try subst x; subst; rupd; auto.
-    now rewrite ReordCommon.mapper_neq. }
-  { rewrite mapper_rsrw_a_subst, set_union_empty_r; ins. }
-  rewrite mapper_rsrw_a_subst; auto.
-  now rewrite eqv_empty, seq_false_r, union_false_r.
+  { unfold same_lab_u2v, same_lab_u2v_dom, same_label_u2v.
+    ins. desf. }
+  { now apply NOTINB, SAME. }
+  all: exfalso; now apply NOTINA, SAME.
 Qed.
 
+(* TODO: constraint on a and b *)
+Lemma mapper_simrel_niff G' a b
+    (ANIT : ~is_init a)
+    (BNIT : ~is_init b)
+    (INB : acts_set G' b)
+    (NOTINA : ~acts_set G' a)
+    (NEQ : a <> b) :
+  reord_simrel_rw (ReordCommon.mapped_G_t_with_mb G' a b) G' a b.
+Proof using.
+  constructor; ins.
+  { unfold same_lab_u2v, same_lab_u2v_dom, same_label_u2v.
+    ins. desf. }
+  all: try now (exfalso; apply NOTINA, SAME, INB).
+  { admit. }
+  admit. (* TODO: Why do we have an srf edge *)
+Admitted.
 
 Lemma sim_rel_init G G' a b
     (INIT_WF : Wf (WCore.init_exec G))
@@ -136,19 +141,13 @@ Lemma sim_rel_init G G' a b
     (LAB : lab G' = upd (upd (lab G) a (lab G b)) b (lab G a)) :
   reord_simrel_rw (WCore.init_exec G) (WCore.init_exec G') a b.
 Proof using.
-  assert (RSRW_EMPTY : rsrw_a_subst (WCore.init_exec G) a b ≡₁ ∅).
-  { unfold rsrw_a_subst; split; [| basic_solver].
-    intros a' [_ IMM]; unfolder.
-    apply immediate_in in IMM. unfold sb in IMM.
-    unfolder in IMM; desf; ins; desf.
-    rewrite ReordCommon.mapper_eq_b in IMM2; eauto. }
-
-  constructor; ins.
+  admit.
+  (* constructor; ins.
   all: try rewrite mapper_init; ins.
   all: try rewrite collect_rel_empty; ins.
   { now rewrite RSRW_EMPTY, set_union_empty_r. }
-  rewrite RSRW_EMPTY; basic_solver.
-Qed.
+  rewrite RSRW_EMPTY; basic_solver. *)
+Admitted.
 
 Section ExecutionSteps.
 
@@ -171,8 +170,6 @@ Lemma simrel_exec_not_a_not_b e
     << STEP' : WCore.exec_inst Gs Gs' traces' e >> /\
     << SIM' : reord_simrel_rw Gs' Gt' a b >>.
 Proof using SWAPPED_TRACES.
-  exists (ReordCommon.mapped_G Gt' a b); split.
-  { admit. }
   admit.
 Admitted.
 

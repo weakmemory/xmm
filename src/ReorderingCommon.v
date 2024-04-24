@@ -145,7 +145,19 @@ Definition traces_swapped :=
       << IN : traces (tid a) t >> /\
       << SWAP : trace_swapped label t t' (index a) (index b) >>.
 Definition mapped_G_t : execution := {|
-  acts_set := mapper ↑₁ E_t;
+  acts_set := E_t;
+  threads_set := threads_set G_t;
+  lab := lab_t ∘ mapper;
+  rmw := mapper ↑ rmw_t;
+  data := mapper ↑ data_t;
+  addr := mapper ↑ addr_t;
+  ctrl := mapper ↑ ctrl_t;
+  rmw_dep := mapper ↑ rmw_dep_t;
+  rf := mapper ↑ rf_t;
+  co := mapper ↑ co_t;
+|}.
+Definition mapped_G_t_with_mb : execution := {|
+  acts_set := E_t ∪₁ eq (mapper b);
   threads_set := threads_set G_t;
   lab := lab_t ∘ mapper;
   rmw := mapper ↑ rmw_t;
@@ -163,14 +175,14 @@ Record reord : Prop :=
   events_diff : a <> b;
   events_locs_diff : loc_s a <> loc_s b;
   events_lab : lab_s = lab_t ∘ mapper;
-  events_same : E_s ≡₁ mapper ↑₁ E_t;
-  events_imm : immediate sb_s a b;
+  events_same : E_s ≡₁ E_t;
+  events_imm : immediate sb_t a b;
+  map_events_imm : immediate sb_s (mapper b) (mapper a);
   event_threadset : threads_set G_s ≡₁ threads_set G_t;
 
   events_no_rpo1 : ~rpo_s a b;
 
-  map_sb : immediate sb_s ≡ mapper ↑ immediate sb_t \ singl_rel b a ∪
-                                                      singl_rel a b;
+  map_sb : sb_s ≡ sb_t;
   map_rf : rf_s ≡ mapper ↑ rf_t;
   map_co : co_s ≡ mapper ↑ co_t;
   map_rmw : rmw_s ≡ mapper ↑ rmw_t;
@@ -188,61 +200,6 @@ Record reord : Prop :=
 }.
 
 Hypothesis REORD : reord.
-
-Lemma mapped_exec_equiv : exec_equiv G_s mapped_G_t.
-Proof using REORD.
-  constructor; ins; try apply REORD.
-  { now rewrite REORD.(gs_data), REORD.(gt_data), collect_rel_empty. }
-  { now rewrite REORD.(gs_addr), REORD.(gt_addr), collect_rel_empty. }
-  now rewrite REORD.(gs_ctrl), REORD.(gt_ctrl), collect_rel_empty.
-Qed.
-
-Lemma mapper_set_iff s
-    (SAME : s a <-> s b) :
-  mapper ↑₁ s ≡₁ s.
-Proof using.
-  unfold mapper; unfolder; split; ins; desf.
-  { destruct (classic (y = a)) as [EQA|EQA],
-             (classic (y = b)) as [EQB|EQB].
-    all: try subst y; subst.
-    all: try now (rupd; eauto).
-    rewrite EQB; rupd; eauto. }
-  destruct (classic (x = a)) as [EQA|EQA],
-           (classic (x = b)) as [EQB|EQB].
-  all: try subst x; subst.
-  all: eexists; try now (split; ins; rupd; eauto).
-  { split; [now apply SAME0 | now rupd]. }
-  split; [eauto | rupd].
-Qed.
-
-Lemma mapped_exec_acts_diff
-    (INA : E_t b)
-    (NINB : ~E_t a) :
-  acts_set mapped_G_t ≡₁ E_t \₁ eq b ∪₁ eq a.
-Proof using.
-  unfold mapped_G_t; ins.
-  unfold mapper; unfolder; split; ins; desf.
-  { destruct (classic (y = a)) as [EQA|EQA],
-             (classic (y = b)) as [EQB|EQB].
-    all: try subst y; subst.
-    all: try now (rupd; eauto). }
-  { exists x; rupd; congruence. }
-  exists b; split; ins; rupd; ins.
-Qed.
-
-Lemma eq_tid : tid a = tid b.
-Proof using REORD.
-  enough (OR : tid a = tid b \/ is_init a).
-  { desf. exfalso. now apply REORD in OR. }
-  eapply sb_tid_init, immediate_in, REORD.
-Qed.
-
-Lemma b_not_init : ~is_init b.
-Proof using REORD.
-  enough (SB : (sb_s ⨾ ⦗set_compl is_init⦘) a b).
-  { unfolder in SB; desf. }
-  apply no_sb_to_init, immediate_in, REORD.
-Qed.
 
 Lemma mapper_eq_b : mapper b = a.
 Proof using.
@@ -276,6 +233,29 @@ Lemma mapper_inj_dom s (NEQ : a <> b) : inj_dom s mapper.
 Proof using.
   unfold inj_dom; ins.
   apply mapper_inj; ins.
+Qed.
+
+Lemma mapped_exec_equiv : exec_equiv G_s mapped_G_t.
+Proof using REORD.
+  constructor; ins; try apply REORD.
+  { now rewrite REORD.(gs_data), REORD.(gt_data), collect_rel_empty. }
+  { now rewrite REORD.(gs_addr), REORD.(gt_addr), collect_rel_empty. }
+  now rewrite REORD.(gs_ctrl), REORD.(gt_ctrl), collect_rel_empty.
+Qed.
+
+Lemma eq_tid : tid a = tid b.
+Proof using REORD.
+  enough (OR : tid a = tid b \/ is_init a).
+  { desf. exfalso. now apply REORD in OR. }
+  eapply sb_tid_init, immediate_in, REORD.
+Qed.
+
+Lemma b_not_init : ~is_init b.
+Proof using REORD.
+  enough (SB : (sb_s ⨾ ⦗set_compl is_init⦘) a b).
+  { unfolder in SB; desf. }
+  rewrite <- mapper_eq_a, <- mapper_eq_b at 1.
+  apply no_sb_to_init, immediate_in, REORD.
 Qed.
 
 End ReorderingDefs.
