@@ -60,10 +60,6 @@ Record reord_simrel_rw : Prop :=
   rsrw_actids1 : forall (SAME : E' a <-> E' b), mapper ↑₁ E ≡₁ E';
   rsrw_actids2 : forall (INB : E' b) (NOTINA : ~ E' a),
                 mapper ↑₁ E ≡₁ E' ∪₁ rsrw_a_subst;
-  (* rpo stuff is disabled for now. *)
-  (* rsrw_no_rpo1 : ~rpo a b;
-  rsrw_no_rpo2 : ~rpo' a b;
-  rsrw_rpo : rpo ≡ mapper ↑ rpo'; *)
   rsrw_rf1 : forall (SAME : E' a <-> E' b), mapper ↑ rf' ≡ rf;
   rsrw_rf2 : forall (INB : E' b) (NOTINA : ~ E' a),
                     rf ≡ mapper ↑ rf' ∪ srf' ⨾ ⦗rsrw_a_subst⦘;
@@ -128,11 +124,6 @@ Proof using.
     all: try subst x; subst; rupd; auto.
     now rewrite ReordCommon.mapper_neq. }
   { rewrite mapper_rsrw_a_subst, set_union_empty_r; ins. }
-  (* { unfold ReordCommon.mapped_G, rpo; ins.
-    rewrite !collect_rel_union, !collect_rel_seq, !collect_rel_eqv.
-    all: eauto using ReordCommon.mapper_inj_dom.
-    repeat apply union_more.
-    all: admit. } *)
   rewrite mapper_rsrw_a_subst; auto.
   now rewrite eqv_empty, seq_false_r, union_false_r.
 Qed.
@@ -158,11 +149,6 @@ Proof using.
   all: try rewrite mapper_init; ins.
   all: try rewrite collect_rel_empty; ins.
   { now rewrite RSRW_EMPTY, set_union_empty_r. }
-  (* { intro F; apply wf_rpoE in F; auto.
-    unfolder in F; desf; ins; desf; eauto. }
-  { intro F; apply wf_rpoE in F; auto.
-    unfolder in F; desf; ins; desf; eauto. }
-  { admit. } *)
   rewrite RSRW_EMPTY; basic_solver.
 Qed.
 
