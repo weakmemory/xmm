@@ -106,30 +106,36 @@ Section ReorderingDefs.
 
 Open Scope program_scope.
 
-Variable G G' : execution.
+Variable G_s G_t : execution.
 Variable traces traces' : thread_id -> trace label -> Prop.
 Variable a b : actid.
 
-Notation "'lab''" := (lab G').
-Notation "'E''" := (acts_set G').
-Notation "'sb''" := (sb G').
-Notation "'rf''" := (rf G').
-Notation "'co''" := (co G').
-Notation "'rmw''" := (rmw G').
-Notation "'rpo''" := (rpo G').
-Notation "'rmw_dep''" := (rmw_dep G').
+Notation "'lab_t'" := (lab G_t).
+Notation "'E_t'" := (acts_set G_t).
+Notation "'sb_t'" := (sb G_t).
+Notation "'rf_t'" := (rf G_t).
+Notation "'co_t'" := (co G_t).
+Notation "'rmw_t'" := (rmw G_t).
+Notation "'rpo_t'" := (rpo G_t).
+Notation "'rmw_dep_t'" := (rmw_dep G_t).
+Notation "'data_t'" := (data G_t).
+Notation "'ctrl_t'" := (ctrl G_t).
+Notation "'addr_t'" := (addr G_t).
 
-Notation "'lab'" := (lab G).
-Notation "'E'" := (acts_set G).
-Notation "'loc'" := (loc lab).
-Notation "'sb'" := (sb G).
-Notation "'rf'" := (rf G).
-Notation "'co'" := (co G).
-Notation "'rmw'" := (rmw G).
-Notation "'rpo'" := (rpo G).
-Notation "'rmw_dep'" := (rmw_dep G).
-Notation "'W'" := (is_w lab).
-Notation "'R'" := (is_r lab).
+Notation "'lab_s'" := (lab G_s).
+Notation "'E_s'" := (acts_set G_s).
+Notation "'loc_s'" := (loc lab_s).
+Notation "'sb_s'" := (sb G_s).
+Notation "'rf_s'" := (rf G_s).
+Notation "'co_s'" := (co G_s).
+Notation "'rmw_s'" := (rmw G_s).
+Notation "'rpo_s'" := (rpo G_s).
+Notation "'rmw_dep_s'" := (rmw_dep G_s).
+Notation "'data_s'" := (data G_s).
+Notation "'ctrl_s'" := (ctrl G_s).
+Notation "'addr_s'" := (addr G_s).
+Notation "'W_s'" := (is_w lab_s).
+Notation "'R_s'" := (is_r lab_s).
 
 
 Definition mapper := upd (upd id a b) b a.
@@ -138,56 +144,57 @@ Definition traces_swapped :=
       traces' (tid a) t' <-> exists t,
       << IN : traces (tid a) t >> /\
       << SWAP : trace_swapped label t t' (index a) (index b) >>.
-
-Definition mapped_G : execution := {|
-  acts_set := mapper ↑₁ E;
-  threads_set := threads_set G;
-  lab := lab ∘ mapper;
-  rmw := mapper ↑ rmw;
-  data := ∅₂;
-  addr := ∅₂;
-  ctrl := ∅₂;
-  rmw_dep := mapper ↑ rmw_dep;
-  rf := mapper ↑ rf;
-  co := mapper ↑ co;
+Definition mapped_G_t : execution := {|
+  acts_set := mapper ↑₁ E_t;
+  threads_set := threads_set G_t;
+  lab := lab_t ∘ mapper;
+  rmw := mapper ↑ rmw_t;
+  data := mapper ↑ data_t;
+  addr := mapper ↑ addr_t;
+  ctrl := mapper ↑ ctrl_t;
+  rmw_dep := mapper ↑ rmw_dep_t;
+  rf := mapper ↑ rf_t;
+  co := mapper ↑ co_t;
 |}.
 
 (* TODO computational swap_trace? *)
 Record reord : Prop :=
 { a_not_init : ~is_init a;
   events_diff : a <> b;
-  events_locs_diff : loc a <> loc b;
-  events_lab : lab' = lab ∘ mapper;
-  events_same : E' ≡₁ mapper ↑₁ E;
-  events_imm : immediate sb a b;
-  event_threadset : threads_set G' ≡₁ threads_set G;
+  events_locs_diff : loc_s a <> loc_s b;
+  events_lab : lab_s = lab_t ∘ mapper;
+  events_same : E_s ≡₁ mapper ↑₁ E_t;
+  events_imm : immediate sb_s a b;
+  event_threadset : threads_set G_s ≡₁ threads_set G_t;
 
-  events_no_rpo1 : ~rpo a b;
-  events_no_rpo2 : ~rpo' b a;
+  events_no_rpo1 : ~rpo_s a b;
 
-  map_sb : immediate sb' ≡ mapper ↑ immediate sb \ singl_rel a b ∪
-                                                   singl_rel b a;
-  map_rf : rf' ≡ mapper ↑ rf;
-  map_co : co' ≡ mapper ↑ co;
-  map_rmw : rmw' ≡ mapper ↑ rmw;
-  map_rpo : rpo' ≡ mapper ↑ rpo;
-  map_rmw_dep : rmw_dep' ≡ mapper ↑ rmw_dep;
+  map_sb : immediate sb_s ≡ mapper ↑ immediate sb_t \ singl_rel b a ∪
+                                                      singl_rel a b;
+  map_rf : rf_s ≡ mapper ↑ rf_t;
+  map_co : co_s ≡ mapper ↑ co_t;
+  map_rmw : rmw_s ≡ mapper ↑ rmw_t;
+  map_rpo : rpo_s ≡ mapper ↑ rpo_t;
+  map_rmw_dep : rmw_dep_s ≡ mapper ↑ rmw_dep_t;
 
   traces_corr : traces_swapped;
 
-  g_data : data G ≡ ∅₂;
-  g_addr : addr G ≡ ∅₂;
-  g_ctrl : ctrl G ≡ ∅₂;
-  gp_data : data G' ≡ ∅₂;
-  gp_addr : addr G' ≡ ∅₂;
-  gp_ctrl : ctrl G' ≡ ∅₂;
+  gs_data : data G_s ≡ ∅₂;
+  gs_addr : addr G_s ≡ ∅₂;
+  gs_ctrl : ctrl G_s ≡ ∅₂;
+  gt_data : data G_t ≡ ∅₂;
+  gt_addr : addr G_t ≡ ∅₂;
+  gt_ctrl : ctrl G_t ≡ ∅₂;
 }.
 
 Hypothesis REORD : reord.
 
-Lemma mapped_exec_equiv : exec_equiv G' mapped_G.
+Lemma mapped_exec_equiv : exec_equiv G_s mapped_G_t.
 Proof using REORD.
-  constructor; ins; apply REORD.
+  constructor; ins; try apply REORD.
+  { now rewrite REORD.(gs_data), REORD.(gt_data), collect_rel_empty. }
+  { now rewrite REORD.(gs_addr), REORD.(gt_addr), collect_rel_empty. }
+  now rewrite REORD.(gs_ctrl), REORD.(gt_ctrl), collect_rel_empty.
 Qed.
 
 Lemma mapper_set_iff s
@@ -209,21 +216,18 @@ Proof using.
 Qed.
 
 Lemma mapped_exec_acts_diff
-    (INA : E a)
-    (NINB : ~E b) :
-  acts_set mapped_G ≡₁ E \₁ eq a ∪₁ eq b.
+    (INA : E_t b)
+    (NINB : ~E_t a) :
+  acts_set mapped_G_t ≡₁ E_t \₁ eq b ∪₁ eq a.
 Proof using.
-  unfold mapped_G; ins.
+  unfold mapped_G_t; ins.
   unfold mapper; unfolder; split; ins; desf.
   { destruct (classic (y = a)) as [EQA|EQA],
              (classic (y = b)) as [EQB|EQB].
     all: try subst y; subst.
-    all: try now (rupd; eauto).
-    exfalso; apply NINB; now rewrite <- EQB. }
-  { exists x; rupd; [congruence |].
-    intro F; apply NINB; now rewrite <- F. }
-  exists a; split; ins; rupd; ins.
-  intro F; apply NINB; now rewrite <- F.
+    all: try now (rupd; eauto). }
+  { exists x; rupd; congruence. }
+  exists b; split; ins; rupd; ins.
 Qed.
 
 Lemma eq_tid : tid a = tid b.
@@ -235,7 +239,7 @@ Qed.
 
 Lemma b_not_init : ~is_init b.
 Proof using REORD.
-  enough (SB : (sb ⨾ ⦗set_compl is_init⦘) a b).
+  enough (SB : (sb_s ⨾ ⦗set_compl is_init⦘) a b).
   { unfolder in SB; desf. }
   apply no_sb_to_init, immediate_in, REORD.
 Qed.
