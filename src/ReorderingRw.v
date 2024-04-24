@@ -104,8 +104,6 @@ Lemma mapper_simrel G' a b
     (ANIT : ~is_init a)
     (BNIT : ~is_init b)
     (SAME : acts_set G' a <-> acts_set G' b)
-    (RPO : ~ rpo G' a b)
-    (RPO' : ~ rpo (ReordCommon.mapped_G G' a b) a b)
     (NEQ : a <> b) :
   reord_simrel_rw (ReordCommon.mapped_G G' a b) G' a b.
 Proof using.
