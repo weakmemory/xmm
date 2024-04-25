@@ -79,6 +79,12 @@ Proof using.
   (* rewrite wf_hbE, wf_pscE. *)
 Admitted.
 
+Lemma vf_dom : dom_rel vf ⊆₁ W.
+Proof using.
+  unfold vf. intros x (y & z & IS_W & _).
+  unfolder in IS_W; desf.
+Qed.
+
 Lemma wf_srfE
     (WF : Wf G) :
   srf ≡ ⦗E⦘ ⨾ srf ⨾ ⦗E⦘.
@@ -97,6 +103,45 @@ Proof using.
   rewrite <- seqA with (r2 := rpo ⨾ ⦗E⦘ ∪ ⦗E⦘ ⨾ sw) at 2.
   now rewrite <- ct_seq_eqv_r, seqA, <- ct_seq_eqv_l.
 Qed.
+
+Lemma rf_sub_vf (WF : Wf G) : rf ⊆ vf.
+Proof using.
+  rewrite WF.(wf_rfD).
+  unfold vf; unfolder; ins; desf.
+  splits; eauto.
+  do 2 (exists y; splits; eauto).
+Qed.
+
+Lemma srf_funcrional (WF : Wf G) : functional srf⁻¹.
+Proof using.
+  unfolder; unfold srf. intros x y z (VF1 & CO1) (VF2 & CO2).
+  tertium_non_datur (y = z) as [EQ|NEQ]; ins.
+  unfolder in VF1; desf. unfolder in VF2; desf.
+  exfalso.
+  destruct (WF.(wf_co_total)) with (a := y) (b := z)
+                                   (ol := loc x) as [CO|CO].
+  all: ins.
+  { unfolder; splits; eauto.
+    { apply wf_vfE in VF1; unfolder in VF1; desf. }
+    apply vf_dom. eexists; eauto. }
+  { unfolder; splits; eauto.
+    { apply wf_vfE in VF2; unfolder in VF2; desf. }
+    apply vf_dom. eexists; eauto. }
+  { apply CO1. unfolder. now exists z. }
+  apply CO2. unfolder. now exists y.
+Qed.
+
+(*
+Lemma srf_exists : srf is not empty as long as there is an rf edge.
+Proof using.
+  Given we have an rf edge to event e, (vf ∩ same_loc) ⨾ ⦗R⦘ is already
+  not empty.
+
+  Next, we need to show that (co ; vf ⊆ (vf ∩ same_loc) ⨾ ⦗R⦘).
+
+  This shows us that co-max event w has edge (w, e).
+Qed.
+*)
 
 End ExtraRel.
 
