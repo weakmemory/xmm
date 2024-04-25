@@ -65,17 +65,17 @@ Record reord_simrel_rw : Prop :=
 
   rsrw_lab_u2v : same_lab_u2v lab_s (lab_t ∘ mapper);
   rsrw_lab_v : forall e (NOTA : e <> a), val_s e = (val_t ∘ mapper) e;
-  rsrw_actids_t_ord : forall (INA : E_t a) (NOTINB : ~E_t b), False;
+  rsrw_actids_t_ord : forall (INA : E_t b) (NOTINB : ~E_t a), False;
 
   rsrw_sb1 : forall (SAME : E_t a <-> E_t b), immediate sb_s ≡ immediate sb_t;
-  rsrw_sb2 : forall (INB : E_t b) (NOTINA : ~E_t a),
-                immediate sb_s ≡ immediate sb_t ∪ singl_rel (mapper b) (mapper a);
+  rsrw_sb2 : forall (INB : E_t a) (NOTINA : ~E_t b),
+                immediate sb_s ≡ immediate sb_t ∪ singl_rel a b;
   rsrw_actids1 : forall (SAME : E_t a <-> E_t b), E_s ≡₁ E_t;
-  rsrw_actids2 : forall (INB : E_t b) (NOTINA : ~E_t a),
-                 E_s ≡₁ E_t ∪₁ eq (mapper b);
+  rsrw_actids2 : forall (INB : E_t a) (NOTINA : ~E_t b),
+                 E_s ≡₁ E_t ∪₁ eq b;
   rsrw_rf1 : forall (SAME : E_t a <-> E_t b), rf_s ≡ mapper ↑ rf_t;
-  rsrw_rf2 : forall (INB : E_t b) (NOTINA : ~ E_t a),
-                    rf_s ≡ mapper ↑ rf_t ∪ srf_t ⨾ ⦗eq (mapper a)⦘;
+  rsrw_rf2 : forall (INB : E_t a) (NOTINA : ~ E_t b),
+                    rf_s ≡ mapper ↑ rf_t ∪ srf_t ⨾ ⦗eq b⦘;
   rsrw_co : co_s ≡ mapper ↑ co_t;
 }.
 
@@ -119,16 +119,17 @@ Qed.
 Lemma mapper_simrel_niff G' a b
     (ANIT : ~is_init a)
     (BNIT : ~is_init b)
-    (INB : acts_set G' b)
-    (NOTINA : ~acts_set G' a)
+    (INA : acts_set G' a)
+    (NOTINB : ~acts_set G' b)
     (NEQ : a <> b) :
-  reord_simrel_rw (ReordCommon.mapped_G_t_with_mb G' a b) G' a b.
+  reord_simrel_rw (ReordCommon.mapped_G_t_with_b G' a b) G' a b.
 Proof using.
   constructor; ins.
   { unfold same_lab_u2v, same_lab_u2v_dom, same_label_u2v.
     ins. desf. }
-  all: try now (exfalso; apply NOTINA, SAME, INB).
-  { admit. }
+  all: try now (exfalso; apply NOTINB, SAME, INA).
+  { apply ReordCommon.mapped_G_t_imm_sb; ins.
+    all: admit. } (* TODO constraints *)
   admit. (* TODO: Why do we have an srf edge *)
 Admitted.
 

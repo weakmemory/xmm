@@ -156,8 +156,8 @@ Definition mapped_G_t : execution := {|
   rf := mapper ↑ rf_t;
   co := mapper ↑ co_t;
 |}.
-Definition mapped_G_t_with_mb : execution := {|
-  acts_set := E_t ∪₁ eq (mapper b);
+Definition mapped_G_t_with_b : execution := {|
+  acts_set := E_t ∪₁ eq b;
   threads_set := threads_set G_t;
   lab := lab_t ∘ mapper;
   rmw := mapper ↑ rmw_t;
@@ -177,7 +177,6 @@ Record reord : Prop :=
   events_lab : lab_s = lab_t ∘ mapper;
   events_same : E_s ≡₁ E_t;
   events_imm : immediate sb_t a b;
-  map_events_imm : immediate sb_s (mapper b) (mapper a);
   event_threadset : threads_set G_s ≡₁ threads_set G_t;
 
   events_no_rpo1 : ~rpo_s a b;
@@ -235,6 +234,92 @@ Proof using.
   apply mapper_inj; ins.
 Qed.
 
+Lemma mapped_G_t_sb : sb mapped_G_t ≡ sb_t.
+Proof using.
+  unfold sb; ins.
+Qed.
+
+Lemma mapped_G_t_with_b_sb_sub : sb_t ⊆ sb mapped_G_t_with_b.
+Proof using.
+  unfold sb; ins; basic_solver.
+Qed.
+
+Lemma mapped_G_t_with_b_acts_sub : E_t ⊆₁ acts_set mapped_G_t_with_b.
+Proof using.
+  unfold acts_set, mapped_G_t; ins; basic_solver.
+Qed.
+
+Lemma mapped_G_t_with_b_b_max
+    (IN : E_t a)
+    (LAST : max_elt sb_t a)
+    (NEXT : ext_sb a b) :
+  max_elt (sb mapped_G_t_with_b) b.
+Proof using.
+  unfold max_elt, sb. intros e SB.
+  unfolder in SB; desf; ins.
+  unfolder in SB1; desf; [| eapply ext_sb_irr; eauto].
+  eapply (LAST e); unfold sb; unfolder; splits; eauto.
+  eapply ext_sb_trans; eauto.
+Qed.
+
+Lemma mapped_G_t_with_b_not_b x y
+    (IN : E_t a)
+    (LAST : max_elt sb_t a)
+    (NEXT : ext_sb a b)
+    (SB : sb mapped_G_t_with_b x y) :
+  E_t x.
+Proof using.
+  enough (XIN : acts_set mapped_G_t_with_b x).
+  { ins; unfolder in XIN; desf.
+    exfalso; eapply mapped_G_t_with_b_b_max; eauto. }
+  unfold sb in SB; unfolder in SB; desf.
+Qed.
+
+Lemma mapped_G_t_imm_sb
+    (NINIT : ~is_init a)
+    (HINA : E_t a)
+    (LAST : max_elt sb_t a)
+    (NEXT : ext_sb a b) :
+  immediate (sb mapped_G_t_with_b) ≡ immediate sb_t ∪ singl_rel a b.
+Proof using.
+  split; intros x y HIN.
+  { unfold sb in HIN; ins.
+    unfolder in HIN; desf.
+    all: try now (exfalso; eapply ext_sb_irr; eauto).
+    { left; unfold sb; unfolder; splits; ins; eauto.
+      apply HIN0 with (c := c); desf; eauto. }
+    { exfalso. eapply mapped_G_t_with_b_b_max; ins.
+      unfold sb; ins; unfolder; splits; eauto. }
+    tertium_non_datur (x = a) as [ISA|ISA]; subst.
+    { now right. }
+    exfalso. tertium_non_datur (is_init x) as [INI|INI].
+    { apply HIN0 with (c := a); splits; eauto.
+      destruct a, x; ins. }
+    assert (TIDEQ : tid a = tid x).
+    { unfold ext_sb in NEXT, HIN1. do 2 desf. }
+    destruct ext_sb_semi_total_r with (x := b) (y := a) (z := x) as [SB|SB].
+    all: eauto.
+    { destruct a, x; ins; desf; congruence. }
+    { eapply LAST; unfold sb; unfolder; splits; eauto. }
+    apply HIN0 with (c := a); splits; eauto. }
+  unfolder in HIN; desf.
+  { split; [now apply mapped_G_t_with_b_sb_sub|].
+    intros c SB1 SB2. assert (INE : E_t c).
+    { eapply mapped_G_t_with_b_not_b; eauto. }
+    unfold sb in HIN; unfolder in HIN; desf.
+    apply HIN0 with (c := c); unfold sb; unfolder; splits.
+    all: eauto.
+    { unfold sb in SB1; unfolder in SB1; apply SB1. }
+    unfold sb in SB2; unfolder in SB2; apply SB2. }
+  split; unfold sb; ins.
+  { unfolder; splits; eauto. }
+  unfolder in R1; desf.
+  { eapply LAST; unfold sb; unfolder; splits; eauto. }
+  { rewrite R1 in NEXT; eapply ext_sb_irr; eauto. }
+  { eapply sb_irr with (G := mapped_G_t_with_b); eapply R2. }
+  rewrite R1 in NEXT; eapply ext_sb_irr; eauto.
+Qed.
+
 Lemma mapped_exec_equiv : exec_equiv G_s mapped_G_t.
 Proof using REORD.
   constructor; ins; try apply REORD.
@@ -252,9 +337,8 @@ Qed.
 
 Lemma b_not_init : ~is_init b.
 Proof using REORD.
-  enough (SB : (sb_s ⨾ ⦗set_compl is_init⦘) a b).
+  enough (SB : (sb_t ⨾ ⦗set_compl is_init⦘) a b).
   { unfolder in SB; desf. }
-  rewrite <- mapper_eq_a, <- mapper_eq_b at 1.
   apply no_sb_to_init, immediate_in, REORD.
 Qed.
 
