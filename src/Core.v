@@ -356,24 +356,6 @@ Proof using WF.
   apply wf_g_acts; basic_solver.
 Qed.
 
-Lemma ext_sb_dense x y
-    (XNOT_INIT : tid x <> tid_init)
-    (IN : E y)
-    (SB : ext_sb x y) :
-  E x.
-Proof using WF.
-  assert (YNOT_INIT : ~is_init y).
-  { apply ext_sb_to_non_init in SB.
-    unfolder in SB; desf. }
-  assert (Y_TID : tid y = tid x).
-  { destruct (ext_sb_tid_init x y SB); auto.
-    destruct x; ins. }
-  unfold ext_sb in SB; desf; ins; desf.
-  set (ACTS := wf_g_cont XNOT_INIT). desf.
-  apply in_restr_acts, ACTS, thread_set_iff in IN.
-  apply ACTS, thread_set_iff. lia.
-Qed.
-
 Lemma wf_set_sz thr N
     (NOT_INIT : thr <> tid_init)
     (SZ_EQ : set_size (E ∩₁ (fun e => thr = tid e)) = NOnum N) :

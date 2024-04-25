@@ -111,6 +111,22 @@ Proof using.
   intros n'' F; desf.
 Qed.
 
+Lemma thread_seq_set_max t n :
+  max_elt (restr_rel (thread_seq_set t n) ext_sb) (ThreadEvent t (n - 1)).
+Proof using.
+  unfolder. ins. desf. lia.
+Qed.
+
+Lemma thread_seq_set_dense t n e1 e2
+    (NINIT : ~is_init e1)
+    (HIN : thread_seq_set t n e2)
+    (SB : ext_sb e1 e2) :
+  thread_seq_set t n e1.
+Proof using.
+  unfolder; unfolder in HIN; unfold ext_sb in SB.
+  desf. exists index; split; [lia| desf].
+Qed.
+
 Section ThreadTrace.
 
 Variable (G : execution) (t : thread_id) (N : nat).
@@ -242,6 +258,29 @@ Definition exec_trace_prefix G G' : Prop :=
 
 Definition contigious_actids G : Prop := forall t (NOT_INIT : t <> tid_init),
   exists N, (acts_set G) ∩₁ (fun e => t = tid e) ≡₁ thread_seq_set t N.
+
+Lemma cont_actids_sub G N t
+    (EQ : (acts_set G) ∩₁ (fun e => t = tid e) ≡₁ thread_seq_set t N) :
+  thread_seq_set t N ⊆₁ acts_set G.
+Proof using.
+  rewrite <- EQ. basic_solver.
+Qed.
+
+Lemma ext_sb_dense G e1 e2
+    (CONT : contigious_actids G)
+    (NINITID : tid e1 <> tid_init)
+    (HIN : acts_set G e2)
+    (SB : ext_sb e1 e2) :
+  acts_set G e1.
+Proof using.
+  set (t := tid e1); set (CONT' := CONT t NINITID). desf.
+  assert (NINIT : ~is_init e1) by (destruct e1; eauto).
+  assert (SAME_TID : tid e1 = tid e2).
+  { destruct ext_sb_tid_init with (x := e1) (y := e2); ins. }
+  eapply cont_actids_sub; [| eapply thread_seq_set_dense with (t := t)].
+  all: eauto.
+  apply CONT'. destruct e2 as [l | t' n]; ins.
+Qed.
 
 Lemma thread_actid_trace_prefix t G G'
     (SUB : acts_set G' ∩₁ (fun e => t = tid e) ⊆₁

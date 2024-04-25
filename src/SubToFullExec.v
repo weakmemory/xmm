@@ -103,7 +103,7 @@ Proof using.
     arewrite (⦗eq h⦘ ⨾ rmw' ⨾ ⦗E⦘ ≡ ∅₂); [| now rewrite !union_false_r].
     split; [|basic_solver]. unfolder; ins; desf.
     change G with (WCore.G X) in NEW.
-    enough (EXT : ext_sb x y); eauto using WCore.ext_sb_dense.
+    eapply NEW, ext_sb_dense; eauto; [apply WF |].
     enough (SB : sb' x y); try now apply wf_rmwi; ins.
     unfold sb in SB; unfolder in SB; desf. }
   { rewrite (WCore.cc_data_empty WF).
