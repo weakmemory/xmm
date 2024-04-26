@@ -49,7 +49,7 @@ Definition rpo :=
   ⦗R ∪₁ W⦘ ⨾ sb ⨾ ⦗is_rel⦘ ∪
   ⦗F ∩₁ is_rel⦘ ⨾ sb ⨾ ⦗W ∩₁ is_rlx⦘.
 Definition rhb := (rpo ∪ sw)⁺.
-Definition vf := ⦗W⦘ ⨾ rf^? ⨾ hb^? ⨾ psc^? ⨾ hb^?.
+Definition vf := ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf^? ⨾ hb^? ⨾ psc^? ⨾ hb^? ⨾ ⦗E⦘.
 Definition srf := (vf ∩ same_loc) ⨾ ⦗R⦘ \ (co ⨾ vf).
 
 Definition thread_terminated (t : thread_id) : Prop :=
@@ -74,61 +74,54 @@ Lemma wf_vfE
     (WF : Wf G) :
   vf ≡ ⦗E⦘ ⨾ vf ⨾ ⦗E⦘.
 Proof using.
-  unfold vf.
-  admit.
-  (* rewrite wf_hbE, wf_pscE. *)
-Admitted.
+  unfold vf. hahn_frame.
+  seq_rewrite <- !(id_inter E E).
+  now rewrite !set_interK.
+Qed.
 
 Lemma vf_dom : dom_rel vf ⊆₁ W.
 Proof using.
-  unfold vf. intros x (y & z & IS_W & _).
-  unfolder in IS_W; desf.
+  unfold vf. basic_solver.
 Qed.
 
 Lemma wf_srfE
     (WF : Wf G) :
   srf ≡ ⦗E⦘ ⨾ srf ⨾ ⦗E⦘.
 Proof using.
-  unfold srf. rewrite wf_vfE, wf_coE; auto.
-  admit.
-Admitted.
+  unfold srf. split; [| basic_solver].
+  rewrite wf_vfE at 1 by auto.
+  unfolder; ins; splits; desf; eauto.
+Qed.
 
 Lemma wf_rhbE
     (WF : Wf G) :
   rhb ≡ ⦗E⦘ ⨾ rhb ⨾ ⦗E⦘.
 Proof using.
   unfold rhb. rewrite wf_swE, wf_rpoE; auto.
-  arewrite (⦗E⦘ ⨾ rpo ⨾ ⦗E⦘ ∪ ⦗E⦘ ⨾ sw ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ (rpo ⨾ ⦗E⦘ ∪ ⦗E⦘ ⨾ sw) ⨾ ⦗E⦘).
-  { basic_solver 7. }
-  rewrite <- seqA with (r2 := rpo ⨾ ⦗E⦘ ∪ ⦗E⦘ ⨾ sw) at 2.
-  now rewrite <- ct_seq_eqv_r, seqA, <- ct_seq_eqv_l.
+  rewrite <- seq_union_r, <- seq_union_l.
+  seq_rewrite <- ct_seq_eqv_l.
+  rewrite <- seqA.
+  now seq_rewrite <- ct_seq_eqv_r.
 Qed.
 
 Lemma rf_sub_vf (WF : Wf G) : rf ⊆ vf.
 Proof using.
-  rewrite WF.(wf_rfD).
+  rewrite WF.(wf_rfD), WF.(wf_rfE).
   unfold vf; unfolder; ins; desf.
   splits; eauto.
-  do 2 (exists y; splits; eauto).
+  do 3 (exists y; splits; eauto).
 Qed.
 
 Lemma srf_funcrional (WF : Wf G) : functional srf⁻¹.
 Proof using.
   unfolder; unfold srf. intros x y z (VF1 & CO1) (VF2 & CO2).
-  tertium_non_datur (y = z) as [EQ|NEQ]; ins.
-  unfolder in VF1; desf. unfolder in VF2; desf.
-  exfalso.
+  tertium_non_datur (y = z) as [EQ|NEQ]; ins; exfalso.
   destruct (WF.(wf_co_total)) with (a := y) (b := z)
                                    (ol := loc x) as [CO|CO].
-  all: ins.
-  { unfolder; splits; eauto.
-    { apply wf_vfE in VF1; unfolder in VF1; desf. }
-    apply vf_dom. eexists; eauto. }
-  { unfolder; splits; eauto.
-    { apply wf_vfE in VF2; unfolder in VF2; desf. }
-    apply vf_dom. eexists; eauto. }
-  { apply CO1. unfolder. now exists z. }
-  apply CO2. unfolder. now exists y.
+  all: ins; unfolder in *; desf; splits; eauto.
+  all: try now (apply vf_dom; eexists; eauto).
+  { apply wf_vfE in VF1; unfolder in VF1; desf. }
+  apply wf_vfE in VF2; unfolder in VF2; desf.
 Qed.
 
 Lemma srf_exists b
@@ -197,18 +190,6 @@ Proof using.
   unfold max_elt in *.
   unfolder in *; ins; desf; intro; desf; basic_solver 11.
 Admitted.
-
-(*
-Lemma srf_exists : srf is not empty as long as there is an rf edge.
-Proof using.
-  Given we have an rf edge to event e, (vf ∩ same_loc) ⨾ ⦗R⦘ is already
-  not empty.
-
-  Next, we need to show that (co ; vf ⊆ (vf ∩ same_loc) ⨾ ⦗R⦘).
-
-  This shows us that co-max event w has edge (w, e).
-Qed.
-*)
 
 End ExtraRel.
 
