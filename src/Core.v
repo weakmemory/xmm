@@ -421,6 +421,7 @@ Notation "'GC''" := (GC X').
 Notation "'cmt''" := (cmt X').
 Notation "'E''" := (acts_set G').
 Notation "'lab''" := (lab G').
+Notation "'sb''" := (sb G').
 
 Notation "'G'" := (G X).
 Notation "'GC'" := (GC X).
@@ -443,6 +444,24 @@ Lemma new_conf_wf e
 Proof using.
   red in ADD_STEP. desf.
   apply ADD_STEP.
+Qed.
+
+Lemma new_event_max_sb e
+    (WF : wf X)
+    (ADD_STEP : cfg_add_event traces X X' e) :
+  max_elt sb' e.
+Proof using.
+  unfolder. intros e' SB.
+  red in ADD_STEP. desf.
+  unfold sb in SB; unfolder in SB; desf.
+  apply ADD_STEP.(e_new) in SB1.
+  unfolder in SB1; desf.
+  { apply ADD_STEP.(e_notin), ext_sb_dense with (e2 := e'); ins.
+    { apply WF. }
+    intro F. apply ADD_STEP.(e_notinit).
+    eapply wf_g_acts; [apply ADD_STEP.(wf_new_conf) |].
+    unfolder; split; ins. }
+  eapply ext_sb_irr; eauto.
 Qed.
 
 Lemma same_lab e

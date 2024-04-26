@@ -312,14 +312,17 @@ Proof using SWAPPED_TRACES CTX.
   { apply mapper_simrel_niff; ins; try apply CTX.
     { destruct STEP. unfold WCore.cfg_add_event in add_event.
       desf. destruct add_event. ins. apply wf_new_conf. }
-    { admit. }
+    { destruct STEP. unfold WCore.cfg_add_event in add_event.
+      desf. destruct start_wf, pfx. ins.
+      rewrite <- pfx_sub.(sub_lab). apply CTX. }
     { destruct STEP. unfold WCore.cfg_add_event in add_event.
     desf. destruct add_event. ins. apply e_new. now right. }
     { destruct STEP. unfold WCore.cfg_add_event in add_event.
       desf. destruct add_event. ins. intro F; apply e_new in F.
       unfolder in F; desf; [| now apply CTX.(rctx_diff)].
-      admit. (* helper: can't add events out of order *) }
-    admit. (* helper needed: new event is sb-max *) }
+      now apply SIM.(rsrw_actids_t_ord G_s G_t a b). }
+    change G_t' with (WCore.G (WCore.Build_t G_t' G_t' ∅)).
+    eapply WCore.new_event_max_sb; eapply STEP. }
   admit. (* TODO: research *)
 Admitted.
 
