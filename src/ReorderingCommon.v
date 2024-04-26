@@ -214,6 +214,7 @@ Notation "'rmw_dep_t'" := (rmw_dep G_t).
 Notation "'data_t'" := (data G_t).
 Notation "'ctrl_t'" := (ctrl G_t).
 Notation "'addr_t'" := (addr G_t).
+Notation "'srf_t'" := (srf G_t).
 
 Notation "'lab_s'" := (lab G_s).
 Notation "'E_s'" := (acts_set G_s).
@@ -258,7 +259,7 @@ Definition mapped_G_t_with_b : execution := {|
   addr := mapper ↑ addr_t;
   ctrl := mapper ↑ ctrl_t;
   rmw_dep := mapper ↑ rmw_dep_t;
-  rf := mapper ↑ rf_t;
+  rf := mapper ↑ rf_t ∪ mapper ↑ (srf_t ⨾ ⦗eq b⦘);
   co := mapper ↑ co_t;
 |}.
 

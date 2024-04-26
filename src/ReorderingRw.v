@@ -75,7 +75,7 @@ Record reord_simrel_rw : Prop :=
                  E_s ≡₁ E_t ∪₁ eq b;
   rsrw_rf1 : forall (SAME : E_t a <-> E_t b), rf_s ≡ mapper ↑ rf_t;
   rsrw_rf2 : forall (INB : E_t a) (NOTINA : ~ E_t b),
-                    rf_s ≡ mapper ↑ rf_t ∪ srf_t ⨾ ⦗eq b⦘;
+                    rf_s ≡ mapper ↑ rf_t ∪ mapper ↑ (srf_t ⨾ ⦗eq b⦘);
   rsrw_co : co_s ≡ mapper ↑ co_t;
 }.
 
@@ -117,6 +117,8 @@ Qed.
 
 (* TODO: constraint on a and b *)
 Lemma mapper_simrel_niff G' a b
+    (WF : Wf G')
+    (IS_R : is_r (lab G') b)
     (ANIT : ~is_init a)
     (BNIT : ~is_init b)
     (INA : acts_set G' a)
@@ -128,9 +130,8 @@ Proof using.
   { unfold same_lab_u2v, same_lab_u2v_dom, same_label_u2v.
     ins. desf. }
   all: try now (exfalso; apply NOTINB, SAME, INA).
-  { apply ReordCommon.mapped_G_t_imm_sb; ins.
-    all: admit. } (* TODO constraints *)
-  admit. (* TODO: Why do we have an srf edge *)
+  apply ReordCommon.mapped_G_t_imm_sb; ins.
+  all: admit.
 Admitted.
 
 Lemma sim_rel_init G G' a b
