@@ -210,6 +210,7 @@ Notation "'data_t'" := (data G_t).
 Notation "'ctrl_t'" := (ctrl G_t).
 Notation "'addr_t'" := (addr G_t).
 Notation "'srf_t'" := (srf G_t).
+Notation "'W_t'" := (is_w lab_t).
 Notation "'R_t'" := (is_r lab_t).
 
 Notation "'lab_s'" := (lab G_s).
@@ -235,6 +236,7 @@ Record reord_context : Prop := {
   rctx_bninit : ~is_init b;
   rctx_diff : a <> b;
   rctx_sb : ext_sb a b;
+  rctx_is_w : W_t a;
   rctx_is_r : R_t b;
   rctx_amax : forall (INA : E_t a) (NOTINB : ~E_t b), max_elt (sb G_t) a;
 }.
@@ -262,7 +264,108 @@ Proof using SWAPPED_TRACES CTX.
   exists (ReordCommon.mapped_G_t G_t' a b).
   split.
   { apply mapper_simrel_iff; ins; apply CTX. }
-  admit.
+  constructor; ins.
+  { admit. } (* TODO: make G_s into mapped G? *)
+  { destruct STEP. unfold WCore.cfg_add_event in add_event.
+    desf. unfolder.
+    exists (option_map mapper r), (option_map mapper w),
+           (mapper ↑₁ W1), (mapper ↑₁ W2).
+    constructor; ins.
+    { intro HIN. apply SIM.(rsrw_actids1 G_s G_t a b) in HIN; ins.
+      apply add_event.(WCore.e_notin); ins. }
+    { apply add_event. }
+    { rewrite add_event.(WCore.e_new); ins.
+      apply set_union_more; ins. symmetry.
+      apply SIM.(rsrw_actids1 G_s G_t a b); ins. }
+    { admit. } (* TODO: abuse trace swap *)
+    { rewrite add_event.(WCore.rf_new); ins.
+      rewrite !collect_rel_union. repeat apply union_more.
+      { symmetry; apply SIM.(rsrw_rf1 G_s G_t a b); ins. }
+      { unfold ReordCommon.mapped_G_t, WCore.rf_delta_R; ins.
+        desf; [| now rewrite collect_rel_empty].
+        tertium_non_datur (a0 = a) as [HEQ|HEQ].
+        { ins; rewrite HEQ, ReordCommon.mapper_eq_a in Heq. desf.
+          split; unfolder; ins; desf.
+          { splits; rewrite ?ReordCommon.mapper_eq_a, ?ReordCommon.mapper_neq.
+            all: ins.
+            all: unfold compose, is_w, is_r.
+            all: rewrite ?ReordCommon.mapper_eq_b, ?ReordCommon.mapper_neq.
+            all: ins. }
+          unfold compose, is_w, is_r in H0, H1.
+          rewrite ReordCommon.mapper_eq_b in H0.
+          rewrite ReordCommon.mapper_neq in H1; ins.
+          exists a, e; splits; ins.
+          all: rewrite ?ReordCommon.mapper_eq_a, ?ReordCommon.mapper_neq; ins. }
+        tertium_non_datur (a0 = b) as [HEQ1|HEQ1].
+        { ins; rewrite HEQ1, ReordCommon.mapper_eq_b in Heq. desf.
+          split; unfolder; ins; desf.
+          { splits; rewrite ?ReordCommon.mapper_eq_b, ?ReordCommon.mapper_neq.
+            all: ins.
+            all: unfold compose, is_w, is_r.
+            all: rewrite ?ReordCommon.mapper_eq_a, ?ReordCommon.mapper_neq.
+            all: ins. }
+          unfold compose, is_w, is_r in H0, H1.
+          rewrite ReordCommon.mapper_eq_a in H0.
+          rewrite ReordCommon.mapper_neq in H1; ins.
+          exists b, e; splits; ins.
+          all: rewrite ?ReordCommon.mapper_eq_b, ?ReordCommon.mapper_neq; ins. }
+        ins; rewrite ReordCommon.mapper_neq in Heq; ins. desf.
+        split; unfolder; ins; desf.
+        { splits; rewrite ?ReordCommon.mapper_neq; ins.
+          all: unfold compose, is_w, is_r.
+          all: rewrite ?ReordCommon.mapper_neq; ins. }
+        unfold compose, is_w, is_r in H0, H1.
+        rewrite ReordCommon.mapper_neq in H0; ins.
+        rewrite ReordCommon.mapper_neq in H1; ins.
+        exists a1, e; splits; ins.
+        all: rewrite ?ReordCommon.mapper_neq; ins. }
+      unfold WCore.rf_delta_W, ReordCommon.mapped_G_t; ins.
+      unfold compose, is_w. rewrite ReordCommon.mapper_neq; ins.
+      desf; try now apply collect_rel_empty.
+      rewrite !set_inter_empty_l. basic_solver. }
+    { rewrite add_event.(WCore.co_new); ins.
+      unfold WCore.co_delta, ReordCommon.mapped_G_t; ins.
+      unfold compose, is_w. rewrite ReordCommon.mapper_neq; ins.
+      desf; try now (rewrite !union_false_r; symmetry; apply SIM).
+      rewrite !collect_rel_union. repeat apply union_more.
+      { symmetry; apply SIM. }
+      { rewrite collect_rel_cross. apply cross_more; ins.
+        rewrite set_collect_eq, ReordCommon.mapper_neq; ins. }
+      rewrite collect_rel_cross. apply cross_more; ins.
+      rewrite set_collect_eq, ReordCommon.mapper_neq; ins. }
+    { rewrite add_event.(WCore.rmw_new); ins.
+      unfold WCore.rmw_delta, ReordCommon.mapped_G_t; ins.
+      rewrite !collect_rel_union. repeat apply union_more.
+      { symmetry; admit. (* apply SIM. *) } (* RMW: ? *)
+      rewrite collect_rel_cross. apply cross_more.
+      { destruct r; unfolder; ins; [| split; ins; desf].
+        unfold compose.
+        tertium_non_datur (a0 = a) as [HEQ|HEQ]; subst.
+        { rewrite !ReordCommon.mapper_eq_a; split; ins; desf.
+          { unfold is_r; rewrite !ReordCommon.mapper_eq_a, ReordCommon.mapper_eq_b.
+            split; ins. }
+          exists a; unfold is_r in H. rewrite ReordCommon.mapper_eq_b in H.
+          split; ins. now rewrite ReordCommon.mapper_eq_a. }
+        tertium_non_datur (a0 = b) as [HEQ1|HEQ1]; subst.
+        { rewrite !ReordCommon.mapper_eq_b; split; ins; desf.
+          { unfold is_r; rewrite ReordCommon.mapper_eq_b, ReordCommon.mapper_eq_a.
+            split; ins. }
+          exists b; unfold is_r in H. rewrite ReordCommon.mapper_eq_a in H.
+          split; ins. now rewrite ReordCommon.mapper_eq_b. }
+        rewrite !ReordCommon.mapper_neq; ins; split; ins; desf.
+        { unfold is_r; rewrite !ReordCommon.mapper_neq; ins.
+          all: rewrite !ReordCommon.mapper_neq; ins. }
+        exists x. rewrite !ReordCommon.mapper_neq; ins.
+        unfold is_r in H; rewrite ReordCommon.mapper_neq in H; ins. }
+      split; unfolder; ins; unfold is_w, compose.
+      { desf; rewrite !ReordCommon.mapper_neq in Heq; ins.
+        all: try now (rewrite ReordCommon.mapper_neq; ins).
+        all: exfalso; unfold is_w in H; now rewrite Heq in H. }
+      desf; exists x. unfold is_w, compose in H.
+      rewrite ReordCommon.mapper_neq in H; ins.
+      rewrite ReordCommon.mapper_neq; ins. }
+    admit. } (* mapped graph should be wf too! *)
+  admit. (* consistency *)
 Admitted.
 
 Lemma simrel_exec_not_a_not_b e
