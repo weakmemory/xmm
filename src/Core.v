@@ -278,9 +278,21 @@ Record stable_uncmt_reads_gen f r w : Prop :=
   surg_sb : sb w r;
   surg_sbrf : dom_rel (rf ⨾ ⦗eq r⦘) ∩₁ codom_rel (⦗eq w⦘ ⨾ sb_rf^?) ⊆₁
               dom_rel (sb_rf^? ⨾ sb ⨾ ⦗eq r⦘); }.
+Definition reexec_start dtrmt := Build_execution
+  (restrict G dtrmt).(acts_set)
+	(restrict G dtrmt).(threads_set)
+  G'.(lab)
+  (restrict G dtrmt).(rmw)
+  (restrict G dtrmt).(data)
+  (restrict G dtrmt).(addr)
+  (restrict G dtrmt).(ctrl)
+  (restrict G dtrmt).(rmw_dep)
+  (restrict G dtrmt).(rf)
+  (restrict G dtrmt).(co).
 
 Record reexec_gen f dtrmt : Prop :=
 { (* Correct start *)
+  newlab_correct : forall e, dtrmt e -> lab' e = lab e;
   rfre_racy : rfre ⊆ re;
   dtrmt_not_reexec : dtrmt ⊆₁ E \₁ codom_rel (⦗Rre⦘ ⨾ (sb ∪ rf)＊);
   dtrmt_cmt : dtrmt ⊆₁ (f_cmt f);
@@ -294,8 +306,8 @@ Record reexec_gen f dtrmt : Prop :=
   (* Reproducable steps *)
   reexec_start_wf : wf (Build_t G G' (f_cmt f));
   reexec_steps : (cfg_add_event_uninformative traces)＊
-    (Build_t (restrict G dtrmt) G' (f_cmt f))
-    (Build_t G'                 G' (f_cmt f));
+    (Build_t (reexec_start dtrmt) G' (f_cmt f))
+    (Build_t G'                   G' (f_cmt f));
   rexec_final_cons : is_cons G'; }.
 
 Definition reexec : Prop := exists f dtrmt, reexec_gen f dtrmt.
