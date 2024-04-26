@@ -134,7 +134,6 @@ Qed.
 Lemma srf_exists b
     (HIN : E b)
     (WF : Wf G)
-    (CONT : contigious_actids G)
     (IS_R : R b) :
   exists a, srf a b.
 Proof using.
