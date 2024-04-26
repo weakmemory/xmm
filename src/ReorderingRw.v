@@ -55,26 +55,25 @@ Notation "'R_s'" := (is_r lab_s).
 
 Notation "'mapper'" := (ReordCommon.mapper a b).
 
-(* TODO: ban ~E' b /\ E' a *)
-(* We should require srf *)
-(* srf is functional *)
-(* psc -> sc *)
 Record reord_simrel_rw : Prop :=
 { rsrw_ninit1 : ~is_init a;
   rsrw_ninit2 : ~is_init b;
 
+  rsrw_sb : ext_sb a b;
+  rsrw_a_max : forall (INA : E_t a) (NOTINB : ~E_t b), max_elt (sb G_t) a;
+
   rsrw_lab_u2v : same_lab_u2v lab_s (lab_t ∘ mapper);
   rsrw_lab_v : forall e (NOTA : e <> a), val_s e = (val_t ∘ mapper) e;
-  rsrw_actids_t_ord : forall (INA : E_t b) (NOTINB : ~E_t a), False;
+  rsrw_actids_t_ord : forall (INB : E_t b) (NOTINA : ~E_t a), False;
 
   rsrw_sb1 : forall (SAME : E_t a <-> E_t b), immediate sb_s ≡ immediate sb_t;
-  rsrw_sb2 : forall (INB : E_t a) (NOTINA : ~E_t b),
+  rsrw_sb2 : forall (INA : E_t a) (NOTINB : ~E_t b),
                 immediate sb_s ≡ immediate sb_t ∪ singl_rel a b;
   rsrw_actids1 : forall (SAME : E_t a <-> E_t b), E_s ≡₁ E_t;
-  rsrw_actids2 : forall (INB : E_t a) (NOTINA : ~E_t b),
+  rsrw_actids2 : forall (INA : E_t a) (NOTINB : ~E_t b),
                  E_s ≡₁ E_t ∪₁ eq b;
   rsrw_rf1 : forall (SAME : E_t a <-> E_t b), rf_s ≡ mapper ↑ rf_t;
-  rsrw_rf2 : forall (INB : E_t a) (NOTINA : ~ E_t b),
+  rsrw_rf2 : forall (INA : E_t a) (NOTINB : ~ E_t b),
                     rf_s ≡ mapper ↑ rf_t ∪ mapper ↑ (srf_t ⨾ ⦗eq b⦘);
   rsrw_co : co_s ≡ mapper ↑ co_t;
 }.
@@ -105,14 +104,15 @@ Lemma mapper_simrel_iff G' a b
     (ANIT : ~is_init a)
     (BNIT : ~is_init b)
     (SAME : acts_set G' a <-> acts_set G' b)
+    (SB : ext_sb a b)
     (NEQ : a <> b) :
   reord_simrel_rw (ReordCommon.mapped_G_t G' a b) G' a b.
 Proof using.
   constructor; ins.
+  all: try now (exfalso; now apply NOTINB, SAME).
   { unfold same_lab_u2v, same_lab_u2v_dom, same_label_u2v.
     ins. desf. }
-  { now apply NOTINB, SAME. }
-  all: exfalso; now apply NOTINA, SAME.
+  apply NOTINA, SAME, INB.
 Qed.
 
 (* TODO: constraint on a and b *)
@@ -123,33 +123,73 @@ Lemma mapper_simrel_niff G' a b
     (BNIT : ~is_init b)
     (INA : acts_set G' a)
     (NOTINB : ~acts_set G' b)
-    (NEQ : a <> b) :
+    (NEQ : a <> b)
+    (MAX : max_elt (sb G') a)
+    (SB : ext_sb a b) :
   reord_simrel_rw (ReordCommon.mapped_G_t_with_b G' a b) G' a b.
 Proof using.
   constructor; ins.
+  all: try now (exfalso; apply NOTINB, SAME, INA).
   { unfold same_lab_u2v, same_lab_u2v_dom, same_label_u2v.
     ins. desf. }
-  all: try now (exfalso; apply NOTINB, SAME, INA).
   apply ReordCommon.mapped_G_t_imm_sb; ins.
-  all: admit.
-Admitted.
+Qed.
 
-Lemma sim_rel_init G G' a b
-    (INIT_WF : Wf (WCore.init_exec G))
-    (INIT_WF' : Wf (WCore.init_exec G'))
+Section Basic.
+
+Variable G_s G_t : execution.
+Variable a b : actid.
+
+Notation "'lab_t'" := (lab G_t).
+Notation "'val_t'" := (val lab_t).
+Notation "'E_t'" := (acts_set G_t).
+Notation "'sb_t'" := (sb G_t).
+Notation "'rf_t'" := (rf G_t).
+Notation "'co_t'" := (co G_t).
+Notation "'rmw_t'" := (rmw G_t).
+Notation "'rpo_t'" := (rpo G_t).
+Notation "'rmw_dep_t'" := (rmw_dep G_t).
+Notation "'data_t'" := (data G_t).
+Notation "'ctrl_t'" := (ctrl G_t).
+Notation "'addr_t'" := (addr G_t).
+Notation "'srf_t'" := (srf G_t).
+
+Notation "'lab_s'" := (lab G_s).
+Notation "'val_s'" := (val lab_s).
+Notation "'E_s'" := (acts_set G_s).
+Notation "'loc_s'" := (loc lab_s).
+Notation "'sb_s'" := (sb G_s).
+Notation "'rf_s'" := (rf G_s).
+Notation "'co_s'" := (co G_s).
+Notation "'rmw_s'" := (rmw G_s).
+Notation "'rpo_s'" := (rpo G_s).
+Notation "'rmw_dep_s'" := (rmw_dep G_s).
+Notation "'data_s'" := (data G_s).
+Notation "'ctrl_s'" := (ctrl G_s).
+Notation "'addr_s'" := (addr G_s).
+Notation "'W_s'" := (is_w lab_s).
+Notation "'R_s'" := (is_r lab_s).
+
+Notation "'mapper'" := (ReordCommon.mapper a b).
+
+Lemma sim_rel_init
     (ANIT : ~is_init a)
     (BNIT : ~is_init b)
-    (INIT : acts_set G ∩₁ is_init ≡₁ acts_set G' ∩₁ is_init)
-    (LAB : lab G' = upd (upd (lab G) a (lab G b)) b (lab G a)) :
-  reord_simrel_rw (WCore.init_exec G) (WCore.init_exec G') a b.
+    (INIT : acts_set G_s ∩₁ is_init ≡₁ acts_set G_t ∩₁ is_init)
+    (LABU2V : same_lab_u2v lab_s (lab_t ∘ mapper))
+    (LABV : forall e (NOTA : e <> a), val_s e = (val_t ∘ mapper) e)
+    (SB : ext_sb a b) :
+  reord_simrel_rw (WCore.init_exec G_s) (WCore.init_exec G_t) a b.
 Proof using.
-  admit.
-  (* constructor; ins.
-  all: try rewrite mapper_init; ins.
+  constructor; ins.
+  all: try now (exfalso; apply ANIT, INA).
   all: try rewrite collect_rel_empty; ins.
-  { now rewrite RSRW_EMPTY, set_union_empty_r. }
-  rewrite RSRW_EMPTY; basic_solver. *)
-Admitted.
+  { apply BNIT, INB. }
+  apply immediate_more. unfold sb; ins.
+  now rewrite INIT.
+Qed.
+
+End Basic.
 
 Section ExecutionSteps.
 
