@@ -210,6 +210,7 @@ Notation "'data_t'" := (data G_t).
 Notation "'ctrl_t'" := (ctrl G_t).
 Notation "'addr_t'" := (addr G_t).
 Notation "'srf_t'" := (srf G_t).
+Notation "'R_t'" := (is_r lab_t).
 
 Notation "'lab_s'" := (lab G_s).
 Notation "'val_s'" := (val lab_s).
@@ -232,8 +233,9 @@ Notation "'mapper'" := (ReordCommon.mapper a b).
 Record reord_context : Prop := {
   rctx_aninit : ~is_init a;
   rctx_bninit : ~is_init b;
-  rctx_new : a <> b;
+  rctx_diff : a <> b;
   rctx_sb : ext_sb a b;
+  rctx_is_r : R_t b;
   rctx_amax : forall (INA : E_t a) (NOTINB : ~E_t b), max_elt (sb G_t) a;
 }.
 
@@ -283,7 +285,8 @@ Proof using SWAPPED_TRACES CTX.
   { admit. } (* TODO *)
   { destruct STEP. unfold WCore.cfg_add_event in add_event.
     desf. destruct add_event. ins. apply wf_new_conf. }
-  { admit. } (* TODO simrel ctx? *)
+  { destruct STEP. unfold WCore.cfg_add_event in add_event.
+    admit. } (* TODO ensure <G_t, G_t', cmt> is wf *)
   { destruct STEP. unfold WCore.cfg_add_event in add_event.
     desf. destruct add_event. ins. apply e_new. now left. }
   { destruct STEP. unfold WCore.cfg_add_event in add_event.
@@ -293,39 +296,52 @@ Proof using SWAPPED_TRACES CTX.
 Admitted.
 
 Lemma simrel_exec_b
-    (CONS : WCore.is_cons Gt)
-    (CONS' : WCore.is_cons Gs)
-    (SIM : reord_simrel_rw Gs Gt a b)
-    (STEP : WCore.exec_inst Gt Gt' traces b) :
-  exists Gs'_int Gs' a',
-    << STEP1 : WCore.exec_inst Gs Gs'_int traces' a' >> /\
-    << STEP2 : WCore.exec_inst Gs'_int Gs' traces' (mapper b) >> /\
-    << SIM' : reord_simrel_rw Gs' Gt' a b >>.
-Proof using SWAPPED_TRACES.
-  admit.
+    (CONS : WCore.is_cons G_t)
+    (CONS' : WCore.is_cons G_s)
+    (SIM : reord_simrel_rw G_s G_t a b)
+    (STEP : WCore.exec_inst G_t G_t' traces a) :
+  exists G_s',
+    << SIM' : reord_simrel_rw G_s' G_t' a b >> /\
+    exists G_s'_int,
+      << STEP1 : WCore.exec_inst G_s G_s'_int traces' a >> /\
+      << STEP2 : WCore.exec_inst G_s'_int G_s' traces' b >>.
+Proof using SWAPPED_TRACES CTX.
+  exists (ReordCommon.mapped_G_t_with_b G_t' a b); split.
+  { apply mapper_simrel_niff; ins; try apply CTX.
+    { destruct STEP. unfold WCore.cfg_add_event in add_event.
+      desf. destruct add_event. ins. apply wf_new_conf. }
+    { admit. }
+    { destruct STEP. unfold WCore.cfg_add_event in add_event.
+    desf. destruct add_event. ins. apply e_new. now right. }
+    { destruct STEP. unfold WCore.cfg_add_event in add_event.
+      desf. destruct add_event. ins. intro F; apply e_new in F.
+      unfolder in F; desf; [| now apply CTX.(rctx_diff)].
+      admit. (* helper *) }
+    admit. (* helper needed *) }
+  admit. (* TODO: research *)
 Admitted.
 
 Lemma simrel_exec_a w
-    (CONS : WCore.is_cons Gt)
-    (CONS' : WCore.is_cons Gs)
-    (RF : Gt.(rf) w a)
-    (SIM : reord_simrel_rw Gs Gt a b)
-    (STEP : WCore.exec_inst Gt Gt' traces a) :
-  exists Gs' rfre,
-    << STEP : WCore.reexec Gs Gs' traces' rfre >> /\
-    << SIM' : reord_simrel_rw Gs' Gt' a b >>.
+    (CONS : WCore.is_cons G_t)
+    (CONS' : WCore.is_cons G_s)
+    (RF : G_t.(rf) w a)
+    (SIM : reord_simrel_rw G_s G_t a b)
+    (STEP : WCore.exec_inst G_t G_t' traces b) :
+  exists G_s' rfre,
+    << STEP : WCore.reexec G_s G_s' traces' rfre >> /\
+    << SIM' : reord_simrel_rw G_s' G_t' a b >>.
 Proof using SWAPPED_TRACES.
   admit.
 Admitted.
 
 Lemma simrel_reexec rfre
-    (CONS : WCore.is_cons Gt)
-    (CONS' : WCore.is_cons Gs)
-    (SIM : reord_simrel_rw Gs Gt a b)
-    (STEP : WCore.reexec Gt Gt' traces rfre) :
-  exists Gs' rfre,
-    << STEP : WCore.reexec Gs Gs' traces' (mapper ↓ rfre) >> /\
-    << SIM' : reord_simrel_rw Gs' Gt' a b >>.
+    (CONS : WCore.is_cons G_t)
+    (CONS' : WCore.is_cons G_s)
+    (SIM : reord_simrel_rw G_s G_t a b)
+    (STEP : WCore.reexec G_t G_t' traces rfre) :
+  exists G_s' rfre,
+    << STEP : WCore.reexec G_s G_s' traces' (mapper ↓ rfre) >> /\
+    << SIM' : reord_simrel_rw G_s' G_t' a b >>.
 Proof using SWAPPED_TRACES.
   admit.
 Admitted.
