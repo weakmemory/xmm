@@ -66,6 +66,7 @@ Record reord_simrel_rw : Prop :=
   rsrw_lab_v : forall e (NOTA : e <> a), val_s e = (val_t ∘ mapper) e;
   rsrw_actids_t_ord : forall (INB : E_t b) (NOTINA : ~E_t a), False;
 
+  rsrw_rmw : rmw_s ≡ mapper ↑ rmw_t;
   rsrw_sb1 : forall (SAME : E_t a <-> E_t b), immediate sb_s ≡ immediate sb_t;
   rsrw_sb2 : forall (INA : E_t a) (NOTINB : ~E_t b),
                 immediate sb_s ≡ immediate sb_t ∪ singl_rel a b;
@@ -336,7 +337,7 @@ Proof using SWAPPED_TRACES CTX.
     { rewrite add_event.(WCore.rmw_new); ins.
       unfold WCore.rmw_delta, ReordCommon.mapped_G_t; ins.
       rewrite !collect_rel_union. repeat apply union_more.
-      { symmetry; admit. (* apply SIM. *) } (* RMW: ? *)
+      { symmetry; apply SIM. }
       rewrite collect_rel_cross. apply cross_more.
       { destruct r; unfolder; ins; [| split; ins; desf].
         unfold compose.
