@@ -343,7 +343,24 @@ Lemma simrel_reexec rfre
     << STEP : WCore.reexec G_s G_s' traces' (mapper ↓ rfre) >> /\
     << SIM' : reord_simrel_rw G_s' G_t' a b >>.
 Proof using SWAPPED_TRACES.
-  admit.
+  tertium_non_datur (E_t a) as [INA|INA].
+  all: tertium_non_datur (E_t b) as [INB|INB].
+  all: try now (exfalso; eapply rsrw_actids_t_ord; eauto).
+  (* TODO adapt. *)
+  (* all: try now (apply simrel_exec_not_a_not_b_same_helper; ins).
+  exists (ReordCommon.mapped_G_t_with_b G_t' a b).
+  split; [| apply mapper_simrel_niff; ins].
+  all: try apply CTX.
+  { admit. } (* TODO *)
+  { destruct STEP. unfold WCore.cfg_add_event in add_event.
+    desf. destruct add_event. ins. apply wf_new_conf. }
+  { destruct STEP. unfold WCore.cfg_add_event in add_event.
+    admit. } (* TODO ensure <G_t, G_t', cmt> is wf *)
+  { destruct STEP. unfold WCore.cfg_add_event in add_event.
+    desf. destruct add_event. ins. apply e_new. now left. }
+  { destruct STEP. unfold WCore.cfg_add_event in add_event.
+    desf. destruct add_event. ins. intro F; apply INB.
+    apply e_new in F; unfolder in F; desf. } *)
 Admitted.
 
 End ExecutionSteps.
