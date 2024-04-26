@@ -193,25 +193,102 @@ End Basic.
 
 Section ExecutionSteps.
 
-Variable Gt Gt' Gs : execution.
+Variable G_t G_t' G_s : execution.
 Variable traces traces' : thread_id -> trace label -> Prop.
 Variable a b : actid.
 
+Notation "'lab_t'" := (lab G_t).
+Notation "'val_t'" := (val lab_t).
+Notation "'E_t'" := (acts_set G_t).
+Notation "'sb_t'" := (sb G_t).
+Notation "'rf_t'" := (rf G_t).
+Notation "'co_t'" := (co G_t).
+Notation "'rmw_t'" := (rmw G_t).
+Notation "'rpo_t'" := (rpo G_t).
+Notation "'rmw_dep_t'" := (rmw_dep G_t).
+Notation "'data_t'" := (data G_t).
+Notation "'ctrl_t'" := (ctrl G_t).
+Notation "'addr_t'" := (addr G_t).
+Notation "'srf_t'" := (srf G_t).
+
+Notation "'lab_s'" := (lab G_s).
+Notation "'val_s'" := (val lab_s).
+Notation "'E_s'" := (acts_set G_s).
+Notation "'loc_s'" := (loc lab_s).
+Notation "'sb_s'" := (sb G_s).
+Notation "'rf_s'" := (rf G_s).
+Notation "'co_s'" := (co G_s).
+Notation "'rmw_s'" := (rmw G_s).
+Notation "'rpo_s'" := (rpo G_s).
+Notation "'rmw_dep_s'" := (rmw_dep G_s).
+Notation "'data_s'" := (data G_s).
+Notation "'ctrl_s'" := (ctrl G_s).
+Notation "'addr_s'" := (addr G_s).
+Notation "'W_s'" := (is_w lab_s).
+Notation "'R_s'" := (is_r lab_s).
+
 Notation "'mapper'" := (ReordCommon.mapper a b).
 
+Record reord_context : Prop := {
+  rctx_aninit : ~is_init a;
+  rctx_bninit : ~is_init b;
+  rctx_new : a <> b;
+  rctx_sb : ext_sb a b;
+  rctx_amax : forall (INA : E_t a) (NOTINB : ~E_t b), max_elt (sb G_t) a;
+}.
+
 Hypothesis SWAPPED_TRACES : ReordCommon.traces_swapped traces traces' a b.
+Hypothesis CTX : reord_context.
+
+Lemma simrel_exec_not_a_not_b_same_helper e
+    (SAME : E_t a <-> E_t b)
+    (E_NOT_A : e <> a)
+    (E_NOT_B : e <> b)
+    (CONS : WCore.is_cons G_t)
+    (CONS' : WCore.is_cons G_s)
+    (SIM : reord_simrel_rw G_s G_t a b)
+    (STEP : WCore.exec_inst G_t G_t' traces e) :
+  exists G_s',
+    << STEP' : WCore.exec_inst G_s G_s' traces' e >> /\
+    << SIM' : reord_simrel_rw G_s' G_t' a b >>.
+Proof using SWAPPED_TRACES CTX.
+  assert (IFF : acts_set G_t' a <-> acts_set G_t' b).
+  { destruct STEP. unfold WCore.cfg_add_event in add_event.
+    desf. destruct add_event. ins.
+    split; intro HIN; apply e_new in HIN; apply e_new; left.
+    all: unfolder in HIN; desf; eauto. }
+  exists (ReordCommon.mapped_G_t G_t' a b).
+  split; [| apply mapper_simrel_iff; ins; apply CTX].
+  admit.
+Admitted.
 
 Lemma simrel_exec_not_a_not_b e
     (E_NOT_A : e <> a)
     (E_NOT_B : e <> b)
-    (CONS : WCore.is_cons Gt)
-    (CONS' : WCore.is_cons Gs)
-    (SIM : reord_simrel_rw Gs Gt a b)
-    (STEP : WCore.exec_inst Gt Gt' traces e) :
-  exists Gs',
-    << STEP' : WCore.exec_inst Gs Gs' traces' e >> /\
-    << SIM' : reord_simrel_rw Gs' Gt' a b >>.
-Proof using SWAPPED_TRACES.
+    (CONS : WCore.is_cons G_t)
+    (CONS' : WCore.is_cons G_s)
+    (SIM : reord_simrel_rw G_s G_t a b)
+    (STEP : WCore.exec_inst G_t G_t' traces e) :
+  exists G_s',
+    << STEP' : WCore.exec_inst G_s G_s' traces' e >> /\
+    << SIM' : reord_simrel_rw G_s' G_t' a b >>.
+Proof using SWAPPED_TRACES CTX.
+  tertium_non_datur (E_t a) as [INA|INA].
+  all: tertium_non_datur (E_t b) as [INB|INB].
+  all: try now (exfalso; eapply rsrw_actids_t_ord; eauto).
+  all: try now (apply simrel_exec_not_a_not_b_same_helper; ins).
+  exists (ReordCommon.mapped_G_t_with_b G_t' a b).
+  split; [| apply mapper_simrel_niff; ins].
+  all: try apply CTX.
+  { admit. } (* TODO *)
+  { destruct STEP. unfold WCore.cfg_add_event in add_event.
+    desf. destruct add_event. ins. apply wf_new_conf. }
+  { admit. } (* TODO simrel ctx? *)
+  { destruct STEP. unfold WCore.cfg_add_event in add_event.
+    desf. destruct add_event. ins. apply e_new. now left. }
+  { destruct STEP. unfold WCore.cfg_add_event in add_event.
+    desf. destruct add_event. ins. intro F; apply INB.
+    apply e_new in F; unfolder in F; desf. }
   admit.
 Admitted.
 
