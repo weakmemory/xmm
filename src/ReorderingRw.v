@@ -251,8 +251,8 @@ Lemma simrel_exec_not_a_not_b_same_helper e
     (SIM : reord_simrel_rw G_s G_t a b)
     (STEP : WCore.exec_inst G_t G_t' traces e) :
   exists G_s',
-    << STEP' : WCore.exec_inst G_s G_s' traces' e >> /\
-    << SIM' : reord_simrel_rw G_s' G_t' a b >>.
+    << SIM' : reord_simrel_rw G_s' G_t' a b >> /\
+    << STEP' : WCore.exec_inst G_s G_s' traces' e >>.
 Proof using SWAPPED_TRACES CTX.
   assert (IFF : acts_set G_t' a <-> acts_set G_t' b).
   { destruct STEP. unfold WCore.cfg_add_event in add_event.
@@ -260,7 +260,8 @@ Proof using SWAPPED_TRACES CTX.
     split; intro HIN; apply e_new in HIN; apply e_new; left.
     all: unfolder in HIN; desf; eauto. }
   exists (ReordCommon.mapped_G_t G_t' a b).
-  split; [| apply mapper_simrel_iff; ins; apply CTX].
+  split.
+  { apply mapper_simrel_iff; ins; apply CTX. }
   admit.
 Admitted.
 
@@ -272,28 +273,28 @@ Lemma simrel_exec_not_a_not_b e
     (SIM : reord_simrel_rw G_s G_t a b)
     (STEP : WCore.exec_inst G_t G_t' traces e) :
   exists G_s',
-    << STEP' : WCore.exec_inst G_s G_s' traces' e >> /\
-    << SIM' : reord_simrel_rw G_s' G_t' a b >>.
+    << SIM' : reord_simrel_rw G_s' G_t' a b >> /\
+    << STEP' : WCore.exec_inst G_s G_s' traces' e >>.
 Proof using SWAPPED_TRACES CTX.
   tertium_non_datur (E_t a) as [INA|INA].
   all: tertium_non_datur (E_t b) as [INB|INB].
   all: try now (exfalso; eapply rsrw_actids_t_ord; eauto).
   all: try now (apply simrel_exec_not_a_not_b_same_helper; ins).
   exists (ReordCommon.mapped_G_t_with_b G_t' a b).
-  split; [| apply mapper_simrel_niff; ins].
-  all: try apply CTX.
-  { admit. } (* TODO *)
-  { destruct STEP. unfold WCore.cfg_add_event in add_event.
-    desf. destruct add_event. ins. apply wf_new_conf. }
-  { destruct STEP. unfold WCore.cfg_add_event in add_event.
-    desf. destruct start_wf, pfx. ins.
-    rewrite <- pfx_sub.(sub_lab). apply CTX. }
-  { destruct STEP. unfold WCore.cfg_add_event in add_event.
-    desf. destruct add_event. ins. apply e_new. now left. }
-  { destruct STEP. unfold WCore.cfg_add_event in add_event.
-    desf. destruct add_event. ins. intro F; apply INB.
-    apply e_new in F; unfolder in F; desf. }
-  admit. (* need helper *)
+  split.
+  { apply mapper_simrel_niff; ins; try apply CTX.
+    { destruct STEP. unfold WCore.cfg_add_event in add_event.
+      desf. destruct add_event. ins. apply wf_new_conf. }
+    { destruct STEP. unfold WCore.cfg_add_event in add_event.
+      desf. destruct start_wf, pfx. ins.
+      rewrite <- pfx_sub.(sub_lab). apply CTX. }
+    { destruct STEP. unfold WCore.cfg_add_event in add_event.
+      desf. destruct add_event. ins. apply e_new. now left. }
+    { destruct STEP. unfold WCore.cfg_add_event in add_event.
+      desf. destruct add_event. ins. intro F; apply INB.
+      apply e_new in F; unfolder in F; desf. }
+    admit. (* Helper: sb is max *) }
+  admit.
 Admitted.
 
 Lemma simrel_exec_b
@@ -329,8 +330,8 @@ Lemma simrel_exec_a w
     (SIM : reord_simrel_rw G_s G_t a b)
     (STEP : WCore.exec_inst G_t G_t' traces b) :
   exists G_s' rfre,
-    << STEP : WCore.reexec G_s G_s' traces' rfre >> /\
-    << SIM' : reord_simrel_rw G_s' G_t' a b >>.
+    << SIM' : reord_simrel_rw G_s' G_t' a b >> /\
+    << STEP : WCore.reexec G_s G_s' traces' rfre >>.
 Proof using SWAPPED_TRACES.
   (* TODO: check article *)
   admit.
@@ -342,8 +343,8 @@ Lemma simrel_reexec rfre
     (SIM : reord_simrel_rw G_s G_t a b)
     (STEP : WCore.reexec G_t G_t' traces rfre) :
   exists G_s' rfre,
-    << STEP : WCore.reexec G_s G_s' traces' (mapper ↓ rfre) >> /\
-    << SIM' : reord_simrel_rw G_s' G_t' a b >>.
+    << SIM' : reord_simrel_rw G_s' G_t' a b >> /\
+    << STEP : WCore.reexec G_s G_s' traces' (mapper ↓ rfre) >>.
 Proof using SWAPPED_TRACES.
   tertium_non_datur (E_t a) as [INA|INA].
   all: tertium_non_datur (E_t b) as [INB|INB].
