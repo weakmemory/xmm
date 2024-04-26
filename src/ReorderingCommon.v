@@ -131,6 +131,74 @@ Proof using.
   apply CO2. unfolder. now exists y.
 Qed.
 
+Lemma srf_exists b
+    (HIN : E b)
+    (WF : Wf G)
+    (CONT : contigious_actids G)
+    (IS_R : R b) :
+  exists a, srf a b.
+Proof using.
+  assert (exists l, loc b = Some l) as HLOC; desf.
+  { by generalize (is_r_loc lab); unfolder in *; basic_solver 12. }
+  assert (HINIT : E (InitEvent l)).
+  { by apply WF; eauto. }
+  assert (INILAB : lab (InitEvent l) = Astore Xpln Opln l 0).
+  { by apply WF. }
+  assert (INILOC : loc (InitEvent l) = Some l).
+  { by unfold Events.loc; rewrite (wf_init_lab WF). }
+  assert (INIW : W (InitEvent l)).
+  { by unfolder; unfold is_w, Events.loc; desf; eauto. }
+  assert (INISB : sb (InitEvent l) b).
+  { by apply init_ninit_sb; eauto; eapply read_or_fence_is_not_init; eauto. }
+  assert (INIVF : vf (InitEvent l) b).
+  { red. exists (InitEvent l); splits.
+    { red. splits; desf. }
+    hahn_rewrite <- sb_in_hb.
+    basic_solver 21. }
+  assert (ACT_LIST : exists El, E ≡₁ (fun x => In x El)); desf.
+  { admit. }
+  forward (eapply last_exists with (s:=co ⨾ ⦗fun x => vf x b⦘)
+                                   (dom:= filterP W El) (a:=(InitEvent l))).
+  { eapply acyclic_mon.
+    apply trans_irr_acyclic; [apply co_irr| apply co_trans]; eauto.
+    basic_solver. }
+  { ins.
+    assert (A: (co ⨾ ⦗fun x : actid => vf x b⦘)^? (InitEvent l) c).
+    { apply rt_of_trans; try done.
+      apply transitiveI.
+      arewrite_id ⦗fun x : actid => vf x b⦘ at 1.
+      rewrite seq_id_l.
+      arewrite (co ⨾ co ⊆ co); [|done].
+      apply transitiveI.
+      eapply co_trans; eauto. }
+    unfolder in A; desf.
+    { apply in_filterP_iff; split; auto.
+      by apply ACT_LIST. }
+    apply in_filterP_iff.
+    hahn_rewrite WF.(wf_coE) in A.
+    hahn_rewrite WF.(wf_coD) in A.
+    hahn_rewrite WF.(wf_col) in A.
+    unfold same_loc in *; unfolder in *; desf; splits; eauto; congruence. }
+  ins; desc.
+  assert (A: (co ⨾ ⦗fun x : actid => vf x b⦘)^? (InitEvent l) b0).
+  { apply rt_of_trans; [|by subst].
+    apply transitiveI.
+    arewrite_id ⦗fun x : actid => vf x b⦘ at 1.
+    rewrite seq_id_l.
+    arewrite (co ⨾ co ⊆ co); [|done].
+    apply transitiveI.
+    eapply co_trans; eauto. }
+  assert (loc b0 = Some l).
+  { unfolder in A; desf.
+    hahn_rewrite WF.(wf_col) in A.
+    unfold same_loc in *; desf; unfolder in *; congruence. }
+  exists b0; red; split.
+  { unfold urr, same_loc.
+    unfolder in A; desf; unfolder; ins; desf; splits; try basic_solver 21; congruence. }
+  unfold max_elt in *.
+  unfolder in *; ins; desf; intro; desf; basic_solver 11.
+Admitted.
+
 (*
 Lemma srf_exists : srf is not empty as long as there is an rf edge.
 Proof using.
