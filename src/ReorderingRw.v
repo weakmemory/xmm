@@ -54,7 +54,7 @@ Notation "'W_s'" := (is_w lab_s).
 Notation "'R_s'" := (is_r lab_s).
 
 Notation "'mapper'" := (ReordCommon.mapper a b).
-
+(* a --> b (t, idx) *)
 (* TODO: ban ~E' b /\ E' a *)
 (* We should require srf *)
 (* srf is functional *)
@@ -180,11 +180,12 @@ Lemma simrel_exec_b
     (CONS' : WCore.is_cons Gs)
     (SIM : reord_simrel_rw Gs Gt a b)
     (STEP : WCore.exec_inst Gt Gt' traces b) :
-  exists Gs'_int Gs' a',
-    << STEP1 : WCore.exec_inst Gs Gs'_int traces' a' >> /\
-    << STEP2 : WCore.exec_inst Gs'_int Gs' traces' (mapper b) >> /\
+  exists Gs'_int Gs',
+    << STEP1 : WCore.exec_inst Gs Gs'_int traces' a >> /\
+    << STEP2 : WCore.exec_inst Gs'_int Gs' traces' b >> /\
     << SIM' : reord_simrel_rw Gs' Gt' a b >>.
 Proof using SWAPPED_TRACES.
+  (* ... *)
   admit.
 Admitted.
 
@@ -198,6 +199,8 @@ Lemma simrel_exec_a w
     << STEP : WCore.reexec Gs Gs' traces' rfre >> /\
     << SIM' : reord_simrel_rw Gs' Gt' a b >>.
 Proof using SWAPPED_TRACES.
+  (* Case1 : Gt' *)
+  (* Case2: mapped Gt but with executed a *)
   admit.
 Admitted.
 
@@ -210,6 +213,8 @@ Lemma simrel_reexec rfre
     << STEP : WCore.reexec Gs Gs' traces' (mapper ↓ rfre) >> /\
     << SIM' : reord_simrel_rw Gs' Gt' a b >>.
 Proof using SWAPPED_TRACES.
+  (* Case 1: just map *)
+  (* Case 2: mapped G_t'_ext -- but with executed a *)
   admit.
 Admitted.
 

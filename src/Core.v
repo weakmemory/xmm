@@ -27,8 +27,8 @@ Set Implicit Arguments.
 .
 
 (* G' is exec_prefix of G *)
-Record exec_prefix G G' : Prop := {
-  pfx_sub : sub_execution G G' ∅₂ ∅₂;
+Record exec_prefix sc sc' G G' : Prop := {
+  pfx_sub : sub_execution G G' sc sc';
   pfx_cont1 : contigious_actids G;
   pfx_cont2 : contigious_actids G';
 }.
@@ -59,6 +59,8 @@ End Race.
 Module WCore.
 
 Record t := {
+  sc : relation actid;
+  sc_c : relation actid;
   G : execution;
   GC : execution;
   cmt : actid -> Prop;
@@ -72,18 +74,18 @@ Hint Unfold init_exec : unfolderDb.
 
 Section Consistency.
 
+Variable sc : relation actid.
 Variable G : execution.
 Notation "'hb'" := (hb G).
 Notation "'fr'" := (fr G).
 Notation "'sb'" := (sb G).
 Notation "'eco'" := (eco G).
-Notation "'psc'" := (imm.psc G).
 Notation "'rmw'" := (rmw G).
 
 Record is_cons : Prop := {
   cons_coherence : irreflexive (hb ⨾ eco^?);
   cons_atomicity : rmw ∩ (fr ⨾ sb) ≡ ∅₂;
-  cons_sc : acyclic psc;
+  cons_sc : acyclic sc;
 }.
 
 End Consistency.
@@ -116,6 +118,7 @@ Record wf : Prop := {
   cc_data_empty : datac ≡ ∅₂;
 
   wf_gc : Wf GC;
+  (* wf_scc : wf_sc sc; *)
   wf_g_init : EC ∩₁ is_init ⊆₁ E;
   wf_gc_acts : (tid ↓₁ eq tid_init) ∩₁ EC ⊆₁ is_init;
 
@@ -279,6 +282,7 @@ Record stable_uncmt_reads_gen f r w : Prop :=
   surg_sbrf : dom_rel (rf ⨾ ⦗eq r⦘) ∩₁ codom_rel (⦗eq w⦘ ⨾ sb_rf^?) ⊆₁
               dom_rel (sb_rf^? ⨾ sb ⨾ ⦗eq r⦘); }.
 
+(* TODO: update lab *)
 Record reexec_gen f dtrmt : Prop :=
 { (* Correct start *)
   rfre_racy : rfre ⊆ re;
