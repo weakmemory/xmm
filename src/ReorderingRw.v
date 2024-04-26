@@ -286,13 +286,14 @@ Proof using SWAPPED_TRACES CTX.
   { destruct STEP. unfold WCore.cfg_add_event in add_event.
     desf. destruct add_event. ins. apply wf_new_conf. }
   { destruct STEP. unfold WCore.cfg_add_event in add_event.
-    admit. } (* TODO ensure <G_t, G_t', cmt> is wf *)
+    desf. destruct start_wf, pfx. ins.
+    rewrite <- pfx_sub.(sub_lab). apply CTX. }
   { destruct STEP. unfold WCore.cfg_add_event in add_event.
     desf. destruct add_event. ins. apply e_new. now left. }
   { destruct STEP. unfold WCore.cfg_add_event in add_event.
     desf. destruct add_event. ins. intro F; apply INB.
     apply e_new in F; unfolder in F; desf. }
-  admit.
+  admit. (* need helper *)
 Admitted.
 
 Lemma simrel_exec_b
@@ -316,8 +317,8 @@ Proof using SWAPPED_TRACES CTX.
     { destruct STEP. unfold WCore.cfg_add_event in add_event.
       desf. destruct add_event. ins. intro F; apply e_new in F.
       unfolder in F; desf; [| now apply CTX.(rctx_diff)].
-      admit. (* helper *) }
-    admit. (* helper needed *) }
+      admit. (* helper: can't add events out of order *) }
+    admit. (* helper needed: new event is sb-max *) }
   admit. (* TODO: research *)
 Admitted.
 
@@ -331,6 +332,7 @@ Lemma simrel_exec_a w
     << STEP : WCore.reexec G_s G_s' traces' rfre >> /\
     << SIM' : reord_simrel_rw G_s' G_t' a b >>.
 Proof using SWAPPED_TRACES.
+  (* TODO: check article *)
   admit.
 Admitted.
 

@@ -223,6 +223,7 @@ Variables G G' : execution.
 Variable traces : thread_id -> trace label -> Prop.
 
 Record exec_inst e := {
+  start_wf : wf (Build_t G G' ∅);
   add_event : cfg_add_event traces
     (Build_t G G' ∅)
     (Build_t G' G' ∅)
