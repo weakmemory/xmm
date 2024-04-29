@@ -58,12 +58,14 @@ Notation "'mapper'" := (ReordCommon.mapper a b).
 Record reord_simrel_rw : Prop :=
 { rsrw_ninit1 : ~is_init a;
   rsrw_ninit2 : ~is_init b;
+  rsrw_threads : threads_set G_s ≡₁ threads_set G_t;
 
   rsrw_sb : ext_sb a b;
   rsrw_a_max : forall (INA : E_t a) (NOTINB : ~E_t b), max_elt (sb G_t) a;
 
   rsrw_lab_u2v : same_lab_u2v lab_s (lab_t ∘ mapper);
-  rsrw_lab_v : forall e (NOTA : e <> a), val_s e = (val_t ∘ mapper) e;
+  rsrw_lab_v1 : forall e (NOTA : e <> a), val_s e = (val_t ∘ mapper) e;
+  rsrw_lab_v2 : forall (INA : E_t a) (INB : E_t b), val_s a = val_t b;
   rsrw_actids_t_ord : forall (INB : E_t b) (NOTINA : ~E_t a), False;
 
   rsrw_rmw : rmw_s ≡ mapper ↑ rmw_t;
@@ -76,6 +78,10 @@ Record reord_simrel_rw : Prop :=
   rsrw_rf1 : forall (SAME : E_t a <-> E_t b), rf_s ≡ mapper ↑ rf_t;
   rsrw_rf2 : forall (INA : E_t a) (NOTINB : ~ E_t b),
                     rf_s ≡ mapper ↑ rf_t ∪ mapper ↑ (srf_t ⨾ ⦗eq b⦘);
+  rsrw_data : data_s ≡ mapper ↑ data_t;
+  rsrw_addr : addr_s ≡ mapper ↑ addr_t;
+  rsrw_ctrl : ctrl_s ≡ mapper ↑ ctrl_t;
+  rsrw_rmwdep : rmw_dep_s ≡ mapper ↑ rmw_dep_t;
   rsrw_co : co_s ≡ mapper ↑ co_t;
 }.
 
@@ -101,7 +107,7 @@ Proof using.
   exists x; rupd.
 Qed.
 
-Lemma mapper_simrel_iff G' a b
+(* Lemma mapper_simrel_iff G' a b
     (ANIT : ~is_init a)
     (BNIT : ~is_init b)
     (SAME : acts_set G' a <-> acts_set G' b)
@@ -114,10 +120,37 @@ Proof using.
   { unfold same_lab_u2v, same_lab_u2v_dom, same_label_u2v.
     ins. desf. }
   apply NOTINA, SAME, INB.
+Qed. *)
+
+Lemma simrel_iff_mapper G G' a b
+    (SAME : acts_set G' a <-> acts_set G' b)
+    (SIM : reord_simrel_rw G G' a b) :
+  exec_equiv G (ReordCommon.mapped_G_t G' a b (lab G a)).
+Proof using.
+  constructor; ins.
+  all: try now apply SIM.
+  apply functional_extensionality. intro x.
+  tertium_non_datur (x = a) as [HEQ | HEQ]; subst; rupd; ins.
+  apply same_label_u2v_val; now apply SIM.
 Qed.
 
-(* TODO: constraint on a and b *)
-Lemma mapper_simrel_niff G' a b
+Lemma simrel_niff_mapper G G' a b
+    (ANIT : ~is_init a)
+    (BNIT : ~is_init b)
+    (INA : acts_set G' a)
+    (NOTINB : ~acts_set G' b)
+    (NEQ : a <> b)
+    (SIM : reord_simrel_rw G G' a b) :
+  exec_equiv G (ReordCommon.mapped_G_t_with_b_srf G' a b (lab G a)).
+Proof using.
+  constructor; ins.
+  all: try now apply SIM.
+  apply functional_extensionality. intro x.
+  tertium_non_datur (x = a) as [HEQ | HEQ]; subst; rupd; ins.
+  apply same_label_u2v_val; now apply SIM.
+Qed.
+
+(* Lemma mapper_simrel_niff G' a b
     (WF : Wf G')
     (IS_R : is_r (lab G') b)
     (ANIT : ~is_init a)
@@ -134,7 +167,7 @@ Proof using.
   { unfold same_lab_u2v, same_lab_u2v_dom, same_label_u2v.
     ins. desf. }
   apply ReordCommon.mapped_G_t_imm_sb; ins.
-Qed.
+Qed. *)
 
 Section Basic.
 
@@ -185,10 +218,11 @@ Proof using.
   constructor; ins.
   all: try now (exfalso; apply ANIT, INA).
   all: try rewrite collect_rel_empty; ins.
+  { admit. }
   { apply BNIT, INB. }
   apply immediate_more. unfold sb; ins.
   now rewrite INIT.
-Qed.
+Admitted.
 
 End Basic.
 
@@ -257,7 +291,7 @@ Lemma simrel_exec_not_a_not_b_same_helper e
     << SIM' : reord_simrel_rw G_s' G_t' a b >> /\
     << STEP' : WCore.exec_inst G_s G_s' traces' e >>.
 Proof using SWAPPED_TRACES CTX.
-  assert (IFF : acts_set G_t' a <-> acts_set G_t' b).
+  (* assert (IFF : acts_set G_t' a <-> acts_set G_t' b).
   { destruct STEP. unfold WCore.cfg_add_event in add_event.
     desf. destruct add_event. ins.
     split; intro HIN; apply e_new in HIN; apply e_new; left.
@@ -397,8 +431,8 @@ Proof using SWAPPED_TRACES CTX.
     { destruct STEP. unfold WCore.cfg_add_event in add_event.
       desf. destruct add_event. ins. intro F; apply INB.
       apply e_new in F; unfolder in F; desf. }
-    admit. (* Helper: sb is max *) }
-  admit.
+    admit. (* TODO: a remains max, because e is not b and therefore can't be added to a's thread *) } *)
+  admit. (* NOTE: do not tackle this until the previous proof is prettified *)
 Admitted.
 
 Lemma simrel_exec_b
@@ -412,7 +446,7 @@ Lemma simrel_exec_b
       << STEP1 : WCore.exec_inst G_s G_s'_int traces' a >> /\
       << STEP2 : WCore.exec_inst G_s'_int G_s' traces' b >>.
 Proof using SWAPPED_TRACES CTX.
-  exists (ReordCommon.mapped_G_t_with_b G_t' a b); split.
+  (* exists (ReordCommon.mapped_G_t_with_b G_t' a b); split.
   { apply mapper_simrel_niff; ins; try apply CTX.
     { destruct STEP. unfold WCore.cfg_add_event in add_event.
       desf. destruct add_event. ins. apply wf_new_conf. }
@@ -426,7 +460,7 @@ Proof using SWAPPED_TRACES CTX.
       unfolder in F; desf; [| now apply CTX.(rctx_diff)].
       now apply SIM.(rsrw_actids_t_ord G_s G_t a b). }
     change G_t' with (WCore.G (WCore.Build_t G_t' G_t' ∅)).
-    eapply WCore.new_event_max_sb; eapply STEP. }
+    eapply WCore.new_event_max_sb; eapply STEP. } *)
   admit. (* TODO: research *)
 Admitted.
 

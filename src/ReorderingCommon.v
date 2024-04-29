@@ -238,10 +238,10 @@ Definition traces_swapped :=
       traces' (tid a) t' <-> exists t,
       << IN : traces (tid a) t >> /\
       << SWAP : trace_swapped label t t' (index a) (index b) >>.
-Definition mapped_G_t : execution := {|
+Definition mapped_G_t l : execution := {|
   acts_set := E_t;
   threads_set := threads_set G_t;
-  lab := lab_t ∘ mapper;
+  lab := upd (lab_t ∘ mapper) a l;
   rmw := mapper ↑ rmw_t;
   data := mapper ↑ data_t;
   addr := mapper ↑ addr_t;
@@ -250,10 +250,10 @@ Definition mapped_G_t : execution := {|
   rf := mapper ↑ rf_t;
   co := mapper ↑ co_t;
 |}.
-Definition mapped_G_t_with_b : execution := {|
+Definition mapped_G_t_with_b_srf l : execution := {|
   acts_set := E_t ∪₁ eq b;
   threads_set := threads_set G_t;
-  lab := lab_t ∘ mapper;
+  lab := upd (lab_t ∘ mapper) a l;
   rmw := mapper ↑ rmw_t;
   data := mapper ↑ data_t;
   addr := mapper ↑ addr_t;
@@ -328,26 +328,26 @@ Proof using.
   apply mapper_inj; ins.
 Qed.
 
-Lemma mapped_G_t_sb : sb mapped_G_t ≡ sb_t.
+Lemma mapped_G_t_sb l : sb (mapped_G_t l) ≡ sb_t.
 Proof using.
   unfold sb; ins.
 Qed.
 
-Lemma mapped_G_t_with_b_sb_sub : sb_t ⊆ sb mapped_G_t_with_b.
+Lemma mapped_G_t_with_b_srf_sb_sub l : sb_t ⊆ sb (mapped_G_t_with_b_srf l).
 Proof using.
   unfold sb; ins; basic_solver.
 Qed.
 
-Lemma mapped_G_t_with_b_acts_sub : E_t ⊆₁ acts_set mapped_G_t_with_b.
+Lemma mapped_G_t_with_b_srf_acts_sub l : E_t ⊆₁ acts_set (mapped_G_t_with_b_srf l).
 Proof using.
   unfold acts_set, mapped_G_t; ins; basic_solver.
 Qed.
 
-Lemma mapped_G_t_with_b_b_max
+Lemma mapped_G_t_with_b_srf_b_max l
     (IN : E_t a)
     (LAST : max_elt sb_t a)
     (NEXT : ext_sb a b) :
-  max_elt (sb mapped_G_t_with_b) b.
+  max_elt (sb (mapped_G_t_with_b_srf l)) b.
 Proof using.
   unfold max_elt, sb. intros e SB.
   unfolder in SB; desf; ins.
@@ -356,25 +356,25 @@ Proof using.
   eapply ext_sb_trans; eauto.
 Qed.
 
-Lemma mapped_G_t_with_b_not_b x y
+Lemma mapped_G_t_with_b_srf_not_b l x y
     (IN : E_t a)
     (LAST : max_elt sb_t a)
     (NEXT : ext_sb a b)
-    (SB : sb mapped_G_t_with_b x y) :
+    (SB : sb (mapped_G_t_with_b_srf l) x y) :
   E_t x.
 Proof using.
-  enough (XIN : acts_set mapped_G_t_with_b x).
+  enough (XIN : acts_set (mapped_G_t_with_b_srf l) x).
   { ins; unfolder in XIN; desf.
-    exfalso; eapply mapped_G_t_with_b_b_max; eauto. }
+    exfalso; eapply mapped_G_t_with_b_srf_b_max; eauto. }
   unfold sb in SB; unfolder in SB; desf.
 Qed.
 
-Lemma mapped_G_t_imm_sb
+Lemma mapped_G_t_imm_sb l
     (NINIT : ~is_init a)
     (HINA : E_t a)
     (LAST : max_elt sb_t a)
     (NEXT : ext_sb a b) :
-  immediate (sb mapped_G_t_with_b) ≡ immediate sb_t ∪ singl_rel a b.
+  immediate (sb (mapped_G_t_with_b_srf l)) ≡ immediate sb_t ∪ singl_rel a b.
 Proof using.
   split; intros x y HIN.
   { unfold sb in HIN; ins.
@@ -382,7 +382,7 @@ Proof using.
     all: try now (exfalso; eapply ext_sb_irr; eauto).
     { left; unfold sb; unfolder; splits; ins; eauto.
       apply HIN0 with (c := c); desf; eauto. }
-    { exfalso. eapply mapped_G_t_with_b_b_max; ins.
+    { exfalso. eapply mapped_G_t_with_b_srf_b_max with (l := l); ins.
       unfold sb; ins; unfolder; splits; eauto. }
     tertium_non_datur (x = a) as [ISA|ISA]; subst.
     { now right. }
@@ -397,9 +397,9 @@ Proof using.
     { eapply LAST; unfold sb; unfolder; splits; eauto. }
     apply HIN0 with (c := a); splits; eauto. }
   unfolder in HIN; desf.
-  { split; [now apply mapped_G_t_with_b_sb_sub|].
+  { split; [now apply mapped_G_t_with_b_srf_sb_sub|].
     intros c SB1 SB2. assert (INE : E_t c).
-    { eapply mapped_G_t_with_b_not_b; eauto. }
+    { eapply mapped_G_t_with_b_srf_not_b; eauto. }
     unfold sb in HIN; unfolder in HIN; desf.
     apply HIN0 with (c := c); unfold sb; unfolder; splits.
     all: eauto.
@@ -410,16 +410,21 @@ Proof using.
   unfolder in R1; desf.
   { eapply LAST; unfold sb; unfolder; splits; eauto. }
   { rewrite R1 in NEXT; eapply ext_sb_irr; eauto. }
-  { eapply sb_irr with (G := mapped_G_t_with_b); eapply R2. }
+  { eapply sb_irr with (G := mapped_G_t_with_b_srf l); eapply R2. }
   rewrite R1 in NEXT; eapply ext_sb_irr; eauto.
 Qed.
 
-Lemma mapped_exec_equiv : exec_equiv G_s mapped_G_t.
+Lemma mapped_exec_equiv :
+    exec_equiv G_s (mapped_G_t (lab_s a)).
 Proof using REORD.
   constructor; ins; try apply REORD.
-  { now rewrite REORD.(gs_data), REORD.(gt_data), collect_rel_empty. }
-  { now rewrite REORD.(gs_addr), REORD.(gt_addr), collect_rel_empty. }
-  now rewrite REORD.(gs_ctrl), REORD.(gt_ctrl), collect_rel_empty.
+  all: rewrite ?REORD.(gs_data), ?REORD.(gt_data),
+               ?REORD.(gs_addr), ?REORD.(gt_addr),
+               ?REORD.(gs_ctrl), ?REORD.(gt_ctrl).
+  all: try now (symmetry; apply collect_rel_empty).
+  apply functional_extensionality. intro x.
+  tertium_non_datur (x = a); subst; rupd; ins.
+  rewrite REORD.(events_lab); ins.
 Qed.
 
 Lemma eq_tid : tid a = tid b.
