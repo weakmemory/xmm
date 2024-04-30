@@ -314,25 +314,16 @@ Proof using.
     all: try now apply add_event.
     { admit. } (* TODO: research *)
     { rewrite add_event.(WCore.rf_new); ins.
-      rewrite !collect_rel_union. repeat apply union_more; ins.
-      all: unfold WCore.rf_delta_R, WCore.rf_delta_W.
-      { destruct w as [w |]; ins; [| apply collect_rel_empty].
-        rewrite ReordCommon.mapper_rel_inter, collect_rel_cross,
-                collect_rel_singl, ReordCommon.mapper_neq with (x := e).
-        all: ins.
-        apply inter_rel_more; ins. rewrite FIN_LAB, EQ_LAB.
-        apply cross_more; unfolder; split; ins; desf.
-        all: unfold is_w, is_r, compose in *.
-        all: rewrite ?ReordCommon.mapper_self_inv; ins.
-        all: tertium_non_datur (x = a); tertium_non_datur (x = b); subst.
-        all: ins.
-        all: rewrite ?ReordCommon.mapper_eq_a, ?ReordCommon.mapper_eq_b,
-                     ?ReordCommon.mapper_neq in *; ins.
-        all: try now (exists b; rewrite ReordCommon.mapper_eq_b).
-        all: try now (exists a; rewrite ReordCommon.mapper_eq_a).
-        all: try now (exists x; rewrite ReordCommon.mapper_neq). }
-      desf.
-      all: basic_solver 12. }
+      rewrite !collect_rel_union.
+      repeat apply union_more; ins; unfold WCore.rf_delta_R, WCore.rf_delta_W;
+        [| desf; basic_solver 12].
+      destruct w as [w |]; ins; [| apply collect_rel_empty].
+      rewrite ReordCommon.mapper_rel_inter, collect_rel_cross,
+              collect_rel_singl, ReordCommon.mapper_neq with (x := e).
+      all: ins.
+      apply inter_rel_more; ins. rewrite FIN_LAB, EQ_LAB.
+      rewrite ReordCommon.mapper_R_t, ReordCommon.mapper_W_t; ins.
+      now rewrite ReordCommon.mapper_lab_same. }
       { rewrite add_event.(WCore.co_new); ins.
         rewrite !collect_rel_union. repeat apply union_more; ins.
         unfold WCore.co_delta; ins. unfold is_w, compose.
@@ -341,12 +332,13 @@ Proof using.
         rewrite !collect_rel_union, !collect_rel_cross,
                 set_collect_eq, ReordCommon.mapper_neq; ins. }
       { rewrite add_event.(WCore.rmw_new); ins.
+        destruct start_wf, pfx; ins.
         rewrite !collect_rel_union. repeat apply union_more; ins.
-        unfold WCore.rmw_delta; ins.
+        unfold WCore.rmw_delta; ins. rewrite <- pfx_sub.(sub_lab).
+        rewrite <- ReordCommon.mapper_W_t, <- ReordCommon.mapper_R_t; ins.
         rewrite collect_rel_cross, !ReordCommon.mapper_inter_set; ins.
-        rewrite set_collect_eq_opt, set_collect_eq, ReordCommon.mapper_neq; ins.
-        apply cross_more; apply set_equiv_inter; ins.
-        all: admit. (* TODO: lemmas *) }
+        rewrite set_collect_eq_opt, set_collect_eq,
+                ReordCommon.mapper_neq; ins. }
       constructor; ins. (* TODO: wf again *) }
   admit. (* TODO: research *)
 Admitted.

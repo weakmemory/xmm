@@ -215,6 +215,8 @@ Notation "'data_t'" := (data G_t).
 Notation "'ctrl_t'" := (ctrl G_t).
 Notation "'addr_t'" := (addr G_t).
 Notation "'srf_t'" := (srf G_t).
+Notation "'W_t'" := (is_w lab_t).
+Notation "'R_t'" := (is_r lab_t).
 
 Notation "'lab_s'" := (lab G_s).
 Notation "'E_s'" := (acts_set G_s).
@@ -350,6 +352,50 @@ Proof using.
   unfolder; ins; desf.
   apply mapper_inj in H1; ins; desf.
   exists y0; splits; ins.
+Qed.
+
+Lemma mapper_lab_same :
+  upd (lab_t ∘ mapper) a (lab_t b) = lab_t ∘ mapper.
+Proof using.
+  apply functional_extensionality. intros x. unfold compose.
+  tertium_non_datur (x = a) as [HEQA|NEQA];
+  tertium_non_datur (x = b) as [HEQB|NEQB]; subst.
+  all: try now rewrite upds, mapper_eq_a.
+  all: rewrite updo; eauto.
+Qed.
+
+Lemma mapper_R_t
+    (NEQ : a <> b) :
+  mapper ↑₁ R_t ≡₁ is_r (upd (lab_t ∘ mapper) a (lab_t b)).
+Proof using.
+  rewrite mapper_lab_same.
+  unfolder; split; intros x HSET; desf; unfold compose, is_r in *.
+  { rewrite mapper_self_inv; ins. }
+  tertium_non_datur (x = a) as [HEQA|NEQA];
+  tertium_non_datur (x = b) as [HEQB|NEQB]; subst; ins.
+  { rewrite mapper_eq_a in HSET.
+    exists b; split; eauto using mapper_eq_b. }
+  { rewrite mapper_eq_b in HSET.
+    exists a; split; eauto using mapper_eq_a. }
+  rewrite mapper_neq in HSET; ins.
+  exists x; split; eauto using mapper_neq.
+Qed.
+
+Lemma mapper_W_t
+    (NEQ : a <> b) :
+  mapper ↑₁ W_t ≡₁ is_w (upd (lab_t ∘ mapper) a (lab_t b)).
+Proof using.
+  rewrite mapper_lab_same.
+  unfolder; split; intros x HSET; desf; unfold compose, is_w in *.
+  { rewrite mapper_self_inv; ins. }
+  tertium_non_datur (x = a) as [HEQA|NEQA];
+  tertium_non_datur (x = b) as [HEQB|NEQB]; subst; ins.
+  { rewrite mapper_eq_a in HSET.
+    exists b; split; eauto using mapper_eq_b. }
+  { rewrite mapper_eq_b in HSET.
+    exists a; split; eauto using mapper_eq_a. }
+  rewrite mapper_neq in HSET; ins.
+  exists x; split; eauto using mapper_neq.
 Qed.
 
 Lemma mapper_inj_dom s (NEQ : a <> b) : inj_dom s mapper.
