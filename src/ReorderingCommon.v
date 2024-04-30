@@ -328,6 +328,23 @@ Proof using.
   apply mapper_inj; ins.
 Qed.
 
+Lemma mapper_init
+    (ANIT : ~is_init a)
+    (BNIT : ~is_init b) :
+  mapper ↑₁ (acts_set G_t ∩₁ is_init) ≡₁ acts_set G_t ∩₁ is_init.
+Proof using.
+  unfold mapper.
+  unfolder; split; desf; intros x.
+  { intros (y & IN & EQ); generalize EQ; clear EQ.
+    destruct (classic (y = a)) as [HA|HA],
+             (classic (y = b)) as [HB|HB].
+    all: subst; rupd; ins; desf; exfalso; eauto. }
+  destruct (classic (x = a)) as [HA|HA],
+           (classic (x = b)) as [HB|HB].
+  all: subst; ins; desf.
+  exists x; rupd.
+Qed.
+
 Lemma mapped_G_t_sb l : sb (mapped_G_t l) ≡ sb_t.
 Proof using.
   unfold sb; ins.
