@@ -322,6 +322,36 @@ Proof using.
   all: unfold id in *; congruence.
 Qed.
 
+Lemma mapper_self_inv (NEQ : a <> b) x : mapper (mapper x) = x.
+Proof using.
+  unfold mapper.
+  tertium_non_datur (x = b) as [HEQA|HEQA]; subst; try now rupd.
+  rewrite updo with (c := x); ins.
+  tertium_non_datur (x = a) as [HEQB|HEQB]; subst; try now rupd.
+Qed.
+
+(* TODO: generalize to injective func *)
+Lemma mapper_rel_inter r1 r2
+    (NEQ : a <> b) :
+  mapper ↑ (r1 ∩ r2) ≡ mapper ↑ r1 ∩ mapper ↑ r2.
+Proof.
+  split; [apply collect_rel_inter |].
+  unfolder; ins; desf.
+  apply mapper_inj in H1, H2; ins; desf.
+  exists x'0, y'0; splits; ins.
+Qed.
+
+(* TODO: generalize to injective func *)
+Lemma mapper_inter_set s1 s2
+    (NEQ : a <> b) :
+  mapper ↑₁ (s1 ∩₁ s2) ≡₁ mapper ↑₁ s1 ∩₁ mapper ↑₁ s2.
+Proof using.
+  split; [apply set_collect_inter |].
+  unfolder; ins; desf.
+  apply mapper_inj in H1; ins; desf.
+  exists y0; splits; ins.
+Qed.
+
 Lemma mapper_inj_dom s (NEQ : a <> b) : inj_dom s mapper.
 Proof using.
   unfold inj_dom; ins.

@@ -273,13 +273,111 @@ Record reord_context : Prop := {
 Hypothesis SWAPPED_TRACES : ReordCommon.traces_swapped traces traces' a b.
 Hypothesis CTX : reord_context.
 
-(* Lemma simrel_exec_mapper_iff e
+Lemma simrel_exec_mapper_iff1 e
+    (SAME : E_t a <-> E_t b)
+    (INA : E_t a)
+    (INB : E_t b)
+    (E_NOT_A : e <> a)
+    (E_NOT_B : e <> b)
+    (CONS : WCore.is_cons G_t)
+    (STEP : WCore.exec_inst G_t G_t' traces e)
+    (SIM_ACTS : reord_simrel_rw_actids G_t a b) :
+  WCore.exec_inst
+    (ReordCommon.mapped_G_t G_t a b (lab_t b))
+    (ReordCommon.mapped_G_t G_t' a b (lab_t b))
+    traces
+    e.
+Proof using.
+  assert (NEQ : a <> b).
+  { intro F; eapply ext_sb_irr with (x := a).
+    rewrite F at 2. apply SIM_ACTS. }
+  assert (EQ_LAB : upd (lab_t ∘ mapper) a (lab_t b) = lab_t ∘ mapper).
+  { arewrite (lab_t b = (lab_t ∘ mapper) a); [| now rewrite updI].
+    unfold compose. now rewrite ReordCommon.mapper_eq_a. }
+  assert (FIN_LAB : lab G_t' = lab_t).
+  { symmetry. destruct STEP, start_wf; ins. apply pfx. }
+  constructor; ins.
+  { constructor; ins.
+    all: try now apply STEP.(WCore.start_wf).
+    all: try now (destruct STEP; rewrite
+      ?start_wf.(WCore.cc_ctrl_empty), ?start_wf.(WCore.cc_addr_empty),
+      ?start_wf.(WCore.cc_data_empty); apply collect_rel_empty
+    ).
+    all: try now (rewrite set_inter_empty_l, ?restr_relE; basic_solver).
+    { admit. } (* Mapping preserves wf *)
+    { rewrite set_union_empty_r. admit. } (* If x is netiher a or b -- use info from G_t. Otherwise prove by hand *)
+    admit. (* Mapping preserved prefix *) }
+  { destruct STEP. unfold WCore.cfg_add_event in add_event.
+    desf. exists (option_map mapper r), (option_map mapper w),
+                 (mapper ↑₁ W1), (mapper ↑₁ W2).
+    constructor; ins.
+    all: try now apply add_event.
+    { admit. } (* TODO: research *)
+    { rewrite add_event.(WCore.rf_new); ins.
+      rewrite !collect_rel_union. repeat apply union_more; ins.
+      all: unfold WCore.rf_delta_R, WCore.rf_delta_W.
+      { destruct w as [w |]; ins; [| apply collect_rel_empty].
+        rewrite ReordCommon.mapper_rel_inter, collect_rel_cross,
+                collect_rel_singl, ReordCommon.mapper_neq with (x := e).
+        all: ins.
+        apply inter_rel_more; ins. rewrite FIN_LAB, EQ_LAB.
+        apply cross_more; unfolder; split; ins; desf.
+        all: unfold is_w, is_r, compose in *.
+        all: rewrite ?ReordCommon.mapper_self_inv; ins.
+        all: tertium_non_datur (x = a); tertium_non_datur (x = b); subst.
+        all: ins.
+        all: rewrite ?ReordCommon.mapper_eq_a, ?ReordCommon.mapper_eq_b,
+                     ?ReordCommon.mapper_neq in *; ins.
+        all: try now (exists b; rewrite ReordCommon.mapper_eq_b).
+        all: try now (exists a; rewrite ReordCommon.mapper_eq_a).
+        all: try now (exists x; rewrite ReordCommon.mapper_neq). }
+      desf.
+      all: basic_solver 12. }
+      { rewrite add_event.(WCore.co_new); ins.
+        rewrite !collect_rel_union. repeat apply union_more; ins.
+        unfold WCore.co_delta; ins. unfold is_w, compose.
+        rewrite updo, ReordCommon.mapper_neq; ins. desf.
+        all: try apply collect_rel_empty.
+        rewrite !collect_rel_union, !collect_rel_cross,
+                set_collect_eq, ReordCommon.mapper_neq; ins. }
+      { rewrite add_event.(WCore.rmw_new); ins.
+        rewrite !collect_rel_union. repeat apply union_more; ins.
+        unfold WCore.rmw_delta; ins.
+        rewrite collect_rel_cross, !ReordCommon.mapper_inter_set; ins.
+        rewrite set_collect_eq_opt, set_collect_eq, ReordCommon.mapper_neq; ins.
+        apply cross_more; apply set_equiv_inter; ins.
+        all: admit. (* TODO: lemmas *) }
+      constructor; ins. (* TODO: wf again *) }
+  admit. (* TODO: research *)
+Admitted.
+
+Lemma simrel_exec_mapper_iff2 e
     (SAME : E_t a <-> E_t b)
     (E_NOT_A : e <> a)
     (E_NOT_B : e <> b)
     (CONS : WCore.is_cons G_t)
-    (STEP : WCore.exec_inst G_t G_t' traces e) :
-  WCore.exec_inst (ReordCommon.mapped_G_t G_t a b ) *)
+    (STEP : WCore.exec_inst G_t G_t' traces e)
+    (SIM_ACTS : reord_simrel_rw_actids G_t a b)
+    (SIM_CORE : reord_simrel_core G_t a b) :
+  WCore.exec_inst
+    (ReordCommon.mapped_G_t G_t a b)
+    (ReordCommon.mapped_G_t G_t' a b)
+    traces
+    e.
+
+Lemma simrel_exec_mapper_iff e
+    (SAME : E_t a <-> E_t b)
+    (E_NOT_A : e <> a)
+    (E_NOT_B : e <> b)
+    (CONS : WCore.is_cons G_t)
+    (STEP : WCore.exec_inst G_t G_t' traces e)
+    (SIM_ACTS : reord_simrel_rw_actids G_t a b)
+    (SIM_CORE : reord_simrel_core G_t a b) :
+  WCore.exec_inst
+    (ReordCommon.mapped_G_t G_t a b)
+    (ReordCommon.mapped_G_t G_t' a b)
+    traces
+    e.
 
 Lemma simrel_exec_not_a_not_b_same_helper e
     (SAME : E_t a <-> E_t b)
