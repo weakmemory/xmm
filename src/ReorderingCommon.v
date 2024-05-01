@@ -796,6 +796,10 @@ Proof using.
   { rewrite cc_ctrl_empty. apply collect_rel_empty. }
   { rewrite cc_addr_empty. apply collect_rel_empty. }
   { rewrite cc_data_empty. apply collect_rel_empty. }
+  { apply mapped_G_t_wf; ins; admit. }
+  { admit. (* mapper inclusion *) }
+  all: admit.
+Admitted.
 
 End MapperCfg.
 
