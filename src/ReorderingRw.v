@@ -297,16 +297,7 @@ Proof using.
   assert (FIN_LAB : lab G_t' = lab_t).
   { symmetry. destruct STEP, start_wf; ins. apply pfx. }
   constructor; ins.
-  { constructor; ins.
-    all: try now apply STEP.(WCore.start_wf).
-    all: try now (destruct STEP; rewrite
-      ?start_wf.(WCore.cc_ctrl_empty), ?start_wf.(WCore.cc_addr_empty),
-      ?start_wf.(WCore.cc_data_empty); apply collect_rel_empty
-    ).
-    all: try now (rewrite set_inter_empty_l, ?restr_relE; basic_solver).
-    { admit. } (* Mapping preserves wf *)
-    { rewrite set_union_empty_r. admit. } (* If x is netiher a or b -- use info from G_t. Otherwise prove by hand *)
-    admit. (* Mapping preserved prefix *) }
+  { admit. (* Conf wf *) }
   { destruct STEP. unfold WCore.cfg_add_event in add_event.
     desf. exists (option_map mapper r), (option_map mapper w),
                  (mapper ↑₁ W1), (mapper ↑₁ W2).
@@ -339,7 +330,7 @@ Proof using.
         rewrite collect_rel_cross, !ReordCommon.mapper_inter_set; ins.
         rewrite set_collect_eq_opt, set_collect_eq,
                 ReordCommon.mapper_neq; ins. }
-      constructor; ins. (* TODO: wf again *) }
+      admit. (* Conf wf *) }
   admit. (* TODO: research *)
 Admitted.
 
