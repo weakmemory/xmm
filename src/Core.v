@@ -11,6 +11,7 @@ From imm Require Import Events Execution Execution_eco imm_s_hb.
 From imm Require Import imm_s_ppo.
 From imm Require Import imm_s_hb.
 From imm Require Import imm_bob.
+From imm Require Import imm_s.
 From imm Require Import SubExecution.
 
 From RecordUpdate Require Import RecordSet.
@@ -27,8 +28,8 @@ Set Implicit Arguments.
 .
 
 (* G' is exec_prefix of G *)
-Record exec_prefix sc sc' G G' : Prop := {
-  pfx_sub : sub_execution G G' sc sc';
+Record exec_prefix G G' : Prop := {
+  pfx_sub : sub_execution G G' ∅₂ ∅₂;
   pfx_cont1 : contigious_actids G;
   pfx_cont2 : contigious_actids G';
 }.
@@ -60,7 +61,6 @@ Module WCore.
 
 Record t := {
   sc : relation actid;
-  sc_c : relation actid;
   G : execution;
   GC : execution;
   cmt : actid -> Prop;
@@ -74,18 +74,19 @@ Hint Unfold init_exec : unfolderDb.
 
 Section Consistency.
 
-Variable sc : relation actid.
 Variable G : execution.
+Variable sc : relation actid.
 Notation "'hb'" := (hb G).
 Notation "'fr'" := (fr G).
 Notation "'sb'" := (sb G).
 Notation "'eco'" := (eco G).
+Notation "'psc'" := (imm.psc G).
 Notation "'rmw'" := (rmw G).
 
 Record is_cons : Prop := {
   cons_coherence : irreflexive (hb ⨾ eco^?);
   cons_atomicity : rmw ∩ (fr ⨾ sb) ≡ ∅₂;
-  cons_sc : acyclic sc;
+  cons_sc : acyclic psc;
 }.
 
 End Consistency.
@@ -95,6 +96,7 @@ Section CoreDefs.
 Variable X : t.
 Notation "'G'" := (G X).
 Notation "'GC'" := (GC X).
+Notation "'sc'" := (sc X).
 Notation "'ctrlc'" := (ctrl GC).
 Notation "'datac'" := (data GC).
 Notation "'addrc'" := (addr GC).
@@ -118,7 +120,7 @@ Record wf : Prop := {
   cc_data_empty : datac ≡ ∅₂;
 
   wf_gc : Wf GC;
-  (* wf_scc : wf_sc sc; *)
+  wf_scc : wf_sc GC sc; 
   wf_g_init : EC ∩₁ is_init ⊆₁ E;
   wf_gc_acts : (tid ↓₁ eq tid_init) ∩₁ EC ⊆₁ is_init;
 
@@ -223,12 +225,14 @@ Global Hint Unfold new_event_correct cfg_add_event
 Section ExecAdd.
 
 Variables G G' : execution.
+Variables sc : relation actid.
 Variable traces : thread_id -> trace label -> Prop.
 
 Record exec_inst e := {
+  start_wf : wf (Build_t sc G G' ∅);
   add_event : cfg_add_event traces
-    (Build_t G G' ∅)
-    (Build_t G' G' ∅)
+    (Build_t sc G G' ∅)
+    (Build_t sc G' G' ∅)
     e;
   next_cons : is_cons G';
 }.
@@ -238,6 +242,7 @@ End ExecAdd.
 Section ExecRexec.
 
 Variables G G' : execution.
+Variables sc : relation actid. 
 Variable traces : thread_id -> trace label -> Prop.
 Variable rfre : relation actid.
 
@@ -282,9 +287,21 @@ Record stable_uncmt_reads_gen f r w : Prop :=
   surg_sbrf : dom_rel (rf ⨾ ⦗eq r⦘) ∩₁ codom_rel (⦗eq w⦘ ⨾ sb_rf^?) ⊆₁
               dom_rel (sb_rf^? ⨾ sb ⨾ ⦗eq r⦘); }.
 
-(* TODO: update lab *)
+Definition reexec_start dtrmt := Build_execution
+  (restrict G dtrmt).(acts_set)
+	(restrict G dtrmt).(threads_set)
+  G'.(lab)
+  (restrict G dtrmt).(rmw)
+  (restrict G dtrmt).(data)
+  (restrict G dtrmt).(addr)
+  (restrict G dtrmt).(ctrl)
+  (restrict G dtrmt).(rmw_dep)
+  (restrict G dtrmt).(rf)
+  (restrict G dtrmt).(co).
+
 Record reexec_gen f dtrmt : Prop :=
 { (* Correct start *)
+  newlab_correct : forall e, dtrmt e -> lab' e = lab e;
   rfre_racy : rfre ⊆ re;
   dtrmt_not_reexec : dtrmt ⊆₁ E \₁ codom_rel (⦗Rre⦘ ⨾ (sb ∪ rf)＊);
   dtrmt_cmt : dtrmt ⊆₁ (f_cmt f);
@@ -296,10 +313,10 @@ Record reexec_gen f dtrmt : Prop :=
   reexec_embd_sbrfe : Some ↓ (f ↑ restr_rel (f_cmt f) sb_rf') ⊆
                       restr_rel (Some ↓₁ (f ↑₁ (f_cmt f))) sb_rfre;
   (* Reproducable steps *)
-  reexec_start_wf : wf (Build_t G G' (f_cmt f));
+  reexec_start_wf : wf (Build_t sc G G' (f_cmt f));
   reexec_steps : (cfg_add_event_uninformative traces)＊
-    (Build_t (restrict G dtrmt) G' (f_cmt f))
-    (Build_t G'                 G' (f_cmt f));
+    (Build_t (restr_rel (f_cmt f) sc) (restrict G dtrmt) G' (f_cmt f))
+    (Build_t sc G'                                       G' (f_cmt f));
   rexec_final_cons : is_cons G'; }.
 
 Definition reexec : Prop := exists f dtrmt, reexec_gen f dtrmt.
@@ -412,6 +429,7 @@ Notation "'GC''" := (GC X').
 Notation "'cmt''" := (cmt X').
 Notation "'E''" := (acts_set G').
 Notation "'lab''" := (lab G').
+Notation "'sb''" := (sb G').
 
 Notation "'G'" := (G X).
 Notation "'GC'" := (GC X).
@@ -435,6 +453,24 @@ Proof using.
   red in ADD_STEP. desf.
   apply ADD_STEP.
 Qed.
+
+(* Lemma new_event_max_sb e
+    (WF : wf X)
+    (ADD_STEP : cfg_add_event traces X X' e) :
+  max_elt sb' e.
+Proof using.
+  unfolder. intros e' SB.
+  red in ADD_STEP. desf.
+  unfold sb in SB; unfolder in SB; desf.
+  apply ADD_STEP.(e_new) in SB1.
+  unfolder in SB1; desf.
+  { apply ADD_STEP.(e_notin), ext_sb_dense with (e2 := e'); ins.
+    { apply WF. }
+    intro F. apply ADD_STEP.(e_notinit).
+    eapply wf_g_acts; [apply ADD_STEP.(wf_new_conf) |].
+    unfolder; split; ins. }
+  eapply ext_sb_irr; eauto.
+Qed. *)
 
 Lemma same_lab e
   (WF : wf X)
