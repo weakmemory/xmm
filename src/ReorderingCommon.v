@@ -217,6 +217,7 @@ Notation "'addr_t'" := (addr G_t).
 Notation "'srf_t'" := (srf G_t).
 Notation "'W_t'" := (is_w lab_t).
 Notation "'R_t'" := (is_r lab_t).
+Notation "'F_t'" := (is_f lab_t).
 
 Notation "'lab_s'" := (lab G_s).
 Notation "'E_s'" := (acts_set G_s).
@@ -364,44 +365,121 @@ Proof using.
   all: rewrite updo; eauto.
 Qed.
 
-Lemma mapper_R_t
-    (NEQ : a <> b) :
-  mapper ↑₁ R_t ≡₁ is_r (upd (lab_t ∘ mapper) a (lab_t b)).
+Lemma mapper_R_t l
+    (NEQ : a <> b)
+    (U2V : same_label_u2v l (lab_t b)) :
+  mapper ↑₁ R_t ≡₁ is_r (upd (lab_t ∘ mapper) a l).
 Proof using.
-  rewrite mapper_lab_same.
   unfolder; split; intros x HSET; desf; unfold compose, is_r in *.
-  { rewrite mapper_self_inv; ins. }
-  tertium_non_datur (x = a) as [HEQA|NEQA];
-  tertium_non_datur (x = b) as [HEQB|NEQB]; subst; ins.
-  { rewrite mapper_eq_a in HSET.
-    exists b; split; eauto using mapper_eq_b. }
-  { rewrite mapper_eq_b in HSET.
-    exists a; split; eauto using mapper_eq_a. }
-  rewrite mapper_neq in HSET; ins.
-  exists x; split; eauto using mapper_neq.
+  { tertium_non_datur (mapper y = a) as [HEQ|HEQ].
+    all: try now rewrite updo, mapper_self_inv; ins.
+    rewrite HEQ, upds.
+    rewrite mapper_inj with (x := y) (y := b) in HSET.
+    all: try now rewrite mapper_eq_b || unfolder; eauto.
+    unfold same_label_u2v in U2V; desf. }
+  exists (mapper x); split; auto using mapper_self_inv.
+  tertium_non_datur (x = a) as [HEQA|NEQA]; subst.
+  all: try now rewrite updo in HSET; ins.
+  rewrite upds in HSET. rewrite mapper_eq_a.
+  unfold same_label_u2v in U2V; desf.
 Qed.
 
-Lemma mapper_W_t
-    (NEQ : a <> b) :
-  mapper ↑₁ W_t ≡₁ is_w (upd (lab_t ∘ mapper) a (lab_t b)).
+Lemma mapper_W_t l
+    (NEQ : a <> b)
+    (U2V : same_label_u2v l (lab_t b)) :
+  mapper ↑₁ W_t ≡₁ is_w (upd (lab_t ∘ mapper) a l).
 Proof using.
-  rewrite mapper_lab_same.
   unfolder; split; intros x HSET; desf; unfold compose, is_w in *.
-  { rewrite mapper_self_inv; ins. }
-  tertium_non_datur (x = a) as [HEQA|NEQA];
-  tertium_non_datur (x = b) as [HEQB|NEQB]; subst; ins.
-  { rewrite mapper_eq_a in HSET.
-    exists b; split; eauto using mapper_eq_b. }
-  { rewrite mapper_eq_b in HSET.
-    exists a; split; eauto using mapper_eq_a. }
-  rewrite mapper_neq in HSET; ins.
-  exists x; split; eauto using mapper_neq.
+  { tertium_non_datur (mapper y = a) as [HEQ|HEQ].
+    all: try now rewrite updo, mapper_self_inv; ins.
+    rewrite HEQ, upds.
+    rewrite mapper_inj with (x := y) (y := b) in HSET.
+    all: try now rewrite mapper_eq_b || unfolder; eauto.
+    unfold same_label_u2v in U2V; desf. }
+  exists (mapper x); split; auto using mapper_self_inv.
+  tertium_non_datur (x = a) as [HEQA|NEQA]; subst.
+  all: try now rewrite updo in HSET; ins.
+  rewrite upds in HSET. rewrite mapper_eq_a.
+  unfold same_label_u2v in U2V; desf.
+Qed.
+
+Lemma mapper_F_t l
+    (NEQ : a <> b)
+    (U2V : same_label_u2v l (lab_t b)) :
+  mapper ↑₁ F_t ≡₁ is_f (upd (lab_t ∘ mapper) a l).
+Proof using.
+  unfolder; split; intros x HSET; desf; unfold compose, is_f in *.
+  { tertium_non_datur (mapper y = a) as [HEQ|HEQ].
+    all: try now rewrite updo, mapper_self_inv; ins.
+    rewrite HEQ, upds.
+    rewrite mapper_inj with (x := y) (y := b) in HSET.
+    all: try now rewrite mapper_eq_b || unfolder; eauto.
+    unfold same_label_u2v in U2V; desf. }
+  exists (mapper x); split; auto using mapper_self_inv.
+  tertium_non_datur (x = a) as [HEQA|NEQA]; subst.
+  all: try now rewrite updo in HSET; ins.
+  rewrite upds in HSET. rewrite mapper_eq_a.
+  unfold same_label_u2v in U2V; desf.
+Qed.
+
+Lemma mapper_loc l
+    (NEQ : a <> b)
+    (U2V : same_label_u2v l (lab_t b)) :
+  loc (upd (lab_t ∘ mapper) a l) = loc (lab_t ∘ mapper).
+Proof using.
+  apply functional_extensionality. intro x. unfold loc, compose.
+  tertium_non_datur (x = a) as [HEQ|HEQ]; subst.
+  all: try now rewrite updo.
+  rewrite upds, mapper_eq_a.
+  unfold same_label_u2v in U2V.
+  do 2 desf.
+Qed.
+
+Lemma mapper_val x y
+    (NEQ : a <> b)
+    (EQ : val lab_t x = val lab_t y) :
+  val (lab_t ∘ mapper) (mapper x) = val (lab_t ∘ mapper) (mapper y).
+Proof using.
+  unfold val, compose in *.
+  now rewrite !mapper_self_inv.
+Qed.
+
+Lemma mapper_same_loc l
+    (NEQ : a <> b)
+    (U2V : same_label_u2v l (lab_t b)) :
+  same_loc (upd (lab_t ∘ mapper) a l) ≡ mapper ↑ same_loc lab_t.
+Proof using.
+  unfold same_loc; split; intros x y HREL.
+  { rewrite !mapper_loc in HREL; ins.
+    unfolder; exists (mapper x), (mapper y).
+    splits; eauto using mapper_self_inv. }
+  rewrite !mapper_loc; ins.
+  unfolder in HREL; desf.
+  unfold loc, compose.
+  now rewrite !mapper_self_inv.
 Qed.
 
 Lemma mapper_inj_dom s (NEQ : a <> b) : inj_dom s mapper.
 Proof using.
   unfold inj_dom; ins.
   apply mapper_inj; ins.
+Qed.
+
+Lemma mapper_acts
+    (SAME : E_t a <-> E_t b) :
+  mapper ↑₁ E_t ≡₁ E_t.
+Proof using.
+  unfolder; split; ins; desf.
+  { tertium_non_datur (y = a) as [HEQA|NEQA];
+    tertium_non_datur (y = b) as [HEQB|NEQB]; subst.
+    all: try now (rewrite ?mapper_eq_a, ?mapper_eq_b; eauto).
+    now rewrite mapper_neq; eauto. }
+  tertium_non_datur (x = a) as [HEQA|NEQA];
+  tertium_non_datur (x = b) as [HEQB|NEQB]; subst.
+  { exists b; split; eauto. apply mapper_eq_b. }
+  { exists b; split; eauto. apply mapper_eq_b. }
+  { exists a; split; eauto. apply mapper_eq_a. }
+  exists x; split; ins. now apply mapper_neq.
 Qed.
 
 Lemma mapper_init
@@ -419,6 +497,55 @@ Proof using.
            (classic (x = b)) as [HB|HB].
   all: subst; ins; desf.
   exists x; rupd.
+Qed.
+
+(* TODO: study *)
+Lemma mapped_G_t_sb_helper l r
+    (SUBORIG : r ⊆ sb_t)
+    (ANINIT : ~is_init a)
+    (BNINIT : ~is_init b)
+    (IMM : immediate ext_sb a b)
+    (RNOT : ~r a b)
+    (SAME : E_t a <-> E_t b) :
+  mapper ↑ r ⊆ sb (mapped_G_t l).
+Proof using.
+  (* Cook hypotheses *)
+  unfolder; intros x y HREL; desf.
+  unfolder in IMM.
+  set (HREL' := HREL).
+  apply SUBORIG in HREL'.
+  unfold sb in HREL'; unfolder in HREL'.
+  desf.
+  (* Asserts *)
+  assert (NEQ : a <> b).
+  { intro F. apply ext_sb_irr with (x := a).
+    now rewrite F at 2. }
+  assert (NEQXY : x' <> y').
+  { intro F. eapply ext_sb_irr with (x := x').
+    now rewrite F at 2. }
+  (* Preprocessing the goal *)
+  unfold sb. unfolder. ins. splits.
+  all: try now (apply mapper_acts; ins; unfolder; eauto).
+  (* Proof *)
+  destruct (classic (x' = a)) as [HEQXA|HEQXA],
+           (classic (y' = b)) as [HEQYB|HEQYB],
+           (classic (y' = a)) as [HEQYA|HEQYA],
+           (classic (x' = b)) as [HEQXB|HEQXB].
+  all: subst; try congruence.
+  all: rewrite ?mapper_eq_a, ?mapper_eq_b, ?mapper_neq; ins.
+  all: try now (eapply ext_sb_trans; eauto).
+  { destruct ext_sb_semi_total_l with (z := b) (y := y') (x := a).
+    all: ins; try now (exfalso; eauto).
+    destruct ext_sb_tid_init with (x := a) (y := b); ins.
+    destruct ext_sb_tid_init with (x := a) (y := y'); ins.
+    destruct y', a, b; ins; desf. congruence. }
+  tertium_non_datur (is_init x') as [INIT|NINIT].
+  { destruct x', a; ins. }
+  destruct ext_sb_semi_total_r with (z := a) (y := x') (x := b).
+  all: ins; try now (exfalso; eauto).
+  destruct ext_sb_tid_init with (x := a) (y := b); ins.
+  destruct ext_sb_tid_init with (x := x') (y := b); ins.
+  destruct x', a, b; ins; desf. congruence.
 Qed.
 
 Lemma mapped_G_t_sb l : sb (mapped_G_t l) ≡ sb_t.
@@ -534,7 +661,143 @@ Proof using REORD.
   apply no_sb_to_init, immediate_in, REORD.
 Qed.
 
+(* TODO: weaken to arbitrary lab *)
+Lemma mapped_G_t_wf l
+    (ANINIT : ~is_init a)
+    (BNINIT : ~is_init b)
+    (NRMWDEP : ~rmw_dep_t a b)
+    (IMM : immediate ext_sb a b)
+    (DATA : data_t ≡ ∅₂)
+    (ADDR : addr_t ≡ ∅₂)
+    (CTRL : ctrl_t ≡ ∅₂)
+    (U2V : same_label_u2v l (lab_t b))
+    (WF : Wf G_t)
+    (SAME : E_t a <-> E_t b)
+    (NEW_RF_WF1 : forall x (RF : rf (mapped_G_t l) x a),
+      val (upd (lab_t ∘ mapper) a l) x =
+      val (upd (lab_t ∘ mapper) a l) a)
+    (NEW_RF_WF2 : forall x (RF : rf (mapped_G_t l) a x),
+      val (upd (lab_t ∘ mapper) a l) a =
+      val (upd (lab_t ∘ mapper) a l) x)
+    (NEQ : a <> b) :
+  Wf (mapped_G_t l).
+Proof using.
+  constructor; ins; desf.
+  { apply WF; now splits. }
+  all: rewrite ?DATA, ?ADDR, ?CTRL, ?collect_rel_empty.
+  1-7: basic_solver.
+  all: rewrite <- ?mapper_W_t, <- ?mapper_R_t, ?mapper_same_loc; ins.
+  { rewrite WF.(wf_rmwD) at 1.
+    rewrite !collect_rel_seq by now apply mapper_inj_dom.
+    now rewrite !collect_rel_eqv. }
+  { now apply collect_rel_mori, WF. }
+  { admit. } (* TODO: lemma for immediate sb *)
+  { rewrite WF.(wf_rfE) at 1.
+    rewrite !collect_rel_seq by now apply mapper_inj_dom.
+    rewrite !collect_rel_eqv, !mapper_acts; ins. }
+  { rewrite WF.(wf_rfD) at 1.
+    rewrite !collect_rel_seq by now apply mapper_inj_dom.
+    now rewrite !collect_rel_eqv. }
+  { try now apply collect_rel_mori, WF. }
+  { unfold funeq; intros x y RF.
+    tertium_non_datur (x = a) as [XEQA|XEQA]; subst; eauto.
+    tertium_non_datur (y = a) as [YEQA|YEQA]; subst; eauto.
+    unfold val. rewrite !updo; ins.
+    change (match (lab_t ∘ mapper) x with
+      | Aload _ _ _ v1 => Some v1
+      | Astore _ _ _ v2 => Some v2
+      | Afence _ => None
+      end) with (val (lab_t ∘ mapper) x).
+    change (match (lab_t ∘ mapper) y with
+      | Aload _ _ _ v1 => Some v1
+      | Astore _ _ _ v2 => Some v2
+      | Afence _ => None
+      end) with (val (lab_t ∘ mapper) y).
+    unfolder in RF; desf. apply mapper_val; ins.
+    now apply WF. }
+  { rewrite <- collect_rel_transp.
+    arewrite (rf_t⁻¹ ≡ restr_rel ⊤₁ rf_t⁻¹) by basic_solver.
+    apply functional_collect_rel_inj; auto using mapper_inj.
+    apply functional_restr, WF. }
+  { rewrite WF.(wf_coE) at 1.
+    rewrite !collect_rel_seq by now apply mapper_inj_dom.
+    rewrite !collect_rel_eqv, !mapper_acts; ins. }
+  { rewrite WF.(wf_coD) at 1.
+    rewrite !collect_rel_seq by now apply mapper_inj_dom.
+    now rewrite !collect_rel_eqv. }
+  { try now apply collect_rel_mori, WF. }
+  { arewrite (co_t ≡ restr_rel ⊤₁ co_t) by basic_solver.
+    apply transitive_collect_rel_inj; auto using mapper_inj.
+    apply transitive_restr, WF. }
+  { rewrite mapper_loc; ins.
+    arewrite ((fun x => loc (lab_t ∘ mapper) x = ol) ≡₁
+              mapper ↑₁ (fun x => loc lab_t x = ol)).
+    { unfolder; split; ins; desf; unfold loc, compose.
+      all: try exists (mapper x); rewrite mapper_self_inv; ins. }
+    rewrite <- mapper_acts, <- !mapper_inter_set; ins.
+    apply total_collect_rel, WF. }
+  { arewrite (co_t ≡ restr_rel ⊤₁ co_t) by basic_solver.
+    apply collect_rel_irr_inj; auto using mapper_inj.
+    apply irreflexive_restr, WF. }
+  { apply WF. exists (mapper b0); split.
+    { apply mapper_acts; ins. unfolder; eauto. }
+    rewrite mapper_loc in H0; ins. }
+  { rewrite updo; [| destruct a; ins].
+    unfold compose. rewrite mapper_neq.
+    all: try now apply WF.
+    all: destruct a, b; ins. }
+  { apply mapped_G_t_sb_helper; ins.
+    apply WF. }
+  { admit. (* TODO: mapper on rex *) }
+  now apply WF.
+Admitted.
+
 End ReorderingDefs.
+
+Section MapperCfg.
+
+Variable X : WCore.t.
+Variable a b : actid.
+
+Notation "'mapper'" := (mapper a b).
+Notation "'GC'" := (WCore.GC X).
+Notation "'G'" := (WCore.G X).
+Notation "'cmt'" := (WCore.cmt X).
+
+Notation "'labC'" := (lab GC).
+Notation "'EC'" := (acts_set GC).
+Notation "'sbC'" := (sb GC).
+Notation "'rfC'" := (rf GC).
+Notation "'coC'" := (co GC).
+Notation "'rmwC'" := (rmw GC).
+Notation "'dataC'" := (data GC).
+Notation "'ctrlC'" := (ctrl GC).
+Notation "'addrC'" := (addr GC).
+
+Notation "'lab'" := (lab G).
+Notation "'E'" := (acts_set G).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'rmw'" := (rmw G).
+Notation "'data'" := (data G).
+Notation "'ctrl'" := (ctrl G).
+Notation "'addr'" := (addr G).
+
+Lemma mapped_G_t_cfg l
+    (WF : WCore.wf X) :
+  WCore.wf (WCore.Build_t
+    (mapped_G_t G  a b l)
+    (mapped_G_t GC a b l)
+    (mapper ↑₁ cmt)
+  ).
+Proof using.
+  destruct WF. constructor; ins.
+  { rewrite cc_ctrl_empty. apply collect_rel_empty. }
+  { rewrite cc_addr_empty. apply collect_rel_empty. }
+  { rewrite cc_data_empty. apply collect_rel_empty. }
+
+End MapperCfg.
 
 Global Hint Unfold mapper : unfolderDB.
 
