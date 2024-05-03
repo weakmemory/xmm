@@ -1,5 +1,7 @@
 Require Import Lia Setoid Program.Basics.
 Require Import AuxDef.
+Require Import AuxRel.
+Require Import ExecEquiv.
 Require Import ThreadTrace.
 Require Import Core.
 Require Import TraceSwap.
@@ -41,174 +43,12 @@ Notation "'W'" := (is_w lab).
 Notation "'R'" := (is_r lab).
 Notation "'F'" := (is_f lab).
 
-Definition rpo :=
-  sb ∩ same_loc ∪
-  ⦗is_acq⦘ ⨾ sb ⨾ ⦗is_rel⦘ ∪
-  ⦗R ∩₁ is_rlx⦘ ⨾ sb ⨾ ⦗F ∩₁ is_acq⦘ ∪
-  ⦗is_acq⦘ ⨾ sb ⨾ ⦗R ∪₁ W⦘ ∪
-  ⦗R ∪₁ W⦘ ⨾ sb ⨾ ⦗is_rel⦘ ∪
-  ⦗F ∩₁ is_rel⦘ ⨾ sb ⨾ ⦗W ∩₁ is_rlx⦘.
-Definition rhb := (rpo ∪ sw)⁺.
-Definition vf := ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf^? ⨾ hb^? ⨾ psc^? ⨾ hb^?.
-Definition srf := (vf ∩ same_loc) ⨾ ⦗R⦘ \ (co ⨾ vf).
-
 Definition thread_terminated (t : thread_id) : Prop :=
   traces t (thread_trace G t).
 Definition machine_terminated := forall t, thread_terminated t.
 (* TODO: fix behavior to be a function from location to
          ordered by co (possibly infinite) set of values written to the location *)
 Definition behavior := co.
-
-Lemma wf_rpoE
-    (WF : Wf G) :
-  rpo ≡ ⦗E⦘ ⨾ rpo ⨾ ⦗E⦘.
-Proof using.
-  unfold rpo.
-  rewrite !seq_union_l, !seq_union_r.
-  repeat apply union_more.
-  all: rewrite wf_sbE at 1; try rewrite !seq_seq_inter.
-  all: basic_solver 7.
-Qed.
-
-Lemma wf_vfE
-    (WF : Wf G) :
-  vf ≡ ⦗E⦘ ⨾ vf.
-Proof using.
-  unfold vf. hahn_frame.
-  seq_rewrite <- !(id_inter E E).
-  now rewrite !set_interK.
-Qed.
-
-Lemma vf_dom : dom_rel vf ⊆₁ W.
-Proof using.
-  unfold vf. basic_solver.
-Qed.
-
-Lemma wf_srfE
-    (WF : Wf G) :
-  srf ≡ ⦗E⦘ ⨾ srf.
-Proof using.
-  split; [| basic_solver]. unfold srf.
-  rewrite wf_vfE at 1 by auto.
-  rewrite seq_eqv_inter_ll, seqA.
-  basic_solver.
-Qed.
-
-Lemma wf_srfD : srf ≡ ⦗W⦘ ⨾ srf ⨾ ⦗R⦘.
-Proof using.
-  split; [| basic_solver]. unfold srf.
-  intros x y SRF.
-  unfolder; ins; desf; splits.
-  { apply vf_dom. exists y. unfolder in SRF; desf. }
-  { exists y. unfolder in SRF; desf. }
-  { unfolder in SRF; desf. }
-  unfolder in SRF; desf.
-Qed.
-
-Lemma wf_srf_loc : srf ⊆ same_loc.
-Proof using.
-  unfold srf. intros x y SRF.
-  unfolder in SRF; desf.
-Qed.
-
-Lemma wf_rhbE
-    (WF : Wf G) :
-  rhb ≡ ⦗E⦘ ⨾ rhb ⨾ ⦗E⦘.
-Proof using.
-  unfold rhb. rewrite wf_swE, wf_rpoE; auto.
-  rewrite <- seq_union_r, <- seq_union_l.
-  seq_rewrite <- ct_seq_eqv_l.
-  rewrite <- seqA.
-  now seq_rewrite <- ct_seq_eqv_r.
-Qed.
-
-Lemma rf_sub_vf (WF : Wf G) : rf ⊆ vf.
-Proof using.
-  rewrite WF.(wf_rfD), WF.(wf_rfE).
-  unfold vf; unfolder; ins; desf.
-  splits; eauto.
-  do 3 (exists y; splits; eauto).
-Qed.
-
-Lemma wf_srff (WF : Wf G) : functional srf⁻¹.
-Proof using.
-  unfolder; unfold srf. intros x y z (VF1 & CO1) (VF2 & CO2).
-  tertium_non_datur (y = z) as [EQ|NEQ]; ins; exfalso.
-  destruct (WF.(wf_co_total)) with (a := y) (b := z)
-                                   (ol := loc x) as [CO|CO].
-  all: ins; unfolder in *; desf; splits; eauto.
-  all: try now (apply vf_dom; eexists; eauto).
-  { apply wf_vfE in VF1; unfolder in VF1; desf. }
-  apply wf_vfE in VF2; unfolder in VF2; desf.
-Qed.
-
-(* TODO: this is limited to E, which is bad. *)
-Lemma srf_exists b
-    (HIN : E b)
-    (WF : Wf G)
-    (IS_R : R b) :
-  exists a, srf a b.
-Proof using.
-  assert (exists l, loc b = Some l) as HLOC; desf.
-  { by generalize (is_r_loc lab); unfolder in *; basic_solver 12. }
-  assert (HINIT : E (InitEvent l)).
-  { by apply WF; eauto. }
-  assert (INILAB : lab (InitEvent l) = Astore Xpln Opln l 0).
-  { by apply WF. }
-  assert (INILOC : loc (InitEvent l) = Some l).
-  { by unfold Events.loc; rewrite (wf_init_lab WF). }
-  assert (INIW : W (InitEvent l)).
-  { by unfolder; unfold is_w, Events.loc; desf; eauto. }
-  assert (INISB : sb (InitEvent l) b).
-  { by apply init_ninit_sb; eauto; eapply read_or_fence_is_not_init; eauto. }
-  assert (INIVF : vf (InitEvent l) b).
-  { red. exists (InitEvent l); splits.
-    { red. splits; desf. }
-    hahn_rewrite <- sb_in_hb.
-    basic_solver 21. }
-  assert (ACT_LIST : exists El, E ≡₁ (fun x => In x El)); desf.
-  { admit. }
-  forward (eapply last_exists with (s:=co ⨾ ⦗fun x => vf x b⦘)
-                                   (dom:= filterP W El) (a:=(InitEvent l))).
-  { eapply acyclic_mon.
-    apply trans_irr_acyclic; [apply co_irr| apply co_trans]; eauto.
-    basic_solver. }
-  { ins.
-    assert (A: (co ⨾ ⦗fun x : actid => vf x b⦘)^? (InitEvent l) c).
-    { apply rt_of_trans; try done.
-      apply transitiveI.
-      arewrite_id ⦗fun x : actid => vf x b⦘ at 1.
-      rewrite seq_id_l.
-      arewrite (co ⨾ co ⊆ co); [|done].
-      apply transitiveI.
-      eapply co_trans; eauto. }
-    unfolder in A; desf.
-    { apply in_filterP_iff; split; auto.
-      by apply ACT_LIST. }
-    apply in_filterP_iff.
-    hahn_rewrite WF.(wf_coE) in A.
-    hahn_rewrite WF.(wf_coD) in A.
-    hahn_rewrite WF.(wf_col) in A.
-    unfold same_loc in *; unfolder in *; desf; splits; eauto; congruence. }
-  ins; desc.
-  assert (A: (co ⨾ ⦗fun x : actid => vf x b⦘)^? (InitEvent l) b0).
-  { apply rt_of_trans; [|by subst].
-    apply transitiveI.
-    arewrite_id ⦗fun x : actid => vf x b⦘ at 1.
-    rewrite seq_id_l.
-    arewrite (co ⨾ co ⊆ co); [|done].
-    apply transitiveI.
-    eapply co_trans; eauto. }
-  assert (loc b0 = Some l).
-  { unfolder in A; desf.
-    hahn_rewrite WF.(wf_col) in A.
-    unfold same_loc in *; desf; unfolder in *; congruence. }
-  exists b0; red; split.
-  { unfold urr, same_loc.
-    unfolder in A; desf; unfolder; ins; desf; splits; try basic_solver 21; congruence. }
-  unfold max_elt in *.
-  unfolder in *; ins; desf; intro; desf; basic_solver 11.
-Admitted.
 
 End ExtraRel.
 
@@ -892,7 +732,7 @@ Lemma mapped_G_t_with_b_srf_wf
     (HLOC : exists l, loc lab_t b = Some l /\ E_t (InitEvent l)) :
   Wf (mapped_G_t_with_b_srf G_t a b).
 Proof using.
-  erewrite exec_equiv_eq; [| now apply mapper_G_t_with_b_srf_eq].
+  erewrite exeeqv_eq; [| now apply mapper_G_t_with_b_srf_eq].
   apply mapped_G_t_wf; ins; [| unfolder; split; ins; desf; eauto].
   constructor; ins.
   all: try now apply WF.
@@ -965,13 +805,13 @@ Notation "'data'" := (data G).
 Notation "'ctrl'" := (ctrl G).
 Notation "'addr'" := (addr G).
 
-Lemma mapped_G_t_pfx l
+Lemma mapped_G_t_pfx
     (NEQ : a <> b)
     (SAME : E a <-> E b)
     (PFX : exec_prefix GC G) :
   exec_prefix
-    (mapped_G_t GC a b l)
-    (mapped_G_t G a b l).
+    (mapped_G_t GC a b)
+    (mapped_G_t G a b).
 Proof using.
   destruct PFX. constructor; ins.
   constructor; ins.
@@ -984,7 +824,7 @@ Proof using.
   now rewrite pfx_sub.(sub_lab).
 Qed.
 
-Lemma mapped_G_t_cfg l
+Lemma mapped_G_t_cfg
     (ANINIT : ~is_init a)
     (BNINIT : ~is_init b)
     (NRMWDEP : ~rmw_dep GC a b)
@@ -992,20 +832,13 @@ Lemma mapped_G_t_cfg l
     (NEQ : a <> b)
     (SAME : E a <-> E b)
     (SAMEC : EC a <-> EC b)
-    (U2V : same_label_u2v l (lab b))
-    (NEW_RF_WF1 : forall x (RF : (mapped_G_t GC a b l).(rf) x a),
-      val (upd (labC ∘ mapper) a l) x =
-      val (upd (labC ∘ mapper) a l) a)
-    (NEW_RF_WF2 : forall x (RF : (mapped_G_t GC a b l).(rf) a x),
-      val (upd (labC ∘ mapper) a l) a =
-      val (upd (labC ∘ mapper) a l) x)
     (NABRMW : ~rmwC a b)
     (NARMW : ~codom_rel rmwC a)
     (NBRMW : ~dom_rel rmwC b)
     (WF : WCore.wf X) :
   WCore.wf (WCore.Build_t
-    (mapped_G_t G  a b l)
-    (mapped_G_t GC a b l)
+    (mapped_G_t G  a b)
+    (mapped_G_t GC a b)
     (mapper ↑₁ cmt)
   ).
 Proof using.
@@ -1013,8 +846,7 @@ Proof using.
   { rewrite cc_ctrl_empty. apply collect_rel_empty. }
   { rewrite cc_addr_empty. apply collect_rel_empty. }
   { rewrite cc_data_empty. apply collect_rel_empty. }
-  { apply mapped_G_t_wf; ins.
-    destruct pfx. now rewrite <- pfx_sub.(sub_lab). }
+  { apply mapped_G_t_wf; ins. }
   { rewrite <- mapper_acts; eauto.
     apply set_collect_mori; ins. }
   { unfold sb. rewrite restr_relE, seq_seq_inter; ins.
@@ -1025,10 +857,10 @@ Proof using.
     rewrite <- restr_relE.
     apply collect_rel_mori; ins. }
   { rewrite <- set_collect_codom, <- set_collect_union,
-            <- mapper_R_t, <- mapper_acts, <- mapper_inter_set; eauto.
+            mapper_R_t, <- mapper_acts, <- mapper_inter_set; eauto.
     apply set_collect_mori; ins. }
   { rewrite <- collect_rel_eqv, <- collect_rel_seq,
-            <- mapper_R_t, <- mapper_inter_set,
+            mapper_R_t, <- mapper_inter_set,
             <- set_collect_codom;
             eauto using mapper_inj_dom.
     apply set_collect_mori; ins. }

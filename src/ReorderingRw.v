@@ -5,6 +5,8 @@ Require Import Core.
 Require Import TraceSwap.
 Require Import SubToFullExec.
 Require Import ReorderingCommon.
+Require Import AuxRel.
+Require Import ExecEquiv.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -100,7 +102,7 @@ Record reord_simrel_rw : Prop :=
 
 Hypothesis RSRW_ACTIDS : reord_simrel_rw_actids.
 
-Lemma rsrw_struct_same
+(* Lemma rsrw_struct_same
     (U2V  : same_label_u2v (lab_s a) ((lab_t ∘ mapper) a))
     (SAME : E_t a <-> E_t b) :
   reord_simrel_rw_struct <->
@@ -157,7 +159,7 @@ Proof using RSRW_ACTIDS.
   split; [| basic_solver]. rewrite set_inter_union_l.
   intros x HIN. unfolder in HIN; desf.
   exfalso; now apply RSRW_ACTIDS.(rsrw_ninit_b).
-Qed.
+Qed. *)
 
 End SimRel.
 
@@ -273,7 +275,7 @@ Record reord_context : Prop := {
 Hypothesis SWAPPED_TRACES : ReordCommon.traces_swapped traces traces' a b.
 Hypothesis CTX : reord_context.
 
-Lemma simrel_exec_mapper_iff1 e
+(* Lemma simrel_exec_mapper_iff1 e
     (SAME : E_t a <-> E_t b)
     (INA : E_t a)
     (INB : E_t b)
@@ -360,7 +362,7 @@ Lemma simrel_exec_mapper_iff e
     (ReordCommon.mapped_G_t G_t a b)
     (ReordCommon.mapped_G_t G_t' a b)
     traces
-    e.
+    e. *)
 
 Lemma simrel_exec_not_a_not_b_same_helper e
     (SAME : E_t a <-> E_t b)
