@@ -1,0 +1,390 @@
+From imm Require Import Events Execution imm_s_hb.
+From imm Require Import imm_s_ppo.
+From imm Require Import imm_s_hb.
+From imm Require Import imm_bob.
+From imm Require Import SubExecution.
+
+From hahn Require Import Hahn.
+From hahnExt Require Import HahnExt.
+From PromisingLib Require Import Basic.
+
+Require Import AuxDef.
+
+Require Import Program.Basics.
+
+Open Scope program_scope.
+
+Set Implicit Arguments.
+
+Section ExecOps.
+
+Variable G : execution.
+
+Notation "'lab'" := (lab G).
+Notation "'E'" := (acts_set G).
+Notation "'loc'" := (loc lab).
+Notation "'val'" := (val lab).
+Notation "'same_loc'" := (same_loc lab).
+Notation "'is_acq'" := (is_acq lab).
+Notation "'is_rel'" := (is_rel lab).
+Notation "'is_rlx'" := (is_rlx lab).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'data'" := (data G).
+Notation "'ctrl'" := (ctrl G).
+Notation "'addr'" := (addr G).
+Notation "'rmw'" := (rmw G).
+Notation "'rmw_dep'" := (rmw_dep G).
+Notation "'W'" := (is_w lab).
+Notation "'R'" := (is_r lab).
+Notation "'F'" := (is_f lab).
+Notation "'R_ex'" := (R_ex lab).
+
+Definition exec_upd_lab e l : execution := {|
+  acts_set := E;
+  threads_set := threads_set G;
+  lab := upd lab e l;
+  rmw := rmw;
+  data := data;
+  addr := addr;
+  ctrl := ctrl;
+  rmw_dep := rmw_dep;
+  rf := rf;
+  co := co;
+|}.
+Definition exec_add_read_event_nctrl e : execution := {|
+  acts_set := E ∪₁ eq e;
+  threads_set := threads_set G;
+  lab := lab;
+  rmw := rmw;
+  data := data;
+  addr := addr;
+  ctrl := ctrl;
+  rmw_dep := rmw_dep;
+  rf := rf;
+  co := co;
+|}.
+Definition exec_add_rf delta_rf : execution := {|
+  acts_set := E;
+  threads_set := threads_set G;
+  lab := lab;
+  rmw := rmw;
+  data := data;
+  addr := addr;
+  ctrl := ctrl;
+  rmw_dep := rmw_dep;
+  rf := rf ∪ delta_rf;
+  co := co;
+|}.
+Definition exec_mapped f lab' : execution := {|
+  acts_set := f ↑₁ E;
+  threads_set := tid ↑₁ (f ↑₁ E);
+  lab := lab';
+  rmw := f ↑ rmw;
+  data := f ↑ data;
+  addr := f ↑ addr;
+  ctrl := f ↑ ctrl;
+  rmw_dep := f ↑ rmw_dep;
+  rf := f ↑ rf;
+  co := f ↑ co;
+|}.
+
+Lemma exec_add_read_event_nctrl_same_lab e :
+  @lab (exec_add_read_event_nctrl e) = lab.
+Proof using.
+  now unfold exec_add_read_event_nctrl.
+Qed.
+
+Lemma exec_add_rf_same_lab delta_rf :
+  @lab (exec_add_rf delta_rf) = lab.
+Proof using.
+  now unfold exec_add_rf.
+Qed.
+
+Lemma exec_upd_lab_W e l
+    (U2V : same_label_u2v (lab e) l) :
+  is_w (upd lab e l) ≡₁ W.
+Proof using.
+  unfold same_label_u2v in U2V.
+  unfold is_w; unfolder; splits.
+  all: intro x.
+  all: tertium_non_datur (x = e) as [HEQ|HEQ].
+  all: subst; rupd; desf.
+Qed.
+
+Lemma exec_upd_lab_R e l
+    (U2V : same_label_u2v (lab e) l) :
+  is_r (upd lab e l) ≡₁ R.
+Proof using.
+  unfold same_label_u2v in U2V.
+  unfold is_r; unfolder; splits.
+  all: intro x.
+  all: tertium_non_datur (x = e) as [HEQ|HEQ].
+  all: subst; rupd; desf.
+Qed.
+
+Lemma exec_upd_lab_F e l
+    (U2V : same_label_u2v (lab e) l) :
+  is_f (upd lab e l) ≡₁ F.
+Proof using.
+  unfold same_label_u2v in U2V.
+  unfold is_f; unfolder; splits.
+  all: intro x.
+  all: tertium_non_datur (x = e) as [HEQ|HEQ].
+  all: subst; rupd; desf.
+Qed.
+
+Lemma exec_upd_lab_R_ex e l
+    (U2V : same_label_u2v (lab e) l) :
+  @R_ex _ (upd lab e l) ≡₁ R_ex.
+Proof using.
+  unfold same_label_u2v in U2V.
+  unfold R_ex; unfolder; splits.
+  all: intro x.
+  all: tertium_non_datur (x = e) as [HEQ|HEQ].
+  all: subst; rupd; do 2 desf.
+Qed.
+
+Lemma exec_upd_lab_loc e l
+    (U2V : same_label_u2v (lab e) l) :
+  @loc _ (upd lab e l) = loc.
+Proof using.
+  apply functional_extensionality. intro x.
+  unfold loc. tertium_non_datur (x = e); subst.
+  all: rupd.
+  unfold same_label_u2v in U2V; do 2 desf.
+Qed.
+
+Lemma exec_upd_lab_same_loc e l
+    (U2V : same_label_u2v (lab e) l) :
+  @same_loc _ (upd lab e l) ≡ same_loc.
+Proof using.
+  unfold same_loc. rewrite exec_upd_lab_loc; ins.
+Qed.
+
+Lemma exec_mapped_W (f : actid -> actid) lab'
+    (FSURJ : forall y, exists x, y = f x)
+    (HLAB : lab = lab' ∘ f) :
+  is_w lab' ≡₁ f ↑₁ W.
+Proof using.
+  unfold compose in *. rewrite HLAB. unfolder.
+  split; intros x HSET; desf; unfold is_w in *.
+  destruct (FSURJ x) as [y HEQ]. exists y.
+  now rewrite <- HEQ.
+Qed.
+
+Lemma exec_mapped_R (f : actid -> actid) lab'
+    (FSURJ : forall y, exists x, y = f x)
+    (HLAB : lab = lab' ∘ f) :
+  is_r lab' ≡₁ f ↑₁ R.
+Proof using.
+  unfold compose in *. rewrite HLAB. unfolder.
+  split; intros x HSET; desf; unfold is_r in *.
+  destruct (FSURJ x) as [y HEQ]. exists y.
+  now rewrite <- HEQ.
+Qed.
+
+Lemma exec_mapped_F (f : actid -> actid) lab'
+    (FSURJ : forall y, exists x, y = f x)
+    (HLAB : lab = lab' ∘ f) :
+  is_f lab' ≡₁ f ↑₁ F.
+Proof using.
+  unfold compose in *. rewrite HLAB. unfolder.
+  split; intros x HSET; desf; unfold is_f in *.
+  destruct (FSURJ x) as [y HEQ]. exists y.
+  now rewrite <- HEQ.
+Qed.
+
+Lemma exec_mapped_R_ex (f : actid -> actid) lab'
+    (FSURJ : forall y, exists x, y = f x)
+    (HLAB : lab = lab' ∘ f) :
+  @R_ex _ lab' ≡₁ f ↑₁ R_ex.
+Proof using.
+  unfold compose in *. rewrite HLAB. unfolder.
+  split; intros x HSET; desf; unfold R_ex in *.
+  destruct (FSURJ x) as [y HEQ]. exists y.
+  now rewrite <- HEQ.
+Qed.
+
+Lemma exec_mapped_loc (f : actid -> actid) :
+  @loc _ (lab ∘ f) = loc ∘ f.
+Proof using.
+  now unfold compose, loc.
+Qed.
+
+Lemma exec_mapped_val (f : actid -> actid) :
+  @val _ (lab ∘ f) = val ∘ f.
+Proof using.
+  now unfold compose, val.
+Qed.
+
+Lemma exec_mapped_same_loc (f : actid -> actid) lab'
+    (FSURJ : forall y, exists x, y = f x)
+    (HLAB : lab = lab' ∘ f) :
+  @same_loc _ lab' ≡ f ↑ same_loc.
+Proof using.
+  unfold compose in *. rewrite HLAB. unfolder.
+  split; intros x y HREL; desf; unfold same_loc, loc in *.
+  destruct (FSURJ x) as [x' HEQX], (FSURJ y) as [y' HEQY].
+  exists x', y'. now rewrite <- HEQX, <- HEQY.
+Qed.
+
+Lemma exec_upd_lab_wf e l
+    (ENINIT : ~is_init e)
+    (U2V : same_label_u2v (lab e) l)
+    (NRFR : ~codom_rel rf e)
+    (NRFL : ~dom_rel rf e)
+    (WF : Wf G) :
+  Wf (exec_upd_lab e l).
+Proof using.
+  unfolder in NRFR. unfolder in NRFL.
+  assert (SAME_SB : @sb (exec_upd_lab e l) ≡ sb).
+  { unfold sb; ins. }
+  constructor; unfold exec_upd_lab; ins.
+  all: rewrite ?exec_upd_lab_W, ?exec_upd_lab_F,
+               ?exec_upd_lab_R, ?SAME_SB,
+               ?exec_upd_lab_R_ex,
+               ?exec_upd_lab_same_loc by exact U2V.
+  all: try now apply WF.
+  all: try now rewrite exec_upd_lab_loc in *; ins; apply WF.
+  { unfold funeq, val; intros a b RF.
+    rewrite !updo; try now apply WF.
+    all: intro F; subst; eauto. }
+  rewrite updo; [now apply WF | destruct e; ins].
+Qed.
+
+Lemma exec_add_event_wf_nctrl e
+    (ENINIT : ~is_init e)
+    (HIN : ~E e)
+    (IS_R : R e)
+    (ETID : tid e <> tid_init)
+    (ETHR : threads_set G (tid e))
+    (SBMAX : max_elt (@sb (exec_add_read_event_nctrl e)) e)
+    (HLOC : forall l (LOC : loc e = Some l), E (InitEvent l))
+    (NCTRL : ctrl ≡ ∅₂)
+    (WF : Wf G) :
+  Wf (exec_add_read_event_nctrl e).
+Proof using.
+  assert (SUB_SB : sb ⊆ @sb (exec_add_read_event_nctrl e)).
+  { unfold sb, exec_add_read_event_nctrl. ins. basic_solver. }
+  constructor; ins.
+  all: try now apply WF.
+  all: try now transitivity sb; ins; apply WF.
+  { unfolder in H. desf; try now apply WF.
+    all: destruct a, b; ins.
+    all: congruence. }
+  { rewrite NCTRL. basic_solver. }
+  { transitivity (immediate sb); [apply WF|].
+    unfold sb; ins. unfolder. intros x y IMM. ins.
+    splits; desf; try now left.
+    intros c SB1 SB2; desf.
+    { eapply IMM0; eauto. }
+    eapply SBMAX. unfold sb. ins.
+    unfolder. splits; eauto; ins; easy. }
+  { split; [| basic_solver].
+    intros x y RF. apply WF in RF.
+    unfolder in RF. desf.
+    unfolder. splits; eauto. }
+  { split; [| basic_solver].
+    intros x y CO. apply WF in CO.
+    unfolder in CO. desf.
+    unfolder. splits; eauto. }
+  { arewrite ((E ∪₁ eq e) ∩₁ W ≡₁ E ∩₁ W); [| now apply WF].
+    assert (N_IS_W : ~W e).
+    { unfold is_w, is_r in *. desf. }
+    basic_solver. }
+  (* FIXME: this uses autogenerated name *)
+  { left. unfolder in H. desf; [apply WF |].
+    all: eauto. }
+  unfolder in EE. desf. now apply WF.
+Qed.
+
+Lemma exec_add_rf_wf delta_rf
+    (NEW_RF : forall x
+                  (DOM1 : dom_rel rf⁻¹ x)
+                  (DOM2 : dom_rel delta_rf⁻¹ x),
+                False)
+    (FUNEQ : funeq val delta_rf)
+    (FUNC : functional delta_rf⁻¹)
+    (DELTA_RF_WFE : delta_rf ≡ ⦗E⦘ ⨾ delta_rf ⨾ ⦗E⦘)
+    (DELTA_RF_WFD : delta_rf ≡ ⦗W⦘ ⨾ delta_rf ⨾ ⦗R⦘)
+    (DELTA_RF : delta_rf ⊆ same_loc)
+    (NCTRL : ctrl ≡ ∅₂)
+    (WF : Wf G) :
+  Wf (exec_add_rf delta_rf).
+Proof using.
+  assert (EQ_SB : @sb (exec_add_rf delta_rf) ≡ sb).
+  { unfold sb, exec_add_rf. ins. }
+  constructor; rewrite ?EQ_SB; ins.
+  all: try now apply WF.
+  { rewrite seq_union_l, seq_union_r.
+    apply union_more; [apply WF | ins]. }
+  { rewrite seq_union_l, seq_union_r.
+    apply union_more; [apply WF | ins]. }
+  { apply inclusion_union_l; [apply WF | ins]. }
+  { apply funeq_union; [apply WF | ins]. }
+  apply functional_union; ins. apply WF.
+Qed.
+
+Lemma exec_mapped_wf f lab'
+    (FINJ : inj_dom ⊤₁ f)
+    (FSURJ : forall y, exists x, y = f x)
+    (HLAB : lab = lab' ∘ f)
+    (PRESRVE_RMW : f ↑ rmw ⊆ immediate (@sb (exec_mapped f lab')))
+    (PRESEVE_DATA : f ↑ data ⊆ (@sb (exec_mapped f lab')))
+    (PRESERVE_ADDR : f ↑ addr ⊆ (@sb (exec_mapped f lab')))
+    (PRESERVE_RMW_DEP : f ↑ rmw_dep ⊆ (@sb (exec_mapped f lab')))
+    (FMAPINIT : forall l, f (InitEvent l) = InitEvent l)
+    (NCTRL : ctrl ≡ ∅₂)
+    (MAPIDS : forall a b, (f ↑₁ E) a -> (f ↑₁ E) b ->
+              a <> b -> tid a = tid b -> ~is_init a -> index a <> index b)
+    (WF : Wf G) :
+  Wf (exec_mapped f lab').
+Proof using.
+  constructor; ins.
+  all: rewrite ?exec_mapped_W, ?exec_mapped_R,
+               ?exec_mapped_F, ?exec_mapped_loc,
+               ?exec_mapped_same_loc, ?exec_mapped_R_ex by ins.
+  all: rewrite <- ?set_collect_union, <- ?collect_rel_eqv,
+               <- ?collect_rel_seq.
+  all: try now eapply inj_dom_mori with (x := ⊤₁); ins.
+  all: try now apply collect_rel_more, WF.
+  all: try now apply collect_rel_mori, WF.
+  { desf. eauto. }
+  { rewrite NCTRL. basic_solver. }
+  { rewrite NCTRL. basic_solver. }
+  { unfolder. intros a b RF. desf.
+    change (@val _ lab' (f x')) with (@val _ (lab' ∘ f) x').
+    change (@val _ lab' (f y')) with (@val _ (lab' ∘ f) y').
+    rewrite <- HLAB. now apply WF. }
+  { rewrite <- collect_rel_transp.
+    arewrite (rf⁻¹ ≡ restr_rel ⊤₁ rf⁻¹) by basic_solver.
+    apply functional_collect_rel_inj; auto.
+    apply functional_restr, WF. }
+  { arewrite (co ≡ restr_rel ⊤₁ co) by basic_solver.
+    apply transitive_collect_rel_inj, transitive_restr, WF.
+    ins. }
+  { eapply is_total_more; [ | eauto |
+      apply total_collect_rel, WF with (ol := ol) ].
+    rewrite !set_collect_interE by ins.
+    repeat apply set_equiv_inter; ins.
+    rewrite HLAB. unfolder.
+    split; ins; desf; unfold loc, compose.
+    destruct (FSURJ x) as [y HEQ].
+    exists y; rewrite HEQ; split; ins. }
+  { arewrite (co ≡ restr_rel ⊤₁ co) by basic_solver.
+    apply collect_rel_irr_inj, irreflexive_restr, WF.
+    ins. }
+  { unfolder. unfolder in H. desf.
+    destruct (FSURJ (InitEvent l)) as [yi HEQ].
+    exists yi; split; eauto.
+    rewrite <- FMAPINIT in HEQ. apply FINJ in HEQ; ins.
+    subst yi. apply WF. eexists; split; eauto.
+    rewrite HLAB. now unfold compose. }
+  { rewrite <- WF.(wf_init_lab), HLAB.
+    unfold compose. now rewrite FMAPINIT. }
+  unfolder. unfolder in EE. eauto.
+Qed.
+
+End ExecOps.
