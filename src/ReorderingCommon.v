@@ -470,10 +470,6 @@ Proof using.
   apply mapped_G_t_pfx; ins.
 Admitted.
 
-(* TODO: wf of a cfg with mapped_G_t_with_b_srf *)
-
 End MapperCfg.
-
-Global Hint Unfold mapper : unfolderDB.
 
 End ReordCommon.
