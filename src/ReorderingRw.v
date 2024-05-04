@@ -594,33 +594,25 @@ Proof using SWAPPED_TRACES.
     apply e_new in F; unfolder in F; desf. } *)
 Admitted.
 
+Lemma simrel_implies_cons sc
+    (CONS : WCore.is_cons G_t sc)
+    (SIM : reord_simrel_rw G_s G_t a b) :
+  WCore.is_cons G_s (mapper ↑ sc).
+Proof using.
+  admit.
+Admitted.
+
+Lemma simrel_term sc
+    (CONS : WCore.is_cons G_t sc)
+    (SIM : reord_simrel_rw G_t G_s a b)
+    (TERM : machine_terminated G_t traces) :
+  << TERM' : machine_terminated G_s traces' >> /\
+  << SIM' : ReordCommon.reord G_s G_t traces traces' a b >>.
+Proof using.
+  admit.
+Admitted.
+
 End ExecutionSteps.
-
-Section SimrelPreservations.
-
-Variable Gs Gt : execution.
-Variable traces traces' : thread_id -> trace label -> Prop.
-Variable a b : actid.
-
-Lemma simrel_implies_cons
-    (CONS : WCore.is_cons Gt)
-    (SIM : reord_simrel_rw Gs Gt a b) :
-  WCore.is_cons Gs.
-Proof using.
-  admit.
-Admitted.
-
-Lemma simrel_term
-    (CONS : WCore.is_cons Gt)
-    (SIM : reord_simrel_rw Gt Gs a b)
-    (TERM : machine_terminated Gt traces) :
-  << TERM' : machine_terminated Gs traces' >> /\
-  << SIM' : ReordCommon.reord Gs Gt traces traces' a b >>.
-Proof using.
-  admit.
-Admitted.
-
-End SimrelPreservations.
 
 (* Lemma sim_rel_step : about any step *)
 
