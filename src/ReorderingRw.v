@@ -368,8 +368,8 @@ Lemma simrel_exec_not_a_not_b_same_helper sc e
     (SAME : E_t a <-> E_t b)
     (E_NOT_A : e <> a)
     (E_NOT_B : e <> b)
-    (CONS : WCore.is_cons G_t)
-    (CONS' : WCore.is_cons G_s)
+    (CONS : WCore.is_cons G_t sc)
+    (CONS' : WCore.is_cons G_s (mapper ↑ sc))
     (SIM : reord_simrel_rw G_s G_t a b)
     (STEP : WCore.exec_inst G_t G_t' sc traces e) :
   exists G_s' sc',
@@ -521,8 +521,8 @@ Proof using SWAPPED_TRACES CTX.
 Admitted.
 
 Lemma simrel_exec_b sc
-    (CONS : WCore.is_cons G_t)
-    (CONS' : WCore.is_cons G_s)
+    (CONS : WCore.is_cons G_t sc)
+    (CONS' : WCore.is_cons G_s (mapper ↑ sc))
     (SIM : reord_simrel_rw G_s G_t a b)
     (STEP : WCore.exec_inst G_t G_t' sc traces a) :
   exists G_s' sc',
@@ -550,8 +550,8 @@ Proof using SWAPPED_TRACES CTX.
 Admitted.
 
 Lemma simrel_exec_a sc w
-    (CONS : WCore.is_cons G_t)
-    (CONS' : WCore.is_cons G_s)
+    (CONS : WCore.is_cons G_t sc)
+    (CONS' : WCore.is_cons G_s (mapper ↑ sc))
     (RF : G_t.(rf) w a)
     (SIM : reord_simrel_rw G_s G_t a b)
     (STEP : WCore.exec_inst G_t G_t' sc traces b) :
@@ -566,8 +566,8 @@ Proof using SWAPPED_TRACES.
 Admitted.
 
 Lemma simrel_reexec sc rfre
-    (CONS : WCore.is_cons G_t)
-    (CONS' : WCore.is_cons G_s)
+    (CONS : WCore.is_cons G_t sc)
+    (CONS' : WCore.is_cons G_s (mapper ↑ sc))
     (SIM : reord_simrel_rw G_s G_t a b)
     (STEP : WCore.reexec G_t G_t' sc traces rfre) :
   exists G_s' rfre sc',

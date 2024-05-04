@@ -80,13 +80,12 @@ Notation "'hb'" := (hb G).
 Notation "'fr'" := (fr G).
 Notation "'sb'" := (sb G).
 Notation "'eco'" := (eco G).
-Notation "'psc'" := (imm.psc G).
 Notation "'rmw'" := (rmw G).
 
 Record is_cons : Prop := {
   cons_coherence : irreflexive (hb ⨾ eco^?);
   cons_atomicity : rmw ∩ (fr ⨾ sb) ≡ ∅₂;
-  cons_sc : acyclic psc;
+  cons_sc : acyclic sc;
 }.
 
 End Consistency.
@@ -234,7 +233,7 @@ Record exec_inst e := {
     (Build_t sc G G' ∅)
     (Build_t sc G' G' ∅)
     e;
-  next_cons : is_cons G';
+  next_cons : is_cons G' sc;
 }.
 
 End ExecAdd.
@@ -318,7 +317,7 @@ Record reexec_gen f dtrmt : Prop :=
   reexec_steps : (cfg_add_event_uninformative traces)＊
     (Build_t sc (reexec_start dtrmt) G' (f_cmt f))
     (Build_t sc G'                   G' (f_cmt f));
-  rexec_final_cons : is_cons G'; }.
+  rexec_final_cons : is_cons G' sc; }.
 
 Definition reexec : Prop := exists f dtrmt, reexec_gen f dtrmt.
 
