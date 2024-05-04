@@ -147,29 +147,24 @@ Lemma delta_G_cont_ids
     (NEXT : forall x (IN_D : (E' \₁ E) x), ~ sb' x h) :
   contigious_actids delta_G.
 Proof using.
-  unfold contigious_actids; ins.
-  set (CONT1 := WCore.wf_gc_cont WF NOT_INIT).
-  set (CONT2 := WCore.wf_g_cont WF NOT_INIT).
-  destruct CONT1 as [N1 CONT1], CONT2 as [N2 CONT2].
-  destruct (classic (t = tid h)); subst.
-  { exists (1 + N2). rewrite thread_set_S, set_inter_union_l, CONT2.
-    arewrite (eq h ∩₁ same_tid h ≡₁ eq h) by basic_solver.
-    apply set_union_more; [auto | apply set_equiv_single_single].
-    destruct h as [l | ht hid]; unfold same_tid in *; ins.
-    f_equal. assert (LT : hid < N1).
-    { eapply thread_set_iff, CONT1; now split. }
-    apply PeanoNat.Nat.le_antisymm.
-    assert (IN : E' (ThreadEvent ht (hid - 1))).
-    { apply in_restr_acts, CONT1, thread_set_iff; lia. }
-    { apply Compare_dec.not_gt. intro GT.
-      apply NEXT with (x := ThreadEvent ht (hid - 1)).
-      { split; auto.
-        intro F; apply in_restr_acts, CONT2, thread_set_iff in F; lia. }
-      unfold sb, ext_sb; ins. unfolder; splits; auto; try lia. }
-    eapply thread_set_niff. intro F.
-    apply CONT2, in_restr_acts in F; auto. }
-  exists N2. rewrite set_inter_union_l, CONT2.
-  arewrite (eq h ∩₁ (fun e => t = tid e) ≡₁ ∅); basic_solver.
+  assert (NINIT : ~is_init h).
+  { intro F. apply NIN, WF.(WCore.wf_g_init). ins. }
+  assert (NINIT' : tid h <> tid_init).
+  { intro F. apply NINIT. apply WF.(WCore.wf_gc_acts).
+    unfolder. ins. }
+  eapply add_event_to_contigious; eauto.
+  { apply WF. }
+  intros x HSET.
+  tertium_non_datur (is_init x) as [XINIT|XNIT]; [now right | left].
+  tertium_non_datur (E x) as [XIN|NXIN].
+  { split; ins.
+    destruct ext_sb_tid_init with (x := x) (y := h).
+    all: unfold same_tid; unfolder; eauto; now exfalso. }
+  assert (XIN : E' x).
+  { apply ext_sb_dense with (e2 := h); ins; try apply WF.
+    destruct x, h; ins; desf. }
+  exfalso. apply NEXT with (x := x).
+  all: unfold sb; unfolder; splits; ins.
 Qed.
 
 Lemma delta_G_prefix
@@ -597,7 +592,7 @@ Proof using.
     apply WF. }
   set (CONTH := pfx_cont2 (WCore.pfx WF) NOT_INIT2); desf.
   assert (EQH : exists tidh, h = ThreadEvent tidh N).
-  { eexists; eapply add_event_to_contigious with (G' := delta_G G G' h).
+  { eexists; eapply added_event_to_contigious with (G' := delta_G G G' h).
     all: eauto.
     { rewrite CONTH; apply thread_seq_set_size. }
     { apply WF. }

@@ -9,6 +9,7 @@ From hahnExt Require Import HahnExt.
 From PromisingLib Require Import Basic.
 
 Require Import AuxDef.
+Require Import ThreadTrace.
 
 Require Import Program.Basics.
 
@@ -79,7 +80,7 @@ Definition exec_add_rf delta_rf : execution := {|
 |}.
 Definition exec_mapped f lab' : execution := {|
   acts_set := f ↑₁ E;
-  threads_set := tid ↑₁ (f ↑₁ E);
+  threads_set := threads_set G;
   lab := lab';
   rmw := f ↑ rmw;
   data := f ↑ data;
@@ -203,6 +204,17 @@ Lemma exec_mapped_R_ex (f : actid -> actid) lab'
 Proof using.
   unfold compose in *. rewrite HLAB. unfolder.
   split; intros x HSET; desf; unfold R_ex in *.
+  destruct (FSURJ x) as [y HEQ]. exists y.
+  now rewrite <- HEQ.
+Qed.
+
+Lemma exec_mapped_is_sc (f : actid -> actid) lab'
+    (FSURJ : forall y, exists x, y = f x)
+    (HLAB : lab = lab' ∘ f) :
+  is_sc lab' ≡₁ f ↑₁ (is_sc lab).
+Proof using.
+  unfold compose in *. rewrite HLAB. unfolder.
+  split; intros x HSET; desf; unfold is_sc, mod in *.
   destruct (FSURJ x) as [y HEQ]. exists y.
   now rewrite <- HEQ.
 Qed.
@@ -339,6 +351,7 @@ Lemma exec_mapped_wf f lab'
     (NCTRL : ctrl ≡ ∅₂)
     (MAPIDS : forall a b, (f ↑₁ E) a -> (f ↑₁ E) b ->
               a <> b -> tid a = tid b -> ~is_init a -> index a <> index b)
+    (NNEW_TIDS : (tid ∘ f )↑₁ E ⊆₁ threads_set G)
     (WF : Wf G) :
   Wf (exec_mapped f lab').
 Proof using.
@@ -384,7 +397,32 @@ Proof using.
     rewrite HLAB. now unfold compose. }
   { rewrite <- WF.(wf_init_lab), HLAB.
     unfold compose. now rewrite FMAPINIT. }
-  unfolder. unfolder in EE. eauto.
+  apply NNEW_TIDS. unfolder.
+  unfolder in EE. desf. eauto.
+Qed.
+
+Lemma exec_upd_lab_cont e l
+    (CONT : contigious_actids G) :
+  contigious_actids (exec_upd_lab e l).
+Proof using.
+  ins.
+Qed.
+
+Lemma exec_add_event_cont e
+    (TID : tid e <> tid_init)
+    (CONT : contigious_actids G)
+    (NEW : ~ E e)
+    (MAXSB : (fun x => ext_sb x e) ⊆₁ acts_set G ∩₁ same_tid e ∪₁ is_init)  :
+  contigious_actids (exec_add_read_event_nctrl e).
+Proof using.
+  eapply add_event_to_contigious; eauto.
+Qed.
+
+Lemma exec_add_rf_cont delta_rf
+    (CONT : contigious_actids G) :
+  contigious_actids (exec_add_rf delta_rf).
+Proof using.
+  ins.
 Qed.
 
 End ExecOps.

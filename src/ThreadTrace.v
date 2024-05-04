@@ -256,6 +256,7 @@ Definition trace_coherent traces G : Prop :=
 Definition exec_trace_prefix G G' : Prop :=
   forall thr, trace_prefix (thread_actid_trace G' thr) (thread_actid_trace G thr).
 
+(* TODO: perhaps deserves its own module *)
 Definition contigious_actids G : Prop := forall t (NOT_INIT : t <> tid_init),
   exists N, (acts_set G) ∩₁ (fun e => t = tid e) ≡₁ thread_seq_set t N.
 
@@ -316,7 +317,7 @@ Proof using.
   rewrite CONT_APP, thread_seq_N_eq_set_size; eauto.
 Qed.
 
-Lemma add_event_to_contigious e N G G'
+Lemma added_event_to_contigious e N G G'
     (NOT_INIT : tid e <> tid_init)
     (SZ_EQ : set_size (acts_set G ∩₁ same_tid e) = NOnum N)
     (CONT : contigious_actids G)
@@ -337,6 +338,34 @@ Proof using.
   erewrite new_event_plus, SZ_EQ; eauto.
 Qed.
 
+Lemma add_event_to_contigious e G G'
+    (NOT_INIT : tid e <> tid_init)
+    (CONT : contigious_actids G)
+    (NEW : ~ acts_set G e)
+    (ADD : acts_set G' ≡₁ acts_set G ∪₁ eq e)
+    (MAXSB : (fun x => ext_sb x e) ⊆₁ acts_set G ∩₁ same_tid e ∪₁ is_init) :
+  contigious_actids G'.
+Proof using.
+  unfold contigious_actids in *. intros t NINIT.
+  specialize CONT with t. destruct (CONT NINIT) as [N HEQ].
+  tertium_non_datur (t = (tid e)) as [TEQ|TEQ]; subst;
+    [exists (1 + N) | exists N].
+  all: rewrite ADD, set_inter_union_l.
+  { rewrite thread_set_S, HEQ. apply set_union_more; ins.
+    destruct e as [l | et ei]; ins.
+    destruct PeanoNat.Nat.lt_total with (n := ei) (m := N) as
+              [LT | [ EQ | GT]]; subst.
+    { exfalso. now apply NEW, in_restr_acts, HEQ, thread_set_iff. }
+    { basic_solver. }
+    assert (SB : ext_sb (ThreadEvent et N) (ThreadEvent et ei)); [ins |].
+    apply MAXSB in SB.
+    destruct SB as [SB|INIT]; [exfalso | ins].
+    eapply thread_set_niff with (n := N) (k := N) (t := et); ins.
+    now apply HEQ. }
+  arewrite (eq e ∩₁ (fun x => t = tid x) ≡₁ ∅); [basic_solver |].
+  now rewrite set_union_empty_r.
+Qed.
+
 Lemma add_event_to_actid_trace e N G G'
     (NOT_INIT : tid e <> tid_init)
     (SZ_EQ : set_size (acts_set G ∩₁ same_tid e) = NOnum N)
@@ -347,7 +376,7 @@ Lemma add_event_to_actid_trace e N G G'
   thread_actid_trace G' (tid e) =
     trace_app (thread_actid_trace G (tid e)) (trace_fin [e]).
 Proof using.
-  erewrite add_event_to_contigious with (G := G) (G' := G') (e := e); ins.
+  erewrite added_event_to_contigious with (G := G) (G' := G') (e := e); ins.
   all: eauto.
   rewrite thread_actid_trace_form with (G := G ) (N := N    ),
           thread_actid_trace_form with (G := G') (N := N + 1).
