@@ -7,6 +7,7 @@ Require Import SubToFullExec.
 Require Import ReorderingCommon.
 Require Import AuxRel.
 Require Import ExecEquiv.
+Require Import ExecOps.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -62,7 +63,7 @@ Record reord_simrel_rw_actids : Prop := {
   rsrw_ninit_b : ~is_init b;
   rsrw_a_is_w : is_w lab_t a;
   rsrw_b_is_r : is_r lab_t b;
-  rsrw_a_b_ord : ext_sb a b;
+  rsrw_a_b_ord : immediate ext_sb a b;
 }.
 
 Record reord_simrel_rw_core G : Prop :=
@@ -71,9 +72,9 @@ Record reord_simrel_rw_core G : Prop :=
                        val (lab G) a = val_t b; }.
 
 Record reord_simrel_rw_struct : Prop := {
-  rsrw_lab_u2v : same_lab_u2v lab_s (lab_t ∘ mapper);
+  rsrw_lab_u2v : same_lab_u2v (lab_s ∘ mapper) lab_t;
   rsrw_lab_val : forall e (NOTA : e <> a),
-                       val_s e = (val_t ∘ mapper) e;
+                       (val_s ∘ mapper) e = val_t e;
   rsrw_threads : threads_set G_s ≡₁ threads_set G_t;
   rsrw_rmw : rmw_s ≡ mapper ↑ rmw_t;
 
@@ -244,6 +245,21 @@ Notation "'srf_t'" := (srf G_t).
 Notation "'W_t'" := (is_w lab_t).
 Notation "'R_t'" := (is_r lab_t).
 
+Notation "'lab_t''" := (lab G_t').
+Notation "'val_t''" := (val lab_t').
+Notation "'E_t''" := (acts_set G_t').
+Notation "'sb_t''" := (sb G_t').
+Notation "'rf_t''" := (rf G_t').
+Notation "'co_t''" := (co G_t').
+Notation "'rmw_t''" := (rmw G_t').
+Notation "'rpo_t''" := (rpo G_t').
+Notation "'rmw_dep_t''" := (rmw_dep G_t').
+Notation "'data_t''" := (data G_t').
+Notation "'ctrl_t''" := (ctrl G_t').
+Notation "'addr_t''" := (addr G_t').
+Notation "'W_t''" := (is_w lab_t').
+Notation "'R_t''" := (is_r lab_t').
+
 Notation "'lab_s'" := (lab G_s).
 Notation "'val_s'" := (val lab_s).
 Notation "'E_s'" := (acts_set G_s).
@@ -275,81 +291,160 @@ Record reord_context : Prop := {
 Hypothesis SWAPPED_TRACES : ReordCommon.traces_swapped traces traces' a b.
 Hypothesis CTX : reord_context.
 
-(* Lemma simrel_exec_mapper_iff1 e
+(*
+  Big case 1: both events are in the target execution.
+
+  At this point out labeling function must match up with
+  the target execution.
+*)
+Lemma simrel_exec_mapper_iff_helper_1 sc e
     (SAME : E_t a <-> E_t b)
     (INA : E_t a)
     (INB : E_t b)
     (E_NOT_A : e <> a)
     (E_NOT_B : e <> b)
-    (CONS : WCore.is_cons G_t)
-    (STEP : WCore.exec_inst G_t G_t' traces e)
+    (CONS : WCore.is_cons G_t sc)
+    (STEP : WCore.exec_inst G_t G_t' sc traces e)
     (SIM_ACTS : reord_simrel_rw_actids G_t a b) :
   WCore.exec_inst
-    (ReordCommon.mapped_G_t G_t a b (lab_t b))
-    (ReordCommon.mapped_G_t G_t' a b (lab_t b))
+    (exec_mapped G_t  mapper (lab_t  ∘ mapper))
+    (exec_mapped G_t' mapper (lab_t' ∘ mapper))
+    (mapper ↑ sc)
     traces
     e.
 Proof using.
   assert (NEQ : a <> b).
   { intro F; eapply ext_sb_irr with (x := a).
     rewrite F at 2. apply SIM_ACTS. }
-  assert (EQ_LAB : upd (lab_t ∘ mapper) a (lab_t b) = lab_t ∘ mapper).
-  { arewrite (lab_t b = (lab_t ∘ mapper) a); [| now rewrite updI].
-    unfold compose. now rewrite ReordCommon.mapper_eq_a. }
   assert (FIN_LAB : lab G_t' = lab_t).
   { symmetry. destruct STEP, start_wf; ins. apply pfx. }
+  assert (LABEQ : lab_t = lab_t ∘ mapper ∘ mapper).
+  { now rewrite Combinators.compose_assoc,
+                ReordCommon.mapper_mapper_compose,
+                Combinators.compose_id_right. }
   constructor; ins.
-  { admit. (* Conf wf *) }
+  { replace ∅ with (mapper ↑₁ ∅); [| now rewrite set_collect_empty].
+    set (X := {|
+        WCore.sc := sc;
+        WCore.G := G_t;
+        WCore.GC := G_t';
+        WCore.cmt := ∅;
+    |}).
+    change sc with (WCore.sc X). change G_t with (WCore.G X).
+    change G_t' with (WCore.GC X). change ∅ with (WCore.cmt X).
+    eapply ReordCommon.mapped_G_t_cfg; ins.
+    all: try now apply SIM_ACTS.
+    all: try now apply STEP.
+    { destruct ext_sb_tid_init with (x := a) (y := b).
+      all: ins; try now apply SIM_ACTS.
+      exfalso. now apply SIM_ACTS.(rsrw_ninit_a G_t a b). }
+    { admit. (* TODO: infer as separate lemma *) }
+    { admit. (* TODO: should be easy *) }
+    { admit. (* TODO: infer as separate lemma *) }
+    { admit. (* TODO: infer as separate lemma *) }
+    admit. (* TODO: infer as separate lemma *)  }
   { destruct STEP. unfold WCore.cfg_add_event in add_event.
     desf. exists (option_map mapper r), (option_map mapper w),
                  (mapper ↑₁ W1), (mapper ↑₁ W2).
     constructor; ins.
     all: try now apply add_event.
+    { unfolder. intros (e' & IN & MAP).
+      apply add_event.(WCore.e_notin); ins.
+      rewrite <- MAP, ReordCommon.mapper_neq; ins.
+      { admit. } (* easy *)
+      admit. (* easy *) }
+    { rewrite <- ReordCommon.mapper_neq with (x := e)
+                                             (a := a)
+                                             (b := b); ins.
+      rewrite <- set_collect_eq, <- set_collect_union.
+      now apply set_collect_more, add_event. }
     { admit. } (* TODO: research *)
     { rewrite add_event.(WCore.rf_new); ins.
       rewrite !collect_rel_union.
       repeat apply union_more; ins; unfold WCore.rf_delta_R, WCore.rf_delta_W;
         [| desf; basic_solver 12].
       destruct w as [w |]; ins; [| apply collect_rel_empty].
-      rewrite ReordCommon.mapper_rel_inter, collect_rel_cross,
+      rewrite collect_rel_interE, collect_rel_cross,
               collect_rel_singl, ReordCommon.mapper_neq with (x := e).
-      all: ins.
-      apply inter_rel_more; ins. rewrite FIN_LAB, EQ_LAB.
-      rewrite ReordCommon.mapper_R_t, ReordCommon.mapper_W_t; ins.
-      now rewrite ReordCommon.mapper_lab_same. }
-      { rewrite add_event.(WCore.co_new); ins.
-        rewrite !collect_rel_union. repeat apply union_more; ins.
-        unfold WCore.co_delta; ins. unfold is_w, compose.
-        rewrite updo, ReordCommon.mapper_neq; ins. desf.
-        all: try apply collect_rel_empty.
-        rewrite !collect_rel_union, !collect_rel_cross,
-                set_collect_eq, ReordCommon.mapper_neq; ins. }
-      { rewrite add_event.(WCore.rmw_new); ins.
-        destruct start_wf, pfx; ins.
-        rewrite !collect_rel_union. repeat apply union_more; ins.
-        unfold WCore.rmw_delta; ins. rewrite <- pfx_sub.(sub_lab).
-        rewrite <- ReordCommon.mapper_W_t, <- ReordCommon.mapper_R_t; ins.
-        rewrite collect_rel_cross, !ReordCommon.mapper_inter_set; ins.
-        rewrite set_collect_eq_opt, set_collect_eq,
-                ReordCommon.mapper_neq; ins. }
-      admit. (* Conf wf *) }
+      all: eauto using ReordCommon.mapper_inj.
+      apply inter_rel_more; ins. rewrite FIN_LAB.
+      rewrite <- exec_mapped_R with (G := G_t),
+              <- exec_mapped_W with (G := G_t).
+      all: eauto using ReordCommon.mapper_surj. }
+    { rewrite add_event.(WCore.co_new); ins.
+      rewrite !collect_rel_union. repeat apply union_more; ins.
+      unfold WCore.co_delta; ins. unfold is_w, compose.
+      rewrite ReordCommon.mapper_neq; ins. desf.
+      all: try apply collect_rel_empty.
+      rewrite !collect_rel_union, !collect_rel_cross,
+              set_collect_eq, ReordCommon.mapper_neq; ins. }
+    { rewrite add_event.(WCore.rmw_new); ins.
+      destruct start_wf, pfx; ins.
+      rewrite !collect_rel_union. repeat apply union_more; ins.
+      unfold WCore.rmw_delta; ins. rewrite <- pfx_sub.(sub_lab).
+      rewrite collect_rel_cross, !set_collect_interE.
+      all: eauto using ReordCommon.mapper_inj.
+      rewrite set_collect_eq_opt, set_collect_eq,
+              ReordCommon.mapper_neq; ins.
+      rewrite <- exec_mapped_R with (G := G_t),
+              <- exec_mapped_W with (G := G_t).
+      all: eauto using ReordCommon.mapper_surj. }
+    replace ∅ with (mapper ↑₁ ∅); [| now rewrite set_collect_empty].
+    set (X := {|
+        WCore.sc := sc;
+        WCore.G := G_t';
+        WCore.GC := G_t';
+        WCore.cmt := ∅;
+    |}).
+    change sc with (WCore.sc X). change G_t' with (WCore.G X) at 1.
+    change G_t' with (WCore.GC X). change ∅ with (WCore.cmt X).
+    eapply ReordCommon.mapped_G_t_cfg; ins.
+    all: try now apply SIM_ACTS.
+    all: try now apply add_event.
+    all: admit. (* Most of the subgoals mimic the ones above *) }
   admit. (* TODO: research *)
 Admitted.
 
-Lemma simrel_exec_mapper_iff2 e
+(*
+  Big case 2: neither events are in the target graph.
+
+  This means our labeling function must match target' almost
+  1-to-1, allowing some liberties with b's label. This condition
+  must be satisfied even right now, because we do not update our
+  labeling function during simple instruction steps.
+*)
+Lemma simrel_exec_mapper_iff_helper_2 sc e l
+    (U2V : same_label_u2v l (lab_t b))
     (SAME : E_t a <-> E_t b)
     (E_NOT_A : e <> a)
     (E_NOT_B : e <> b)
-    (CONS : WCore.is_cons G_t)
-    (STEP : WCore.exec_inst G_t G_t' traces e)
+    (CONS : WCore.is_cons G_t sc)
+    (STEP : WCore.exec_inst G_t G_t' sc traces e)
     (SIM_ACTS : reord_simrel_rw_actids G_t a b)
-    (SIM_CORE : reord_simrel_core G_t a b) :
+    (NINA : ~E_t a)
+    (NINB : ~E_t b) :
   WCore.exec_inst
-    (ReordCommon.mapped_G_t G_t a b)
-    (ReordCommon.mapped_G_t G_t' a b)
+    (exec_upd_lab
+      (exec_mapped G_t  mapper (lab_t  ∘ mapper))
+      b l)
+    (exec_upd_lab
+      (exec_mapped G_t' mapper (lab_t' ∘ mapper))
+      b l)
+    (mapper ↑ sc)
     traces
     e.
+Proof using.
+  admit.
+Admitted.
 
+(* TODO: update lemma statement *)
+(*
+(*
+  Lemma that unites to big cases into one megacase: iff.
+
+  This is when both events are either present or absent in the
+  target execution.
+*)
 Lemma simrel_exec_mapper_iff e
     (SAME : E_t a <-> E_t b)
     (E_NOT_A : e <> a)
@@ -362,7 +457,8 @@ Lemma simrel_exec_mapper_iff e
     (ReordCommon.mapped_G_t G_t a b)
     (ReordCommon.mapped_G_t G_t' a b)
     traces
-    e. *)
+    e.
+*)
 
 Lemma simrel_exec_not_a_not_b_same_helper sc e
     (SAME : E_t a <-> E_t b)
