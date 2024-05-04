@@ -11,6 +11,7 @@ From imm Require Import Events Execution Execution_eco imm_s_hb.
 From imm Require Import imm_s_ppo.
 From imm Require Import imm_s_hb.
 From imm Require Import imm_bob.
+From imm Require Import imm_s.
 From imm Require Import SubExecution.
 
 From RecordUpdate Require Import RecordSet.
@@ -59,6 +60,7 @@ End Race.
 Module WCore.
 
 Record t := {
+  sc : relation actid;
   G : execution;
   GC : execution;
   cmt : actid -> Prop;
@@ -73,6 +75,7 @@ Hint Unfold init_exec : unfolderDb.
 Section Consistency.
 
 Variable G : execution.
+Variable sc : relation actid.
 Notation "'hb'" := (hb G).
 Notation "'fr'" := (fr G).
 Notation "'sb'" := (sb G).
@@ -93,6 +96,7 @@ Section CoreDefs.
 Variable X : t.
 Notation "'G'" := (G X).
 Notation "'GC'" := (GC X).
+Notation "'sc'" := (sc X).
 Notation "'ctrlc'" := (ctrl GC).
 Notation "'datac'" := (data GC).
 Notation "'addrc'" := (addr GC).
@@ -116,6 +120,7 @@ Record wf : Prop := {
   cc_data_empty : datac ≡ ∅₂;
 
   wf_gc : Wf GC;
+  wf_scc : wf_sc GC sc; 
   wf_g_init : EC ∩₁ is_init ⊆₁ E;
   wf_gc_acts : (tid ↓₁ eq tid_init) ∩₁ EC ⊆₁ is_init;
 
@@ -220,13 +225,14 @@ Global Hint Unfold new_event_correct cfg_add_event
 Section ExecAdd.
 
 Variables G G' : execution.
+Variables sc : relation actid.
 Variable traces : thread_id -> trace label -> Prop.
 
 Record exec_inst e := {
-  start_wf : wf (Build_t G G' ∅);
+  start_wf : wf (Build_t sc G G' ∅);
   add_event : cfg_add_event traces
-    (Build_t G G' ∅)
-    (Build_t G' G' ∅)
+    (Build_t sc G G' ∅)
+    (Build_t sc G' G' ∅)
     e;
   next_cons : is_cons G';
 }.
@@ -236,6 +242,7 @@ End ExecAdd.
 Section ExecRexec.
 
 Variables G G' : execution.
+Variables sc : relation actid. 
 Variable traces : thread_id -> trace label -> Prop.
 Variable rfre : relation actid.
 
@@ -291,6 +298,18 @@ Definition reexec_start dtrmt := Build_execution
   (restrict G dtrmt).(rf)
   (restrict G dtrmt).(co).
 
+Definition reexec_start dtrmt := Build_execution
+  (restrict G dtrmt).(acts_set)
+	(restrict G dtrmt).(threads_set)
+  G'.(lab)
+  (restrict G dtrmt).(rmw)
+  (restrict G dtrmt).(data)
+  (restrict G dtrmt).(addr)
+  (restrict G dtrmt).(ctrl)
+  (restrict G dtrmt).(rmw_dep)
+  (restrict G dtrmt).(rf)
+  (restrict G dtrmt).(co).
+
 Record reexec_gen f dtrmt : Prop :=
 { (* Correct start *)
   newlab_correct : forall e, dtrmt e -> lab' e = lab e;
@@ -305,10 +324,10 @@ Record reexec_gen f dtrmt : Prop :=
   reexec_embd_sbrfe : Some ↓ (f ↑ restr_rel (f_cmt f) sb_rf') ⊆
                       restr_rel (Some ↓₁ (f ↑₁ (f_cmt f))) sb_rfre;
   (* Reproducable steps *)
-  reexec_start_wf : wf (Build_t G G' (f_cmt f));
+  reexec_start_wf : wf (Build_t sc G G' (f_cmt f));
   reexec_steps : (cfg_add_event_uninformative traces)＊
-    (Build_t (reexec_start dtrmt) G' (f_cmt f))
-    (Build_t G'                   G' (f_cmt f));
+    (Build_t sc (reexec_start dtrmt) G' (f_cmt f))
+    (Build_t sc G'                   G' (f_cmt f));
   rexec_final_cons : is_cons G'; }.
 
 Definition reexec : Prop := exists f dtrmt, reexec_gen f dtrmt.
@@ -446,7 +465,7 @@ Proof using.
   apply ADD_STEP.
 Qed.
 
-Lemma new_event_max_sb e
+(* Lemma new_event_max_sb e
     (WF : wf X)
     (ADD_STEP : cfg_add_event traces X X' e) :
   max_elt sb' e.
@@ -462,7 +481,7 @@ Proof using.
     eapply wf_g_acts; [apply ADD_STEP.(wf_new_conf) |].
     unfolder; split; ins. }
   eapply ext_sb_irr; eauto.
-Qed.
+Qed. *)
 
 Lemma same_lab e
   (WF : wf X)

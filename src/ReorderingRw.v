@@ -560,6 +560,8 @@ Lemma simrel_exec_a w
     << STEP : WCore.reexec G_s G_s' traces' rfre >>.
 Proof using SWAPPED_TRACES.
   (* TODO: check article *)
+  (* Case1 : Gt' *)
+  (* Case2: mapped Gt but with executed a *)
   admit.
 Admitted.
 

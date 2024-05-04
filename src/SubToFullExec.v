@@ -22,6 +22,7 @@ Module SubToFullExecInternal.
 Section DeltaGraph.
 
 Variable G G' : execution.
+Variable sc :relation actid.
 Variable cmt : actid -> Prop.
 Variable h : actid.
 
@@ -71,16 +72,19 @@ Definition delta_G := {|
 Notation "'X'" := ({|
   WCore.G := G;
   WCore.GC := G';
+  WCore.sc := sc;
   WCore.cmt := cmt;
 |}).
 Notation "'X''" := ({|
   WCore.G := delta_G;
   WCore.GC := G';
+  WCore.sc := sc;
   WCore.cmt := cmt;
 |}).
 Notation "'X_fin'" := ({|
   WCore.G := G';
   WCore.GC := G';
+  WCore.sc := sc;
   WCore.cmt := cmt;
 |}).
 
@@ -117,7 +121,7 @@ Proof using.
     erewrite restr_irrefl_eq, union_false_r; eauto using rf_irr. }
   { rewrite (sub_co SUB), <- !restr_relE, restr_set_union.
     erewrite restr_irrefl_eq, union_false_r; eauto using co_irr. }
-  now rewrite seq_false_l, seq_false_r.
+    now rewrite seq_false_l, seq_false_r.
 Qed.
 
 Lemma delta_G_trace_prefix
@@ -219,6 +223,7 @@ End DeltaGraph.
 Section EnumeratedDifference.
 
 Variable G G' : execution.
+Variable sc : relation actid.
 Variable cmt : actid -> Prop.
 Variable traces : thread_id -> trace label -> Prop.
 
@@ -248,11 +253,13 @@ Record enumd_diff (l : list actid) : Prop := {
 Notation "'X'" := ({|
   WCore.G := G;
   WCore.GC := G';
+  WCore.sc := sc;
   WCore.cmt := cmt;
 |}).
 Notation "'X_fin'" := ({|
   WCore.G := G';
   WCore.GC := G';
+  WCore.sc := sc;
   WCore.cmt := cmt;
 |}).
 
@@ -325,12 +332,14 @@ Lemma enumd_deltaG_new_event_correct h t
   {|
     WCore.G := delta_G G G' h;
     WCore.GC := G';
+    WCore.sc := sc;
     WCore.cmt := cmt;
   |} h.
 Proof using.
   set (X' := {|
     WCore.G := delta_G G G' h;
     WCore.GC := G';
+    WCore.sc := sc;
     WCore.cmt := cmt;
   |}).
   assert (IN_D : (E' \₁ E) h).
@@ -391,6 +400,7 @@ End EnumeratedDifference.
 Section SuBToFullExecCases.
 
 Variable G G' : execution.
+Variable sc : relation actid.
 Variable cmt : actid -> Prop.
 Variable traces : thread_id -> trace label -> Prop.
 Variable h : actid.
@@ -416,16 +426,19 @@ Notation "'R'" := (fun x => is_r lab x).
 Notation "'X'" := ({|
   WCore.G := G;
   WCore.GC := G';
+  WCore.sc := sc;
   WCore.cmt := cmt;
 |}).
 Notation "'X''" := ({|
   WCore.G := delta_G G G' h;
   WCore.GC := G';
+  WCore.sc := sc;
   WCore.cmt := cmt;
 |}).
 Notation "'X_fin'" := ({|
   WCore.G := G';
   WCore.GC := G';
+  WCore.sc := sc;
   WCore.cmt := cmt;
 |}).
 
@@ -757,14 +770,14 @@ Section SubToFullExec.
 
 Variable traces : thread_id -> trace label -> Prop.
 
-Lemma sub_to_full_exec G G' cmt l
-    (WF : WCore.wf (WCore.Build_t G G' cmt))
-    (WF' : WCore.wf (WCore.Build_t G' G' cmt))
+Lemma sub_to_full_exec sc G G' cmt l
+    (WF : WCore.wf (WCore.Build_t sc G G' cmt))
+    (WF' : WCore.wf (WCore.Build_t sc G' G' cmt))
     (ENUM : SubToFullExecInternal.enumd_diff G G' cmt l)
     (COH : trace_coherent traces G') :
   (WCore.cfg_add_event_uninformative traces)＊
-    (WCore.Build_t G G' cmt)
-    (WCore.Build_t G' G' cmt).
+    (WCore.Build_t sc G G' cmt)
+    (WCore.Build_t sc G' G' cmt).
 Proof using.
   generalize G WF ENUM.
   clear      G WF ENUM.
@@ -773,8 +786,8 @@ Proof using.
     eapply SubToFullExecInternal.enum_diff_done; eauto. }
   set (delta_G := SubToFullExecInternal.delta_G G G' h).
   assert (STEP : WCore.cfg_add_event_uninformative traces
-    (WCore.Build_t G                G' cmt)
-    (WCore.Build_t delta_G          G' cmt)).
+    (WCore.Build_t sc       G                G' cmt)
+    (WCore.Build_t sc delta_G                G' cmt)).
   { eapply SubToFullExecInternal.step_once; eauto. }
   eapply rt_trans; [apply rt_step; eauto | ].
   red in STEP; desf.
