@@ -80,13 +80,12 @@ Notation "'hb'" := (hb G).
 Notation "'fr'" := (fr G).
 Notation "'sb'" := (sb G).
 Notation "'eco'" := (eco G).
-Notation "'psc'" := (imm.psc G).
 Notation "'rmw'" := (rmw G).
 
 Record is_cons : Prop := {
   cons_coherence : irreflexive (hb ⨾ eco^?);
   cons_atomicity : rmw ∩ (fr ⨾ sb) ≡ ∅₂;
-  cons_sc : acyclic psc;
+  cons_sc : acyclic sc;
 }.
 
 End Consistency.
@@ -120,7 +119,7 @@ Record wf : Prop := {
   cc_data_empty : datac ≡ ∅₂;
 
   wf_gc : Wf GC;
-  wf_scc : wf_sc GC sc; 
+  wf_scc : wf_sc GC sc;
   wf_g_init : EC ∩₁ is_init ⊆₁ E;
   wf_gc_acts : (tid ↓₁ eq tid_init) ∩₁ EC ⊆₁ is_init;
 
@@ -234,7 +233,7 @@ Record exec_inst e := {
     (Build_t sc G G' ∅)
     (Build_t sc G' G' ∅)
     e;
-  next_cons : is_cons G';
+  next_cons : is_cons G' sc;
 }.
 
 End ExecAdd.
@@ -242,7 +241,7 @@ End ExecAdd.
 Section ExecRexec.
 
 Variables G G' : execution.
-Variables sc : relation actid. 
+Variables sc : relation actid.
 Variable traces : thread_id -> trace label -> Prop.
 Variable rfre : relation actid.
 
@@ -287,6 +286,7 @@ Record stable_uncmt_reads_gen f r w : Prop :=
   surg_sbrf : dom_rel (rf ⨾ ⦗eq r⦘) ∩₁ codom_rel (⦗eq w⦘ ⨾ sb_rf^?) ⊆₁
               dom_rel (sb_rf^? ⨾ sb ⨾ ⦗eq r⦘); }.
 
+
 Definition reexec_start dtrmt := Build_execution
   (restrict G dtrmt).(acts_set)
 	(restrict G dtrmt).(threads_set)
@@ -315,9 +315,9 @@ Record reexec_gen f dtrmt : Prop :=
   (* Reproducable steps *)
   reexec_start_wf : wf (Build_t sc G G' (f_cmt f));
   reexec_steps : (cfg_add_event_uninformative traces)＊
-    (Build_t (restr_rel (f_cmt f) sc) (restrict G dtrmt) G' (f_cmt f))
-    (Build_t sc G'                                       G' (f_cmt f));
-  rexec_final_cons : is_cons G'; }.
+    (Build_t sc (reexec_start dtrmt) G' (f_cmt f))
+    (Build_t sc G'                   G' (f_cmt f));
+  rexec_final_cons : is_cons G' sc; }.
 
 Definition reexec : Prop := exists f dtrmt, reexec_gen f dtrmt.
 

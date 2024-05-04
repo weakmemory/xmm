@@ -1,5 +1,6 @@
 Require Import Lia Setoid Program.Basics.
 Require Import AuxDef.
+Require Import ExecEquiv.
 Require Import ThreadTrace.
 Require Import Core.
 Require Import TraceSwap.
@@ -441,15 +442,6 @@ Notation "'X_fin'" := ({|
   WCore.cmt := cmt;
 |}).
 
-Lemma restr_irr A (x : A) s r
-    (IRR : irreflexive r) :
-  restr_rel (s ∩₁ eq x) r ≡ ∅₂.
-Proof using.
-  destruct (classic (s x)) as [HIN|HIN]; [| basic_solver].
-  arewrite (s ∩₁ eq x ≡₁ eq x) by basic_solver.
-  now apply restr_irrefl_eq.
-Qed.
-
 (*
   Helper lemma to avoid proving WF-ness of new conf over and over.
   Especially because this part of the proof is independent of h's label
@@ -686,7 +678,7 @@ Proof using.
       split; [| basic_solver].
       intros x y RMW'; unfolder in RMW'; desf.
       arewrite (x = r); [| basic_solver].
-      eapply wf_rmwf2 with (G := G'); eauto; apply WF. }
+      eapply wf_rmwff with (G := G'); eauto; apply WF. }
     apply X_prime_wf_helper; eauto; apply IN_D. }
 
   (* Case 2: no rmw *)
