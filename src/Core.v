@@ -120,7 +120,7 @@ Record wf : Prop := {
   cc_data_empty : datac ≡ ∅₂;
 
   wf_gc : Wf GC;
-  wf_scc : wf_sc GC sc; 
+  wf_scc : wf_sc GC sc;
   wf_g_init : EC ∩₁ is_init ⊆₁ E;
   wf_gc_acts : (tid ↓₁ eq tid_init) ∩₁ EC ⊆₁ is_init;
 
@@ -242,7 +242,7 @@ End ExecAdd.
 Section ExecRexec.
 
 Variables G G' : execution.
-Variables sc : relation actid. 
+Variables sc : relation actid.
 Variable traces : thread_id -> trace label -> Prop.
 Variable rfre : relation actid.
 
@@ -286,17 +286,7 @@ Record stable_uncmt_reads_gen f r w : Prop :=
   surg_sb : sb w r;
   surg_sbrf : dom_rel (rf ⨾ ⦗eq r⦘) ∩₁ codom_rel (⦗eq w⦘ ⨾ sb_rf^?) ⊆₁
               dom_rel (sb_rf^? ⨾ sb ⨾ ⦗eq r⦘); }.
-Definition reexec_start dtrmt := Build_execution
-  (restrict G dtrmt).(acts_set)
-	(restrict G dtrmt).(threads_set)
-  G'.(lab)
-  (restrict G dtrmt).(rmw)
-  (restrict G dtrmt).(data)
-  (restrict G dtrmt).(addr)
-  (restrict G dtrmt).(ctrl)
-  (restrict G dtrmt).(rmw_dep)
-  (restrict G dtrmt).(rf)
-  (restrict G dtrmt).(co).
+
 
 Definition reexec_start dtrmt := Build_execution
   (restrict G dtrmt).(acts_set)

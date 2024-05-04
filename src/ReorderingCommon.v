@@ -376,6 +376,7 @@ Notation "'mapper'" := (mapper a b).
 Notation "'GC'" := (WCore.GC X).
 Notation "'G'" := (WCore.G X).
 Notation "'cmt'" := (WCore.cmt X).
+Notation "'sc'" := (WCore.sc X).
 
 Notation "'labC'" := (lab GC).
 Notation "'EC'" := (acts_set GC).
@@ -433,16 +434,36 @@ Lemma mapped_G_t_cfg
     (NBRMW : ~dom_rel rmwC b)
     (WF : WCore.wf X) :
   WCore.wf (WCore.Build_t
+    (mapper ↑ sc)
     (exec_mapped G  mapper (lab ∘ mapper))
     (exec_mapped GC mapper (labC  ∘ mapper))
     (mapper ↑₁ cmt)
   ).
 Proof using.
+  assert (LABEQ : lab = lab ∘ mapper ∘ mapper).
+  { admit. }
+  assert (LABEQ' : lab = labC ∘ mapper ∘ mapper).
+  { admit. }
+  assert (FSURF : forall y, exists x, y = mapper x).
+  { intro x; destruct (mapper_surj a b NEQ x); eauto. }
   destruct WF. constructor; ins.
   { rewrite cc_ctrl_empty. apply collect_rel_empty. }
   { rewrite cc_addr_empty. apply collect_rel_empty. }
   { rewrite cc_data_empty. apply collect_rel_empty. }
   { apply mapped_G_t_wf; ins. }
+  { constructor; ins. destruct wf_scc; ins.
+    all: rewrite 1?exec_mapped_F with (G := G); eauto.
+    all: rewrite <- ?collect_rel_eqv, <- ?collect_rel_seq.
+    all: try (apply collect_rel_more; ins).
+    all: try now eapply inj_dom_mori, mapper_inj; eauto; ins.
+    { admit. (* TODO: we need somethin like exec_mapped_F *) }
+    { arewrite (sc ≡ restr_rel ⊤₁ sc) by basic_solver.
+      apply transitive_collect_rel_inj, transitive_restr, wf_scc.
+      apply mapper_inj; ins. }
+    { admit. (* Same *) }
+    arewrite (sc ≡ restr_rel ⊤₁ sc) by basic_solver.
+    apply collect_rel_irr_inj, irreflexive_restr, wf_scc.
+    apply mapper_inj; ins. }
   { admit. }
   { admit. }
   { apply set_collect_mori; ins. }
@@ -455,17 +476,13 @@ Proof using.
     apply collect_rel_mori; ins. }
   { rewrite <- set_collect_codom, <- set_collect_union,
             exec_mapped_R with (G := G), <- set_collect_interE.
-    { apply set_collect_mori; ins. }
-    { apply mapper_inj; ins. }
-    { intro x. destruct (mapper_surj a b NEQ x); eauto. }
-    admit. }
+    all: eauto using mapper_inj.
+    apply set_collect_mori; ins. }
   { rewrite <- collect_rel_eqv, <- collect_rel_seq,
             exec_mapped_R with (G := G), <- set_collect_interE,
             <- set_collect_codom.
+    all: eauto using mapper_inj.
     { apply set_collect_mori; ins. }
-    { apply mapper_inj; ins. }
-    { intro x. destruct (mapper_surj a b NEQ x); eauto. }
-    { admit. }
     eapply inj_dom_mori, mapper_inj; eauto; ins. }
   apply mapped_G_t_pfx; ins.
 Admitted.

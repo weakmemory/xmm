@@ -76,9 +76,12 @@ Record reord_simrel_rw_struct : Prop := {
                        val_s e = (val_t ∘ mapper) e;
   rsrw_threads : threads_set G_s ≡₁ threads_set G_t;
   rsrw_rmw : rmw_s ≡ mapper ↑ rmw_t;
-  rsrw_sb1 : forall (SAME : E_t a <-> E_t b), immediate sb_s ≡ immediate sb_t;
+
+  (* FIXME: do we need this? *)
+  (* rsrw_sb1 : forall (SAME : E_t a <-> E_t b), immediate sb_s ≡ immediate sb_t;
   rsrw_sb2 : forall (INA : E_t a) (NOTINB : ~E_t b),
-                immediate sb_s ≡ immediate sb_t ∪ singl_rel a b;
+                immediate sb_s ≡ immediate sb_t ∪ singl_rel a b; *)
+
   rsrw_init : E_s ∩₁ is_init ≡₁ E_t ∩₁ is_init;
   rsrw_actids1 : forall (SAME : E_t a <-> E_t b), E_s ≡₁ E_t;
   rsrw_actids2 : forall (INA : E_t a) (NOTINB : ~E_t b),
@@ -213,9 +216,6 @@ Proof using.
   all: try now apply ACTIDS.
   all: try now apply STRUCT.
   { apply ACTIDS.(rsrw_ninit_b G_t a b), INB. }
-  { apply immediate_more. unfold sb; ins.
-    repeat apply seq_more; ins.
-    all: apply eqv_rel_more, STRUCT. }
   rewrite !set_interA, set_interK.
   apply STRUCT.
 Qed.
@@ -364,17 +364,17 @@ Lemma simrel_exec_mapper_iff e
     traces
     e. *)
 
-Lemma simrel_exec_not_a_not_b_same_helper e
+Lemma simrel_exec_not_a_not_b_same_helper sc e
     (SAME : E_t a <-> E_t b)
     (E_NOT_A : e <> a)
     (E_NOT_B : e <> b)
     (CONS : WCore.is_cons G_t)
     (CONS' : WCore.is_cons G_s)
     (SIM : reord_simrel_rw G_s G_t a b)
-    (STEP : WCore.exec_inst G_t G_t' traces e) :
-  exists G_s',
+    (STEP : WCore.exec_inst G_t G_t' sc traces e) :
+  exists G_s' sc',
     << SIM' : reord_simrel_rw G_s' G_t' a b >> /\
-    << STEP' : WCore.exec_inst G_s G_s' traces' e >>.
+    << STEP' : WCore.exec_inst G_s G_s' sc' traces' e >>.
 Proof using SWAPPED_TRACES CTX.
   (* assert (IFF : acts_set G_t' a <-> acts_set G_t' b).
   { destruct STEP. unfold WCore.cfg_add_event in add_event.
@@ -520,16 +520,16 @@ Proof using SWAPPED_TRACES CTX.
   admit. (* NOTE: do not tackle this until the previous proof is prettified *)
 Admitted.
 
-Lemma simrel_exec_b
+Lemma simrel_exec_b sc
     (CONS : WCore.is_cons G_t)
     (CONS' : WCore.is_cons G_s)
     (SIM : reord_simrel_rw G_s G_t a b)
-    (STEP : WCore.exec_inst G_t G_t' traces a) :
-  exists G_s',
+    (STEP : WCore.exec_inst G_t G_t' sc traces a) :
+  exists G_s' sc',
     << SIM' : reord_simrel_rw G_s' G_t' a b >> /\
     exists G_s'_int,
-      << STEP1 : WCore.exec_inst G_s G_s'_int traces' a >> /\
-      << STEP2 : WCore.exec_inst G_s'_int G_s' traces' b >>.
+      << STEP1 : WCore.exec_inst G_s G_s'_int sc' traces' a >> /\
+      << STEP2 : WCore.exec_inst G_s'_int G_s' sc' traces' b >>.
 Proof using SWAPPED_TRACES CTX.
   (* exists (ReordCommon.mapped_G_t_with_b G_t' a b); split.
   { apply mapper_simrel_niff; ins; try apply CTX.
@@ -549,15 +549,15 @@ Proof using SWAPPED_TRACES CTX.
   admit. (* TODO: research *)
 Admitted.
 
-Lemma simrel_exec_a w
+Lemma simrel_exec_a sc w
     (CONS : WCore.is_cons G_t)
     (CONS' : WCore.is_cons G_s)
     (RF : G_t.(rf) w a)
     (SIM : reord_simrel_rw G_s G_t a b)
-    (STEP : WCore.exec_inst G_t G_t' traces b) :
-  exists G_s' rfre,
+    (STEP : WCore.exec_inst G_t G_t' sc traces b) :
+  exists G_s' rfre sc',
     << SIM' : reord_simrel_rw G_s' G_t' a b >> /\
-    << STEP : WCore.reexec G_s G_s' traces' rfre >>.
+    << STEP : WCore.reexec G_s G_s' sc' traces' rfre >>.
 Proof using SWAPPED_TRACES.
   (* TODO: check article *)
   (* Case1 : Gt' *)
@@ -565,14 +565,14 @@ Proof using SWAPPED_TRACES.
   admit.
 Admitted.
 
-Lemma simrel_reexec rfre
+Lemma simrel_reexec sc rfre
     (CONS : WCore.is_cons G_t)
     (CONS' : WCore.is_cons G_s)
     (SIM : reord_simrel_rw G_s G_t a b)
-    (STEP : WCore.reexec G_t G_t' traces rfre) :
-  exists G_s' rfre,
+    (STEP : WCore.reexec G_t G_t' sc traces rfre) :
+  exists G_s' rfre sc',
     << SIM' : reord_simrel_rw G_s' G_t' a b >> /\
-    << STEP : WCore.reexec G_s G_s' traces' (mapper ↓ rfre) >>.
+    << STEP : WCore.reexec G_s G_s' sc' traces' (mapper ↓ rfre) >>.
 Proof using SWAPPED_TRACES.
   tertium_non_datur (E_t a) as [INA|INA].
   all: tertium_non_datur (E_t b) as [INB|INB].
