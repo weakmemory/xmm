@@ -457,6 +457,16 @@ Proof using.
     rewrite !updo, ReordCommon.mapper_self_inv; ins.
     intro F; rewrite <- ReordCommon.mapper_eq_b with (b := b) in F.
     apply ReordCommon.mapper_inj in F; ins. }
+  assert (NINA' : ~E_t' a).
+  { intro F'. destruct STEP; ins.
+    red in add_event. desf.
+    apply add_event.(WCore.e_new) in F'.
+    ins. destruct F' as [HIN|HEQ]; desf. }
+  assert (NINB' : ~E_t' b).
+  { intro F'. destruct STEP; ins.
+    red in add_event. desf.
+    apply add_event.(WCore.e_new) in F'.
+    ins. destruct F' as [HIN|HEQ]; desf. }
   destruct STEP; ins. red in add_event. desf.
   constructor; ins.
   { replace ∅ with (mapper ↑₁ ∅); [| now rewrite set_collect_empty].
@@ -483,28 +493,24 @@ Proof using.
       rewrite ReordCommon.mapper_inj with (a := a) (b := b)
                                           (x := y') (y := b) in F.
       all: ins; try now rewrite ReordCommon.mapper_eq_b.
-      assert (NINB' : ~E_t' b).
-      { intro F'. apply add_event.(WCore.e_new) in F'. ins.
-        destruct F' as [HIN|HEQ]; desf. }
       apply NINB'. apply start_wf.(WCore.wf_gc).(wf_rfE) in F.
       ins. unfolder in F. desf. }
     { ins. unfolder. intro F. desf.
       rewrite ReordCommon.mapper_inj with (a := a) (b := b)
                                           (x := x') (y := b) in F.
       all: ins; try now rewrite ReordCommon.mapper_eq_b.
-      assert (NINB' : ~E_t' b).
-      { intro F'. apply add_event.(WCore.e_new) in F'. ins.
-        destruct F' as [HIN|HEQ]; desf. }
       apply NINB'. apply start_wf.(WCore.wf_gc).(wf_rfE) in F.
       ins. unfolder in F. desf. }
     subst X'. apply ReordCommon.mapped_G_t_cfg.
     all: ins.
     all: try now apply SIM_ACTS.
     { admit. (* TODO: infer as separate lemma *) }
-    { admit. (* TODO: should be easy *) }
-    { admit. (* TODO: infer as separate lemma *) }
-    { admit. (* TODO: infer as separate lemma *) }
-    admit. (* TODO: infer as separate lemma *)  }
+    { intro F. apply (wf_rmw_depE start_wf.(WCore.wf_gc)) in F.
+      ins. unfolder in F. desf. }
+    all: unfolder.
+    all: intro F; desf.
+    all: apply (wf_rmwE start_wf.(WCore.wf_gc)) in F.
+    all: unfolder in F; ins; desf. }
   { unfold WCore.cfg_add_event in add_event.
     desf. exists (option_map mapper r), (option_map mapper w),
                (mapper ↑₁ W1), (mapper ↑₁ W2).
