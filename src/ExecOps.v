@@ -491,7 +491,7 @@ Proof using.
   apply union_more; [apply SUB | ins].
 Qed.
 
-Lemma exec_mapper_sub f lab'
+Lemma exec_mapped_sub f lab'
     (FINJ : inj_dom ⊤₁ f)
     (SUB : sub_execution G' G ∅₂ ∅₂) :
   sub_execution (exec_mapped G' f lab')
