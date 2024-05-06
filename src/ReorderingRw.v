@@ -297,6 +297,7 @@ Hypothesis CTX : reord_context.
   At this point out labeling function must match up with
   the target execution.
 *)
+
 Lemma simrel_exec_mapper_iff_helper_1 sc e
     (SAME : E_t a <-> E_t b)
     (INA : E_t a)
@@ -351,8 +352,12 @@ Proof using.
     { unfolder. intros (e' & IN & MAP).
       apply add_event.(WCore.e_notin); ins.
       rewrite <- MAP, ReordCommon.mapper_neq; ins.
-      { admit. } (* easy *)
-      admit. (* easy *) }
+      { assert (MAPPED : mapper e' <> mapper a).
+        { rewrite MAP. rewrite ReordCommon.mapper_eq_a. eauto. }
+        intros F. rewrite F in MAPPED. eauto. }
+      assert (MAPPED : mapper e' <> mapper b).
+      { rewrite MAP. rewrite ReordCommon.mapper_eq_b. eauto. } 
+      intros F. rewrite F in MAPPED. eauto. }
     { rewrite <- ReordCommon.mapper_neq with (x := e)
                                              (a := a)
                                              (b := b); ins.
@@ -434,6 +439,17 @@ Lemma simrel_exec_mapper_iff_helper_2 sc e l
     traces
     e.
 Proof using.
+  assert (NEQ : a <> b).
+  { intro F; eapply ext_sb_irr with (x := a).
+    rewrite F at 2. apply SIM_ACTS. }
+  assert (FIN_LAB : lab G_t' = lab_t).
+  { symmetry. destruct STEP, start_wf; ins. apply pfx. }
+  assert (LABEQ : lab_t = lab_t ∘ mapper ∘ mapper).
+  { now rewrite Combinators.compose_assoc,
+                ReordCommon.mapper_mapper_compose,
+                Combinators.compose_id_right. }
+  constructor; ins.
+  
   admit.
 Admitted.
 

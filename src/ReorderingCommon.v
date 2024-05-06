@@ -157,8 +157,9 @@ Qed.
 
 Lemma mapper_mapper_compose (NEQ : a <> b) : mapper ∘ mapper = id.
 Proof using.
-  admit.
-Admitted.
+  apply functional_extensionality; ins.
+  apply mapper_self_inv; ins.
+Qed.
 
 Lemma mapper_surj (NEQ : a <> b) y :
   exists x, y = mapper x.
@@ -193,8 +194,8 @@ Lemma mapper_init_actid l
     (BNIT : ~is_init b) :
   mapper (InitEvent l) = InitEvent l.
 Proof using.
-  admit.
-Admitted.
+  unfold mapper; rupd; unfold is_init in *; desf.
+Qed.
 
 Lemma mapper_is_init
     (ANIT : ~is_init a)
@@ -211,8 +212,11 @@ Lemma mapper_tid
     (EQ_TID : tid a = tid b) :
   tid ∘ mapper = tid.
 Proof using.
-  admit.
-Admitted.
+  apply functional_extensionality; ins.
+  tertium_non_datur (x = a) as [HEQA|NEQA];
+  tertium_non_datur (x = b) as [HEQB|NEQB]; subst.
+  all : unfold compose; rewrite ?mapper_eq_a, ?mapper_eq_b, ?mapper_neq; ins.
+Qed.
 
 Lemma mapper_init
     (ANIT : ~is_init a)
