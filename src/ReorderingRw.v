@@ -308,8 +308,8 @@ Lemma simrel_exec_mapper_iff_helper_1 sc e
     (STEP : WCore.exec_inst G_t G_t' sc traces e)
     (SIM_ACTS : reord_simrel_rw_actids G_t a b) :
   WCore.exec_inst
-    (exec_mapped G_t  mapper (lab_t  ∘ mapper))
-    (exec_mapped G_t' mapper (lab_t' ∘ mapper))
+    (exec_mapped G_t  mapper (lab_t'  ∘ mapper))
+    (exec_mapped G_t' mapper (lab_t'  ∘ mapper))
     (mapper ↑ sc)
     traces
     e.
@@ -356,7 +356,7 @@ Proof using.
         { rewrite MAP. rewrite ReordCommon.mapper_eq_a. eauto. }
         intros F. rewrite F in MAPPED. eauto. }
       assert (MAPPED : mapper e' <> mapper b).
-      { rewrite MAP. rewrite ReordCommon.mapper_eq_b. eauto. } 
+      { rewrite MAP. rewrite ReordCommon.mapper_eq_b. eauto. }
       intros F. rewrite F in MAPPED. eauto. }
     { rewrite <- ReordCommon.mapper_neq with (x := e)
                                              (a := a)
@@ -449,7 +449,7 @@ Proof using.
                 ReordCommon.mapper_mapper_compose,
                 Combinators.compose_id_right. }
   constructor; ins.
-  
+
   admit.
 Admitted.
 
