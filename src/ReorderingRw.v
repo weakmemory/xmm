@@ -107,7 +107,8 @@ Record reord_simrel_rw : Prop :=
 
 Hypothesis RSRW_ACTIDS : reord_simrel_rw_actids.
 
-(* Lemma rsrw_struct_same
+(*
+Lemma rsrw_struct_same
     (U2V  : same_label_u2v (lab_s a) ((lab_t ∘ mapper) a))
     (SAME : E_t a <-> E_t b) :
   reord_simrel_rw_struct <->
@@ -312,7 +313,7 @@ Lemma simrel_exec_mapper_iff_helper_1 sc e
     (exec_mapped G_t  mapper (lab_t'  ∘ mapper))
     (exec_mapped G_t' mapper (lab_t'  ∘ mapper))
     (mapper ↑ sc)
-    traces
+    traces'
     e.
 Proof using.
   assert (NEQ : a <> b).
@@ -437,7 +438,7 @@ Lemma simrel_exec_mapper_iff_helper_2 sc e l
       (exec_mapped G_t' mapper (lab_t' ∘ mapper))
       a l)
     (mapper ↑ sc)
-    traces
+    traces'
     e.
 Proof using.
   assert (NEQ : a <> b).
@@ -576,28 +577,31 @@ Proof using.
   admit.
 Admitted.
 
-(* TODO: update lemma statement *)
-(*
 (*
   Lemma that unites to big cases into one megacase: iff.
 
   This is when both events are either present or absent in the
   target execution.
 *)
-Lemma simrel_exec_mapper_iff e
+Lemma simrel_exec_mapper_iff e sc
     (SAME : E_t a <-> E_t b)
     (E_NOT_A : e <> a)
     (E_NOT_B : e <> b)
-    (CONS : WCore.is_cons G_t)
-    (STEP : WCore.exec_inst G_t G_t' traces e)
-    (SIM_ACTS : reord_simrel_rw_actids G_t a b)
-    (SIM_CORE : reord_simrel_core G_t a b) :
-  WCore.exec_inst
-    (ReordCommon.mapped_G_t G_t a b)
-    (ReordCommon.mapped_G_t G_t' a b)
-    traces
-    e.
-*)
+    (CONS : WCore.is_cons G_t sc)
+    (STEP : WCore.exec_inst G_t G_t' sc traces e)
+    (SIM_ACTS : reord_simrel_rw G_t G_s a b) :
+  exists G_s' sc',
+    WCore.exec_inst G_s G_s' sc' traces' e.
+Proof using.
+  tertium_non_datur (E_t a) as [INA|NINA];
+  tertium_non_datur (E_t b) as [INB|NINB].
+  all: try now (desf; exfalso; eauto).
+  { exists (exec_mapped G_t' mapper (lab_t'  ∘ mapper)),
+           (mapper ↑ sc).
+    admit. }
+  admit.
+Admitted.
+
 
 Lemma simrel_exec_not_a_not_b_same_helper sc e
     (SAME : E_t a <-> E_t b)
