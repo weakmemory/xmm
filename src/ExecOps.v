@@ -478,6 +478,19 @@ Proof using.
   now rewrite seq_false_l, seq_false_r.
 Qed.
 
+Lemma exec_add_rf_sub delta_rf
+    (SUB : sub_execution G' G ∅₂ ∅₂)
+    (WF_DELTA_RF : delta_rf ≡ ⦗acts_set G⦘ ⨾ delta_rf ⨾ ⦗acts_set G⦘) :
+  sub_execution (exec_add_rf G' delta_rf)
+                (exec_add_rf G  delta_rf)
+                ∅₂ ∅₂.
+Proof using.
+  constructor; ins.
+  all: try now apply SUB.
+  rewrite seq_union_l, seq_union_r.
+  apply union_more; [apply SUB | ins].
+Qed.
+
 Lemma exec_mapper_sub f lab'
     (FINJ : inj_dom ⊤₁ f)
     (SUB : sub_execution G' G ∅₂ ∅₂) :
