@@ -8,6 +8,7 @@ Require Import ReorderingCommon.
 Require Import AuxRel.
 Require Import ExecEquiv.
 Require Import ExecOps.
+Require Import CfgOps.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -419,7 +420,7 @@ Admitted.
   labeling function during simple instruction steps.
 *)
 Lemma simrel_exec_mapper_iff_helper_2 sc e l
-    (U2V : same_label_u2v l (lab_t b))
+    (U2V : same_label_u2v (lab_t' b) l)
     (SAME : E_t a <-> E_t b)
     (E_NOT_A : e <> a)
     (E_NOT_B : e <> b)
@@ -430,11 +431,11 @@ Lemma simrel_exec_mapper_iff_helper_2 sc e l
     (NINB : ~E_t b) :
   WCore.exec_inst
     (exec_upd_lab
-      (exec_mapped G_t  mapper (lab_t  ∘ mapper))
-      b l)
+      (exec_mapped G_t  mapper (lab_t'  ∘ mapper))
+      a l)
     (exec_upd_lab
       (exec_mapped G_t' mapper (lab_t' ∘ mapper))
-      b l)
+      a l)
     (mapper ↑ sc)
     traces
     e.
@@ -448,8 +449,124 @@ Proof using.
   { now rewrite Combinators.compose_assoc,
                 ReordCommon.mapper_mapper_compose,
                 Combinators.compose_id_right. }
+  assert (LABEQ' : upd lab_t b l = upd (lab_t ∘ mapper) a l ∘ mapper).
+  { ins; unfold compose.
+    apply functional_extensionality; intro x.
+    tertium_non_datur (x = b) as [HEQ|HEQ]; subst.
+    { now rewrite ReordCommon.mapper_eq_b, !upds. }
+    rewrite !updo, ReordCommon.mapper_self_inv; ins.
+    intro F; rewrite <- ReordCommon.mapper_eq_b with (b := b) in F.
+    apply ReordCommon.mapper_inj in F; ins. }
+  destruct STEP; ins. red in add_event. desf.
   constructor; ins.
-
+  { replace ∅ with (mapper ↑₁ ∅); [| now rewrite set_collect_empty].
+    set (X := {|
+        WCore.sc := sc;
+        WCore.G := G_t;
+        WCore.GC := G_t';
+        WCore.cmt := ∅;
+    |}).
+    set (X' := {|
+        WCore.sc := mapper ↑ WCore.sc X;
+        WCore.G := exec_mapped (WCore.G X) mapper (lab_t' ∘ mapper);
+        WCore.GC := exec_mapped (WCore.GC X) mapper (lab_t' ∘ mapper);
+        WCore.cmt := mapper ↑₁ ∅;
+    |}).
+    change (mapper ↑ sc) with (WCore.sc X').
+    change (exec_mapped G_t mapper (lab_t' ∘ mapper)) with (WCore.G X').
+    change (exec_mapped G_t' mapper (lab_t' ∘ mapper)) with (WCore.GC X').
+    change (mapper ↑₁ ∅) with (WCore.cmt X').
+    apply cfg_upd_lab_wf.
+    { apply SIM_ACTS. }
+    { ins. unfold compose. now rewrite ReordCommon.mapper_eq_a. }
+    { ins. unfolder. intro F. desf.
+      rewrite ReordCommon.mapper_inj with (a := a) (b := b)
+                                          (x := y') (y := b) in F.
+      all: ins; try now rewrite ReordCommon.mapper_eq_b.
+      assert (NINB' : ~E_t' b).
+      { intro F'. apply add_event.(WCore.e_new) in F'. ins.
+        destruct F' as [HIN|HEQ]; desf. }
+      apply NINB'. apply start_wf.(WCore.wf_gc).(wf_rfE) in F.
+      ins. unfolder in F. desf. }
+    { ins. unfolder. intro F. desf.
+      rewrite ReordCommon.mapper_inj with (a := a) (b := b)
+                                          (x := x') (y := b) in F.
+      all: ins; try now rewrite ReordCommon.mapper_eq_b.
+      assert (NINB' : ~E_t' b).
+      { intro F'. apply add_event.(WCore.e_new) in F'. ins.
+        destruct F' as [HIN|HEQ]; desf. }
+      apply NINB'. apply start_wf.(WCore.wf_gc).(wf_rfE) in F.
+      ins. unfolder in F. desf. }
+    subst X'. apply ReordCommon.mapped_G_t_cfg.
+    all: ins.
+    all: try now apply SIM_ACTS.
+    { admit. (* TODO: infer as separate lemma *) }
+    { admit. (* TODO: should be easy *) }
+    { admit. (* TODO: infer as separate lemma *) }
+    { admit. (* TODO: infer as separate lemma *) }
+    admit. (* TODO: infer as separate lemma *)  }
+  { unfold WCore.cfg_add_event in add_event.
+    desf. exists (option_map mapper r), (option_map mapper w),
+               (mapper ↑₁ W1), (mapper ↑₁ W2).
+    constructor; ins.
+    all: try now apply add_event.
+    { unfolder. intros (e' & IN & MAP).
+      apply add_event.(WCore.e_notin); ins.
+      rewrite <- MAP, ReordCommon.mapper_neq; ins.
+      { assert (MAPPED : mapper e' <> mapper a).
+        { rewrite MAP. rewrite ReordCommon.mapper_eq_a. eauto. }
+        intros F. rewrite F in MAPPED. eauto. }
+      assert (MAPPED : mapper e' <> mapper b).
+      { rewrite MAP. rewrite ReordCommon.mapper_eq_b. eauto. }
+      intros F. rewrite F in MAPPED. eauto. }
+    { rewrite <- ReordCommon.mapper_neq with (x := e)
+                                             (a := a)
+                                             (b := b); ins.
+      rewrite <- set_collect_eq, <- set_collect_union.
+      now apply set_collect_more, add_event. }
+    { admit. } (* TODO: research *)
+    { rewrite add_event.(WCore.rf_new); ins.
+      rewrite !collect_rel_union.
+      repeat apply union_more; ins; unfold WCore.rf_delta_R, WCore.rf_delta_W;
+        [| desf; basic_solver 12].
+      destruct w as [w |]; ins; [| apply collect_rel_empty].
+      rewrite collect_rel_interE, collect_rel_cross,
+              collect_rel_singl, ReordCommon.mapper_neq with (x := e).
+      all: eauto using ReordCommon.mapper_inj.
+      apply inter_rel_more; ins. rewrite FIN_LAB.
+      rewrite <- exec_upd_lab_R, <- exec_upd_lab_W.
+      all: try now (rewrite <- FIN_LAB; eauto).
+      rewrite <- exec_mapped_R with (G := exec_upd_lab G_t b l),
+              <- exec_mapped_W with (G := exec_upd_lab G_t b l).
+      all: eauto using ReordCommon.mapper_surj. }
+    { rewrite add_event.(WCore.co_new); ins.
+      rewrite !collect_rel_union. repeat apply union_more; ins.
+      unfold WCore.co_delta; ins. unfold is_w, compose.
+      rewrite updo, ReordCommon.mapper_neq; ins. desf.
+      all: try apply collect_rel_empty.
+      rewrite !collect_rel_union, !collect_rel_cross,
+              set_collect_eq, ReordCommon.mapper_neq; ins. }
+    { rewrite add_event.(WCore.rmw_new); ins.
+      destruct start_wf, pfx; ins.
+      rewrite !collect_rel_union. repeat apply union_more; ins.
+      unfold WCore.rmw_delta; ins. rewrite <- pfx_sub.(sub_lab).
+      rewrite collect_rel_cross, !set_collect_interE.
+      all: eauto using ReordCommon.mapper_inj.
+      rewrite set_collect_eq_opt, set_collect_eq,
+              ReordCommon.mapper_neq; ins.
+      rewrite <- exec_upd_lab_R, <- exec_upd_lab_W.
+      all: try now (rewrite <- FIN_LAB; eauto).
+      rewrite <- exec_mapped_R with (G := exec_upd_lab G_t b l),
+              <- exec_mapped_W with (G := exec_upd_lab G_t b l).
+      all: eauto using ReordCommon.mapper_surj. }
+    replace ∅ with (mapper ↑₁ ∅); [| now rewrite set_collect_empty].
+    set (X := {|
+        WCore.sc := sc;
+        WCore.G := G_t';
+        WCore.GC := G_t';
+        WCore.cmt := ∅;
+    |}).
+    admit. (* TODO: wf helper *) }
   admit.
 Admitted.
 
