@@ -434,11 +434,14 @@ Proof using.
     all: subst; rewrite ?mapper_eq_a, ?mapper_eq_b in *.
     all: rewrite ?mapper_neq in *; ins.
     all: try now apply WF; eauto 11. }
-  {rewrite mapper_tid; ins.
+  { rewrite mapper_tid; ins.
     unfolder. ins. desf. now apply WF. }
-  { admit. }
+  { intros x HSET. unfolder in HSET.
+    desf. apply WF. unfolder; split; ins.
+    apply mapper_acts with (a := a) (b := b) in HSET0; ins.
+    unfolder in HSET0; desf. now rewrite mapper_self_inv. }
   all: apply mapped_G_t_cont; ins; apply WF.
-Admitted.
+Qed.
 
 End MapperCfg.
 
