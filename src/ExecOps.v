@@ -136,6 +136,17 @@ Proof using.
   all: subst; rupd; desf.
 Qed.
 
+Lemma exec_upd_lab_is_sc e l
+    (U2V : same_label_u2v (lab e) l) :
+  is_sc (upd lab e l) ≡₁ is_sc lab.
+Proof using.
+  unfold same_label_u2v in U2V.
+  unfold is_sc, mod; unfolder; splits.
+  all: intro x.
+  all: tertium_non_datur (x = e) as [HEQ|HEQ].
+  all: subst; rupd; do 2 desf.
+Qed.
+
 Lemma exec_upd_lab_R_ex e l
     (U2V : same_label_u2v (lab e) l) :
   @R_ex _ (upd lab e l) ≡₁ R_ex.
@@ -426,3 +437,61 @@ Proof using.
 Qed.
 
 End ExecOps.
+
+Section ExecOpsSub.
+
+Variable G G' : execution.
+
+Lemma exec_upd_lab_sub e l
+    (SUB : sub_execution G' G ∅₂ ∅₂) :
+  sub_execution (exec_upd_lab G' e l)
+                (exec_upd_lab G  e l)
+                ∅₂ ∅₂.
+Proof using.
+  constructor; ins.
+  all: try now apply SUB.
+  now rewrite SUB.(sub_lab).
+Qed.
+
+Lemma exec_add_event_nctrl_sub e
+    (WF : Wf G')
+    (NOTIN : ~acts_set G' e)
+    (SUB : sub_execution G' G ∅₂ ∅₂) :
+  sub_execution (exec_add_read_event_nctrl G' e)
+                (exec_add_read_event_nctrl G  e)
+                ∅₂ ∅₂.
+Proof using.
+  assert (INTER : acts_set G' ∩₁ (acts_set G ∪₁ eq e) ≡₁ acts_set G).
+  { rewrite set_inter_union_r, set_inter_absorb_l; try apply SUB.
+    rewrite <- set_union_empty_r with (s := acts_set G) at 2.
+    apply set_union_more; ins. basic_solver. }
+  constructor; ins.
+  all: try now apply SUB.
+  { apply set_union_mori; [apply SUB | ins]. }
+  all: rewrite 1?(wf_rmwE WF), 1?(wf_dataE WF), 1?(wf_addrE WF),
+               1?(wf_ctrlE WF), 1?(wf_rmw_depE WF), 1?(wf_rfE WF),
+               1?(wf_coE WF).
+  all: rewrite ?SUB.(sub_rmw), ?SUB.(sub_data), ?SUB.(sub_addr),
+               ?SUB.(sub_ctrl), ?SUB.(sub_rf), ?SUB.(sub_co),
+               ?SUB.(sub_frmw).
+  all: try now rewrite <- !restr_relE, restr_restr, INTER.
+  now rewrite seq_false_l, seq_false_r.
+Qed.
+
+Lemma exec_mapper_sub f lab'
+    (FINJ : inj_dom ⊤₁ f)
+    (SUB : sub_execution G' G ∅₂ ∅₂) :
+  sub_execution (exec_mapped G' f lab')
+                (exec_mapped G f lab')
+                ∅₂ ∅₂.
+Proof using.
+  constructor; ins.
+  { apply set_collect_mori; [ins | apply SUB]. }
+  { apply SUB. }
+  all: rewrite <- collect_rel_eqv, <- ?collect_rel_seq.
+  all: try now apply collect_rel_more, SUB.
+  all: try now eapply inj_dom_mori with (x := ⊤₁); eauto; ins.
+  now rewrite seq_false_l, seq_false_r.
+Qed.
+
+End ExecOpsSub.
