@@ -7,6 +7,7 @@ Require Import Core.
 Require Import TraceSwap.
 Require Import SubToFullExec.
 Require Import ExecOps.
+Require Import CfgOps.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -401,31 +402,6 @@ Notation "'data'" := (data G).
 Notation "'ctrl'" := (ctrl G).
 Notation "'addr'" := (addr G).
 
-Lemma mapped_G_t_pfx
-    (ANINIT : ~is_init a)
-    (BNINIT : ~is_init b)
-    (NEQ : a <> b)
-    (SAME : E a <-> E b)
-    (SAMEC : EC a <-> EC b)
-    (SAME_TID : tid a = tid b)
-    (PFX : exec_prefix GC G) :
-  exec_prefix
-    (exec_mapped GC mapper (labC  ∘ mapper))
-    (exec_mapped G  mapper (lab   ∘ mapper)).
-Proof using.
-  destruct PFX. constructor; ins.
-  constructor; ins.
-  { rewrite !mapper_acts; ins. apply pfx_sub. }
-  { apply pfx_sub. }
-  { now rewrite pfx_sub.(sub_lab). }
-  all: try rewrite <- collect_rel_eqv,
-                   <- !collect_rel_seq.
-  all: try now (apply collect_rel_more, pfx_sub).
-  all: try now eapply inj_dom_mori, mapper_inj; eauto; ins.
-  { now rewrite seq_false_l, seq_false_r. }
-  all: apply mapped_G_t_cont; ins.
-Qed.
-
 Lemma mapped_G_t_cfg
     (ANINIT : ~is_init a)
     (BNINIT : ~is_init b)
@@ -439,70 +415,29 @@ Lemma mapped_G_t_cfg
     (NARMW : ~codom_rel rmwC a)
     (NBRMW : ~dom_rel rmwC b)
     (WF : WCore.wf X) :
-  WCore.wf (WCore.Build_t
-    (mapper ↑ sc)
-    (exec_mapped G  mapper (lab ∘ mapper))
-    (exec_mapped GC mapper (labC  ∘ mapper))
-    (mapper ↑₁ cmt)
-  ).
+  WCore.wf (cfg_mapped X mapper (labC ∘ mapper)).
 Proof using.
-  assert (LABEQ : lab = lab ∘ mapper ∘ mapper).
+  apply cfg_mapped_wf; auto using mapper_inj.
+  { apply mapper_surj; ins. }
   { now rewrite Combinators.compose_assoc, mapper_mapper_compose,
                 Combinators.compose_id_right. }
-  assert (FSURF : forall y, exists x, y = mapper x).
-  { intro x; destruct (mapper_surj a b NEQ x); eauto. }
-  destruct WF. constructor; ins.
-  { rewrite cc_ctrl_empty. apply collect_rel_empty. }
-  { rewrite cc_addr_empty. apply collect_rel_empty. }
-  { rewrite cc_data_empty. apply collect_rel_empty. }
-  { apply mapped_G_t_wf; ins. }
-  { constructor; ins. destruct wf_scc; ins.
-    all: rewrite 1?exec_mapped_F with (G := GC),
-                 1?exec_mapped_is_sc with (G := GC).
-    all: eauto.
-    all: rewrite <- ?set_collect_interE.
-    all: rewrite <- ?collect_rel_eqv, <- ?collect_rel_seq.
-    all: try (apply collect_rel_more; ins).
-    all: try now eapply inj_dom_mori, mapper_inj; eauto; ins.
-    all: try now rewrite Combinators.compose_assoc, mapper_mapper_compose,
-              Combinators.compose_id_right; ins; apply pfx.
-    { apply wf_scc. }
-    { arewrite (sc ≡ restr_rel ⊤₁ sc) by basic_solver.
-      apply transitive_collect_rel_inj, transitive_restr, wf_scc.
-      apply mapper_inj; ins. }
-    { eapply is_total_more;[| | apply total_collect_rel, wf_scc ].
-      all: eauto. }
-    arewrite (sc ≡ restr_rel ⊤₁ sc) by basic_solver.
-    apply collect_rel_irr_inj, irreflexive_restr, wf_scc.
-    apply mapper_inj; ins. }
-  { rewrite <- mapper_is_init, <- set_collect_interE.
-    all: auto using mapper_inj.
-    apply set_collect_mori; ins. }
-  { arewrite (tid ↓₁ eq tid_init ≡₁ mapper ↑₁ (tid ↓₁ eq tid_init)).
-    { admit. }
-    rewrite <- set_collect_interE,
-            <- mapper_is_init with (a := a) (b := b).
-    all: eauto using mapper_inj.
-    apply set_collect_mori; ins. }
-  { apply set_collect_mori; ins. }
-  { unfold sb. rewrite restr_relE, seq_seq_inter; ins.
-    basic_solver. }
-  { rewrite restr_relE,
-            <- set_collect_interE, <- collect_rel_eqv; eauto.
-    rewrite <- !collect_rel_seq, <- restr_relE.
-    all: try now eapply inj_dom_mori, mapper_inj; eauto; ins.
-    apply collect_rel_mori; ins. }
-  { rewrite <- set_collect_codom, <- set_collect_union,
-            exec_mapped_R with (G := G), <- set_collect_interE.
-    all: eauto using mapper_inj.
-    apply set_collect_mori; ins. }
-  { rewrite <- collect_rel_eqv, <- collect_rel_seq,
-            exec_mapped_R with (G := G), <- set_collect_interE,
-            <- set_collect_codom.
-    all: eauto using mapper_inj.
-    { apply set_collect_mori; ins. }
-    eapply inj_dom_mori, mapper_inj; eauto; ins. }
-  apply mapped_G_t_pfx; ins.
+  { apply mapped_G_t_immsb_helper; ins. apply WF. }
+  { apply mapped_G_t_sb_helper; ins. apply WF. }
+  { auto using mapper_init_actid. }
+  { unfolder. intros x y XIN YIN XYEQ TIDEQ XINIT.
+    desf. rename y0 into x, y1 into y.
+    destruct (classic (x = a)) as [HEQXA|HEQXA],
+            (classic (y = b)) as [HEQYB|HEQYB],
+            (classic (y = a)) as [HEQYA|HEQYA],
+            (classic (x = b)) as [HEQXB|HEQXB].
+    all: try congruence.
+    all: subst; rewrite ?mapper_eq_a, ?mapper_eq_b in *.
+    all: rewrite ?mapper_neq in *; ins.
+    all: try now apply WF; eauto 11. }
+  {rewrite mapper_tid; ins.
+    unfolder. ins. desf. now apply WF. }
+  { admit. }
+  all: apply mapped_G_t_cont; ins; apply WF.
 Admitted.
 
 End MapperCfg.
