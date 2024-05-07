@@ -617,7 +617,7 @@ Lemma simrel_exec_mapper_iff e sc
     (E_NOT_B : e <> b)
     (CONS : WCore.is_cons G_t sc)
     (STEP : WCore.exec_inst G_t G_t' sc traces e)
-    (SIM_ACTS : reord_simrel_rw G_t G_s a b) :
+    (SIM : reord_simrel_rw G_t G_s a b) :
   exists G_s' sc',
     WCore.exec_inst G_s G_s' sc' traces' e.
 Proof using.
@@ -626,7 +626,14 @@ Proof using.
   all: try now (desf; exfalso; eauto).
   { exists (exec_mapped G_t' mapper (lab_t'  ∘ mapper)),
            (mapper ↑ sc).
-    admit. }
+    replace (G_s) with (exec_mapped G_t mapper (lab_t ∘ mapper)).
+    { replace lab_t with lab_t'.
+      { apply simrel_exec_mapper_iff_helper_1; ins.
+        admit. }
+      admit. }
+    symmetry. apply exeeqv_eq.
+    apply rsrw_struct_same1; ins.
+    all: admit. }
   admit.
 Admitted.
 
