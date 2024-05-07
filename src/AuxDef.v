@@ -22,6 +22,19 @@ Definition rmw_delta e e' : relation actid :=
 #[global]
 Hint Unfold rmw_delta : unfolderDb.
 
+Lemma upd_compose (A B C : Type) a b
+    (f : B -> C)
+    (g : A -> B)
+    (INJ : inj_dom ⊤₁ g) :
+  upd (f ∘ g) a b = (upd f (g a) b) ∘ g.
+Proof using.
+  unfold compose. apply functional_extensionality. intro x.
+  tertium_non_datur (x = a) as [HEQA|NEQA]; subst.
+  { now rewrite !upds. }
+  rewrite !updo; ins.
+  intro F. apply INJ in F; ins.
+Qed.
+
 Lemma set_collect_interE (A B : Type) (f : A -> B) s s'
     (INJ : inj_dom ⊤₁ f) :
   f ↑₁ (s ∩₁ s') ≡₁ f ↑₁ s ∩₁ f ↑₁ s'.

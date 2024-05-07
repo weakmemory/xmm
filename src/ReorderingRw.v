@@ -72,9 +72,10 @@ Record reord_simrel_rw_core G : Prop :=
   rsrw_lab_val_end : forall (INA : E_t a) (INB : E_t b),
                        val (lab G) a = val_t b; }.
 
+(* FIXME: srf edge can't be taken from G_t, as it has no b *)
 Record reord_simrel_rw_struct : Prop := {
   rsrw_lab_u2v : same_lab_u2v (lab_s ∘ mapper) lab_t;
-  rsrw_lab_val : forall e (NOTA : e <> a),
+  rsrw_lab_val : forall e (NOTB : e <> b),
                        (val_s ∘ mapper) e = val_t e;
   rsrw_threads : threads_set G_s ≡₁ threads_set G_t;
   rsrw_rmw : rmw_s ≡ mapper ↑ rmw_t;
@@ -107,65 +108,92 @@ Record reord_simrel_rw : Prop :=
 
 Hypothesis RSRW_ACTIDS : reord_simrel_rw_actids.
 
-(*
-Lemma rsrw_struct_same
-    (U2V  : same_label_u2v (lab_s a) ((lab_t ∘ mapper) a))
-    (SAME : E_t a <-> E_t b) :
-  reord_simrel_rw_struct <->
-    exec_equiv G_s (ReordCommon.mapped_G_t G_t a b (lab_s a)).
-Proof using.
-  split; [intro STRUCT | intro EQUIV].
-  { constructor; ins.
-    all: try now apply STRUCT.
-    apply functional_extensionality. intro x.
-    tertium_non_datur (x = a) as [HEQ|HEQ]; subst; rupd; ins.
-    apply same_label_u2v_val; apply STRUCT; ins. }
-  constructor; ins.
-  all: try now (exfalso; apply NOTINB, SAME, INA).
-  all: try now apply EQUIV.
-  { rewrite EQUIV.(exeeqv_lab).
-    unfold same_lab_u2v, same_lab_u2v_dom. ins.
-    tertium_non_datur (e = a) as [HEQ | HEQ]; subst; rupd; ins.
-    unfold same_label_u2v; desf. }
-  { rewrite EQUIV.(exeeqv_lab). unfold val; ins.
-    rupd. }
-  { symmetry. apply immediate_more.
-    rewrite <- ReordCommon.mapped_G_t_sb.
-    unfold sb. now rewrite EQUIV.(exeeqv_acts). }
-  now rewrite EQUIV.(exeeqv_acts).
+Lemma rsrw_a_neq_b : a <> b.
+Proof using RSRW_ACTIDS.
+  intro F. destruct RSRW_ACTIDS.
+  rewrite F in rsrw_a_is_w0.
+  unfold is_w, is_r in *. desf.
 Qed.
 
-Lemma rsrw_struct_niff
-    (U2V  : same_label_u2v (lab_s a) ((lab_t ∘ mapper) a))
+Lemma rsrw_struct_same1
     (INA : E_t a)
-    (NOTINB : ~E_t b)
-    (A_MAX : max_elt (sb G_t) a) :
+    (INB : E_t b)
+    (SAME : E_t a <-> E_t b)
+    (EQVLAB : lab_s = lab_t ∘ mapper) :
   reord_simrel_rw_struct <->
-    exec_equiv G_s (ReordCommon.mapped_G_t_with_b_srf G_t a b (lab_s a)).
+    exec_equiv G_s (exec_mapped G_t mapper (lab_t ∘ mapper)).
 Proof using RSRW_ACTIDS.
   split; [intro STRUCT | intro EQUIV].
   { constructor; ins.
     all: try now apply STRUCT.
-    apply functional_extensionality. intro x.
-    tertium_non_datur (x = a) as [HEQ|HEQ]; subst; rupd; ins.
-    apply same_label_u2v_val; apply STRUCT; ins. }
+    rewrite ReordCommon.mapper_acts; ins.
+      now apply STRUCT. }
   constructor; ins.
-  all: try now (exfalso; apply NOTINB, SAME, INA).
   all: try now apply EQUIV.
-  { rewrite EQUIV.(exeeqv_lab).
-    unfold same_lab_u2v, same_lab_u2v_dom. ins.
-    tertium_non_datur (e = a) as [HEQ | HEQ]; subst; rupd; ins.
-    unfold same_label_u2v; desf. }
-  { rewrite EQUIV.(exeeqv_lab). unfold val; ins.
-    rupd. }
-  { rewrite <- ReordCommon.mapped_G_t_imm_sb; ins.
-    all: try apply RSRW_ACTIDS.
-    unfold sb. now rewrite EQUIV.(exeeqv_acts). }
-  rewrite EQUIV.(exeeqv_acts). ins.
-  split; [| basic_solver]. rewrite set_inter_union_l.
-  intros x HIN. unfolder in HIN; desf.
-  exfalso; now apply RSRW_ACTIDS.(rsrw_ninit_b).
-Qed. *)
+  { rewrite EQVLAB.
+    rewrite Combinators.compose_assoc, ReordCommon.mapper_mapper_compose,
+            Combinators.compose_id_right by apply rsrw_a_neq_b.
+    do 3 red. ins. desf. }
+  { rewrite EQVLAB.
+    change (val (lab_t ∘ mapper) ∘ mapper)
+      with (val (lab_t ∘ mapper ∘ mapper)).
+    now rewrite Combinators.compose_assoc, ReordCommon.mapper_mapper_compose,
+            Combinators.compose_id_right by apply rsrw_a_neq_b. }
+  all: erewrite EQUIV.(exeeqv_acts _ _); ins.
+  all: now rewrite ReordCommon.mapper_acts.
+Qed.
+
+Lemma rsrw_struct_same2
+    (INA : ~E_t a)
+    (INB : ~E_t b)
+    (SAME : E_t a <-> E_t b)
+    (U2V  : same_label_u2v (lab_s a) (lab_t b))
+    (EQVLAB : lab_s = upd (lab_t ∘ mapper) a (lab_s a)) :
+  reord_simrel_rw_struct <->
+    exec_equiv G_s (exec_upd_lab
+      (exec_mapped G_t mapper (lab_t ∘ mapper))
+    a (lab_s a)).
+Proof using RSRW_ACTIDS.
+  split; [intro STRUCT | intro EQUIV].
+  { constructor; ins.
+    all: try now apply STRUCT.
+    rewrite ReordCommon.mapper_acts; ins.
+    now apply STRUCT. }
+  constructor; ins.
+  all: try now apply EQUIV.
+  { rewrite EQVLAB, upd_compose; [|apply ReordCommon.mapper_inj, rsrw_a_neq_b].
+    rewrite Combinators.compose_assoc, ReordCommon.mapper_mapper_compose,
+            Combinators.compose_id_right by apply rsrw_a_neq_b.
+    rewrite ReordCommon.mapper_eq_a. do 2 red. intros e _.
+    tertium_non_datur (e = b) as [HEQ|NEQ]; subst; rupd; ins.
+    red. desf. }
+  { rewrite EQVLAB, upd_compose; [|apply ReordCommon.mapper_inj, rsrw_a_neq_b].
+    rewrite ReordCommon.mapper_eq_a.
+    change (val (upd lab_t b (lab_s a) ∘ mapper) ∘ mapper)
+    with (val (upd lab_t b (lab_s a) ∘ mapper ∘ mapper)).
+    rewrite Combinators.compose_assoc, ReordCommon.mapper_mapper_compose,
+            Combinators.compose_id_right by apply rsrw_a_neq_b.
+    unfold val. rewrite updo; ins. }
+  all: erewrite EQUIV.(exeeqv_acts _ _); ins.
+  all: now rewrite ReordCommon.mapper_acts.
+Qed.
+
+(* FIXME: see simrel *)
+Lemma rsrw_struct_niff
+    (INA : E_t a)
+    (NOTINB : ~E_t b)
+    (U2V  : same_label_u2v (lab_s a) (lab_t b))
+    (EQVLAB : lab_s = upd (lab_t ∘ mapper) a (lab_s a)) :
+  reord_simrel_rw_struct <->
+    exec_equiv G_s (exec_add_rf
+      (exec_upd_lab
+        (exec_add_read_event_nctrl G_t b)
+        a (lab_s a))
+      (mapper ↑ (srf_t ⨾ ⦗eq b⦘))
+    ).
+Proof using RSRW_ACTIDS.
+  admit.
+Admitted.
 
 End SimRel.
 
