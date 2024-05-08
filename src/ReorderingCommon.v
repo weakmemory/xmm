@@ -21,6 +21,8 @@ From imm Require Import imm_bob.
 From imm Require Import SubExecution.
 From imm Require Import CombRelations.
 
+(* TODO: restore the lemmas about immediate program order *)
+
 Section Behavior.
 
 Variable G : execution.
@@ -33,7 +35,7 @@ Definition thread_terminated (t : thread_id) : Prop :=
   traces t (thread_trace G t).
 Definition machine_terminated := forall t, thread_terminated t.
 (* TODO: fix behavior to be a function from location to
-         ordered by co (possibly infinite) set of values written to the location *)
+         the co-last value. *)
 Definition behavior := co.
 
 End Behavior.

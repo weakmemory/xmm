@@ -22,6 +22,14 @@ Definition rmw_delta e e' : relation actid :=
 #[global]
 Hint Unfold rmw_delta : unfolderDb.
 
+Lemma same_lab_u2v_compose {A} lab1 lab2 (f : A -> actid)
+    (U2V : same_lab_u2v lab1 lab2) :
+  same_lab_u2v (lab1 ∘ f) (lab2 ∘ f).
+Proof using.
+  unfold same_lab_u2v, same_lab_u2v_dom in *.
+  ins. now apply U2V.
+Qed.
+
 Lemma upd_compose (A B C : Type) a b
     (f : B -> C)
     (g : A -> B)
