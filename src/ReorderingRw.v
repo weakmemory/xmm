@@ -91,7 +91,7 @@ Record reord_simrel_rw_struct : Prop := {
   rsrw_init : E_s ∩₁ is_init ≡₁ mapper ↑₁ E_t ∩₁ is_init;
   rsrw_actids1 : forall (SAME : E_t a <-> E_t b), E_s ≡₁ mapper ↑₁ E_t;
   rsrw_actids2 : forall (INA : E_t a) (NOTINB : ~E_t b),
-                 E_s ≡₁ mapper ↑₁ E_t ∪₁ eq b;
+                 E_s ≡₁ mapper ↑₁ E_t ∪₁ eq a;
   rsrw_rf1 : forall (SAME : E_t a <-> E_t b), rf_s ≡ mapper ↑ rf_t;
   rsrw_rf2 : forall (INA : E_t a) (NOTINB : ~ E_t b),
                     rf_s ≡ mapper ↑ rf_t ∪ (srf_s ⨾ ⦗eq b⦘);
@@ -233,9 +233,8 @@ Lemma rsrw_struct_niff
     exec_equiv G_s (exec_add_rf
       (exec_add_read_event_nctrl
         (exec_upd_lab
-          (exec_mapped G_t mapper
-            (lab_t ∘ mapper)) a
-          (lab_s a)) b)
+          (exec_mapped G_t mapper (lab_t ∘ mapper))
+          a (lab_s a)) a)
       (srf_s ⨾ ⦗eq b⦘)).
 Proof using RSRW_ACTIDS.
   split; [intro STRUCT | intro EQUIV].
@@ -257,10 +256,11 @@ Proof using RSRW_ACTIDS.
     rewrite Combinators.compose_assoc, ReordCommon.mapper_mapper_compose,
             Combinators.compose_id_right by apply rsrw_a_neq_b.
     unfold val. rupd. }
-  rewrite EQUIV.(exeeqv_acts _ _); ins. rewrite set_inter_union_l.
-  arewrite (eq b ∩₁ is_init ≡₁ ∅); [| now rewrite set_union_empty_r].
+  rewrite EQUIV.(exeeqv_acts _ _); ins.
+  rewrite set_inter_union_l.
+  arewrite (eq a ∩₁ is_init ≡₁ ∅); [| now rewrite set_union_empty_r].
   split; [| basic_solver]. intros x (EQ & INIT). subst.
-  red. now apply RSRW_ACTIDS.(rsrw_ninit_b).
+  red. now apply RSRW_ACTIDS.(rsrw_ninit_a).
 Qed.
 
 End SimRel.
@@ -341,7 +341,6 @@ Notation "'rmw_dep_t'" := (rmw_dep G_t).
 Notation "'data_t'" := (data G_t).
 Notation "'ctrl_t'" := (ctrl G_t).
 Notation "'addr_t'" := (addr G_t).
-Notation "'srf_t'" := (srf G_t).
 Notation "'W_t'" := (is_w lab_t).
 Notation "'R_t'" := (is_r lab_t).
 
@@ -375,6 +374,7 @@ Notation "'ctrl_s'" := (ctrl G_s).
 Notation "'addr_s'" := (addr G_s).
 Notation "'W_s'" := (is_w lab_s).
 Notation "'R_s'" := (is_r lab_s).
+Notation "'srf_s'" := (srf G_s).
 
 Notation "'mapper'" := (ReordCommon.mapper a b).
 
@@ -386,7 +386,7 @@ Hypothesis SWAPPED_TRACES : ReordCommon.traces_swapped traces traces' a b.
   At this point out labeling function must match up with
   the target execution.
 *)
-Lemma simrel_exec_mapper_iff_helper_1 sc e
+Lemma simrel_exec_iff_helper_1 sc e
     (SAME : E_t a <-> E_t b)
     (INA : E_t a)
     (INB : E_t b)
@@ -411,6 +411,13 @@ Proof using.
   { now rewrite Combinators.compose_assoc,
                 ReordCommon.mapper_mapper_compose,
                 Combinators.compose_id_right. }
+  assert (SAME' : E_t' a <-> E_t' b).
+  { destruct STEP. red in add_event. desf.
+    destruct add_event. ins.
+    split; intro HSET.
+    all: apply e_new; apply e_new in HSET.
+    all: unfolder; unfolder in HSET; desf.
+    all: now left. }
   constructor; ins.
   { replace ∅ with (mapper ↑₁ ∅); [| now rewrite set_collect_empty].
     apply ReordCommon.mapped_G_t_cfg with (X := {|
@@ -423,13 +430,6 @@ Proof using.
     all: try now apply STEP.
     { eapply rsrw_tid_a_tid_b; eauto. }
     { admit. (* TODO: infer as separate lemma *) }
-    (* TODO: move to a separate lemma *)
-    { destruct STEP. red in add_event. desf.
-      destruct add_event. ins.
-      split; intro HSET.
-      all: apply e_new; apply e_new in HSET.
-      all: unfolder; unfolder in HSET; desf.
-      all: now left. }
     { admit. (* TODO: infer as separate lemma *) }
     { admit. (* TODO: infer as separate lemma *) }
     admit. (* TODO: infer as separate lemma *)  }
@@ -505,7 +505,7 @@ Admitted.
   must be satisfied even right now, because we do not update our
   labeling function during simple instruction steps.
 *)
-Lemma simrel_exec_mapper_iff_helper_2 sc e l
+Lemma simrel_exec_iff_helper_2 sc e l
     (U2V : same_label_u2v (lab_t' b) l)
     (SAME : E_t a <-> E_t b)
     (E_NOT_A : e <> a)
@@ -683,13 +683,112 @@ Proof using.
   admit. (* TODO: Is_cons *)
 Admitted.
 
+Lemma simrel_exec_niff_helper sc e l sw
+    (U2V : same_label_u2v (lab_t' b) l)
+    (E_NOT_A : e <> a)
+    (E_NOT_B : e <> b)
+    (W_NOT_A : sw <> a)
+    (W_NOT_B : sw <> b)
+    (B_TID : tid a <> tid_init)
+    (CONS : WCore.is_cons G_t sc)
+    (STEP : WCore.exec_inst G_t G_t' sc traces e)
+    (SIM_ACTS : reord_simrel_rw_actids G_t a b)
+    (WB_LOC : same_loc (upd (lab_t' ∘ mapper) a l) a sw)
+    (WB_VAL : val (upd (lab_t' ∘ mapper) a l) sw =
+              val (upd (lab_t' ∘ mapper) a l) a)
+    (HWIN : E_t sw)
+    (W_IS : W_t sw)
+    (INA :   E_t a)
+    (NINB : ~E_t b)
+    (BINIT : forall l0 (LOC : loc lab_t' b = Some l0), E_t' (InitEvent l0)) :
+  WCore.exec_inst
+    (exec_add_rf
+      (exec_add_read_event_nctrl
+        (exec_upd_lab
+          (exec_mapped G_t mapper (lab_t' ∘ mapper))
+          a l) a)
+      (singl_rel sw a))
+      (exec_add_rf
+      (exec_add_read_event_nctrl
+        (exec_upd_lab
+          (exec_mapped G_t' mapper (lab_t' ∘ mapper))
+          a l) a)
+      (singl_rel sw a))
+    (mapper ↑ sc)
+    traces'
+    e.
+Proof using.
+  assert (INA' : E_t' a).
+  { destruct STEP; ins.
+    red in add_event. desf.
+    apply add_event.(WCore.e_new).
+    ins. now left. }
+  assert (NINB' : ~E_t' b).
+  { intro F'. destruct STEP; ins.
+    red in add_event. desf.
+    apply add_event.(WCore.e_new) in F'.
+    ins. destruct F' as [HIN|HEQ]; desf. }
+  assert (FIN_LAB : lab G_t' = lab_t).
+  { symmetry. destruct STEP, start_wf; ins. apply pfx. }
+  constructor; ins.
+  { replace ∅ with (mapper ↑₁ ∅); [| now rewrite set_collect_empty].
+    apply cfg_add_event_nctrl_wf with (X := {|
+      WCore.sc := mapper ↑ sc;
+      WCore.G := exec_upd_lab _ a l;
+      WCore.GC := exec_upd_lab _ a l;
+      WCore.cmt := mapper ↑₁ ∅
+    |}); ins.
+    { apply SIM_ACTS. }
+    { unfolder. intro F. desf.
+      apply NINB'. arewrite (b = y); ins.
+      apply ReordCommon.mapper_inj with (a := a) (b := b); ins.
+      { eapply rsrw_a_neq_b; eauto. }
+      now rewrite ReordCommon.mapper_eq_b. }
+    { unfold is_r, compose. rewrite upds.
+      red in U2V. desf; exfalso.
+      all: enough (BNOTR : ~R_t b) by apply BNOTR, SIM_ACTS.
+      all: now unfold is_r; rewrite <- FIN_LAB, Heq. }
+    { apply STEP. ins. }
+    { admit. (* TODO: a is sb-max *) }
+    { unfolder. exists (InitEvent l0).
+      split; [| apply ReordCommon.mapper_init_actid].
+      all: try now apply SIM_ACTS.
+      apply BINIT. unfold loc in *.
+      rewrite upds in LOC. red in U2V.
+      do 2 desf. }
+    { admit. (* Correct because while a is in codom (rf_t) --
+                it is not in mapped rf_t *) }
+    { unfolder. ins. desf. }
+    { unfolder. ins. desf. }
+    { unfolder. splits; ins; desf.
+      splits; eauto. left.
+      exists sw. split; ins.
+      rewrite ReordCommon.mapper_neq; ins. }
+    { unfolder. splits; ins; desf.
+      splits; eauto; unfold is_w, is_r, compose; rupd.
+      { rewrite ReordCommon.mapper_neq; ins.
+        now rewrite FIN_LAB. }
+      enough (BISR : R_t' b).
+      { unfold is_r in BISR; red in U2V; desf. }
+      rewrite FIN_LAB. apply SIM_ACTS. }
+    { unfolder. ins. desf. }
+    { unfolder. eauto. }
+    admit. }
+  { destruct STEP. red in add_event. desf. ins.
+    exists (option_map mapper r), (option_map mapper w),
+           (mapper ↑₁ W1), (mapper ↑₁ W2).
+    constructor; ins.
+    all: admit. }
+  admit.
+Admitted.
+
 (*
   Lemma that unites to big cases into one megacase: iff.
 
   This is when both events are either present or absent in the
   target execution.
 *)
-Lemma simrel_exec_mapper_iff e sc
+Lemma simrel_exec_iff e sc
     (SAME : E_t a <-> E_t b)
     (E_NOT_A : e <> a)
     (E_NOT_B : e <> b)
@@ -709,7 +808,7 @@ Proof using.
            (mapper ↑ sc).
     replace G_s with (exec_mapped G_t mapper (lab_t ∘ mapper)).
     { replace lab_t with lab_t' by ins.
-      apply simrel_exec_mapper_iff_helper_1; ins.
+      apply simrel_exec_iff_helper_1; ins.
       apply SIM. }
     symmetry. apply exeeqv_eq. apply rsrw_struct_same1; ins.
     all: try now apply SIM. }
@@ -723,14 +822,13 @@ Proof using.
   replace G_s with (exec_upd_lab
                       (exec_mapped G_t mapper (lab_t' ∘ mapper))
                     a (lab_s a)) at 1.
-  { apply simrel_exec_mapper_iff_helper_2; ins.
+  { apply simrel_exec_iff_helper_2; ins.
     { rewrite HEQLAB. now apply same_label_u2v_comm. }
     apply SIM. }
   rewrite HEQLAB.
   symmetry. apply exeeqv_eq. apply rsrw_struct_same2; ins.
   all: apply SIM.
 Qed.
-
 
 Lemma simrel_exec_not_a_not_b_same_helper sc e
     (SAME : E_t a <-> E_t b)
