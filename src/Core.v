@@ -113,6 +113,36 @@ Notation "'rf'" := (rf G).
 Notation "'EC'" := (acts_set GC).
 Notation "'E'" := (acts_set G).
 
+(*
+  Structural properties, that have not much
+  to do with the actual model in question.
+*)
+Record wf_struct : Prop := {
+  wstru_cc_ctrl_empty : ctrlc ≡ ∅₂;
+  wstru_struct_cc_addr_empty : addrc ≡ ∅₂;
+  wstru_cc_data_empty : datac ≡ ∅₂;
+  wstru_g_cont : contigious_actids G;
+  wstru_gc_cont : contigious_actids GC;
+  wstru_wf_g_init : EC ∩₁ is_init ⊆₁ E;
+  wstru_wf_gc_acts : (tid ↓₁ eq tid_init) ∩₁ EC ⊆₁ is_init;
+}.
+
+(*
+  Actual propeties that are important for
+  the model to function.
+*)
+Record wf_props := {
+  wprop_wf_gc : Wf GC;
+  wprop_wf_scc : wf_sc GC sc;
+  wprop_g_sub_gc : sub_execution GC G ∅₂ ∅₂;
+  wprop_C_sub_EC : cmt ⊆₁ EC;
+  wprop_sub_sb : restr_rel (cmt ∩₁ E) sbc ⊆ sb;
+  wprop_sub_rf : restr_rel (cmt ∩₁ E) rfc ⊆ rf;
+  wprop_sub_rfD : E ∩₁ R ⊆₁ codom_rel rf ∪₁ cmt;
+  wprop_sub_rfW : cmt ∩₁ R ⊆₁ codom_rel (⦗cmt⦘ ⨾ rfc);
+}.
+
+(* TODO: replace this with `wf_struct /\ wf_props`? *)
 Record wf : Prop := {
   cc_ctrl_empty : ctrlc ≡ ∅₂;
   cc_addr_empty : addrc ≡ ∅₂;
@@ -131,6 +161,15 @@ Record wf : Prop := {
 
   pfx : exec_prefix GC G;
 }.
+
+Lemma wf_iff_struct_and_props :
+  wf <-> << STRUCT : wf_struct >> /\ << PROPS : wf_props >>.
+Proof using.
+  split; [intros WF | intros STRUPROPS].
+  { split; constructor; ins; apply WF. }
+  constructor; ins; try apply STRUPROPS.
+  constructor; ins; apply STRUPROPS.
+Qed.
 
 End CoreDefs.
 
