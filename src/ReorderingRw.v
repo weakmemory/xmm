@@ -72,7 +72,6 @@ Record reord_simrel_rw_core : Prop :=
   rsrw_a_max : forall (INA : E_t a) (NOTINB : ~E_t b),
                   max_elt (sb G_t) a; }.
 
-(* FIXME: srf edge can't be taken from G_t, as it has no b *)
 Record reord_simrel_rw_struct : Prop := {
   rsrw_lab_val_end : forall (INA : E_t a) (INB : E_t b),
                        val lab_s a = val_t b;
@@ -82,7 +81,7 @@ Record reord_simrel_rw_struct : Prop := {
   rsrw_threads : threads_set G_s ≡₁ threads_set G_t;
   rsrw_rmw : rmw_s ≡ mapper ↑ rmw_t;
 
-  (* FIXME: do we need this? *)
+  (* TODO: infer *)
   (* rsrw_sb1 : forall (SAME : E_t a <-> E_t b), immediate sb_s ≡ immediate sb_t;
   rsrw_sb2 : forall (INA : E_t a) (NOTINB : ~E_t b),
                 immediate sb_s ≡ immediate sb_t ∪ singl_rel a b;
