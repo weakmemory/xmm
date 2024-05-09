@@ -731,7 +731,9 @@ Proof using.
   { symmetry. destruct STEP, start_wf; ins. apply pfx. }
   constructor; ins.
   { replace ∅ with (mapper ↑₁ ∅); [| now rewrite set_collect_empty].
-    apply cfg_add_event_nctrl_wf with (X := {|
+    apply WCore.wf_iff_struct_and_props; split.
+    { admit. }
+    apply cfg_add_event_nctrl_wf_props with (X := {|
       WCore.sc := mapper ↑ sc;
       WCore.G := exec_upd_lab _ a l;
       WCore.GC := exec_upd_lab _ a l;
@@ -772,6 +774,35 @@ Proof using.
       rewrite FIN_LAB. apply SIM_ACTS. }
     { unfolder. ins. desf. }
     { unfolder. eauto. }
+    { apply cfg_upd_lab_wf_props with (e := a) (l := l) (X := {|
+        WCore.sc := mapper ↑ sc;
+        WCore.G := exec_mapped G_t mapper (lab_t' ∘ mapper);
+        WCore.GC := exec_mapped G_t' mapper (lab_t' ∘ mapper);
+        WCore.cmt := mapper ↑₁ ∅;
+      |}); ins.
+      { apply SIM_ACTS. }
+      { admit. }
+      { admit. }
+      { admit. }
+      apply cfg_mapped_wf_props with (X := {|
+        WCore.sc := sc;
+        WCore.G := G_t;
+        WCore.GC := G_t';
+        WCore.cmt := ∅;
+      |}); ins.
+      { admit. }
+      { admit. }
+      { admit. }
+      { admit. }
+      { admit. }
+      { admit. }
+      { admit. }
+      { admit. }
+      { admit. }
+      { admit. }
+      { admit. }
+      admit. }
+    { admit. }
     admit. }
   { destruct STEP. red in add_event. desf. ins.
     exists (option_map mapper r), (option_map mapper w),
