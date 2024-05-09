@@ -152,19 +152,18 @@ Proof using.
   assert (NINIT' : tid h <> tid_init).
   { intro F. apply NINIT. apply WF.(WCore.wf_gc_acts).
     unfolder. ins. }
-  eapply add_event_to_contigious; eauto.
+  eapply add_event_to_contigious; eauto; ins.
   { apply WF. }
   intros x HSET.
   tertium_non_datur (is_init x) as [XINIT|XNIT]; [now right | left].
   tertium_non_datur (E x) as [XIN|NXIN].
   { split; ins.
-    destruct ext_sb_tid_init with (x := x) (y := h).
-    all: unfold same_tid; unfolder; eauto; now exfalso. }
+    destruct ext_sb_tid_init with (x := x) (y := h); ins. }
   assert (XIN : E' x).
   { apply ext_sb_dense with (e2 := h); ins; try apply WF.
-    destruct x, h; ins; desf. }
+    unfold ext_sb in HSET. destruct x, h; ins; desf. }
   exfalso. apply NEXT with (x := x).
-  all: unfold sb; unfolder; splits; ins.
+  all: unfold sb; unfolder; ins.
 Qed.
 
 Lemma delta_G_prefix

@@ -72,6 +72,33 @@ Definition cfg_mapped f lab' : WCore.t := {|
   WCore.cmt := f ↑₁ cmt;
 |}.
 
+Lemma cfg_upd_lab_wf_props e l
+    (ENINIT : ~is_init e)
+    (U2V : same_label_u2v (labC e) l)
+    (NRFR : ~codom_rel rfC e)
+    (NRFL : ~dom_rel rfC e)
+    (WF : WCore.wf_props X) :
+  WCore.wf_props (cfg_upd_lab e l).
+Proof using.
+  constructor; ins.
+  all: try now apply WF.
+  { apply exec_upd_lab_wf; ins. apply WF. }
+  { constructor; ins; try now apply WF.
+    all: rewrite exec_upd_lab_F, exec_upd_lab_is_sc; ins.
+    all: apply WF. }
+  { apply exec_upd_lab_sub, WF. }
+  all: rewrite exec_upd_lab_R; [apply WF |].
+  all: now rewrite WF.(WCore.wprop_g_sub_gc).(sub_lab).
+Qed.
+
+Lemma cfg_upd_lab_wf_struct e l
+    (WF : WCore.wf_struct X) :
+  WCore.wf_struct (cfg_upd_lab e l).
+Proof using.
+  constructor; ins.
+  all: try now apply WF.
+Qed.
+
 Lemma cfg_upd_lab_wf e l
     (ENINIT : ~is_init e)
     (U2V : same_label_u2v (labC e) l)
@@ -80,17 +107,95 @@ Lemma cfg_upd_lab_wf e l
     (WF : WCore.wf X) :
   WCore.wf (cfg_upd_lab e l).
 Proof using.
+  apply WCore.wf_iff_struct_and_props.
+  apply WCore.wf_iff_struct_and_props in WF.
+  desf; split.
+  { apply cfg_upd_lab_wf_struct; ins. }
+  apply cfg_upd_lab_wf_props; ins.
+Qed.
+
+Lemma cfg_add_event_nctrl_wf_props e delta_rf
+    (ENINIT : ~is_init e)
+    (NINIT' : tid e <> tid_init)
+    (HIN : ~EC e)
+    (IS_R : RC e)
+    (ETHR : threads_set GC (tid e))
+    (SBMAX : (fun x => ext_sb x e) ⊆₁ E ∩₁ same_tid e ∪₁ is_init)
+    (HLOC : forall l (LOC : locC e = Some l), EC (InitEvent l))
+    (NEW_RF : forall x
+                  (DOM1 : dom_rel rfC⁻¹ x)
+                  (DOM2 : dom_rel delta_rf⁻¹ x),
+                False)
+    (FUNEQ : funeq valC delta_rf)
+    (FUNC : functional delta_rf⁻¹)
+    (DELTA_RF_WFE : delta_rf ≡ ⦗E ∪₁ eq e⦘ ⨾ delta_rf ⨾ ⦗E ∪₁ eq e⦘)
+    (DELTA_RF_WFD : delta_rf ≡ ⦗WC⦘ ⨾ delta_rf ⨾ ⦗RC⦘)
+    (DELTA_RF : delta_rf ⊆ same_locC)
+    (DELTA_RF_CODOM : codom_rel delta_rf e)
+    (WF : WCore.wf_props X)
+    (NCTRL : ctrlC ≡ ∅₂)
+    (RMW_SAVED : rmwC ⊆ immediate (@sb (exec_add_read_event_nctrl GC e))) :
+  WCore.wf_props (cfg_add_read_event_nctrl e delta_rf).
+Proof using.
+  assert (HINC : ~cmt e).
+  { intro F. apply WF.(WCore.wprop_C_sub_EC) in F. ins. }
+  assert (CMTEEQ : cmt ∩₁ eq e ≡₁ ∅) by basic_solver.
+  assert (SUB : E ⊆₁ EC) by apply WF.
   constructor; ins.
-  all: try now apply WF.
-  { apply exec_upd_lab_wf; ins. apply WF. }
-  { constructor; ins; try now apply WF.
-    all: rewrite exec_upd_lab_F, exec_upd_lab_is_sc by ins.
+  { apply exec_add_rf_wf, exec_add_event_wf_nctrl; ins.
+    all: try now apply WF.
+    rewrite DELTA_RF_WFE, <- !restr_relE, restr_restr.
+    rewrite set_inter_absorb_r; ins. basic_solver. }
+  { constructor; ins.
+    all: try now apply WF.
+    { rewrite WF.(WCore.wprop_wf_scc).(imm_s.wf_scE).
+      rewrite <- !restr_relE, restr_restr.
+      apply restr_rel_more; ins. basic_solver. }
+    rewrite !set_inter_union_l.
+    arewrite (eq e ∩₁ (fun e => is_f labC e) ≡₁ ∅).
+    { unfold is_r, is_f in *; desf. basic_solver. }
+    rewrite set_inter_empty_l, set_union_empty_r. apply WF. }
+  { apply exec_add_rf_sub; ins.
+    apply exec_add_event_nctrl_sub; ins.
     all: apply WF. }
-  all: try now rewrite exec_upd_lab_R; [apply WF |
-    rewrite WF.(WCore.pfx).(pfx_sub).(sub_lab)].
+  { rewrite WF.(WCore.wprop_C_sub_EC). basic_solver. }
+  { transitivity sb; [| unfold sb; ins; basic_solver].
+    rewrite set_inter_union_r, CMTEEQ, set_union_empty_r.
+    eenough (SBEQ : restr_rel _ _ ≡ restr_rel (cmt ∩₁ E) sbC).
+    { rewrite SBEQ. apply WF. }
+    unfold sb; ins. rewrite <- !restr_relE, !restr_restr.
+    rewrite !set_inter_absorb_l with (s := cmt ∩₁ E); ins.
+    all: basic_solver. }
+  { rewrite set_inter_union_r, CMTEEQ, set_union_empty_r.
+    unfolder; intros x y RFC; desf; try now right.
+    left. apply WF. unfolder; eauto. }
+  { rewrite set_inter_union_l. intros x [INE | ISE].
+    { destruct WF.(WCore.wprop_sub_rfD) with (x := x) as [DOM|CMT]; ins.
+      all: try now right.
+      left. apply codom_union. now left. }
+    left. apply codom_union. right. unfolder in ISE; desf. }
+  transitivity (codom_rel (⦗cmt⦘ ⨾ rfC)); [apply WF | basic_solver].
+Qed.
+
+Lemma cfg_add_event_nctrl_wf_struct e delta_rf
+    (SUBE : E ⊆₁ EC)
+    (ENINIT : ~is_init e)
+    (NINIT' : tid e <> tid_init)
+    (GC_INIT : EC ∩₁ is_init ⊆₁ E)
+    (GC_TIDS : tid ↓₁ eq tid_init ∩₁ EC ⊆₁ is_init)
+    (MAXSB : (fun x => ext_sb x e) ⊆₁ acts_set G ∩₁ same_tid e ∪₁ is_init)
+    (WF : WCore.wf_struct X) :
+  WCore.wf_struct (cfg_add_read_event_nctrl e delta_rf).
+Proof using.
   constructor; ins.
-  all: try now apply exec_upd_lab_cont, WF.
-  apply exec_upd_lab_sub, WF.
+  all: try apply exec_add_rf_cont, exec_add_event_cont; ins.
+  all: try now apply WF.
+  { transitivity (E ∩₁ same_tid e ∪₁ is_init); ins.
+    basic_solver. }
+  { rewrite set_inter_union_l, GC_INIT.
+    arewrite (eq e ∩₁ is_init ≡₁ ∅); basic_solver. }
+  rewrite set_inter_union_r, GC_TIDS.
+  arewrite (tid ↓₁ eq tid_init ∩₁ eq e ≡₁ ∅); basic_solver.
 Qed.
 
 Lemma cfg_add_event_nctrl_wf e delta_rf
@@ -114,64 +219,86 @@ Lemma cfg_add_event_nctrl_wf e delta_rf
     (WF : WCore.wf X) :
   WCore.wf (cfg_add_read_event_nctrl e delta_rf).
 Proof using.
-  assert (HINE : ~E e).
-  { intro F. apply WF.(WCore.pfx) in F. ins. }
-  assert (HINC : ~cmt e).
-  { intro F. apply WF.(WCore.C_sub_EC) in F. ins. }
-  assert (CMTEEQ : cmt ∩₁ eq e ≡₁ ∅) by basic_solver.
-  assert (EEEQ : eq e ∩₁ E ≡₁ ∅) by basic_solver.
+  apply WCore.wf_iff_struct_and_props.
+  apply WCore.wf_iff_struct_and_props in WF.
+  desf; split.
+  { apply cfg_add_event_nctrl_wf_struct; ins.
+    all: try now apply STRUCT.
+    apply PROPS. }
+  apply cfg_add_event_nctrl_wf_props; ins.
+  { apply STRUCT. }
+  transitivity (immediate sbC); try now apply PROPS.
+  unfold sb. ins. unfolder. splits; ins; desf.
+  all: eauto 11.
+  eapply HIN, ext_sb_dense; eauto.
+  now apply STRUCT.
+Qed.
+
+Lemma cfg_mapped_wf_props f lab'
+    (FINJ : inj_dom ⊤₁ f)
+    (FSURJ : forall y, exists x, y = f x)
+    (HLAB : labC = lab' ∘ f)
+    (FMAPINIT : forall l, f (InitEvent l) = InitEvent l)
+    (PRESRVE_RMW : f ↑ rmwC ⊆ immediate (@sb (exec_mapped GC f lab')))
+    (PRESERVE_RMW_DEP : f ↑ rmw_depC ⊆ (@sb (exec_mapped GC f lab')))
+    (MAPIDS : forall a b, (f ↑₁ EC) a -> (f ↑₁ EC) b ->
+              a <> b -> tid a = tid b -> ~is_init a -> index a <> index b)
+    (NNEW_TIDS : (tid ∘ f) ↑₁ EC ⊆₁ threads_set GC)
+    (NCTRL : ctrlC ≡ ∅₂)
+    (NDATA : dataC ≡ ∅₂)
+    (NADDR : addrC ≡ ∅₂)
+    (WF : WCore.wf_props X) :
+  WCore.wf_props (cfg_mapped f lab').
+Proof using.
   constructor; ins.
-  all: try now apply WF.
-  { apply exec_add_rf_wf, exec_add_event_wf_nctrl; ins.
-    all: try now apply WF.
-    { rewrite DELTA_RF_WFE, <- !restr_relE, restr_restr.
-      rewrite set_inter_absorb_r; ins. apply set_union_mori.
-      all: ins; apply WF. }
-    unfold sb; ins. unfolder. intros e' SB. desf.
-    all: try now eapply ext_sb_irr; eauto.
-    apply HIN. apply ext_sb_dense with (e2 := e'); ins.
-    apply WF. }
-  { constructor; ins.
-    all: try now apply WF.
-    { rewrite WF.(WCore.wf_scc).(imm_s.wf_scE).
-      rewrite <- !restr_relE, restr_restr.
-      apply restr_rel_more; ins. basic_solver. }
-    rewrite !set_inter_union_l.
-    arewrite (eq e ∩₁ (fun e => is_f labC e) ≡₁ ∅).
-    { unfold is_r, is_f in *; desf. basic_solver. }
-    rewrite set_inter_empty_l, set_union_empty_r. apply WF. }
-  { rewrite set_inter_union_l, WF.(WCore.wf_g_init). basic_solver. }
-  { rewrite set_inter_union_r, WF.(WCore.wf_gc_acts).
-    rewrite <- set_union_empty_r with (s := is_init) at 2.
-    apply set_union_mori; ins. unfolder. basic_solver. }
-  { rewrite WF.(WCore.C_sub_EC). basic_solver. }
-  { rewrite set_inter_union_r, CMTEEQ, set_union_empty_r.
-    unfold sb; ins. rewrite <- !restr_relE, restr_restr.
-    rewrite set_inter_union_l, <- !set_interA.
-    arewrite (eq e ∩₁ cmt ∩₁ E ≡₁ ∅); [basic_solver |].
-    arewrite (EC ∩₁ cmt ∩₁ E ≡₁ cmt ∩₁ E).
-    { split; [basic_solver |]. unfolder; ins; desf.
-      splits; ins. now apply WF. }
-    rewrite set_union_empty_r.
-    apply restr_rel_mori; [basic_solver | ins]. }
-  { rewrite set_inter_union_r, CMTEEQ, set_union_empty_r.
-    unfolder; intros x y RFC; desf; try now right.
-    left. apply WF. unfolder; eauto. }
-  { rewrite set_inter_union_l. intros x [INE | ISE].
-    { destruct WF.(WCore.sub_rfD) with (x := x) as [DOM|CMT]; ins.
-      all: try now right.
-      left. apply codom_union. now left. }
-    left. apply codom_union. right. unfolder in ISE; desf. }
-  { transitivity (codom_rel (⦗cmt⦘ ⨾ rfC)); [apply WF | basic_solver]. }
+  { apply exec_mapped_wf; ins; try now apply WF.
+    all: now rewrite ?NDATA, ?NADDR, collect_rel_empty. }
+  all: try apply imm_s.Build_wf_sc; ins.
+  all: rewrite 1?exec_mapped_F with (G := GC) (f := f),
+               1?exec_mapped_R with (G := GC) (f := f),
+               1?exec_mapped_is_sc with (G := GC) (f := f),
+               <- 1?COLINIT, ?restr_relE, <- ?set_collect_interE,
+               <- ?collect_rel_eqv, <- ?collect_rel_seq,
+               <- ?set_collect_codom, <- ?set_collect_union.
+  all: eauto.
+  all: try now eapply inj_dom_mori with (x := ⊤₁); eauto; ins.
+  all: try now (apply collect_rel_more; ins; apply WF).
+  all: try now (apply set_collect_mori; ins; apply WF).
+  { arewrite (sc ≡ restr_rel ⊤₁ sc) by basic_solver.
+    apply transitive_collect_rel_inj, transitive_restr, WF; ins. }
+  { apply total_collect_rel, WF. }
+  { arewrite (sc ≡ restr_rel ⊤₁ sc) by basic_solver.
+    apply collect_rel_irr_inj, irreflexive_restr, WF; ins. }
+  { apply exec_mapped_sub; ins. apply WF. }
+  { assert (SUBE : E ⊆₁ EC) by apply WF.
+    unfold sb. ins.
+    rewrite collect_rel_eqv, <- !restr_relE.
+    rewrite restr_restr, <- set_collect_interE; ins.
+    rewrite set_inter_absorb_l; basic_solver. }
+  { apply collect_rel_mori. ins.
+    rewrite <- restr_relE. apply WF. }
+  all: rewrite <- WF.(WCore.wprop_g_sub_gc).(sub_lab).
+  all: now (apply set_collect_mori; ins; apply WF).
+Qed.
+
+Lemma cfg_mapped_wf_struct f lab'
+    (FINJ : inj_dom ⊤₁ f)
+    (NEW_G_CONT : contigious_actids (exec_mapped G f lab'))
+    (NEW_GC_CONT : contigious_actids (exec_mapped GC f lab'))
+    (NINIT_INITIDS : (tid ↓₁ eq tid_init) ∩₁ (f ↑₁ EC) ⊆₁ is_init)
+    (FMAPINIT : forall l, f (InitEvent l) = InitEvent l)
+    (WF : WCore.wf_struct X) :
+  WCore.wf_struct (cfg_mapped f lab').
+Proof using.
   constructor; ins.
-  { apply exec_add_rf_sub; ins.
-    apply exec_add_event_nctrl_sub; ins.
-    all: apply WF. }
-  all: apply exec_add_rf_cont, exec_add_event_cont.
-  all: ins; try now apply WF.
-  intros x SB. apply SBMAX in SB. destruct SB as [INE | INIT].
-  { left. split; [apply WF.(WCore.pfx) |]; apply INE. }
-  now right.
+  all: try now (rewrite <- collect_rel_empty; apply collect_rel_more;
+                ins; apply WF).
+  arewrite (is_init ≡₁ f ↑₁ is_init).
+  { unfold is_init. unfolder; splits; ins; desf.
+    { eexists; split; eauto; ins. }
+    congruence. }
+  rewrite <- set_collect_interE; ins.
+  apply set_collect_mori; [ins | apply WF].
 Qed.
 
 Lemma cfg_mapped_wf f lab'
@@ -190,44 +317,12 @@ Lemma cfg_mapped_wf f lab'
     (WF : WCore.wf X) :
   WCore.wf (cfg_mapped f lab').
 Proof using.
-  assert (COLINIT : f ↑₁ is_init ≡₁ is_init).
-  { unfold is_init. unfolder. split; ins; desf.
-    { rewrite ?FMAPINIT in Heq. congruence. }
-    eexists. split; eauto. ins. }
-  constructor; ins.
-  { now rewrite WF.(WCore.cc_ctrl_empty), collect_rel_empty. }
-  { now rewrite WF.(WCore.cc_addr_empty), collect_rel_empty. }
-  { now rewrite WF.(WCore.cc_data_empty), collect_rel_empty. }
-  { apply exec_mapped_wf; ins.
-    all: try now apply WF.
-    { now rewrite WF.(WCore.cc_data_empty), collect_rel_empty. }
-    now rewrite WF.(WCore.cc_addr_empty), collect_rel_empty. }
-  all: try apply imm_s.Build_wf_sc; ins.
-  all: rewrite 1?exec_mapped_F with (G := GC) (f := f),
-               1?exec_mapped_R with (G := GC) (f := f),
-               1?exec_mapped_is_sc with (G := GC) (f := f),
-               <- 1?COLINIT, ?restr_relE, <- ?set_collect_interE,
-               <- ?collect_rel_eqv, <- ?collect_rel_seq,
-               <- ?set_collect_codom, <- ?set_collect_union.
-  all: eauto.
-  all: try now eapply inj_dom_mori with (x := ⊤₁); eauto; ins.
-  all: try now (apply collect_rel_more; ins; apply WF).
-  all: try now (apply set_collect_mori; ins; apply WF).
-  { arewrite (sc ≡ restr_rel ⊤₁ sc) by basic_solver.
-    apply transitive_collect_rel_inj, transitive_restr, WF; ins. }
-  { apply total_collect_rel, WF. }
-  { arewrite (sc ≡ restr_rel ⊤₁ sc) by basic_solver.
-    apply collect_rel_irr_inj, irreflexive_restr, WF; ins. }
-  { assert (SUBE : E ⊆₁ EC) by apply WF.
-    unfold sb. ins. unfolder. intros x y SB. desf.
-    splits; ins; eauto. rewrite FINJ with (x := y'0) (y := y1).
-    all: try red; eauto. }
-  { rewrite <- restr_relE.
-    apply collect_rel_mori; ins; apply WF. }
-  all: try rewrite <- WF.(WCore.pfx).(pfx_sub).(sub_lab).
-  all: try now (apply set_collect_mori; ins; apply WF).
-  constructor; ins.
-  apply exec_mapped_sub; ins. apply WF.
+  apply WCore.wf_iff_struct_and_props.
+  apply WCore.wf_iff_struct_and_props in WF.
+  desf; split.
+  { apply cfg_mapped_wf_struct; ins. }
+  apply cfg_mapped_wf_props; ins.
+  all: apply STRUCT.
 Qed.
 
 End CfgOps.

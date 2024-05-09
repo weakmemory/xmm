@@ -341,13 +341,15 @@ Qed.
 Lemma add_event_to_contigious e G G'
     (NOT_INIT : tid e <> tid_init)
     (CONT : contigious_actids G)
-    (NEW : ~ acts_set G e)
     (ADD : acts_set G' ≡₁ acts_set G ∪₁ eq e)
     (MAXSB : (fun x => ext_sb x e) ⊆₁ acts_set G ∩₁ same_tid e ∪₁ is_init) :
   contigious_actids G'.
 Proof using.
   unfold contigious_actids in *. intros t NINIT.
   specialize CONT with t. destruct (CONT NINIT) as [N HEQ].
+  tertium_non_datur (acts_set G e) as [IN|NEW].
+  { exists N. rewrite ADD, set_union_absorb_r; ins.
+    now apply set_subset_eq. }
   tertium_non_datur (t = (tid e)) as [TEQ|TEQ]; subst;
     [exists (1 + N) | exists N].
   all: rewrite ADD, set_inter_union_l.
