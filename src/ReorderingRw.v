@@ -732,7 +732,27 @@ Proof using.
   constructor; ins.
   { replace ∅ with (mapper ↑₁ ∅); [| now rewrite set_collect_empty].
     apply WCore.wf_iff_struct_and_props; split.
-    { admit. }
+    { destruct STEP.
+      constructor; ins.
+      { now rewrite start_wf.(WCore.cc_ctrl_empty), collect_rel_empty. }
+      { now rewrite start_wf.(WCore.cc_addr_empty), collect_rel_empty. }
+      { now rewrite start_wf.(WCore.cc_data_empty), collect_rel_empty. }
+      { unfold contigious_actids. intros t HTID.
+        admit. }
+      { unfold contigious_actids. intros t HTID.
+        admit. }
+      { rewrite set_inter_union_l.
+        arewrite (eq a ∩₁ is_init ≡₁ ∅).
+        { split; [| basic_solver]. unfolder; ins; desf.
+          now eapply SIM_ACTS. }
+        transitivity (mapper ↑₁ E_t); [| basic_solver].
+        rewrite set_union_empty_r.
+        rewrite <- ReordCommon.mapper_is_init with (a := a) (b := b).
+        all: try now apply SIM_ACTS.
+        rewrite <- set_collect_interE.
+        { apply set_collect_mori, start_wf; ins. }
+        eapply ReordCommon.mapper_inj, rsrw_a_neq_b; eauto. }
+      admit. (*  Can infer that a's tid is not tid_init *) }
     apply cfg_add_event_nctrl_wf_props with (X := {|
       WCore.sc := mapper ↑ sc;
       WCore.G := exec_upd_lab _ a l;
@@ -808,6 +828,18 @@ Proof using.
     exists (option_map mapper r), (option_map mapper w),
            (mapper ↑₁ W1), (mapper ↑₁ W2).
     constructor; ins.
+    { unfolder; intro F; desf.
+      apply add_event. ins. rewrite ReordCommon.mapper_neq; ins.
+      { intro F'; subst; ins.
+        now rewrite ReordCommon.mapper_eq_a in E_NOT_B. }
+      intro F'; subst; ins. }
+    { apply add_event. }
+    { rewrite add_event.(WCore.e_new). ins.
+      rewrite set_collect_union, set_collect_eq.
+      rewrite ReordCommon.mapper_neq; ins.
+      now rewrite set_unionA, set_unionC with (s := eq e),
+                  <- set_unionA. }
+    { admit. (* Trace stuff *) }
     all: admit. }
   admit.
 Admitted.
