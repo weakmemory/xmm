@@ -30,6 +30,44 @@ Proof using.
   ins. now apply U2V.
 Qed.
 
+Lemma seq_absorb_l {A} s s' (r : relation A)
+    (SUB : s ⊆₁ s') :
+  ⦗s⦘ ⨾ ⦗s'⦘ ⨾ r ≡ ⦗s⦘ ⨾ r.
+Proof using.
+  now rewrite <- seqA, <- id_inter, set_inter_absorb_r.
+Qed.
+
+Lemma seq_absorb_r {A} s s' (r : relation A)
+    (SUB : s ⊆₁ s') :
+  (r ⨾ ⦗s'⦘) ⨾ ⦗s⦘ ≡  r ⨾ ⦗s⦘.
+Proof using.
+  now rewrite seqA, <- id_inter, set_inter_absorb_l.
+Qed.
+
+Lemma seq_absorb {A} s1 s1' s2 s2' (r : relation A)
+    (SUB1 : s1 ⊆₁ s1')
+    (SUB2 : s2 ⊆₁ s2') :
+  ⦗s1⦘ ⨾ (⦗s1'⦘ ⨾ r ⨾ ⦗s2'⦘) ⨾ ⦗s2⦘ ≡ ⦗s1⦘ ⨾ r ⨾ ⦗s2⦘.
+Proof using.
+  rewrite seqA, seq_absorb_l, seq_absorb_r; ins.
+Qed.
+
+Lemma seq_restr_eq_prod {A} s s' (r : relation A) :
+  ⦗s⦘ ⨾ r ⨾ ⦗s'⦘ ≡ r ∩ s × s'.
+Proof using.
+  basic_solver.
+Qed.
+
+Lemma seq_restr_helper {A} s1 s1' s2 s2' (r : relation A)
+    (SUB1 : s1 ⊆₁ s1')
+    (SUB2 : s2 ⊆₁ s2') :
+  ⦗s1⦘ ⨾ r ⨾ ⦗s2⦘ ⊆ ⦗s1'⦘ ⨾ r ⨾ ⦗s2'⦘.
+Proof using.
+  red in SUB1, SUB2. rewrite !seq_restr_eq_prod.
+  intros x y (REL & L & R). repeat (red; split; ins).
+  all: eauto.
+Qed.
+
 Lemma upd_compose (A B C : Type) a b
     (f : B -> C)
     (g : A -> B)
@@ -241,59 +279,20 @@ Proof using.
   unfolder; split; ins; desf.
 Qed.
 
-Lemma wf_rmwf G
-    (WF : Wf G) :
-  functional (rmw G).
-Proof using.
-  unfolder; intros x y z RMW1 RMW2.
-  assert (XR : is_r (lab G) x).
-  { apply wf_rmwD in RMW1; auto. unfolder in RMW1; desf. }
-  assert (XE : acts_set G x).
-  { apply wf_rmwE in RMW1; auto. unfolder in RMW1; desf. }
-  assert (NINIT : ~is_init x).
-  { intro F. destruct x as [l | ]; ins.
-    unfold is_r in XR. rewrite wf_init_lab in XR; desf. }
-  destruct (classic (y = z)) as [EQ|EQ]; ins.
-  apply wf_rmwi, immediateE in RMW1, RMW2; auto.
-  unfolder in RMW1; unfolder in RMW2; desf.
-  destruct sb_total with (G := G) (t := tid x)
-                         (a := y) (b := z); ins.
-  all: try now exfalso; eauto.
-  all: unfolder; splits.
-  all: try by (symmetry; eapply ninit_sb_same_tid; unfolder; split; eauto).
-  { unfold sb in RMW1; unfolder in RMW1; desf. }
-  { apply no_sb_to_init in RMW1; unfolder in RMW1; desf. }
-  { unfold sb in RMW2; unfolder in RMW2; desf. }
-  apply no_sb_to_init in RMW2; unfolder in RMW2; desf.
-Qed.
-
 Lemma wf_rmwff G
     (WF : Wf G) :
-  functional ((rmw G) ⁻¹).
+  functional ((rmw G)⁻¹).
 Proof using.
   unfolder; intros x y z RMW1 RMW2.
-  assert (YR : is_r (lab G) y).
-  { apply wf_rmwD in RMW1; auto. unfolder in RMW1; desf. }
-  assert (ZR : is_r (lab G) z).
-  { apply wf_rmwD in RMW2; auto. unfolder in RMW2; desf. }
-  assert (YE : acts_set G y).
-  { apply wf_rmwE in RMW1; auto. unfolder in RMW1; desf. }
-  assert (ZE : acts_set G z).
-  { apply wf_rmwE in RMW2; auto. unfolder in RMW2; desf. }
-  assert (YNINIT : ~is_init y).
-  { intro F. destruct y as [l | ]; ins.
-    unfold is_r in YR. rewrite wf_init_lab in YR; desf. }
-  assert (ZNINIT : ~is_init z).
-  { intro F. destruct z as [l | ]; ins.
-    unfold is_r in ZR. rewrite wf_init_lab in ZR; desf. }
-  destruct (classic (y = z)) as [EQ|EQ]; ins.
-  apply wf_rmwi, immediateE in RMW1, RMW2; auto.
-  unfolder in RMW1; unfolder in RMW2; desf.
-  destruct sb_total with (G := G) (t := tid x)
-                         (a := y) (b := z); ins.
-  all: try now exfalso; eauto.
-  all: unfolder; splits; eauto.
-  all: try by (eapply ninit_sb_same_tid; unfolder; split; eauto).
+  assert (ZINIT : ~is_init z).
+  { apply read_or_fence_is_not_init with (G := G); ins.
+    left. apply WF.(wf_rmwD) in RMW2. unfolder in RMW2; desf. }
+  tertium_non_datur (y = z) as [EQ|NEQ]; ins.
+  apply WF.(wf_rmwi) in RMW1, RMW2. unfolder in *. desf.
+  destruct sb_semi_total_r with (G := G) (x := x)
+                                (y := y) (z := z) as [SB|SB].
+  all: ins.
+  all: exfalso; eauto.
 Qed.
 
 Lemma set_minus_union_r A (s1 s2 s3 : A -> Prop) :

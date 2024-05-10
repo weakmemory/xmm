@@ -200,16 +200,16 @@ Proof using.
 Qed.
 
 Lemma delta_G_sb
-  (HIN : E' h)
-  (SUB : sub_execution G' G ∅₂ ∅₂) :
+    (HIN : E' h)
+    (SUB : sub_execution G' G ∅₂ ∅₂) :
   get_sb delta_G ≡ sb ∪ (⦗E⦘ ⨾ sb' ⨾ ⦗eq h⦘) ∪ (⦗eq h⦘ ⨾ sb' ⨾ ⦗E⦘).
 Proof using.
   assert (SUBE : E ⊆₁ E') by apply SUB.
-  unfold delta_G, sb; ins. rewrite !id_union.
-  rewrite !seq_union_r, !seq_union_l.
-  rewrite <- restr_relE with (d := eq h).
+  assert (SUBH : eq h ⊆₁ E') by now apply set_subset_eq.
+  unfold delta_G, sb; ins.
+  rewrite <- restr_relE, restr_set_union.
   rewrite restr_irrefl_eq; [rewrite union_false_r | apply ext_sb_irr].
-  basic_solver 8.
+  rewrite !restr_relE, !seq_absorb; ins.
 Qed.
 
 End DeltaGraph.
@@ -281,11 +281,8 @@ Lemma diff_no_init l
     (ENUM : enumd_diff l) :
   E' \₁ E ⊆₁ set_compl is_init.
 Proof.
-  rewrite <- set_inter_full_r with (s := E'),
-          <- set_inter_full_r with (s := E),
-          set_full_split with (S := is_init),
-          !set_inter_union_r.
-  rewrite WF.(WCore.wf_g_init). basic_solver 5.
+  unfolder. intros x [INE' NOTINE] INIT.
+  apply NOTINE, WF.(WCore.wf_g_init); ins.
 Qed.
 
 Lemma enumd_deltaG_prefix h t
@@ -341,10 +338,10 @@ Proof using.
   assert (NINIT : ~ is_init h).
   { eapply diff_no_init; eauto. }
   assert (NIRID : tid h <> tid_init).
-  { intro F. enough (INIT : is_init h).
-    { eapply diff_no_init; eauto. }
-    apply WF.(WCore.wf_gc_acts). unfolder. ins.
-    split; auto; apply IN_D. }
+  { intro F.
+    eapply diff_no_init with (x := h) (l := h :: t); ins.
+    apply WF.(WCore.wf_gc_acts). unfolder; split; ins.
+    apply IN_D. }
   assert (DCOH : trace_coherent traces (delta_G G G' h)).
   { eapply trace_coherent_sub; eauto.
     { eapply delta_G_trace_prefix; eauto. apply IN_D. }
@@ -354,15 +351,14 @@ Proof using.
   { destruct (DCOH (tid h)) as (tr & INT & PREF); auto.
     exists tr; split; auto.
     replace (trace_fin (l ++ [(WCore.G X').(lab) h]))
-      with (trace_app (trace_fin l) (trace_fin [lab' h])).
+       with (trace_app (trace_fin l) (trace_fin [lab' h])).
     { erewrite <- Heq, <- delta_G_actid_trace_h.
       all: eauto using enumd_head_most_sb.
       all: try now apply IN_D. }
     ins; do 3 f_equal. erewrite <- sub_lab; auto.
     apply WF. }
   set (FIN := WCore.all_trace_fin WF NIRID).
-  ins. rewrite Heq in FIN.
-  unfold trace_finite in FIN. desf.
+  ins. rewrite Heq in FIN. red in FIN. desf.
 Qed.
 
 Lemma enum_diff_done
@@ -381,7 +377,7 @@ Lemma enum_diff_head_rf h t
   dom_rel (rf' ⨾ ⦗eq h⦘) ⊆₁ E.
 Proof using.
   intros e (h' & h'' & RF & EQ & EQ'); subst h'' h'.
-  destruct (classic (E e)) as [INE|INE]; auto.
+  tertium_non_datur (E e) as [INE|INE]; auto.
   exfalso. eapply list_min_elt; [apply ENUM|].
   apply ENUM.(diff_rf (h :: t)).
   unfolder; splits; eauto.
@@ -449,31 +445,37 @@ Lemma X_prime_wf_helper
   WCore.wf X'.
 Proof using.
   constructor; ins.
+  all: try now (eapply enumd_deltaG_prefix; eauto).
+  all: try rewrite delta_G_sb; auto.
   all: try now apply WF.
+  all: try rewrite set_inter_union_r, restr_set_union.
+  all: try rewrite restr_irr, union_false_r; auto using sb_irr.
+  all: try rewrite !restr_relE.
+  all: repeat apply union_mori; try apply seq_restr_helper.
+  all: eauto using set_subset_inter_l, set_subset_inter_r.
   { transitivity E; [apply WF | basic_solver]. }
-  { rewrite delta_G_sb; auto; [| apply WF].
-    rewrite set_inter_union_r, restr_set_union, restr_irr by apply sb_irr.
-    rewrite restr_relE, union_false_r; repeat apply inclusion_union_mon.
-    { rewrite sub_sb with (G := G') (G' := G); [basic_solver | apply WF]. }
-    all: basic_solver. }
-  { rewrite set_inter_union_r, restr_set_union, restr_irr by apply rf_irr, WF.
-    rewrite restr_relE, union_false_r; repeat apply inclusion_union_mon.
-    { rewrite sub_rf with (G := G') (G' := G); [basic_solver | apply WF]. }
-    all: basic_solver. }
-  { rewrite set_inter_union_l, !codom_union.
+  { erewrite sub_sb with (G := G') (G' := G); try now apply WF.
+    apply seq_restr_helper; eauto using set_subset_inter_l,
+                                        set_subset_inter_r. }
+  { rewrite sub_rf with (G := G') (G' := G); try now apply WF.
+    apply seq_restr_helper; eauto using set_subset_inter_l,
+                                        set_subset_inter_r. }
+  { apply rf_irr, WF. }
+  rewrite set_inter_union_l, !codom_union.
+  apply set_subset_union_l; split.
+  { transitivity (codom_rel rf ∪₁ cmt); [apply WF |].
     apply set_subset_union_l; split.
-    { transitivity (codom_rel rf ∪₁ cmt); [apply WF | basic_solver 5]. }
-    destruct (classic (is_r lab' h)) as [ISR|ISR].
-    { edestruct (WF_fin.(WCore.sub_rfD)) as [RD|RD],
-                (classic (cmt h)) as [CMT|CMT].
-      all: try basic_solver 2.
-      transitivity (codom_rel (⦗E⦘ ⨾ rf' ⨾ ⦗eq h⦘)); [| basic_solver 7].
-      assert (SUBE : dom_rel (rf' ⨾ ⦗eq h⦘) ⊆₁ E).
-      { eapply enum_diff_head_rf; eauto. }
-      generalize RD SUBE; unfolder; ins; desf; eauto 11. }
-    arewrite (eq h ∩₁ (fun a => is_r lab a) ≡₁ ∅); [| basic_solver].
-    erewrite sub_lab; [| apply WF]; ins. basic_solver. }
-  eapply enumd_deltaG_prefix; eauto.
+    all: intros x HSET; unfold set_union; eauto. }
+  intros h' (HEQH & IS_R); subst h'.
+  tertium_non_datur (cmt h) as [CMT|NCMT].
+  { now right. }
+  destruct (WF_fin.(WCore.sub_rfD)) with (x := h) as [RF|CMT].
+  all: ins; try now right.
+  { split; ins; replace lab' with lab; [ins | apply WF]. }
+  destruct RF as [w RF]. do 2 left. right.
+  exists w. unfolder; splits; ins.
+  eapply enum_diff_head_rf with (h := h); eauto.
+  exists h. unfolder; eauto.
 Qed.
 
 (* Helper lemma to avoid copy-paste of equivalent cases *)
@@ -497,24 +499,26 @@ Proof using.
   assert (NOT_W : ~W' h).
   { generalize IS_R; unfold is_w, is_r.
     destruct (lab' h); auto. }
+  assert (H_IS_NW : W' h = false).
+  { unfold is_w in *. desf. }
   (* Proof of step *)
   exists h, None, (Some w), ∅, ∅.
   constructor; ins.
   { apply IN_D. }
   { eapply enumd_deltaG_new_event_correct; eauto. }
-  { repeat apply union_more; auto.
-    { split; [| basic_solver].
-      intros w' h' (w'' & WINE' & h''' & RF' & WINH).
-      destruct WINE', WINH; subst h''' w'' h'.
-      erewrite wf_rff with (y := w') (z := w); eauto; try now apply WF.
-      basic_solver. }
-    unfold WCore.rf_delta_W; ins.
-    arewrite (is_w lab' h = false).
-    { destruct (is_w lab' h); desf. }
-    rewrite wf_rfD; [basic_solver | apply WF]. }
-  { unfold WCore.co_delta.
-    arewrite (is_w lab' h = false).
-    { destruct (is_w lab' h); desf. }
+  { unfold WCore.rf_delta_W. rewrite H_IS_NW.
+    arewrite (singl_rel w h ∩ W' × R' ≡ singl_rel w h).
+    { rewrite inter_absorb_r; ins.
+      intros x y [EQ1 EQ2]; subst x y. red; eauto. }
+    arewrite (⦗E⦘ ⨾ rf' ⨾ ⦗eq h⦘ ≡ singl_rel w h).
+    { rewrite seq_restr_eq_prod; split; [| basic_solver].
+      intros x y (RF' & INE' & HEQH); subst y. red; split; ins.
+      eapply wf_rff with (G := G') (x := h); ins. apply WF. }
+    repeat apply union_more; auto.
+    split; [| basic_solver]. rewrite seq_restr_eq_prod; red.
+    intros x y (RF' & INE' & HEQH); subst x.
+    apply wf_rfD in RF'; [unfolder in RF'; desf | apply WF]. }
+  { unfold WCore.co_delta. rewrite H_IS_NW.
     rewrite wf_coD with (G := G'); [basic_solver | apply WF]. }
   { unfold WCore.rmw_delta, W_ex.
     rewrite wf_rmwD with (G := G'); [basic_solver | apply WF]. }
@@ -539,29 +543,26 @@ Proof using.
   assert (NOT_W : ~W' h).
   { generalize IS_R; unfold is_w, is_r.
     destruct (lab' h); auto. }
+  assert (H_IS_NW : W' h = false).
+  { unfold is_w in *. desf. }
   (* Case 1: cmt h *)
-  destruct (classic (cmt h)) as [CMT|CMT].
+  tertium_non_datur (cmt h) as [CMT|NCMT].
   { (* Even if h is cmt -- we still need to add accompanying edges! *)
-    destruct (classic (codom_rel (⦗E⦘ ⨾ rf') h)) as [RF | NRF].
+    tertium_non_datur (codom_rel (⦗E⦘ ⨾ rf') h) as [RF | NRF].
     { destruct RF as (w & w' & (EQ & INE) & RF); subst w'.
-      (* In this situation, this case is actuall like ~cmt h *)
       eapply step_once_read_helper; eauto. }
     exists h, None, None, ∅, ∅.
     constructor; ins.
     { apply IN_D. }
     { eapply enumd_deltaG_new_event_correct; eauto. }
-    { repeat apply union_more; auto.
+    { unfold WCore.rf_delta_W. rewrite H_IS_NW.
+      arewrite (⦗E⦘ ⨾ rf' ⨾ ⦗eq h⦘ ≡ ∅₂).
       { split; [| basic_solver].
-        intros w h' RF. apply seqA in RF.
-        apply NRF. exists w.
-        unfolder; unfolder in RF; desf. }
-      unfold WCore.rf_delta_W; ins.
-      arewrite (is_w lab' h = false).
-      { destruct (is_w lab' h); desf. }
+        rewrite seq_restr_eq_prod. intros x y (RF & INE' & HISH).
+        subst y. apply NRF. unfolder. eauto. }
+      repeat apply union_more; auto.
       rewrite wf_rfD; [basic_solver | apply WF]. }
-    { unfold WCore.co_delta.
-      arewrite (is_w lab' h = false).
-      { destruct (is_w lab' h); desf. }
+    { unfold WCore.co_delta. rewrite H_IS_NW.
       rewrite wf_coD with (G := G'); [basic_solver | apply WF]. }
     { unfold WCore.rmw_delta, W_ex.
       rewrite wf_rmwD with (G := G'); [basic_solver| apply WF]. }
@@ -580,33 +581,29 @@ Lemma step_once_write_rmw_helper e
     (RMW : rmw' e h)
     (IS_R : R' e)
     (ENUM : enumd_diff G G' cmt (h :: t))
-    (NOT_INIT2 : tid h <> tid_init) :
+    (HTID : tid h <> tid_init) :
   E e.
 Proof using.
-  assert (IN_D : (E' \₁ E) h).
-  { apply ENUM; desf. }
-  assert (NOT_INIT1 : ~is_init e).
+  apply wf_rmwi, immediate_in in RMW; [| apply WF].
+  assert (E_NINIT : ~is_init e).
   { intro F; destruct e as [l | tide ide]; auto.
     unfold is_r in IS_R; rewrite wf_init_lab in IS_R; auto.
     apply WF. }
-  set (CONTH := pfx_cont2 (WCore.pfx WF) NOT_INIT2); desf.
-  assert (EQH : exists tidh, h = ThreadEvent tidh N).
-  { eexists; eapply added_event_to_contigious with (G' := delta_G G G' h).
-    all: eauto.
-    { rewrite CONTH; apply thread_seq_set_size. }
-    { apply WF. }
-    { eapply delta_G_cont_ids; eauto; try now apply IN_D.
-      eapply enumd_head_most_sb; eauto. }
-    { apply IN_D. }
-    unfold delta_G; ins. }
-  destruct EQH as [tidh EQH]; subst.
-  apply wf_rmwi, immediate_in in RMW; [| apply WF].
-  assert (TIDEQ : tid e = tidh).
+  assert (SAME_TID : tid e = tid h).
   { apply sb_tid_init in RMW; desf. }
-  destruct e as [l | tide ide]; ins; subst.
-  apply in_restr_acts, CONTH.
-  unfold sb, ext_sb in RMW; unfolder in RMW; desf.
-  unfold thread_seq_set, seq_set; unfolder; eauto.
+  unfold sb in RMW. unfolder in RMW; desf.
+  assert (IN_D : (E' \₁ E) h).
+  { apply ENUM; desf. }
+  destruct (pfx_cont2 (WCore.pfx WF) HTID) as [N HEQ].
+  erewrite added_event_to_contigious with (G' := delta_G G G' h)
+                                          (N := N) (G := G) in RMW0.
+  all: ins; try now apply IN_D.
+  { destruct e as [el | etid eid]; ins; desf; ins.
+    now apply HEQ, thread_set_iff. }
+  { now rewrite HEQ, thread_seq_set_size. }
+  { apply WF. }
+  eapply delta_G_cont_ids; eauto; try now apply IN_D.
+  eapply enumd_head_most_sb; eauto.
 Qed.
 
 Lemma step_once_write_helper
@@ -616,18 +613,17 @@ Lemma step_once_write_helper
 Proof using.
   split; [| basic_solver].
   unfolder. intros h' r (EQ & RF & INE); subst h'.
-  splits; auto. edestruct (WCore.sub_rfD) as [RFD | CMT]; eauto.
-  { split; auto. apply wf_rfD in RF; [| apply WF].
-    ins; unfolder in RF; desf.
-    erewrite sub_lab with (G := G'); ins.
-    apply WF. }
-  exfalso.
-  unfolder in RFD; ins; desf.
-  eapply sub_rf in RFD; [| apply WF].
-  unfolder in RFD; ins; desf.
-  apply NIN; erewrite wf_rff with (y := h) (z := x).
-  all: eauto.
-  apply WF.
+  assert (IS_R : R r).
+  { replace lab with lab' by (symmetry; apply WF).
+    apply wf_rfD in RF; [unfolder in RF; desf | apply WF]. }
+  assert (SUBRF : rf ⊆ rf').
+  { rewrite sub_rf with (G := G'); [basic_solver | apply WF]. }
+  splits; auto. edestruct (WCore.sub_rfD) as [RF'|CMT]; eauto; ins.
+  destruct RF' as [h' RF']. exfalso. apply NIN.
+  erewrite wf_rff with (G := G') (x := r)
+                       (y := h) (z := h').
+  all: try now (red; eauto) || now apply WF.
+  apply wf_rfE in RF'; [unfolder in RF'; desf | apply (WCore.wf_g WF)].
 Qed.
 
 (* FIXME: this proof contains a lot of copy-paste *)
@@ -640,6 +636,8 @@ Lemma step_once_write
   WCore.cfg_add_event_uninformative traces X X'.
 Proof using.
   (* Information about h *)
+  set (W1 := codom_rel (⦗eq h⦘ ⨾ co' ⨾ ⦗E⦘)).
+  set (W2 := dom_rel (⦗E⦘ ⨾ co' ⨾ ⦗eq h⦘)).
   assert (IN_D : (E' \₁ E) h).
   { apply ENUM; desf. }
   assert (NOT_INIT : ~is_init h).
@@ -648,52 +646,39 @@ Proof using.
   { eapply WCore.wf_actid_tid; eauto. apply IN_D. }
   assert (NOT_R : ~R' h).
   { generalize IS_W; unfold is_w, is_r. destruct (lab' h); auto. }
+  assert (NRF_TO_H : ⦗E⦘ ⨾ rf' ⨾ ⦗eq h⦘ ≡ ∅₂).
+  { rewrite wf_rfD; [basic_solver | apply WF]. }
+  assert (HIDCO_L : ⦗eq h⦘ ⨾ co' ⨾ ⦗E⦘ ≡ eq h × codom_rel (⦗eq h⦘ ⨾ co' ⨾ ⦗E⦘)).
+  { basic_solver 5. }
+  assert (HIDCO_R : ⦗E⦘ ⨾ co' ⨾ ⦗eq h⦘ ≡ dom_rel (⦗E⦘ ⨾ co' ⨾ ⦗eq h⦘) × eq h).
+  { basic_solver 5. }
 
   (* Case 1: h is part of an RMW *)
-  destruct (classic (codom_rel rmw' h)) as [[r RMW] | NRMW].
-  { assert (IS_R : R' r).
-    { apply wf_rmwD in RMW; [| apply WF]. unfolder in RMW; desf. }
-    assert (IN_E : E r).
-    { eapply step_once_write_rmw_helper; eauto. }
-    exists h, (Some r), None,
-      (codom_rel (⦗eq h⦘ ⨾ co' ⨾ ⦗E⦘)), (dom_rel (⦗E⦘ ⨾ co' ⨾ ⦗eq h⦘)).
-    constructor; ins.
-    { apply IN_D. }
-    { eapply enumd_deltaG_new_event_correct; eauto. }
-    { apply union_more; [apply union_more; auto |].
-      { rewrite wf_rfD; [basic_solver | apply WF]. }
-      unfold WCore.rf_delta_W. rewrite IS_W.
-      apply step_once_write_helper; auto; apply IN_D. }
-    { unfold WCore.co_delta. rewrite IS_W.
-      rewrite unionA; apply union_more; auto.
-      rewrite unionC; apply union_more; basic_solver 5. }
-    { apply union_more; auto.
-      unfold WCore.rmw_delta, eq_opt, W_ex.
-      split; [| basic_solver].
-      intros x y RMW'; unfolder in RMW'; desf.
-      arewrite (x = r); [| basic_solver].
-      eapply wf_rmwff with (G := G'); eauto; apply WF. }
-    apply X_prime_wf_helper; eauto; apply IN_D. }
-
   (* Case 2: no rmw *)
-  exists h, None, None,
-    (codom_rel (⦗eq h⦘ ⨾ co' ⨾ ⦗E⦘)), (dom_rel (⦗E⦘ ⨾ co' ⨾ ⦗eq h⦘)).
-  constructor; ins.
-  { apply IN_D. }
-  { eapply enumd_deltaG_new_event_correct; eauto. }
-  { apply union_more; [apply union_more; auto |].
-    { rewrite wf_rfD; [basic_solver | apply WF]. }
-    unfold WCore.rf_delta_W. rewrite IS_W.
-    apply step_once_write_helper; auto; apply IN_D. }
-  { unfold WCore.co_delta. rewrite IS_W.
-    rewrite unionA; apply union_more; auto.
-    rewrite unionC; apply union_more; basic_solver 5. }
-  { apply union_more; auto.
-    unfold WCore.rmw_delta, eq_opt, W_ex.
-    split; [| basic_solver].
-    intros x y RMW'; unfolder in RMW'; desf.
-    exfalso; unfolder in NRMW; eauto. }
-  apply X_prime_wf_helper; eauto; apply IN_D.
+  tertium_non_datur (codom_rel rmw' h) as [[r RMW] | NRMW];
+    [exists h, (Some r), None, W1, W2 | exists h, None, None, W1, W2].
+  all: subst W1 W2; constructor; ins.
+  all: try now apply IN_D.
+  all: try now (eapply enumd_deltaG_new_event_correct; eauto).
+  all: try now (apply X_prime_wf_helper; eauto; apply IN_D).
+  all: try (unfold WCore.rf_delta_W, WCore.co_delta; rewrite IS_W).
+  all: try now (rewrite step_once_write_helper, NRF_TO_H; try now apply IN_D).
+  all: try now (rewrite unionA, unionC with (r1 := eq h × _);
+                now repeat apply union_more).
+  { assert (RIS_R : R' r).
+    { apply wf_rmwD in RMW; [unfolder in RMW; desf | apply WF]. }
+    assert (RIN_E : E r).
+    { apply step_once_write_rmw_helper; ins. }
+    apply union_more; auto. unfold WCore.rmw_delta, eq_opt, W_ex.
+    split; [| basic_solver]. rewrite seq_restr_eq_prod.
+    intros x y (RMW' & INE & Y_EQ_H); subst y.
+    rewrite wf_rmwff with (G := G') (x := h) (y := x) (z := r).
+    all: ins.
+    apply WF. }
+  apply union_more; auto. unfold WCore.rmw_delta, eq_opt, W_ex.
+  split; [| basic_solver]. rewrite seq_restr_eq_prod.
+  intros x y (RMW' & INE & Y_EQ_H); subst y. exfalso.
+  apply NRMW. red. eauto.
 Qed.
 
 Lemma step_once_fence
@@ -717,6 +702,8 @@ Proof using.
   assert (NOT_W : ~W' h).
   { generalize IS_F; unfold is_f, is_w.
     destruct (lab' h); auto. }
+  assert (HIS_NW : is_w lab' h = false).
+  { unfold is_w in *. desf. }
 
   exists h, None, None, ∅, ∅.
   constructor; ins.
@@ -724,22 +711,15 @@ Proof using.
   { eapply enumd_deltaG_new_event_correct; eauto. }
   { apply union_more; [apply union_more; auto |].
     { rewrite wf_rfD; [basic_solver | apply WF]. }
-    unfold WCore.rf_delta_W.
-    arewrite (is_w lab' h = false).
-    { destruct (is_w lab' h); desf. }
+    unfold WCore.rf_delta_W. rewrite HIS_NW.
     rewrite wf_rfD; [basic_solver | apply WF]. }
-  { unfold WCore.co_delta.
-    arewrite (is_w lab' h = false).
-    { destruct (is_w lab' h); desf. }
-    arewrite (⦗eq h⦘ ⨾ co' ⨾ ⦗E⦘ ≡ ∅₂).
-    { rewrite wf_coD; [basic_solver | apply WF]. }
-    arewrite (⦗E⦘ ⨾ co' ⨾ ⦗eq h⦘ ≡ ∅₂).
-    { rewrite wf_coD; [basic_solver | apply WF]. }
+  { unfold WCore.co_delta. rewrite HIS_NW.
+    rewrite unionA. apply union_more; ins.
+    rewrite wf_coD; try now apply WF.
     basic_solver. }
-  { apply union_more; auto.
-    arewrite (⦗E⦘ ⨾ rmw' ⨾ ⦗eq h⦘ ≡ ∅₂).
-    { rewrite wf_rmwD; [basic_solver | apply WF]. }
-    unfold WCore.rmw_delta; basic_solver. }
+  { apply union_more; auto. unfold WCore.rmw_delta.
+    rewrite wf_rmwD; try now apply WF.
+    basic_solver. }
   apply X_prime_wf_helper; eauto; apply IN_D.
 Qed.
 
@@ -805,7 +785,7 @@ Proof using.
     apply total_order_from_list_cons in LT; desf.
     exfalso; eauto. }
   intros x IN.
-  destruct (classic (h = x)) as [EQ|NEQ]; subst.
+  tertium_non_datur (h = x) as [EQ|NEQ]; subst.
   { apply ENUM; desf. }
   eapply SubToFullExecInternal.diff_rf_d; eauto.
   eapply dom_rel_mori; eauto; basic_solver.
