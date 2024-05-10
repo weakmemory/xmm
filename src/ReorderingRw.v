@@ -801,19 +801,38 @@ Proof using.
         WCore.cmt := mapper ↑₁ ∅;
       |}); ins.
       { apply SIM_ACTS. }
-      { admit. }
-      { admit. }
-      { admit. }
+      { unfold compose. now rewrite ReordCommon.mapper_eq_a. }
+      { unfolder. intro F. desf. assert (MAPPED : y' = b). 
+        { apply ReordCommon.mapper_inj with (a := a) (b := b); ins.
+          { eapply rsrw_a_neq_b; eauto. }
+          now rewrite ReordCommon.mapper_eq_b. }
+        subst. admit. }
+      { unfolder. intro F. desf. assert (MAPPED : x' = b). 
+        { apply ReordCommon.mapper_inj with (a := a) (b := b); ins.
+          { eapply rsrw_a_neq_b; eauto. }
+          now rewrite ReordCommon.mapper_eq_b. }
+        subst. admit. }
       apply cfg_mapped_wf_props with (X := {|
         WCore.sc := sc;
         WCore.G := G_t;
         WCore.GC := G_t';
         WCore.cmt := ∅;
       |}); ins.
+      { assert (NEQ : a <> b).
+        { intro F; eapply ext_sb_irr with (x := a).
+          rewrite F at 2. apply SIM_ACTS. }
+          unfolder. intros x y _ _ HEQ.
+          destruct ReordCommon.mapper_surj with (y := y) (a := a) (b := b) as [y' YHEQ]; ins.
+          destruct ReordCommon.mapper_surj with (y := x) (a := a) (b := b) as [x' XHEQ]; ins.
+          rewrite XHEQ, YHEQ, !ReordCommon.mapper_self_inv in HEQ; ins.
+          now rewrite XHEQ, YHEQ, HEQ. }
+      { tertium_non_datur (y = a) as [EQ|NEQA].
+        { subst. exists b. now rewrite ReordCommon.mapper_eq_b. }
+        tertium_non_datur (y = b) as [EQ|NEQB].
+        { subst. exists a. now rewrite ReordCommon.mapper_eq_a. }
+        exists y. rewrite ReordCommon.mapper_neq; ins. }
       { admit. }
-      { admit. }
-      { admit. }
-      { admit. }
+      { admit. } 
       { admit. }
       { admit. }
       { admit. }
