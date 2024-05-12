@@ -818,30 +818,23 @@ Proof using.
         WCore.GC := G_t';
         WCore.cmt := ∅;
       |}); ins.
-      { assert (NEQ : a <> b).
-        { intro F; eapply ext_sb_irr with (x := a).
-          rewrite F at 2. apply SIM_ACTS. }
-          unfolder. intros x y _ _ HEQ.
-          destruct ReordCommon.mapper_surj with (y := y) (a := a) (b := b) as [y' YHEQ]; ins.
-          destruct ReordCommon.mapper_surj with (y := x) (a := a) (b := b) as [x' XHEQ]; ins.
-          rewrite XHEQ, YHEQ, !ReordCommon.mapper_self_inv in HEQ; ins.
-          now rewrite XHEQ, YHEQ, HEQ. }
+      { apply ReordCommon.mapper_inj. eapply rsrw_a_neq_b; eauto. }
       { tertium_non_datur (y = a) as [EQ|NEQA].
         { subst. exists b. now rewrite ReordCommon.mapper_eq_b. }
         tertium_non_datur (y = b) as [EQ|NEQB].
         { subst. exists a. now rewrite ReordCommon.mapper_eq_a. }
         exists y. rewrite ReordCommon.mapper_neq; ins. }
-      { admit. }
+      { rewrite Combinators.compose_assoc. rewrite ReordCommon.mapper_mapper_compose.
+        rewrite Combinators.compose_id_right. eauto. eapply rsrw_a_neq_b. eauto. }
       { admit. } 
       { admit. }
       { admit. }
       { admit. }
       { admit. }
-      { admit. }
-      { admit. }
-      { admit. }
-      admit. }
-    { admit. }
+      all: destruct STEP; destruct start_wf; ins.
+      constructor; ins. destruct pfx; eauto. } 
+    { destruct STEP; destruct start_wf; ins.
+      rewrite cc_ctrl_empty. rewrite collect_rel_empty; eauto. }
     admit. }
   { destruct STEP. red in add_event. desf. ins.
     exists (option_map mapper r), (option_map mapper w),
