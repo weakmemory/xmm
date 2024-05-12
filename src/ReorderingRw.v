@@ -834,7 +834,7 @@ Proof using.
       all: destruct STEP; destruct start_wf; ins.
       constructor; ins. destruct pfx; eauto. } 
     { destruct STEP; destruct start_wf; ins.
-      rewrite cc_ctrl_empty. rewrite collect_rel_empty; eauto. }
+      rewrite cc_ctrl_empty. rewrite collect_rel_empty; eauto. } 
     admit. }
   { destruct STEP. red in add_event. desf. ins.
     exists (option_map mapper r), (option_map mapper w),
