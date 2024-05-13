@@ -806,12 +806,16 @@ Proof using.
         { apply ReordCommon.mapper_inj with (a := a) (b := b); ins.
           { eapply rsrw_a_neq_b; eauto. }
           now rewrite ReordCommon.mapper_eq_b. }
-        subst. admit. }
+        subst. destruct STEP. destruct start_wf; ins.
+        destruct wf_gc. destruct NINB'. apply wf_rfE in F.
+        unfolder in F. desf. }  
       { unfolder. intro F. desf. assert (MAPPED : x' = b). 
         { apply ReordCommon.mapper_inj with (a := a) (b := b); ins.
           { eapply rsrw_a_neq_b; eauto. }
           now rewrite ReordCommon.mapper_eq_b. }
-        subst. admit. }
+        subst. destruct STEP. destruct start_wf; ins.
+        destruct wf_gc. destruct NINB'. apply wf_rfE in F.
+        unfolder in F. desf. }
       apply cfg_mapped_wf_props with (X := {|
         WCore.sc := sc;
         WCore.G := G_t;
@@ -826,10 +830,13 @@ Proof using.
         exists y. rewrite ReordCommon.mapper_neq; ins. }
       { rewrite Combinators.compose_assoc. rewrite ReordCommon.mapper_mapper_compose.
         rewrite Combinators.compose_id_right. eauto. eapply rsrw_a_neq_b. eauto. }
-      { admit. } 
+      { apply ReordCommon.mapper_init_actid. apply SIM_ACTS.(rsrw_ninit_a G_t a b).
+        apply SIM_ACTS.(rsrw_ninit_b G_t a b). } 
       { admit. }
       { admit. }
-      { admit. }
+      { apply wf_index with (G_t'). 
+        { destruct STEP. destruct start_wf; ins. }
+        splits; eauto. all: admit. }
       { admit. }
       all: destruct STEP; destruct start_wf; ins.
       constructor; ins. destruct pfx; eauto. } 
@@ -852,8 +859,53 @@ Proof using.
       now rewrite set_unionA, set_unionC with (s := eq e),
                   <- set_unionA. }
     { admit. (* Trace stuff *) }
-    all: admit. }
-  admit.
+    { destruct add_event; ins. rewrite rf_new.
+      rewrite !collect_rel_union. repeat apply union_more; ins.
+      all: try unfold WCore.rf_delta_R, WCore.rf_delta_W; ins.
+      all: try desf; try basic_solver.
+      { rewrite collect_rel_interE, collect_rel_cross,
+                collect_rel_singl, ReordCommon.mapper_neq; ins.
+        apply inter_rel_more; ins. all: try rewrite FIN_LAB.
+        all: try rewrite <- exec_upd_lab_R, <- exec_upd_lab_W.
+        all: try now (rewrite <- FIN_LAB; eauto).
+        { admit. }
+        { admit. }
+        { admit. }
+        { admit. }
+        apply ReordCommon.mapper_inj. eapply rsrw_a_neq_b; eauto. }
+      { rewrite collect_rel_empty. admit. } 
+      { admit. }
+      { rewrite collect_rel_empty. admit. } 
+      { admit. }
+      admit. } 
+    { destruct add_event; ins. rewrite co_new.
+      rewrite !collect_rel_union. repeat apply union_more; ins.
+      unfold WCore.co_delta; ins. unfold is_w, compose. desf.
+      all: try apply collect_rel_empty.
+      all: try rewrite !collect_rel_union, !collect_rel_cross,
+              !set_collect_eq, ReordCommon.mapper_neq; ins.
+      all: try rewrite collect_rel_empty.
+      all: admit. }
+    { destruct add_event; ins. rewrite rmw_new.
+      destruct start_wf, pfx; ins.
+      rewrite !collect_rel_union. repeat apply union_more; ins.
+      unfold WCore.rmw_delta; ins. rewrite <- pfx_sub.(sub_lab).
+      rewrite collect_rel_cross, !set_collect_interE.
+      all: eauto using ReordCommon.mapper_inj.
+      rewrite set_collect_eq_opt, set_collect_eq,
+              ReordCommon.mapper_neq; ins.
+      rewrite <- exec_upd_lab_R, <- exec_upd_lab_W.
+      all: try now (rewrite <- FIN_LAB; eauto).
+      rewrite <- exec_mapped_R with (G := exec_upd_lab G_t b l),
+              <- exec_mapped_W with (G := exec_upd_lab G_t b l).
+      all: eauto using ReordCommon.mapper_surj.
+      all: try apply ReordCommon.mapper_inj; try eapply rsrw_a_neq_b; eauto.
+      { apply ReordCommon.mapper_surj. apply rsrw_a_neq_b with (G_t); eauto. }
+      { unfold exec_upd_lab; ins. admit. }
+      { apply ReordCommon.mapper_surj. apply rsrw_a_neq_b with (G_t); eauto. }
+      admit. }
+    admit. }
+  admit. 
 Admitted.
 
 (*
