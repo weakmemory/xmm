@@ -298,9 +298,91 @@ Proof using.
   { rewrite SUBORIG. now apply immediate_in. }
   { unfolder; exists x', y'; eauto. }
   intros c SB1 SB2.
+  (* Cooking *)
+  unfolder in IMM. desf.
+  (* Asserts *)
+  assert (NEQ : a <> b).
+  { intro F. apply ext_sb_irr with (x := a).
+    now rewrite F at 2. }
+  assert (NEQXY : x' <> y').
+  { intro F. eapply ext_sb_irr with (x := x').
+    apply SUBORIG in HREL. unfold sb in HREL.
+    unfolder in HREL. desf. }
   (* Actual proof *)
-  admit.
-Admitted.
+  destruct (classic (x' = a)) as [HEQXA|HEQXA],
+           (classic (y' = b)) as [HEQYB|HEQYB],
+           (classic (y' = a)) as [HEQYA|HEQYA],
+           (classic (x' = b)) as [HEQXB|HEQXB].
+  all: subst; try congruence.
+  all: rewrite ?mapper_eq_a, ?mapper_eq_b, ?mapper_neq; ins.
+  { apply SUBORIG in HREL. unfolder in HREL. desf.
+    rewrite mapper_eq_a in SB1. rewrite mapper_neq in SB2; ins.
+    unfold sb in SB1, SB2. unfolder in SB1. unfolder in SB2.
+    ins. desf. red in SB5. destruct SB5 as (c' & CINE & HCEQ).
+    rewrite mapper_neq in HCEQ.
+    { unfold sb in HREL. unfolder in HREL. desf.
+      apply HREL0 with c; unfold sb.
+      all: unfolder; splits; ins.
+      eapply ext_sb_trans with (y := b); ins. }
+    all: intro F; subst c'.
+    { rewrite mapper_eq_a in HCEQ; subst.
+      eapply ext_sb_irr; eauto. }
+    rewrite mapper_eq_b in HCEQ; subst.
+    apply ext_sb_irr with (x := a), ext_sb_trans with (y := b); ins. }
+  { apply SUBORIG in HREL. unfolder in HREL. desf.
+    rewrite mapper_eq_b in SB2. rewrite mapper_neq in SB1; ins.
+    unfold sb in SB1, SB2. unfolder in SB1. unfolder in SB2.
+    ins. desf. red in SB5. destruct SB5 as (c' & CINE & HCEQ).
+    rewrite mapper_neq in HCEQ.
+    { subst c'.
+      apply HREL0 with c; unfold sb; unfolder; splits; ins.
+      all: unfold sb in HREL; unfolder in HREL; desf.
+      apply ext_sb_trans with (y := a); ins. }
+    { intro F; subst c'.
+      rewrite mapper_eq_a in HCEQ; subst c.
+      apply ext_sb_irr with (x := a).
+      eapply ext_sb_trans with (y := b); ins. }
+    intro F; subst c'.
+    rewrite mapper_eq_b in HCEQ. subst c.
+    eapply ext_sb_irr; eauto. }
+  { apply SUBORIG in HREL. unfolder in HREL. desf.
+    unfold sb in HREL; unfolder in HREL; desf.
+    apply ext_sb_irr with (x := a), ext_sb_trans with (y := b); ins. }
+  { apply RNCODOM; exists x'; eauto. }
+  { apply RNDOM; exists y'; eauto. }
+  rewrite mapper_neq in SB1, SB2; ins.
+  apply SUBORIG in HREL. unfolder in HREL. desf.
+  unfold sb in SB1, SB2. ins.
+  apply seq_restr_eq_prod in SB1, SB2.
+  destruct SB1 as [SB1 [XINE CINE]], SB2 as [SB2 [_ YINE]].
+  destruct XINE as [x'' [XINE XEQ]], YINE as [y'' [YINE YEQ]],
+           CINE as [c'' [CINE CEQ]].
+  rewrite mapper_neq in XEQ, YEQ; ins.
+  all: try intro F; try subst x''; try subst y''.
+  all: try rewrite ?mapper_eq_a, ?mapper_eq_b in XEQ.
+  all: try rewrite ?mapper_eq_a, ?mapper_eq_b in YEQ.
+  all: try now (try subst x'; try subst y').
+  rewrite mapper_neq in CEQ.
+  { subst. eapply HREL0 with c; unfold sb; unfolder; splits; ins. }
+  { intro F. subst c''. rewrite mapper_eq_a in CEQ. subst c.
+    enough (EXTA : ext_sb x' a).
+    { apply HREL0 with a; unfold sb; unfolder; splits; ins.
+      apply ext_sb_trans with (y := b); ins. }
+    tertium_non_datur (is_init x') as [XINIT|NINIT].
+    { destruct x', a; ins. }
+    destruct ext_sb_semi_total_r with b a x' as [FSB|FSB]; ins.
+    { intro F. destruct a, x'; ins. do 2 desf. }
+    exfalso. apply IMM0 with x'; ins. }
+  intro F. subst c''. rewrite mapper_eq_b in CEQ. subst c.
+  enough (EXTA : ext_sb b y').
+  { apply HREL0 with b; unfold sb; unfolder; splits; ins.
+    apply ext_sb_trans with (y := a); ins. }
+  tertium_non_datur (is_init y') as [XINIT|NINIT].
+  { destruct a, y'; ins. }
+  destruct ext_sb_semi_total_l with a b y' as [FSB|FSB]; ins.
+  { intro F. destruct a, b, y'; ins. do 2 desf. }
+  exfalso. apply IMM0 with y'; ins.
+Qed.
 
 Lemma mapped_exec_equiv
     (SAME : E_t a <-> E_t b):
