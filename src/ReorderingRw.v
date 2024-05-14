@@ -690,7 +690,11 @@ Lemma simrel_exec_niff_helper sc e l sw
     (W_IS : W_t sw)
     (INA :   E_t a)
     (NINB : ~E_t b)
-    (BINIT : forall l0 (LOC : loc lab_t' b = Some l0), E_t' (InitEvent l0)) :
+    (BINIT : forall l0 (LOC : loc lab_t' b = Some l0), E_t' (InitEvent l0))
+    (NRMWDEP : ~rmw_dep_t' a b)
+    (NRMW : ~rmw_t' a b)
+    (NRMWCODOM : ~codom_rel rmw_t' a)
+    (NRMWDOM : ~dom_rel rmw_t' b) :
   WCore.exec_inst
     (exec_add_rf
       (exec_add_read_event_nctrl
@@ -841,15 +845,20 @@ Proof using.
         exists y. rewrite ReordCommon.mapper_neq; ins. }
       { apply ReordCommon.mapper_init_actid. apply SIM_ACTS.(rsrw_ninit_a G_t a b).
         apply SIM_ACTS.(rsrw_ninit_b G_t a b). }
-      { admit. }
-      { admit. }
-      { admit. (* TODO *) }
+      { apply ReordCommon.mapped_G_t_immsb_helper; ins.
+        all: try now apply SIM_ACTS.
+        apply STEP. }
+      { apply ReordCommon.mapped_G_t_sb_helper; ins.
+        all: try now apply SIM_ACTS.
+        apply STEP. }
+      (* FIXME: uses auto gen names *)
+      { admit. (* TODO: lemma *) }
       { admit. }
       all: try now apply STEP.
       apply WCore.wf_iff_struct_and_props, STEP. }
     { rewrite STEP.(WCore.start_wf).(WCore.cc_ctrl_empty).
       now rewrite collect_rel_empty. }
-    admit. }
+    admit. (* TODO *) }
   { destruct STEP. red in add_event. desf. ins.
     exists (option_map mapper r), (option_map mapper w),
            (mapper ↑₁ W1), (mapper ↑₁ W2).
