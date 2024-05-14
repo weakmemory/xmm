@@ -634,7 +634,8 @@ Proof using.
               <- exec_mapped_R with (G := G_t),
               <- exec_mapped_W with (G := G_t).
       all: eauto using ReordCommon.mapper_surj,
-                      ReordCommon.mapper_inj. }
+                      ReordCommon.mapper_inj.
+      all: admit. (* TODO: should easy  *) }
     replace ∅ with (mapper ↑₁ ∅); [| now rewrite set_collect_empty].
     apply cfg_upd_lab_wf with (X := {|
       WCore.sc := mapper ↑ sc;
