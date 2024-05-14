@@ -737,22 +737,27 @@ Proof using.
       { now rewrite start_wf.(WCore.cc_ctrl_empty), collect_rel_empty. }
       { now rewrite start_wf.(WCore.cc_addr_empty), collect_rel_empty. }
       { now rewrite start_wf.(WCore.cc_data_empty), collect_rel_empty. }
-      { unfold contigious_actids. intros t HTID.
-        admit. }
-      { unfold contigious_actids. intros t HTID.
-        admit. }
-      { rewrite set_inter_union_l.
-        arewrite (eq a ∩₁ is_init ≡₁ ∅).
-        { split; [| basic_solver]. unfolder; ins; desf.
-          now eapply SIM_ACTS. }
-        transitivity (mapper ↑₁ E_t); [| basic_solver].
-        rewrite set_union_empty_r.
-        rewrite <- ReordCommon.mapper_is_init with (a := a) (b := b).
-        all: try now apply SIM_ACTS.
-        rewrite <- set_collect_interE.
-        { apply set_collect_mori, start_wf; ins. }
-        eapply ReordCommon.mapper_inj; eauto. }
-      admit. (*  Can infer that a's tid is not tid_init *) }
+      { apply exec_add_rf_cont. admit. (* TODO: need weaker lemma *) }
+      { apply exec_add_rf_cont. admit. }
+      { intros x [[INE | EQA] HINIT]; try now right.
+        destruct INE as (x' & INE & HEQ).
+        left. exists x'; split; eauto.
+        apply start_wf.(WCore.wf_g_init); split; ins.
+        erewrite ReordCommon.mapper_inj with (x := x') (y := x)
+                                             (a := a) (b := b).
+        all: ins.
+        destruct x as [xl | xtid xid]; ins.
+        rewrite ReordCommon.mapper_init_actid with (a := a) (b := b).
+        all: ins; now apply SIM_ACTS. }
+      intros x [EQTID [INE | EQA]]; red in EQTID.
+      { apply start_wf.(WCore.wf_gc_acts); split; ins.
+        destruct INE as (x' & INE & HEQ).
+        rewrite ReordCommon.mapper_neq in HEQ; subst; ins.
+        all: intro F'; subst x'; eauto.
+        apply B_TID. erewrite rsrw_tid_a_tid_b; eauto.
+        rewrite ReordCommon.mapper_eq_a; eauto. }
+      subst; exfalso; apply SIM_ACTS.(rsrw_ninit_a _ _ _).
+      apply start_wf.(WCore.wf_gc_acts); split; ins. }
     apply cfg_add_event_nctrl_wf_props with (X := {|
       WCore.sc := mapper ↑ sc;
       WCore.G := exec_upd_lab _ a l;
@@ -776,8 +781,15 @@ Proof using.
       apply BINIT. unfold loc in *.
       rewrite upds in LOC. red in U2V.
       do 2 desf. }
-    { admit. (* Correct because while a is in codom (rf_t) --
-                it is not in mapped rf_t *) }
+    { unfolder in DOM2. desf.
+      unfolder in DOM1. desf.
+      apply NINB'.
+      rewrite ReordCommon.mapper_inj with (x := b) (y := y')
+                                          (a := a) (b := b).
+      all: ins; try now rewrite ReordCommon.mapper_eq_b.
+      destruct STEP.
+      apply start_wf.(WCore.wf_gc).(wf_rfE) in DOM1. ins.
+      unfolder in DOM1; desf. }
     { unfolder. ins. desf. }
     { unfolder. ins. desf. }
     { unfolder. splits; ins; desf.
@@ -801,17 +813,19 @@ Proof using.
       |}); ins.
       { apply SIM_ACTS. }
       { unfold compose. now rewrite ReordCommon.mapper_eq_a. }
-      { unfolder. intro F. desf. assert (MAPPED : y' = b).
+      { unfolder. intro F. desf.
+        assert (MAPPED : y' = b).
         { apply ReordCommon.mapper_inj with (a := a) (b := b); ins.
           now rewrite ReordCommon.mapper_eq_b. }
-        subst. destruct STEP. destruct start_wf; ins.
-        destruct wf_gc. destruct NINB'. apply wf_rfE in F.
+        subst. destruct STEP.
+        apply start_wf.(WCore.wf_gc).(wf_rfE) in F. ins.
         unfolder in F. desf. }
-      { unfolder. intro F. desf. assert (MAPPED : x' = b).
+      { unfolder. intro F. desf.
+        assert (MAPPED : x' = b).
         { apply ReordCommon.mapper_inj with (a := a) (b := b); ins.
           now rewrite ReordCommon.mapper_eq_b. }
-        subst. destruct STEP. destruct start_wf; ins.
-        destruct wf_gc. destruct NINB'. apply wf_rfE in F.
+        subst. destruct STEP.
+        apply start_wf.(WCore.wf_gc).(wf_rfE) in F. ins.
         unfolder in F. desf. }
       apply cfg_mapped_wf_props with (X := {|
         WCore.sc := sc;
@@ -829,15 +843,12 @@ Proof using.
         apply SIM_ACTS.(rsrw_ninit_b G_t a b). }
       { admit. }
       { admit. }
-      { apply wf_index with (G_t').
-        { destruct STEP. destruct start_wf; ins. }
-        splits; eauto.
-        all: admit. }
+      { admit. (* TODO *) }
       { admit. }
-      all: destruct STEP; destruct start_wf; ins.
-      constructor; ins. destruct pfx; eauto. }
-    { destruct STEP; destruct start_wf; ins.
-      rewrite cc_ctrl_empty. rewrite collect_rel_empty; eauto. }
+      all: try now apply STEP.
+      apply WCore.wf_iff_struct_and_props, STEP. }
+    { rewrite STEP.(WCore.start_wf).(WCore.cc_ctrl_empty).
+      now rewrite collect_rel_empty. }
     admit. }
   { destruct STEP. red in add_event. desf. ins.
     exists (option_map mapper r), (option_map mapper w),
