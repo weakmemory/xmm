@@ -239,8 +239,7 @@ Lemma mapped_G_t_sb_helper lab' r
     (ANINIT : ~is_init a)
     (BNINIT : ~is_init b)
     (IMM : immediate ext_sb a b)
-    (RNOT : ~r a b)
-    (SAME : E_t a <-> E_t b) :
+    (RNOT : ~r a b) :
   mapper ↑ r ⊆ sb (exec_mapped G_t mapper lab').
 Proof using.
   (* Cook hypotheses *)
@@ -290,15 +289,13 @@ Lemma mapped_G_t_immsb_helper lab' r
     (IMM : immediate ext_sb a b)
     (RNOT : ~r a b)
     (RNCODOM : ~codom_rel r a)
-    (RNDOM : ~dom_rel r b)
-    (SAME : E_t a <-> E_t b) :
+    (RNDOM : ~dom_rel r b) :
   mapper ↑ r ⊆ immediate (sb (exec_mapped G_t mapper lab')).
 Proof using.
   (* Using previous lemma as shortcut *)
   unfolder; intros x y HREL; desf.
   split; [eapply mapped_G_t_sb_helper with (r := r); eauto |].
   { rewrite SUBORIG. now apply immediate_in. }
-  { split; ins. }
   { unfolder; exists x', y'; eauto. }
   intros c SB1 SB2.
   (* Actual proof *)
