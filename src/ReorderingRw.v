@@ -736,8 +736,7 @@ Proof using.
   constructor; ins.
   { replace ∅ with (mapper ↑₁ ∅); [| now rewrite set_collect_empty].
     apply WCore.wf_iff_struct_and_props; split.
-    { destruct STEP.
-      constructor; ins.
+    { destruct STEP. constructor; ins.
       { now rewrite start_wf.(WCore.cc_ctrl_empty), collect_rel_empty. }
       { now rewrite start_wf.(WCore.cc_addr_empty), collect_rel_empty. }
       { now rewrite start_wf.(WCore.cc_data_empty), collect_rel_empty. }
@@ -914,7 +913,55 @@ Proof using.
               exec_upd_lab_W with (G := exec_mapped G_t' mapper (lab_t' ∘ mapper)).
       all: ins; eauto using ReordCommon.mapper_inj, ReordCommon.mapper_surj.
       all: try now (red; unfold compose; rewrite ReordCommon.mapper_eq_a). }
-    admit. }
+    apply WCore.wf_iff_struct_and_props; split.
+    { constructor; ins.
+      { now rewrite start_wf.(WCore.cc_ctrl_empty), collect_rel_empty. }
+      { now rewrite start_wf.(WCore.cc_addr_empty), collect_rel_empty. }
+      { now rewrite start_wf.(WCore.cc_data_empty), collect_rel_empty. }
+      { apply exec_add_rf_cont. admit. (* TODO: need weaker lemma *) }
+      { apply exec_add_rf_cont. admit. }
+      { intros x [[INE | EQA] HINIT]; try now right.
+        destruct INE as (x' & INE & HEQ).
+        left. exists x'; split; eauto. }
+      intros x [EQTID [INE | EQA]]; red in EQTID.
+      { apply start_wf.(WCore.wf_gc_acts); split; ins.
+        destruct INE as (x' & INE & HEQ).
+        rewrite ReordCommon.mapper_neq in HEQ; subst; ins.
+        all: intro F'; subst x'; eauto.
+        apply B_TID. erewrite rsrw_tid_a_tid_b; eauto.
+        rewrite ReordCommon.mapper_eq_a; eauto. }
+      subst; exfalso; apply SIM_ACTS.(rsrw_ninit_a _ _ _).
+      apply start_wf.(WCore.wf_gc_acts); split; ins. }
+    replace ∅ with (mapper ↑₁ ∅); [| now rewrite set_collect_empty].
+    apply cfg_add_event_nctrl_wf_props with (X := {|
+      WCore.sc := mapper ↑ sc;
+      WCore.G := exec_upd_lab _ a l;
+      WCore.GC := exec_upd_lab _ a l;
+       WCore.cmt := mapper ↑₁ ∅
+    |}); ins.
+    { apply SIM_ACTS. }
+    { admit. }
+    { admit. }
+    { admit. }
+    { admit. }
+    { admit. }
+    { admit. }
+    { admit. }
+    { admit. }
+    { admit. }
+    { admit. }
+    { admit. }
+    { admit. }
+    { apply cfg_mapped_wf_props with (X := {|
+        WCore.sc := sc;
+        WCore.G := G_t';
+        WCore.GC := G_t';
+        WCore.cmt := ∅;
+      |}); ins.
+      all: admit. }
+    { rewrite start_wf.(WCore.cc_ctrl_empty).
+      now rewrite collect_rel_empty. }
+    admit. (* TODO *) }
   admit.
 Admitted.
 
