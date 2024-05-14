@@ -393,7 +393,11 @@ Lemma simrel_exec_iff_helper_1 sc e
     (E_NOT_B : e <> b)
     (CONS : WCore.is_cons G_t sc)
     (STEP : WCore.exec_inst G_t G_t' sc traces e)
-    (SIM_ACTS : reord_simrel_rw_actids G_t a b) :
+    (SIM_ACTS : reord_simrel_rw_actids G_t a b)
+    (NRMWDEP : ~rmw_dep_t' a b)
+    (NRMW : ~rmw_t' a b)
+    (NRMWCODOM : ~codom_rel rmw_t' a)
+    (NRMWDOM : ~dom_rel rmw_t' b) :
   WCore.exec_inst
     (exec_mapped G_t  mapper (lab_t'  ∘ mapper))
     (exec_mapped G_t' mapper (lab_t'  ∘ mapper))
@@ -427,11 +431,7 @@ Proof using.
     |}); ins.
     all: try now apply SIM_ACTS.
     all: try now apply STEP.
-    { eapply rsrw_tid_a_tid_b; eauto. }
-    { admit. (* TODO: infer as separate lemma *) }
-    { admit. (* TODO: infer as separate lemma *) }
-    { admit. (* TODO: infer as separate lemma *) }
-    admit. (* TODO: infer as separate lemma *)  }
+    eapply rsrw_tid_a_tid_b; eauto. }
   { destruct STEP. unfold WCore.cfg_add_event in add_event.
     desf. exists (option_map mapper r), (option_map mapper w),
                  (mapper ↑₁ W1), (mapper ↑₁ W2).
@@ -451,7 +451,7 @@ Proof using.
                                              (b := b); ins.
       rewrite <- set_collect_eq, <- set_collect_union.
       now apply set_collect_more, add_event. }
-    { admit. } (* TODO: research *)
+    { admit. } (* TODO: traces. research *)
     { rewrite add_event.(WCore.rf_new); ins.
       rewrite !collect_rel_union.
       repeat apply union_more; ins; unfold WCore.rf_delta_R, WCore.rf_delta_W;
@@ -491,8 +491,7 @@ Proof using.
     |}); ins.
     all: try now apply SIM_ACTS.
     all: try now apply add_event.
-    { eapply rsrw_tid_a_tid_b; eauto. }
-    all: admit. (* Most of the subgoals mimic the ones above *) }
+    eapply rsrw_tid_a_tid_b; eauto. }
   admit. (* TODO: research *)
 Admitted.
 
@@ -507,13 +506,17 @@ Admitted.
 Lemma simrel_exec_iff_helper_2 sc e l
     (U2V : same_label_u2v (lab_t' b) l)
     (SAME : E_t a <-> E_t b)
+    (NINA : ~E_t a)
+    (NINB : ~E_t b)
     (E_NOT_A : e <> a)
     (E_NOT_B : e <> b)
     (CONS : WCore.is_cons G_t sc)
     (STEP : WCore.exec_inst G_t G_t' sc traces e)
     (SIM_ACTS : reord_simrel_rw_actids G_t a b)
-    (NINA : ~E_t a)
-    (NINB : ~E_t b) :
+    (NRMWDEP : ~rmw_dep_t' a b)
+    (NRMW : ~rmw_t' a b)
+    (NRMWCODOM : ~codom_rel rmw_t' a)
+    (NRMWDOM : ~dom_rel rmw_t' b) :
   WCore.exec_inst
     (exec_upd_lab
       (exec_mapped G_t  mapper (lab_t'  ∘ mapper))
@@ -582,13 +585,7 @@ Proof using.
         WCore.cmt := ∅;
     |}); ins.
     all: try now apply SIM_ACTS.
-    { eapply rsrw_tid_a_tid_b; eauto. }
-    { intro F. apply (wf_rmw_depE start_wf.(WCore.wf_gc)) in F.
-      ins. unfolder in F. desf. }
-    all: unfolder.
-    all: intro F; desf.
-    all: apply (wf_rmwE start_wf.(WCore.wf_gc)) in F.
-    all: unfolder in F; ins; desf. }
+    eapply rsrw_tid_a_tid_b; eauto. }
   { unfold WCore.cfg_add_event in add_event.
     desf. exists (option_map mapper r), (option_map mapper w),
                (mapper ↑₁ W1), (mapper ↑₁ W2).
@@ -608,7 +605,7 @@ Proof using.
                                              (b := b); ins.
       rewrite <- set_collect_eq, <- set_collect_union.
       now apply set_collect_more, add_event. }
-    { admit. } (* TODO: research *)
+    { admit. } (* TODO: traces. research *)
     { rewrite add_event.(WCore.rf_new); ins.
       rewrite !collect_rel_union.
       repeat apply union_more; ins; unfold WCore.rf_delta_R, WCore.rf_delta_W;
@@ -672,13 +669,7 @@ Proof using.
     |}); ins.
     all: try now apply SIM_ACTS.
     all: try now apply add_event.
-    { eapply rsrw_tid_a_tid_b; eauto. }
-    { intro F. apply (wf_rmw_depE start_wf.(WCore.wf_gc)) in F.
-      ins. unfolder in F. desf. }
-    all: unfolder.
-    all: intro F; desf.
-    all: apply (wf_rmwE start_wf.(WCore.wf_gc)) in F.
-    all: unfolder in F; ins; desf. }
+    eapply rsrw_tid_a_tid_b; eauto. }
   admit. (* TODO: Is_cons *)
 Admitted.
 
@@ -802,14 +793,14 @@ Proof using.
       |}); ins.
       { apply SIM_ACTS. }
       { unfold compose. now rewrite ReordCommon.mapper_eq_a. }
-      { unfolder. intro F. desf. assert (MAPPED : y' = b). 
+      { unfolder. intro F. desf. assert (MAPPED : y' = b).
         { apply ReordCommon.mapper_inj with (a := a) (b := b); ins.
           { eapply rsrw_a_neq_b; eauto. }
           now rewrite ReordCommon.mapper_eq_b. }
         subst. destruct STEP. destruct start_wf; ins.
         destruct wf_gc. destruct NINB'. apply wf_rfE in F.
-        unfolder in F. desf. }  
-      { unfolder. intro F. desf. assert (MAPPED : x' = b). 
+        unfolder in F. desf. }
+      { unfolder. intro F. desf. assert (MAPPED : x' = b).
         { apply ReordCommon.mapper_inj with (a := a) (b := b); ins.
           { eapply rsrw_a_neq_b; eauto. }
           now rewrite ReordCommon.mapper_eq_b. }
@@ -831,17 +822,17 @@ Proof using.
       { rewrite Combinators.compose_assoc. rewrite ReordCommon.mapper_mapper_compose.
         rewrite Combinators.compose_id_right. eauto. eapply rsrw_a_neq_b. eauto. }
       { apply ReordCommon.mapper_init_actid. apply SIM_ACTS.(rsrw_ninit_a G_t a b).
-        apply SIM_ACTS.(rsrw_ninit_b G_t a b). } 
+        apply SIM_ACTS.(rsrw_ninit_b G_t a b). }
       { admit. }
       { admit. }
-      { apply wf_index with (G_t'). 
+      { apply wf_index with (G_t').
         { destruct STEP. destruct start_wf; ins. }
         splits; eauto. all: admit. }
       { admit. }
       all: destruct STEP; destruct start_wf; ins.
-      constructor; ins. destruct pfx; eauto. } 
+      constructor; ins. destruct pfx; eauto. }
     { destruct STEP; destruct start_wf; ins.
-      rewrite cc_ctrl_empty. rewrite collect_rel_empty; eauto. } 
+      rewrite cc_ctrl_empty. rewrite collect_rel_empty; eauto. }
     admit. }
   { destruct STEP. red in add_event. desf. ins.
     exists (option_map mapper r), (option_map mapper w),
@@ -873,11 +864,11 @@ Proof using.
         { admit. }
         { admit. }
         apply ReordCommon.mapper_inj. eapply rsrw_a_neq_b; eauto. }
-      { rewrite collect_rel_empty. admit. } 
+      { rewrite collect_rel_empty. admit. }
       { admit. }
-      { rewrite collect_rel_empty. admit. } 
+      { rewrite collect_rel_empty. admit. }
       { admit. }
-      admit. } 
+      admit. }
     { destruct add_event; ins. rewrite co_new.
       rewrite !collect_rel_union. repeat apply union_more; ins.
       unfold WCore.co_delta; ins. unfold is_w, compose. desf.
@@ -905,7 +896,7 @@ Proof using.
       { apply ReordCommon.mapper_surj. apply rsrw_a_neq_b with (G_t); eauto. }
       admit. }
     admit. }
-  admit. 
+  admit.
 Admitted.
 
 (*
@@ -924,6 +915,14 @@ Lemma simrel_exec_iff e sc
   exists G_s' sc',
     WCore.exec_inst G_s G_s' sc' traces' e.
 Proof using.
+  assert (NRMWDEP : ~rmw_dep_t' a b).
+  { admit. }
+  assert (NRMW : ~rmw_t' a b).
+  { admit. }
+  assert (NRMWCODOM : ~codom_rel rmw_t' a).
+  { admit. }
+  assert (NRMWDOM : ~dom_rel rmw_t' b).
+  { admit. }
   assert (HEQLAB : lab_t' = lab_t).
   { destruct STEP. destruct start_wf. ins.
     now rewrite pfx.(pfx_sub).(sub_lab). }
@@ -954,7 +953,7 @@ Proof using.
   rewrite HEQLAB.
   symmetry. apply exeeqv_eq. apply rsrw_struct_same2; ins.
   all: apply SIM.
-Qed.
+Admitted.
 
 Lemma simrel_exec_not_a_not_b_same_helper sc e
     (SAME : E_t a <-> E_t b)
