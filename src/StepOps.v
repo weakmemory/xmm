@@ -151,21 +151,40 @@ Proof using.
   rewrite (WCore.caep_rmw_new STEP); ins.
 Qed.
 
-Lemma cfg_add_event_nctrl_as_add_step e w
-    (IS_W : is_w labC w)
-    (IS_R : is_r labC e) :
+End StepOps.
+
+Lemma cfg_add_event_nctrl_as_add_step sc cmt G GC e w
+    (IS_W : is_w (lab GC) w)
+    (IS_R : is_r (lab GC) e) :
   WCore.cfg_add_event_props
-    X
-    (cfg_add_read_event_nctrl X e (singl_rel w e))
+    {|
+      WCore.G := G;
+      WCore.GC := exec_add_rf (
+        exec_add_read_event_nctrl GC e
+      ) (singl_rel w e);
+      WCore.cmt := cmt;
+      WCore.sc := sc;
+    |}
+    {|
+      WCore.G := exec_add_rf (
+        exec_add_read_event_nctrl G e
+      ) (singl_rel w e);
+      WCore.GC :=  exec_add_rf (
+        exec_add_read_event_nctrl GC e
+      ) (singl_rel w e);
+      WCore.cmt := cmt;
+      WCore.sc := sc;
+    |}
     e None (Some w) ∅ ∅.
 Proof using.
   constructor; ins.
-  { arewrite (WCore.rf_delta_W GC e (cmt ∩₁ E) ≡ ∅₂).
-    { unfold WCore.rf_delta_W, is_r, is_w in *; desf. }
+  { arewrite (WCore.rf_delta_W (exec_add_rf
+                                  (exec_add_read_event_nctrl GC e)
+                                  (singl_rel w e)) e
+                                (cmt ∩₁ acts_set G) ≡ ∅₂).
+    { unfold WCore.rf_delta_W, is_r, is_w in *; ins. desf. }
     rewrite union_false_r. basic_solver 5. }
-  { unfold WCore.co_delta. unfold is_w, is_r in *. desf.
-    now rewrite union_false_r. }
+  { unfold WCore.co_delta. unfold is_w, is_r in *.
+    ins. desf. now rewrite union_false_r. }
   unfold WCore.rmw_delta. basic_solver.
 Qed.
-
-End StepOps.
