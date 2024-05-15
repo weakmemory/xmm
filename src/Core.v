@@ -254,8 +254,6 @@ Record cfg_add_event_struct e :=
 { caes_e_new : E' ≡₁ E ∪₁ (eq e);
   caes_e_notin : ~(E e);
   caes_e_notinit : ~ is_init e;
-  caes_e_correct : new_event_correct e;
-  caes_wf_new_conf : wf X';
   caes_cmt_graph_same : GC' = GC;
 }.
 
@@ -268,11 +266,13 @@ Record cfg_add_event_props e r w W1 W2 :=
 Lemma cfg_add_event_iff_struct_and_props e r w W1 W2 :
   cfg_add_event_gen e r w W1 W2 <->
     << STRUCT : cfg_add_event_struct e >> /\
-    << PROPS : cfg_add_event_props e r w W1 W2 >>.
+    << PROPS : cfg_add_event_props e r w W1 W2 >> /\
+    << TRACE : new_event_correct e >> /\
+    << WF : wf X' >>.
 Proof using.
-  split; [intros STEP | intros STRUPROPS].
-  { split; constructor; ins; apply STEP. }
-  constructor; ins; apply STRUPROPS.
+  split; [intros STEP | intros STRUPROPSWF].
+  { splits; try constructor; ins; apply STEP. }
+  constructor; ins; apply STRUPROPSWF.
 Qed.
 
 Definition cfg_add_event (e : actid) :=
