@@ -1184,6 +1184,46 @@ Proof using SWAPPED_TRACES.
   admit.
 Admitted.
 
+Lemma simrel_exec_iff_reexecstart_helper l dtrmt
+    (A_NEQ_B : a <> b) :
+  exec_equiv
+    (WCore.reexec_start
+      (exec_upd_lab
+        (exec_mapped G_t mapper
+            (lab_t' ∘ mapper)) a
+        l)
+      (exec_upd_lab
+        (exec_mapped G_t' mapper
+            (lab_t' ∘ mapper)) a
+        l) (mapper ↑₁ dtrmt))
+    (exec_upd_lab
+        (exec_mapped (WCore.reexec_start G_t G_t' dtrmt)
+          mapper (lab_t' ∘ mapper)) a l).
+Proof using.
+  constructor; ins.
+  { rewrite set_collect_interE; eauto using ReordCommon.mapper_inj. }
+  all: rewrite !collect_rel_seq, <- collect_rel_eqv; ins.
+  all: eapply inj_dom_mori; eauto using ReordCommon.mapper_inj; ins.
+Qed.
+
+Lemma simrel_exec_iff_reexecstart_helper_eq l dtrmt
+    (A_NEQ_B : a <> b) :
+  WCore.reexec_start
+    (exec_upd_lab
+      (exec_mapped G_t mapper
+          (lab_t' ∘ mapper)) a
+      l)
+    (exec_upd_lab
+      (exec_mapped G_t' mapper
+          (lab_t' ∘ mapper)) a
+       l) (mapper ↑₁ dtrmt) =
+  exec_upd_lab
+    (exec_mapped (WCore.reexec_start G_t G_t' dtrmt)
+      mapper (lab_t' ∘ mapper)) a l.
+Proof using.
+  now apply exeeqv_eq, simrel_exec_iff_reexecstart_helper.
+Qed.
+
 Lemma simrel_exec_iff_helper l sc rfre
     (U2V : same_label_u2v (lab_t' b) l)
     (SAME : E_t a <-> E_t b)
@@ -1223,7 +1263,9 @@ Proof using.
     admit. (* here f looks quite weird again *) }
   { admit. (* FIXME: f looks weird again *) }
   { admit. (* Basic start wf-ness *) }
-  { admit. (* Steps *) }
+  { rewrite simrel_exec_iff_reexecstart_helper_eq.
+    all: eauto using rsrw_a_neq_b.
+    admit. (* Steps *) }
   admit. (* Is_cons *)
 Admitted.
 
