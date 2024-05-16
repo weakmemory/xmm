@@ -91,6 +91,35 @@ Proof using.
   exists y0; splits; ins.
 Qed.
 
+Lemma collect_rel_restr {A B} (f : A -> B) s r
+    (FINJ : inj_dom ⊤₁ f) :
+  restr_rel (f ↑₁ s) (f ↑ r) ≡ f ↑ (restr_rel s r).
+Proof using.
+  rewrite !restr_relE, !collect_rel_seq, collect_rel_eqv; ins.
+  all: eapply inj_dom_mori; eauto; ins.
+Qed.
+
+Lemma conjugate_sub {A} r (f : A -> option A)
+    (m m' : A -> A)
+    (MINJ : inj_dom ⊤₁ m)
+    (MSURJ : forall y, exists x, y = m x)
+    (INV : m' ∘ m = id) :
+  Some ↓ ((option_map m ∘ f ∘ m') ↑ (m ↑ r)) ⊆
+    m ↑ (Some ↓ (f ↑ r)).
+Proof using.
+  rewrite <- !collect_rel_compose, Combinators.compose_assoc.
+  rewrite INV, Combinators.compose_id_right.
+  unfold compose. unfolder; ins; desf.
+  destruct MSURJ with x as [x'0 XEQ].
+  destruct MSURJ with y as [y'0 YEQ].
+  subst; exists x'0, y'0; splits; ins.
+  exists x', y'. splits; ins.
+  { destruct (f x') eqn:HEQ; ins.
+    f_equal. apply MINJ; ins. congruence. }
+  destruct (f y') eqn:HEQ; ins.
+  f_equal. apply MINJ; ins. congruence.
+Qed.
+
 Lemma map_rel_eqvE (A B : Type) (f : A -> B) d
     (INJ : inj_dom ⊤₁ f) :
   ⦗f ↓₁ d⦘ ≡ f ↓ ⦗d⦘.

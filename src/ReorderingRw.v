@@ -1246,26 +1246,49 @@ Lemma simrel_exec_iff_helper l sc rfre
     (mapper ↑ rfre).
 Proof using.
   red in STEP. desf. red.
-  exists (f ∘ mapper), (mapper ↑₁ dtrmt).
+  assert (A_NEQ_B : a <> b).
+  { admit. }
+  assert (CMTEQ : WCore.f_cmt (option_map mapper ∘ f ∘ mapper) ≡₁
+                  mapper ↑₁ WCore.f_cmt f).
+  { unfold WCore.f_cmt, compose, is_some, option_map.
+    unfolder. split; intros x HSET.
+    { desf. exists (mapper x); split; desf.
+      rewrite ReordCommon.mapper_self_inv; ins. }
+    desf. rewrite ReordCommon.mapper_self_inv in Heq0; ins.
+    desf. }
+  exists (option_map mapper ∘ f ∘ mapper), (mapper ↑₁ dtrmt).
   constructor; ins.
-  { admit. (* TODO: too complex to solve atm *) }
-  { admit. (* TODO: constraint 1 *) }
-  { admit. (* TODO: composition here is like ↑₁ *) }
-  { admit. (* TODO: composition here is like ↑₁ *) }
-  { admit. (* FIXME: looks weird *)  }
+  { admit. (* NOTE: ignore because rfre might get removed *) }
+  { admit. (* NOTE: rfre might be removed*) }
+  { rewrite CMTEQ. now apply set_collect_mori, STEP. }
+  { rewrite CMTEQ, <- set_collect_dom.
+    now apply set_collect_mori, STEP. }
+  { admit. (* NOTE: ignore for now, until new constraint drops *)  }
   { admit. (* OLD BROKEN VERSION -- ignore *) }
   { constructor; ins.
-    { admit. (* looks easy *) }
-    { admit. (* use compositoin to create a ↑₁ *) }
+    { rewrite CMTEQ. admit. (* looks easy *) }
+    { rewrite CMTEQ. now apply set_collect_mori, STEP. }
     { admit. (* f respects this property, mapper saves tids *) }
     { admit. (* f preserves label. With mapper it preserves it too *) }
     { admit. (* Looks easy too *) }
-    admit. (* here f looks quite weird again *) }
-  { admit. (* FIXME: f looks weird again *) }
+    rewrite CMTEQ, collect_rel_restr; eauto using ReordCommon.mapper_inj.
+    transitivity (mapper ↑ (Some ↓ (f ↑ restr_rel (WCore.f_cmt f) rf_t'))).
+    all: try now apply collect_rel_mori, STEP.
+    apply conjugate_sub.
+    all: eauto using ReordCommon.mapper_inj,
+                     ReordCommon.mapper_surj.
+    now rewrite ReordCommon.mapper_mapper_compose. }
+  { admit. (* NOTE: ignore for now, until new constraint drops*) }
   { admit. (* Basic start wf-ness *) }
   { rewrite simrel_exec_iff_reexecstart_helper_eq.
     all: eauto using rsrw_a_neq_b.
-    admit. (* Steps *) }
+    eapply sub_to_full_exec.
+    { admit. (* Start wf *) }
+    { admit. (* end wf *) }
+    { (* We should try to extract the l from the steps
+         made by G_t but swap a and b *)
+    admit. (* enumd_diff *) }
+    admit. (* Traces *) }
   admit. (* Is_cons *)
 Admitted.
 
