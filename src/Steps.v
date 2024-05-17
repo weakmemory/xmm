@@ -26,6 +26,16 @@ Proof using.
   do 2 (red in STEP; desf). apply STEP.
 Qed.
 
+Lemma cmt_after_steps traces X X'
+    (STEP : (WCore.cfg_add_event_uninformative traces)＊ X X') :
+  WCore.cmt X' ≡₁ WCore.cmt X.
+Proof using.
+  induction STEP as [X X' STEP | X | X X'' X' STEP1 EQ1 STEP2 EQ2].
+  all: eauto.
+  { do 2 (red in STEP; desf). apply STEP. }
+  now rewrite EQ2, EQ1.
+Qed.
+
 (* TODO: lemma about subset of acts *)
 
 Section Steps.
@@ -111,7 +121,7 @@ Proof using.
         apply HREL5.
         rewrite (wf_rff WFEND) with (x := y) (y := x) (z := x').
         all: ins. }
-      admit. }
+      eapply cmt_after_steps with (X := X) in CMT; eauto. }
     apply total_order_from_list_l.
     apply (SubToFullExecInternal.diff_rf DIFF1).
     unfolder. splits; eauto.
