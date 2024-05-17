@@ -22,6 +22,49 @@ Definition rmw_delta e e' : relation actid :=
 #[global]
 Hint Unfold rmw_delta : unfolderDb.
 
+Lemma total_order_from_list_l {A} (l1 l2 : list A) :
+  total_order_from_list l1 ⊆
+    total_order_from_list (l1 ++ l2).
+Proof using.
+  unfold total_order_from_list. unfolder.
+  intros x y HREL. destruct HREL as (l'0 & l'1 & l'2 & HREL).
+  subst l1. exists l'0, l'1, (l'2 ++ l2).
+  do 2 (rewrite <- app_assoc; ins).
+Qed.
+
+Lemma total_order_from_list_r {A} (l1 l2 : list A) :
+  total_order_from_list l2 ⊆
+    total_order_from_list (l1 ++ l2).
+Proof using.
+  unfold total_order_from_list. unfolder.
+  intros x y HREL. destruct HREL as (l'0 & l'1 & l'2 & HREL).
+  subst l2. exists (l1 ++ l'0), l'1, l'2.
+  do 2 (rewrite <- app_assoc; ins).
+Qed.
+
+Lemma in_iff {A} (x : A) l
+    (IN : In x l) :
+  exists l1 l2, l = l1 ++ x :: l2.
+Proof using.
+  induction l as [ | h t IHL]; ins.
+  desf.
+  { exists [], t; ins. }
+  destruct (IHL IN) as (l1 & l2 & HEQ).
+  subst t. exists (h :: l1), l2. ins.
+Qed.
+
+Lemma total_order_from_list_bridge {A} (x y : A) l1 l2
+    (XIN : In x l1)
+    (YIN : In y l2) :
+  total_order_from_list (l1 ++ l2) x y.
+Proof using.
+  unfold total_order_from_list.
+  destruct (in_iff x _ XIN) as (l1x & l2x & XEQ).
+  destruct (in_iff y _ YIN) as (l1y & l2y & YEQ).
+  subst. exists l1x, (l2x ++ l1y), l2y.
+  rewrite <- !app_assoc. ins.
+Qed.
+
 Lemma same_lab_u2v_compose {A} lab1 lab2 (f : A -> actid)
     (U2V : same_lab_u2v lab1 lab2) :
   same_lab_u2v (lab1 ∘ f) (lab2 ∘ f).
