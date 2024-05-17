@@ -10,6 +10,7 @@ Require Import ExecEquiv.
 Require Import ExecOps.
 Require Import CfgOps.
 Require Import StepOps.
+Require Import Steps.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -1282,6 +1283,8 @@ Proof using.
   { admit. (* Basic start wf-ness *) }
   { rewrite simrel_exec_iff_reexecstart_helper_eq.
     all: eauto using rsrw_a_neq_b.
+    destruct (enumd_diff_seq (WCore.reexec_start_wf STEP) (WCore.reexec_steps STEP))
+             as (el & DIFF); ins.
     eapply sub_to_full_exec.
     { admit. (* Start wf *) }
     { admit. (* end wf *) }
