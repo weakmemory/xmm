@@ -241,6 +241,7 @@ Record cfg_add_event_gen e r w W1 W2 :=
   e_correct : new_event_correct e;
 
   cmt_graph_same : GC' = GC;
+  cmt_same : cmt' ≡₁ cmt;
 
   (* Skipping condition for sb *)
   rf_new : rf G' ≡ rf G ∪ rf_delta_R GC e w ∪ rf_delta_W GC e (cmt ∩₁ E);
@@ -255,6 +256,7 @@ Record cfg_add_event_struct e :=
   caes_e_notin : ~(E e);
   caes_e_notinit : ~ is_init e;
   caes_cmt_graph_same : GC' = GC;
+  caes_cmt_smae : cmt' ≡₁ cmt;
 }.
 
 Record cfg_add_event_props e r w W1 W2 :=
