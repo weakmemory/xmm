@@ -1300,7 +1300,7 @@ Lemma simrel_reexec sc rfre
   exists G_s' rfre sc',
     << SIM' : reord_simrel_rw G_s' G_t' a b >> /\
     << STEP : WCore.reexec G_s G_s' sc' traces' (mapper ↓ rfre) >>.
-Proof using SWAPPED_TRACES
+Proof using SWAPPED_TRACES.
   admit.
 Admitted.
 
