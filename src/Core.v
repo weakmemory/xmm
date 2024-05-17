@@ -379,7 +379,7 @@ Record reexec_gen f dtrmt : Prop :=
   reexec_embd_sbrfe : Some ↓ (f ↑ restr_rel (f_cmt f) sb_rf') ⊆
                       restr_rel (Some ↓₁ (f ↑₁ (f_cmt f))) sb_rfre;
   (* Reproducable steps *)
-  reexec_start_wf : wf (Build_t sc G G' (f_cmt f));
+  reexec_start_wf : wf (Build_t sc (reexec_start dtrmt) G' (f_cmt f));
   reexec_steps : (cfg_add_event_uninformative traces)＊
     (Build_t sc (reexec_start dtrmt) G' (f_cmt f))
     (Build_t sc G'                   G' (f_cmt f));
