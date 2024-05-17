@@ -2,6 +2,7 @@ Require Import Lia Setoid Program.Basics.
 Require Import AuxDef.
 Require Import Core.
 Require Import SubToFullExec.
+Require Import ThreadTrace.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -35,6 +36,52 @@ Proof using.
   { do 2 (red in STEP; desf). apply STEP. }
   now rewrite EQ2, EQ1.
 Qed.
+
+Lemma gc_after_steps traces X X'
+    (STEP : (WCore.cfg_add_event_uninformative traces)＊ X X') :
+  WCore.GC X' = WCore.GC X.
+Proof using.
+  induction STEP as [X X' STEP | X | X X'' X' STEP1 EQ1 STEP2 EQ2].
+  all: try congruence.
+  do 2 (red in STEP; desf). apply STEP.
+Qed.
+
+Lemma init_events_after_steps traces X X'
+    (STEP : (WCore.cfg_add_event_uninformative traces)＊ X X') :
+  acts_set (WCore.G X') ∩₁ is_init ≡₁ acts_set (WCore.G X) ∩₁ is_init.
+Proof using.
+  induction STEP as [X X' STEP | X | X X'' X' STEP1 EQ1 STEP2 EQ2].
+  { do 2 (red in STEP; desf).
+    rewrite (WCore.e_new STEP), set_inter_union_l.
+    arewrite (eq e ∩₁ is_init ≡₁ ∅).
+    { unfolder; split; ins; desf.
+      now apply (WCore.e_notinit STEP). }
+    now rewrite set_union_empty_r. }
+  { ins. }
+  now rewrite EQ2, EQ1.
+Qed.
+
+Lemma events_after_steps traces X X'
+    (STEP : (WCore.cfg_add_event_uninformative traces)＊ X X') :
+  acts_set (WCore.G X) ⊆₁ acts_set (WCore.G X').
+Proof using.
+  induction STEP as [X X' STEP | X | X X'' X' STEP1 SUB1 STEP2 SUB2].
+  { do 2 (red in STEP; desf). rewrite (WCore.e_new STEP).
+    basic_solver. }
+  all: basic_solver.
+Qed.
+
+Lemma execution_after_steps traces X X'
+    (STARTWF : WCore.wf X)
+    (STEP : (WCore.cfg_add_event_uninformative traces)＊ X X') :
+  sub_execution (WCore.G X') (WCore.G X) ∅₂ ∅₂.
+Proof using.
+  induction STEP as [X X' STEP | X | X X'' X' STEP1 SUB1 STEP2 SUB2].
+  { admit. (* TODO: deltas *) }
+  { constructor; ins.
+    all: admit. (* TODO: spam WF *) }
+  admit. (* Sub exection is trans? *)
+Admitted.
 
 (* TODO: lemma about subset of acts *)
 
@@ -73,16 +120,20 @@ Proof using.
   destruct DIFF1 as [l1 DIFF1], DIFF2 as [l2 DIFF2]; ins.
   all: eauto using wf_after_steps, WCore.wf_g.
   assert (SUB1 : acts_set (WCore.G X'') ⊆₁ acts_set G').
-  { admit. }
+  { eauto using events_after_steps. }
   assert (DISJ : set_disjoint (acts_set G' \₁ acts_set (WCore.G X'')) (acts_set G)).
-  { admit. }
+  { apply set_disjoint_subset_r with (s' := acts_set (WCore.G X'')).
+    all: eauto using events_after_steps.
+    basic_solver. }
   assert (SUB : sub_execution G' (WCore.G X'') ∅₂ ∅₂).
-  { admit. }
+  { eauto using execution_after_steps, wf_after_steps. }
   exists (l1 ++ l2). constructor; ins.
   { apply nodup_append.
     { apply DIFF1. }
     { apply DIFF2. }
-    admit. (* TODO: easy *) }
+    red. intros x IN1 IN2.
+    apply DIFF1 in IN1. apply DIFF2 in IN2.
+    destruct IN1, IN2; ins. }
   { arewrite ((fun x => In x (l1 ++ l2)) ≡₁
                 (fun x => In x l1) ∪₁ (fun x => In x l2)).
     { unfolder. split; ins.
@@ -94,7 +145,37 @@ Proof using.
     all: ins.
     rewrite set_minus_union_l, set_minus_disjoint; ins.
     basic_solver. }
-  { admit. }
+  { rewrite set_union_minus with (s := acts_set G')
+                                 (s' := acts_set (WCore.G X'')) at 1.
+    all: ins.
+    rewrite set_minus_union_l, set_minus_disjoint.
+    all: ins.
+    unfolder. intros x y HREL. desf.
+    { apply total_order_from_list_r.
+      apply (SubToFullExecInternal.diff_sb DIFF2).
+      unfolder. splits; eauto. }
+    { apply total_order_from_list_bridge.
+      { apply DIFF1. split; ins. }
+      apply DIFF2. split; ins. }
+    { exfalso. apply HREL3.
+      apply ext_sb_dense with (e2 := y).
+      { eauto using WCore.pfx, pfx_cont2, wf_after_steps. }
+      { intro F.
+        assert (WF : WCore.wf X').
+        { eauto using wf_after_steps. }
+        assert (INIT : is_init x).
+        { apply (WCore.wf_gc_acts WF). split; ins.
+          apply (WCore.pfx WF). ins. }
+        apply HREL3.
+        eapply init_events_after_steps with (X := X'') (X' := X').
+        all: eauto.
+        split; ins. }
+      { ins. }
+      red in HREL. unfolder in HREL. desf. }
+    apply total_order_from_list_l.
+    apply (SubToFullExecInternal.diff_sb DIFF1).
+    unfolder. splits; eauto.
+    apply (sub_sb SUB). unfolder. splits; ins. }
   { rewrite set_union_minus with (s := acts_set G')
                                  (s' := acts_set (WCore.G X'')) at 1.
     all: ins.
@@ -104,7 +185,7 @@ Proof using.
     { apply total_order_from_list_r.
       apply (SubToFullExecInternal.diff_rf DIFF2).
       unfolder. splits; eauto.
-      admit. }
+      intro F. eapply cmt_after_steps with (X := X) in F; eauto. }
     { apply total_order_from_list_bridge.
       { apply DIFF1. split; ins. }
       apply DIFF2. split; ins. }
@@ -125,8 +206,19 @@ Proof using.
     apply total_order_from_list_l.
     apply (SubToFullExecInternal.diff_rf DIFF1).
     unfolder. splits; eauto.
-    admit. }
-  admit.
-Admitted.
+    apply (sub_rf SUB). unfolder. splits; ins. }
+  rewrite set_union_minus with (s := acts_set G')
+                               (s' := acts_set (WCore.G X'')) at 1.
+  all: ins.
+  rewrite set_minus_union_l, set_minus_disjoint.
+  all: ins.
+  rewrite id_union, seq_union_r, dom_union.
+  intros x [DOM1 | DOM2].
+  { apply (SubToFullExecInternal.diff_rf_d DIFF2).
+    unfolder in DOM1. desf. }
+  unfolder in DOM2. desf.
+  apply (wf_rfE WFEND) in DOM2.
+  unfolder in DOM2. desf.
+Qed.
 
 End Steps.
