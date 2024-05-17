@@ -17,6 +17,8 @@ From RecordUpdate Require Import RecordSet.
 
 Import ListNotations.
 
+Set Implicit Arguments.
+
 Lemma wf_after_steps traces X X'
     (WF_START : WCore.wf X)
     (STEP : (WCore.cfg_add_event_uninformative traces)＊ X X') :
