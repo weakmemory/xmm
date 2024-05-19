@@ -1169,6 +1169,68 @@ Proof using SWAPPED_TRACES.
   admit. (* TODO: research *)
 Admitted.
 
+Lemma simrel_exec_a_helper sc w sw l
+    (CONS : WCore.is_cons G_t sc)
+    (CONS' : WCore.is_cons G_s (mapper ↑ sc))
+    (RF : rf_t' w b)
+    (SIM_ACTS : reord_simrel_rw_actids G_t a b)
+    (STEP : WCore.exec_inst G_t G_t' sc traces b) :
+  WCore.reexec
+    (exec_add_rf
+      (exec_add_read_event_nctrl
+        (exec_upd_lab
+          (exec_mapped G_t mapper (lab_t' ∘ mapper))
+          a l) a)
+      (singl_rel sw a))
+    (exec_mapped G_t' mapper (lab_t'  ∘ mapper))
+    (mapper ↑ sc)
+    traces'
+    (singl_rel w a).
+Proof using.
+  set (G_s_ := exec_add_rf
+    (exec_add_read_event_nctrl
+      (exec_upd_lab
+        (exec_mapped G_t mapper (lab_t' ∘ mapper))
+        a l) a)
+    (singl_rel sw a)).
+  set (dtrmt := mapper ↑₁ E_t \₁ codom_rel (
+    ⦗eq a⦘ ⨾ (sb G_s_ ∪ rf G_s_)＊
+  )).
+  set (cmt := acts_set G_s_ \₁ eq a).
+  set (f := fun x => ifP cmt x then Some x else None).
+  assert (CMTEQ : WCore.f_cmt f ≡₁ cmt).
+  { subst f. unfold WCore.f_cmt, is_some, compose.
+    unfolder. split; ins; desf. }
+  assert (CMTEQ' : forall r,
+    Some ↓ (f ↑ r) ≡ restr_rel cmt r).
+  { admit. (* TODO: f is a partial id *) }
+  red. exists f, dtrmt.
+  subst f cmt dtrmt G_s_. ins.
+  constructor; ins.
+  { admit. (* TODO: e <> a ==> all good *) }
+  { admit. (* NOTE: unstable constraint *) }
+  { rewrite set_minus_union_l, codom_singl_rel.
+    apply set_subset_union_r1. }
+  { rewrite CMTEQ, set_minus_union_l.
+    basic_solver 11. }
+  { rewrite CMTEQ, dom_singl_rel.
+    admit. (* w is in E_t', but is not a. Then it is in E_t *) }
+  { admit. (* NOTE: unstable constraint *) }
+  { admit. (* NOTE: unstable constraint *) }
+  { constructor; ins.
+    all: admit. }
+  { admit. (* NOTE: unstable constraint *) }
+  { admit. (* TODO: start WF *) }
+  { (* TODO: the article states such list is ought to exist *)
+    eset (el := _ ++ [a] ++ [b] : list actid).
+    apply sub_to_full_exec with (l := el).
+    { admit. (* TODO: Start WF (again) *) }
+    { admit. (* TODO: End WF (steal from G_t) *) }
+    { admit. (* TODO: should follow from list's formula *) }
+    admit. (* TODO: trace coherency *) }
+  admit.
+Admitted.
+
 Lemma simrel_exec_a sc w
     (CONS : WCore.is_cons G_t sc)
     (CONS' : WCore.is_cons G_s (mapper ↑ sc))
