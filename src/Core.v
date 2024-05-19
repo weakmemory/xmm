@@ -367,7 +367,7 @@ Definition reexec_start dtrmt := Build_execution
 
 Record reexec_gen f dtrmt : Prop :=
 { (* Correct start *)
-  newlab_correct : forall e, dtrmt e -> lab' e = lab e;
+  newlab_correct : forall e (DTRMT : dtrmt e), lab' e = lab e;
   rfre_racy : rfre ⊆ re;
   dtrmt_not_reexec : dtrmt ⊆₁ E \₁ codom_rel (⦗Rre⦘ ⨾ (sb ∪ rf)＊);
   dtrmt_cmt : dtrmt ⊆₁ (f_cmt f);
