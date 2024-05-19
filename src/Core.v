@@ -411,6 +411,20 @@ Notation "'rf'" := (rf G).
 Notation "'EC'" := (acts_set GC).
 Notation "'E'" := (acts_set G).
 
+Lemma g_acts_fin_enum :
+  exists l,
+    << ELEMS : E ∩₁ set_compl is_init ≡₁ fun x => In x l >> /\
+    << NODUP : NoDup l >> /\
+    << ORD : sb ⊆ total_order_from_list l >>.
+Proof using.
+  (*
+    1. Take the set of all threads
+    2. Map each tid into a thread_seq_set
+    3. Concat
+   *)
+  admit.
+Admitted.
+
 Lemma wf_g : Wf G.
 Proof using WF.
   eapply sub_WF; try now apply WF.
