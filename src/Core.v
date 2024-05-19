@@ -413,7 +413,7 @@ Notation "'E'" := (acts_set G).
 
 Lemma g_acts_fin_enum :
   exists l,
-    << ELEMS : E ∩₁ set_compl is_init ≡₁ fun x => In x l >> /\
+    << ELEMS : E ≡₁ fun x => In x l >> /\
     << NODUP : NoDup l >> /\
     << ORD : sb ⊆ total_order_from_list l >>.
 Proof using WF.

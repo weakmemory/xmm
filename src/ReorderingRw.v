@@ -1187,32 +1187,74 @@ Lemma simrel_exec_a_helper sc w sw l
     traces'
     (singl_rel w a).
 Proof using.
+  (* Shorthands *)
   set (G_s_ := exec_add_rf
     (exec_add_read_event_nctrl
       (exec_upd_lab
         (exec_mapped G_t mapper (lab_t' ∘ mapper))
         a l) a)
     (singl_rel sw a)).
+  set (G_s' :=
+    exec_mapped G_t' mapper (lab_t'  ∘ mapper)).
   set (dtrmt := mapper ↑₁ E_t \₁ codom_rel (
     ⦗eq a⦘ ⨾ (sb G_s_ ∪ rf G_s_)＊
   )).
+  set (delta := acts_set G_s' \₁ dtrmt).
   set (cmt := acts_set G_s_ \₁ eq a).
   set (f := fun x => ifP cmt x then Some x else None).
+  (* Asserts *)
+  assert (ACTEQ : E_t' ≡₁ E_t ∪₁ eq b).
+  { admit. (* TODO: use step *) }
+  assert (WINE : E_t w).
+  { admit. }
   assert (CMTEQ : WCore.f_cmt f ≡₁ cmt).
   { subst f. unfold WCore.f_cmt, is_some, compose.
     unfolder. split; ins; desf. }
   assert (CMTEQ' : forall r,
     Some ↓ (f ↑ r) ≡ restr_rel cmt r).
   { admit. (* TODO: f is a partial id *) }
+  (* Actual proof *)
   red. exists f, dtrmt.
-  subst f cmt dtrmt G_s_. ins.
+  assert (INA : E_t a).
+  { admit. (* TODO: lemma condition? *) }
+  assert (START_WF : WCore.wf
+    {|
+      WCore.sc := mapper ↑ sc;
+      WCore.G :=
+        WCore.reexec_start G_s_
+          (exec_mapped G_t' mapper
+            (lab_t' ∘ mapper)) dtrmt;
+      WCore.GC :=
+        exec_mapped G_t' mapper (lab_t' ∘ mapper);
+      WCore.cmt :=
+        fun x : actid => WCore.f_cmt f x
+    |}).
+  { admit. }
+  assert (END_WF : WCore.wf
+    {|
+      WCore.sc := mapper ↑ sc;
+      WCore.G := exec_mapped G_t' mapper (lab_t' ∘ mapper);
+      WCore.GC := exec_mapped G_t' mapper (lab_t' ∘ mapper);
+      WCore.cmt :=
+        fun x : actid =>
+        WCore.f_cmt
+          (fun x0 : actid =>
+          ifP ((mapper ↑₁ E_t ∪₁ eq a) \₁ eq a) x0 then
+          Some x0 else None) x
+    |}).
+  { admit. }
+  assert (END_WF' : Wf G_t').
+  { admit. }
+  assert (WINE' : (mapper ↑₁ E_t') w).
+  { admit. }
+  subst f cmt G_s'. ins.
   constructor; ins.
   { admit. (* TODO: e <> a ==> all good *) }
   { admit. (* NOTE: unstable constraint *) }
   { rewrite set_minus_union_l, codom_singl_rel.
     apply set_subset_union_r1. }
   { rewrite CMTEQ, set_minus_union_l.
-    basic_solver 11. }
+    subst dtrmt. basic_solver 11. }
   { rewrite CMTEQ, dom_singl_rel.
     admit. (* w is in E_t', but is not a. Then it is in E_t *) }
   { admit. (* NOTE: unstable constraint *) }
@@ -1220,13 +1262,89 @@ Proof using.
   { constructor; ins.
     all: admit. }
   { admit. (* NOTE: unstable constraint *) }
-  { admit. (* TODO: start WF *) }
-  { (* TODO: the article states such list is ought to exist *)
-    eset (el := _ ++ [a] ++ [b] : list actid).
-    apply sub_to_full_exec with (l := el).
-    { admit. (* TODO: Start WF (again) *) }
-    { admit. (* TODO: End WF (steal from G_t) *) }
-    { admit. (* TODO: should follow from list's formula *) }
+  { set (ENUM := WCore.g_acts_fin_enum END_WF).
+    desf.
+    set (l1 := filterP delta l0).
+    set (l2 := filterP (set_compl (eq a ∪₁ eq b)) l1).
+    apply sub_to_full_exec with (l := l2 ++ [a; b]).
+    all: subst l2 l1 delta.
+    { ins. }
+    { ins. }
+    { constructor; ins.
+      { apply nodup_app; splits.
+        { now do 2 apply nodup_filterP. }
+        { admit. (* TODO a <> b *) }
+        intros x HL1 HL2.
+        apply in_filterP_iff in HL1.
+        destruct HL1 as [_ HL1]. ins.
+        unfolder in HL1. desf; eauto. }
+      { arewrite (mapper ↑₁ E_t ∪₁ eq a ≡₁ mapper ↑₁ E_t').
+        { rewrite ACTEQ. rewrite set_collect_union.
+          now rewrite set_collect_eq, ReordCommon.mapper_eq_b. }
+        arewrite (mapper ↑₁ E_t' \₁ dtrmt ∩₁ mapper ↑₁ E_t'
+                    ≡₁ mapper ↑₁ E_t' \₁ dtrmt).
+        { now rewrite set_minus_inter_r, set_minusK,
+                  set_union_empty_r. }
+        split; intros x HSET.
+        { apply in_app_iff; ins.
+          destruct (classic (x = a)) as [EQ | NEQA]; subst; eauto.
+          destruct (classic (x = b)) as [EQ | NEQB]; subst; eauto.
+          left. apply in_filterP_iff; split.
+          all: try now apply and_not_or.
+          apply in_filterP_iff; split; ins.
+          apply ELEMS, HSET. }
+        apply in_app_iff in HSET; ins.
+        destruct HSET as [IN | [EQA | [EQB | F]]]; ins.
+        { apply in_filterP_iff in IN. desf.
+          apply in_filterP_iff in IN. desf. }
+        { subst x. subst dtrmt. apply set_subset_single_l.
+          rewrite set_minus_minus_r, ACTEQ, set_collect_union,
+                  set_collect_eq, ReordCommon.mapper_eq_b,
+                  set_minus_union_l, set_minusK, set_union_empty_l.
+          basic_solver 11. }
+        subst x. subst dtrmt. apply set_subset_single_l.
+        rewrite set_minus_minus_r, ACTEQ, set_collect_union,
+                  set_collect_eq, ReordCommon.mapper_eq_b,
+                  set_minus_union_l, set_minusK, set_union_empty_l.
+        apply set_subset_single_l. right. split.
+        { left. exists a. split; ins.
+          apply ReordCommon.mapper_eq_a. }
+        exists a, a. split; ins.
+        apply rt_step. left.
+        admit. (* TODO: easy *)  }
+      { intros x y HREL.
+        admit. (* Not obvious, but should be true *)}
+      { rewrite CMTEQ. intros x y (y' & HREL & NCMT).
+        red in NCMT. desf.
+        apply set_subset_single_l in NCMT0.
+        rewrite set_minus_minus_r, ACTEQ,
+                set_collect_union, set_collect_eq,
+                ReordCommon.mapper_eq_b, set_minusK,
+                set_union_empty_l in NCMT0.
+        apply -> set_subset_single_l in NCMT0.
+        destruct NCMT0 as [_ EQA]. subst y.
+        apply total_order_from_list_bridge; ins; eauto.
+        destruct HREL as (RF' & DOM & CODOM).
+        assert (RF'' : rf_t' x b).
+        { admit. (* x is not a and not b *) }
+        rewrite (wf_rff END_WF') with (x := b) (y := x)
+                                      (z := w).
+        all: ins.
+        rewrite (wf_rff END_WF') with (x := b) (y := x)
+                                      (z := w) in DOM.
+        all: ins.
+        apply in_filterP_iff; split.
+        { apply in_filterP_iff; split.
+          { now apply ELEMS. }
+          apply set_subset_single_l in DOM.
+          rewrite set_minus_inter_r in DOM.
+          rewrite ACTEQ in DOM at 2.
+          rewrite set_collect_union, set_collect_eq,
+                  ReordCommon.mapper_eq_b, set_minusK,
+                  set_union_empty_r in DOM.
+          now apply -> set_subset_single_l in DOM. }
+        admit. (* w is neither a or b *) }
+      admit. } (* TODO follows from wf-ness *)
     admit. (* TODO: trace coherency *) }
   admit.
 Admitted.
