@@ -1172,7 +1172,7 @@ Admitted.
 Lemma simrel_exec_a sc w
     (CONS : WCore.is_cons G_t sc)
     (CONS' : WCore.is_cons G_s (mapper ↑ sc))
-    (RF : G_t.(rf) w a)
+    (RF : rf_t' w a)
     (SIM : reord_simrel_rw G_s G_t a b)
     (STEP : WCore.exec_inst G_t G_t' sc traces b) :
   exists G_s' rfre sc',
