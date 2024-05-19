@@ -416,7 +416,7 @@ Lemma g_acts_fin_enum :
     << ELEMS : E ∩₁ set_compl is_init ≡₁ fun x => In x l >> /\
     << NODUP : NoDup l >> /\
     << ORD : sb ⊆ total_order_from_list l >>.
-Proof using.
+Proof using WF.
   (*
     1. Take the set of all threads
     2. Map each tid into a thread_seq_set
