@@ -190,6 +190,9 @@ Proof using.
   constructor; ins.
   all: try apply exec_add_rf_cont, exec_add_event_cont; ins.
   all: try now apply WF.
+  { unfold FinExecution.fin_exec_full. ins.
+    apply set_finite_unionI; try now apply WF.
+    apply set_finite_eq. }
   { transitivity (E ∩₁ same_tid e ∪₁ is_init); ins.
     basic_solver. }
   { rewrite set_inter_union_l, GC_INIT.
@@ -293,6 +296,10 @@ Proof using.
   constructor; ins.
   all: try now (rewrite <- collect_rel_empty; apply collect_rel_more;
                 ins; apply WF).
+  { unfold FinExecution.fin_exec_full. ins.
+    apply set_finite_set_collect, WF. }
+  { unfold FinThreads.fin_threads. ins.
+    apply WF. }
   arewrite (is_init ≡₁ f ↑₁ is_init).
   { unfold is_init. unfolder; splits; ins; desf.
     { eexists; split; eauto; ins. }

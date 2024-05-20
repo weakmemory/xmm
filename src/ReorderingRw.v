@@ -705,6 +705,12 @@ Proof using.
   { replace ∅ with (mapper ↑₁ ∅); [| now rewrite set_collect_empty].
     apply WCore.wf_iff_struct_and_props; split.
     { destruct STEP. constructor; ins.
+      { unfold FinExecution.fin_exec_full. ins.
+        apply set_finite_unionI.
+        { apply set_finite_set_collect, start_wf. }
+        apply set_finite_eq. }
+      { unfold FinThreads.fin_threads. ins.
+        apply start_wf. }
       { now rewrite start_wf.(WCore.cc_ctrl_empty), collect_rel_empty. }
       { now rewrite start_wf.(WCore.cc_addr_empty), collect_rel_empty. }
       { now rewrite start_wf.(WCore.cc_data_empty), collect_rel_empty. }
@@ -872,6 +878,12 @@ Proof using.
     { admit. (* Trace *) }
     apply WCore.wf_iff_struct_and_props; split.
     { constructor; ins.
+      { unfold FinExecution.fin_exec_full. ins.
+        apply set_finite_unionI.
+        { apply set_finite_set_collect, start_wf. }
+        apply set_finite_eq. }
+      { unfold FinThreads.fin_threads. ins.
+        apply start_wf. }
       { now rewrite start_wf.(WCore.cc_ctrl_empty), collect_rel_empty. }
       { now rewrite start_wf.(WCore.cc_addr_empty), collect_rel_empty. }
       { now rewrite start_wf.(WCore.cc_data_empty), collect_rel_empty. }

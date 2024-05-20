@@ -13,6 +13,8 @@ From imm Require Import imm_s_hb.
 From imm Require Import imm_bob.
 From imm Require Import imm_s.
 From imm Require Import SubExecution.
+From imm Require Import FinExecution.
+From imm Require Import FinThreads.
 
 From RecordUpdate Require Import RecordSet.
 (* Import RecordSetNotations. *)
@@ -118,6 +120,8 @@ Notation "'E'" := (acts_set G).
   to do with the actual model in question.
 *)
 Record wf_struct : Prop := {
+  wstru_fin_exec : fin_exec_full GC;
+  wstru_fin_threads : fin_threads GC;
   wstru_cc_ctrl_empty : ctrlc ≡ ∅₂;
   wstru_struct_cc_addr_empty : addrc ≡ ∅₂;
   wstru_cc_data_empty : datac ≡ ∅₂;
@@ -160,6 +164,8 @@ Record wf : Prop := {
   sub_rfW : cmt ∩₁ R ⊆₁ codom_rel (⦗cmt⦘ ⨾ rfc);
 
   pfx : exec_prefix GC G;
+  wf_fin_exec : fin_exec_full GC;
+  wf_fin_threads : fin_threads GC;
 }.
 
 Lemma wf_iff_struct_and_props :
