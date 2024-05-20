@@ -461,7 +461,7 @@ Proof using.
       { now apply ReordCommon.mapper_surj. }
       { ins. now rewrite FIN_LAB. }
       eapply WCore.cfg_add_event_iff_struct_and_props; eauto. }
-    { admit. }
+    { admit. (* TODO: traces *) }
     replace ∅ with (mapper ↑₁ ∅) by now rewrite set_collect_empty.
     apply ReordCommon.mapped_G_t_cfg with (X := {|
       WCore.sc := sc;
@@ -552,6 +552,9 @@ Proof using.
     apply NINB'.
     apply STEP.(WCore.start_wf).(WCore.wf_gc).(wf_rfE) in F.
     ins. unfolder in F. desf. }
+  assert (ACTEQ : E_t' ≡₁ E_t ∪₁ eq e).
+  { destruct STEP. red in add_event. desf.
+    rewrite (WCore.e_new add_event). ins. }
   (* Actual proof *)
   destruct STEP; ins. red in add_event. desf.
   constructor; ins.
@@ -575,7 +578,17 @@ Proof using.
   { exists (option_map mapper r), (option_map mapper w),
            (mapper ↑₁ W1), (mapper ↑₁ W2).
     apply WCore.cfg_add_event_iff_struct_and_props. splits.
-    { admit. }
+    { constructor; ins.
+      { rewrite ACTEQ, set_collect_union, set_collect_eq,
+                ReordCommon.mapper_neq; ins. }
+      { unfolder. intro F. desf.
+        apply (WCore.e_notin add_event). ins.
+        rewrite ReordCommon.mapper_neq; ins.
+        { intro EQ; subst. apply E_NOT_B.
+          now rewrite ReordCommon.mapper_eq_a. }
+        intro EQ; subst. apply E_NOT_A.
+        now rewrite ReordCommon.mapper_eq_b. }
+      apply add_event. }
     { replace ∅ with (mapper ↑₁ ∅) by now rewrite set_collect_empty.
       replace e with (mapper e) by now rewrite ReordCommon.mapper_neq.
       apply cfg_upd_lab_add_step_props with
