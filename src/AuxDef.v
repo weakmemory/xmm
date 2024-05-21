@@ -4,7 +4,7 @@ From imm Require Import imm_s_hb.
 From imm Require Import imm_bob.
 From imm Require Import SubExecution.
 
-Require Import Program.Basics.
+Require Import Lia Program.Basics.
 
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
@@ -26,20 +26,16 @@ Lemma total_order_from_list_l {A} (l1 l2 : list A) :
   total_order_from_list l1 ⊆
     total_order_from_list (l1 ++ l2).
 Proof using.
-  unfold total_order_from_list. unfolder.
-  intros x y HREL. destruct HREL as (l'0 & l'1 & l'2 & HREL).
-  subst l1. exists l'0, l'1, (l'2 ++ l2).
-  do 2 (rewrite <- app_assoc; ins).
+  intros x y HREL. apply total_order_from_list_app.
+  eauto.
 Qed.
 
 Lemma total_order_from_list_r {A} (l1 l2 : list A) :
   total_order_from_list l2 ⊆
     total_order_from_list (l1 ++ l2).
 Proof using.
-  unfold total_order_from_list. unfolder.
-  intros x y HREL. destruct HREL as (l'0 & l'1 & l'2 & HREL).
-  subst l2. exists (l1 ++ l'0), l'1, l'2.
-  do 2 (rewrite <- app_assoc; ins).
+  intros x y HREL. apply total_order_from_list_app.
+  eauto.
 Qed.
 
 Lemma in_iff {A} (x : A) l
@@ -58,11 +54,130 @@ Lemma total_order_from_list_bridge {A} (x y : A) l1 l2
     (YIN : In y l2) :
   total_order_from_list (l1 ++ l2) x y.
 Proof using.
-  unfold total_order_from_list.
-  destruct (in_iff x _ XIN) as (l1x & l2x & XEQ).
-  destruct (in_iff y _ YIN) as (l1y & l2y & YEQ).
-  subst. exists l1x, (l2x ++ l1y), l2y.
-  rewrite <- !app_assoc. ins.
+  apply total_order_from_list_app. eauto.
+Qed.
+
+Lemma list_neq_helper {A} (a : A) l1 x l2 y l3 :
+  [a] <> l1 ++ x :: l2 ++ y :: l3.
+Proof using.
+  intro HREL. apply f_equal with (f := @length A) in HREL.
+  autorewrite with calc_length in HREL. lia.
+Qed.
+
+Lemma total_order_from_filterP {A} s (l : list A) :
+  total_order_from_list (filterP s l) ≡ restr_rel s (total_order_from_list l).
+Proof using.
+  split; intros x y HREL.
+  all: induction l as [ | h t IHL]; ins.
+  all: try change (h :: t) with ([h] ++ t) in *.
+  all: try change (h :: filterP s t)
+             with ([h] ++ filterP s t) in *.
+  { red in HREL. desf.
+    exfalso. eapply app_cons_not_nil. eauto. }
+  { unfolder in IHL. desf.
+    all: unfolder; splits.
+    all: try apply total_order_from_list_app.
+    all: try apply total_order_from_list_app in HREL.
+    all: rewrite ?in_filterP_iff in *.
+    all: ins; splits; desf; eauto.
+    all: try now apply IHL.
+    all: try now (red in HREL; desf; exfalso;
+                  eapply list_neq_helper, HREL).
+    all: do 2 right; now apply IHL. }
+  { red in HREL. desf. }
+  unfolder in HREL. unfolder in IHL.
+  desf; try apply total_order_from_list_app.
+  all: try apply total_order_from_list_app in HREL.
+  all: ins; desf; eauto 11.
+  { left; split; eauto.
+    now apply in_filterP_iff; split. }
+  red in HREL. desf.
+  exfalso. eapply list_neq_helper. eauto.
+Qed.
+
+Lemma total_order_from_isort {A} (l : list A) ord
+    (NODUP : NoDup l)
+    (ORD : strict_total_order ⊤₁ ord) :
+  total_order_from_list (isort ord l) ≡
+    restr_rel (fun x => In x l) ord.
+Proof using.
+  induction l as [ | h t IHL]; ins.
+  { unfold total_order_from_list. unfolder.
+    split; intros x y HREL; desf.
+    exfalso. eapply app_cons_not_nil; eauto. }
+  split; intros x y HREL.
+  { apply total_order_from_list_app in HREL. ins. desf.
+    { apply in_filterP_iff in HREL. desf.
+      unfolder. splits; eauto.
+      apply in_isort_iff in HREL; eauto. }
+    { apply in_filterP_iff in HREL, HREL0. desf.
+      red in ORD. desf. unfolder.
+      destruct (classic (y = h)) as [EQ|NEQ]; subst.
+      { splits; eauto 11. apply in_isort_iff in HREL; eauto. }
+      destruct ORD0 with y h as [HORD|HORD]; ins.
+      splits; eauto.
+      all: try now (right; eapply in_isort_iff; eauto).
+      red in ORD. desf. now apply ORD1 with h. }
+    { apply total_order_from_filterP in HREL.
+      destruct HREL as (HREL & _ & _).
+      apply IHL in HREL.
+      all: try now apply nodup_cons in NODUP.
+      unfolder. unfolder in HREL. desf; eauto. }
+    change (h :: filterP (fun y => ~ ord y h) (isort ord t))
+      with ([h] ++ filterP (fun y => ~ ord y h) (isort ord t)) in *.
+    apply total_order_from_list_app in HREL.
+    unfolder. ins; desf.
+    { apply in_filterP_iff in HREL0. desf.
+      apply in_isort_iff in HREL0.
+      destruct (classic (x = y)) as [EQ|NEQ]; subst.
+      { apply nodup_cons in NODUP. desf. }
+      red in ORD. desf. unfolder.
+      destruct ORD0 with x y as [HORD|HORD]; ins.
+      splits; eauto. }
+    { exfalso. red in HREL. desf.
+      eapply list_neq_helper; eauto. }
+    apply total_order_from_filterP in HREL.
+    destruct HREL as (HREL & _ & _).
+    apply IHL in HREL.
+    { unfolder in HREL. unfolder. desf. eauto. }
+    apply nodup_cons in NODUP. desf. }
+  apply total_order_from_list_app.
+  unfolder in HREL. desf.
+  { exfalso. eapply ORD. eauto. }
+  { left; split; ins; eauto.
+    apply in_filterP_iff; split; ins.
+    now apply in_isort_iff. }
+  { right; right.
+    change (x :: filterP (fun y0 => ~ ord y0 x) (isort ord t))
+      with ([x] ++ filterP (fun y0 => ~ ord y0 x) (isort ord t)).
+    apply total_order_from_list_app. ins.
+    left. splits; eauto. apply in_filterP_iff. split.
+    { apply in_isort_iff; ins. }
+    intro F. eapply ORD with (x := x).
+    do 2 (red in ORD; desf).
+    now apply ORD1 with (y := y). }
+  ins. apply nodup_cons in NODUP. desf.
+  destruct (classic (ord x h)) as [XORD|XORD],
+           (classic (ord y h)) as [YORD|YORD].
+  { right. left. apply total_order_from_filterP.
+    unfolder; splits; ins. apply IHL; ins. }
+  { left; split.
+    { apply in_filterP_iff; split; ins.
+      apply in_isort_iff; ins. }
+    right. apply in_filterP_iff; ins.
+    split; ins. apply in_isort_iff; ins. }
+  { exfalso.
+    destruct (classic (x = h)) as [EQ|NEQ]; subst; eauto.
+    do 2 (red in ORD; desf).
+    destruct ORD0 with x h as [HORD|HORD]; ins.
+    apply ORD with x, ORD1 with y; ins.
+    apply ORD1 with h; ins. }
+  right. right.
+  change (h :: filterP (fun y0 => ~ ord y0 h) (isort ord t))
+    with ([h] ++ filterP (fun y0 => ~ ord y0 h) (isort ord t)).
+  apply total_order_from_list_app. do 2 right.
+  apply total_order_from_filterP. unfolder. splits; ins.
+  apply IHL; ins.
 Qed.
 
 Lemma same_lab_u2v_compose {A} lab1 lab2 (f : A -> actid)
