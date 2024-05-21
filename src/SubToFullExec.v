@@ -793,4 +793,53 @@ Proof using.
   eapply dom_rel_mori; eauto; basic_solver.
 Qed.
 
+Lemma sub_to_full_exec_sort G G' cmt l (ord : relation thread_id)
+    (ORD : strict_total_order ⊤₁ ord)
+    (ORB : tid ↓ ord ⊆ sb G')
+    (ORDRF : restr_rel (acts_set G' \₁ acts_set G)
+              (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ⊆ tid ↓ ord)
+    (ENUM : SubToFullExecInternal.enumd_diff G G' cmt l) :
+    SubToFullExecInternal.enumd_diff
+      G
+      G'
+      cmt
+      (isort (tid ↓ ord ∪ sb G') l).
+Proof using.
+  (* Setup *)
+  set (sord := tid ↓ ord ∪ sb G').
+  assert (TOTAL : strict_total_order ⊤₁ sord).
+  { admit. }
+  assert (DIFF : acts_set G' \₁ acts_set G ≡₁
+            (fun x => In x (isort sord l))).
+  { rewrite (SubToFullExecInternal.diff_elems ENUM).
+    unfolder. split; intros x HSET.
+    all: eapply in_isort_iff; eauto. }
+  (* Proof *)
+  constructor; ins.
+  { apply NoDup_StronglySorted with (r := sord).
+    { subst sord. unfolder. intros x HREL. desf.
+      { eapply ORD. eauto. }
+      eapply sb_irr. eauto. }
+    apply StronglySorted_isort; ins.
+    apply ENUM. }
+  { intros x y (SB & DOM & CODOM).
+    apply DIFF in DOM, CODOM.
+    apply total_order_from_isort; ins.
+    { apply ENUM. }
+    unfolder; splits.
+    all: try now eapply in_isort_iff; eauto.
+    subst sord. now right. }
+  { intros x y (y' & (RF & DOM & CODOM) & EQ & NCMT).
+    subst y'. apply DIFF in DOM, CODOM.
+    apply total_order_from_isort; ins.
+    { apply ENUM. }
+    unfolder; splits.
+    all: try now eapply in_isort_iff; eauto.
+    subst sord. left. apply ORDRF.
+    apply DIFF in DOM, CODOM.
+    split; eauto.
+    exists y; unfolder; eauto. }
+  apply ENUM.
+Admitted.
+
 End SubToFullExec.
