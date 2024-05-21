@@ -800,6 +800,69 @@ Proof using.
   admit.
 Admitted.
 
+Lemma sub_to_full_exec_sort' G G' cmt l ord
+    (ORD : strict_partial_order ord)
+    (ORB : min_elt ord tid_init)
+    (ORDRF : restr_rel (acts_set G' \₁ acts_set G)
+              (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ⊆ tid ↓ ord)
+    (ENUM : SubToFullExecInternal.enumd_diff G G' cmt l) :
+    exists l',
+      << SORT : Sorted (tid ↓ ord ∪ ext_sb) l' >> /\
+      << ENUM : SubToFullExecInternal.enumd_diff G G' cmt l' >>.
+Proof using.
+  destruct partial_order_included_in_total_order
+    with actid (tid ↓ ord ∪ ext_sb)
+    as (sord & SUB & TOT).
+  { unfolder; split.
+    { intros x HREL. desf.
+      { eapply ORD. eauto. }
+      eapply ext_sb_irr. eauto. }
+    red in ORD. desf. red in ORD0.
+    intros x y z R1 R2. desf.
+    { left. now apply ORD0 with (tid y). }
+    { destruct x as [xl | xt xn],
+               y as [yl | yt yn],
+               z as [zl | zt zn]; ins; eauto.
+      desf; eauto. }
+    { destruct x as [xl | xt xn],
+               y as [yl | yt yn],
+               z as [zl | zt zn]; ins; eauto.
+      { exfalso. eapply ORB; eauto. }
+      desf; eauto. }
+    right. now apply ext_sb_trans with y. }
+  assert (DIFF : acts_set G' \₁ acts_set G ≡₁
+            fun x => In x (isort sord l)).
+  { rewrite (SubToFullExecInternal.diff_elems ENUM).
+    unfolder. split; intros x HSET.
+    all: eapply in_isort_iff; eauto. }
+  assert (SORT : StronglySorted sord (isort sord l)).
+  { apply StronglySorted_isort, ENUM; ins. }
+  exists (isort sord l). split.
+  { admit. }
+  constructor; ins.
+  { apply NoDup_StronglySorted with (r := sord).
+    { apply TOT. }
+    apply StronglySorted_isort, ENUM; ins. }
+  { intros x y (SB & DOM & CODOM).
+    apply DIFF in DOM, CODOM.
+    apply total_order_from_isort; ins.
+    { apply ENUM. }
+    unfolder; splits.
+    all: try now eapply in_isort_iff; eauto.
+    apply SUB. now right. }
+  { intros x y (y' & (RF & DOM & CODOM) & EQ & NCMT).
+    subst y'. apply DIFF in DOM, CODOM.
+    apply total_order_from_isort; ins.
+    { apply ENUM. }
+    unfolder; splits.
+    all: try now eapply in_isort_iff; eauto.
+    apply SUB. left. apply ORDRF.
+    apply DIFF in DOM, CODOM.
+    split; eauto.
+    exists y; unfolder; eauto. }
+  apply ENUM.
+Qed.
+
 Lemma sub_to_full_exec_sort G G' cmt l
     (ord : relation thread_id)
     (ORD : strict_total_order ⊤₁ ord)
