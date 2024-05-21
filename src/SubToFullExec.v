@@ -805,9 +805,9 @@ Lemma sub_to_full_exec_sort sc G G' cmt l tord
     (ORDRF : restr_rel (acts_set G' \₁ acts_set G)
               (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ⊆ tid ↓ tord)
     (ENUM : SubToFullExecInternal.enumd_diff G G' cmt l) :
-    exists l',
-      << SORT : StronglySorted (tid ↓ tord ∪ ext_sb) l' >> /\
-      << ENUM : SubToFullExecInternal.enumd_diff G G' cmt l' >>.
+  exists l',
+    << SORT : StronglySorted (tid ↓ tord ∪ ext_sb) l' >> /\
+    << ENUM : SubToFullExecInternal.enumd_diff G G' cmt l' >>.
 Proof using.
   destruct partial_order_included_in_total_order
     with actid (tid ↓ tord ∪ ext_sb)
@@ -883,3 +883,40 @@ Proof using.
     exists y; unfolder; eauto. }
   apply ENUM.
 Qed.
+
+Lemma sub_to_full_exec_sort_part sc G G' cmt l tord
+    (WF : WCore.wf {|
+      WCore.sc := sc;
+      WCore.G := G;
+      WCore.GC := G';
+      WCore.cmt := cmt
+    |})
+    (OPA : strict_partial_order tord)
+    (ORB : min_elt tord tid_init)
+    (ORDRF : restr_rel (acts_set G' \₁ acts_set G)
+              (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ⊆ tid ↓ tord)
+    (ENUM : SubToFullExecInternal.enumd_diff G G' cmt l) :
+  exists l',
+    << SORT : total_order_from_list l' ⊆ tid ↓ tord ∪ sb G' >> /\
+    << ENUM : SubToFullExecInternal.enumd_diff G G' cmt l' >>.
+Proof using.
+  destruct partial_order_included_in_total_order
+    with thread_id tord
+    as (tord' & SUB & TOT).
+  { admit. }
+  set (tord'' := restr_rel (fun x => x <> tid_init) tord' ∪
+                 (fun x y => x = tid_init /\ y = tid_init)).
+  edestruct sub_to_full_exec_sort with (tord := tord'')
+                                    as (l' & SORT & ENUM').
+  all: eauto.
+  { admit. }
+  { admit. }
+  { admit. }
+  exists l'; split; ins. red.
+  rewrite total_order_from_sorted with (ord := tid ↓ tord'' ∪ ext_sb).
+  all: ins.
+  { admit. }
+  admit.
+Admitted.
+
+End SubToFullExec.
