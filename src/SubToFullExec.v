@@ -793,43 +793,38 @@ Proof using.
   eapply dom_rel_mori; eauto; basic_solver.
 Qed.
 
-Definition lord : relation location := fun x y => True.
-
-Lemma lord_strict_total : strict_total_order ⊤₁ lord.
-Proof using.
-  admit.
-Admitted.
-
-Lemma sub_to_full_exec_sort' G G' cmt l ord
-    (ORD : strict_partial_order ord)
-    (ORB : min_elt ord tid_init)
+Lemma sub_to_full_exec_sort sc G G' cmt l tord
+    (WF : WCore.wf {|
+      WCore.sc := sc;
+      WCore.G := G;
+      WCore.GC := G';
+      WCore.cmt := cmt
+    |})
+    (OTOT : strict_total_order ⊤₁ tord)
+    (ORB : min_elt tord tid_init)
     (ORDRF : restr_rel (acts_set G' \₁ acts_set G)
-              (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ⊆ tid ↓ ord)
+              (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ⊆ tid ↓ tord)
     (ENUM : SubToFullExecInternal.enumd_diff G G' cmt l) :
     exists l',
-      << SORT : Sorted (tid ↓ ord ∪ ext_sb) l' >> /\
+      << SORT : StronglySorted (tid ↓ tord ∪ ext_sb) l' >> /\
       << ENUM : SubToFullExecInternal.enumd_diff G G' cmt l' >>.
 Proof using.
   destruct partial_order_included_in_total_order
-    with actid (tid ↓ ord ∪ ext_sb)
+    with actid (tid ↓ tord ∪ ext_sb)
     as (sord & SUB & TOT).
   { unfolder; split.
     { intros x HREL. desf.
-      { eapply ORD. eauto. }
+      { eapply OTOT. eauto. }
       eapply ext_sb_irr. eauto. }
-    red in ORD. desf. red in ORD0.
+    unfolder in OTOT.
     intros x y z R1 R2. desf.
-    { left. now apply ORD0 with (tid y). }
-    { destruct x as [xl | xt xn],
-               y as [yl | yt yn],
-               z as [zl | zt zn]; ins; eauto.
-      desf; eauto. }
-    { destruct x as [xl | xt xn],
-               y as [yl | yt yn],
-               z as [zl | zt zn]; ins; eauto.
-      { exfalso. eapply ORB; eauto. }
-      desf; eauto. }
-    right. now apply ext_sb_trans with y. }
+    all: eauto using ext_sb_trans.
+    all: destruct x as [xl | xt xn],
+                  y as [yl | yt yn],
+                  z as [zl | zt zn]; ins.
+    all: eauto.
+    all: try now (exfalso; eapply ORB; eauto).
+    all: desf; eauto. }
   assert (DIFF : acts_set G' \₁ acts_set G ≡₁
             fun x => In x (isort sord l)).
   { rewrite (SubToFullExecInternal.diff_elems ENUM).
@@ -838,7 +833,31 @@ Proof using.
   assert (SORT : StronglySorted sord (isort sord l)).
   { apply StronglySorted_isort, ENUM; ins. }
   exists (isort sord l). split.
-  { admit. }
+  { apply StronglySorted_sub with sord.
+    all: eauto.
+    unfolder in OTOT. desf.
+    unfolder. splits.
+    { intros x HREL; desf; eauto.
+      eapply ext_sb_irr; eauto. }
+    { intros x y z R1 R2. desf; eauto using ext_sb_trans.
+      all: destruct x as [xl | xt xn],
+                    y as [yl | yt yn],
+                    z as [zl | zt zn]; ins.
+      all: eauto.
+      all: try now (exfalso; eapply ORB; eauto).
+      all: desf; eauto. }
+    intros x XIN y YIN NEQ.
+    apply DIFF in XIN, YIN.
+    assert (XINIT : ~is_init x).
+    { eapply SubToFullExecInternal.diff_no_init; eauto. }
+    assert (YINIT : ~is_init y).
+    { eapply SubToFullExecInternal.diff_no_init; eauto. }
+    destruct x as [xl | xt xn],
+             y as [yl | yt yn]; ins.
+    destruct (classic (xt = yt)) as [TEQ|TNEQ]; subst.
+    { destruct NPeano.Nat.lt_total with xn yn as [LT | [EQ | LT]]; eauto.
+      congruence. }
+    destruct OTOT0 with xt yt; eauto. }
   constructor; ins.
   { apply NoDup_StronglySorted with (r := sord).
     { apply TOT. }
@@ -849,128 +868,18 @@ Proof using.
     { apply ENUM. }
     unfolder; splits.
     all: try now eapply in_isort_iff; eauto.
-    apply SUB. now right. }
+    apply SUB. right.
+    red in SB. unfolder in SB. desf. }
   { intros x y (y' & (RF & DOM & CODOM) & EQ & NCMT).
     subst y'. apply DIFF in DOM, CODOM.
     apply total_order_from_isort; ins.
     { apply ENUM. }
     unfolder; splits.
     all: try now eapply in_isort_iff; eauto.
-    apply SUB. left. apply ORDRF.
+    apply SUB. left.
+    apply ORDRF.
     apply DIFF in DOM, CODOM.
     split; eauto.
     exists y; unfolder; eauto. }
   apply ENUM.
 Qed.
-
-Lemma sub_to_full_exec_sort G G' cmt l
-    (ord : relation thread_id)
-    (ORD : strict_total_order ⊤₁ ord)
-    (ORB : min_elt ord tid_init)
-    (ORDRF : restr_rel (acts_set G' \₁ acts_set G)
-              (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ⊆ tid ↓ ord)
-    (ENUM : SubToFullExecInternal.enumd_diff G G' cmt l) :
-    SubToFullExecInternal.enumd_diff
-      G
-      G'
-      cmt
-      (isort (InitEvent ↑ lord ∪ tid ↓ ord ∪ ext_sb) l).
-Proof using.
-  (* Setup *)
-  assert (LORD : strict_total_order ⊤₁ lord).
-  { apply lord_strict_total. }
-  desf.
-  set (sord := InitEvent ↑ lord ∪ tid ↓ ord ∪ ext_sb).
-  assert (OTOTAL : is_total ⊤₁ ord).
-  { apply ORD. }
-  assert (LOTOTAL : is_total ⊤₁ lord).
-  { apply LORD. }
-  assert (OTRANS : transitive ord).
-  { apply ORD. }
-  assert (LOTRANS : transitive lord).
-  { apply LORD. }
-  assert (IRR : irreflexive sord).
-  { subst sord. unfolder. intros x HREL. desf.
-    { eapply LORD. eauto. }
-    { eapply ORD. eauto. }
-    eapply ext_sb_irr. eauto. }
-  assert (TOTAL : strict_total_order ⊤₁ sord).
-  { subst sord. constructor; ins.
-    { constructor; ins.
-      unfolder. intros x y z R1 R2. desf; ins.
-      { do 2 left. do 2 eexists; splits.
-        { eapply LOTRANS with (y := y'0); eauto. }
-        all: ins. }
-      { exfalso. eapply ORB; eauto. }
-      { destruct x; ins. }
-      { destruct z as [zl | zt zn]; eauto. }
-      { left. right. splits; ins.
-        eapply OTRANS; eauto. }
-      { apply ext_sb_tid_init in R1. desf.
-        { left. right. now rewrite R1. }
-        destruct (classic (is_init y)) as [YINIT|NINT].
-        { destruct x as [xl | xt xn],
-                   y as [yl | yt yn],
-                   z as [zl | zt zn]; ins.
-          all: eauto 11. }
-        right.
-        destruct x as [xl | xt xn],
-                 z as [zl | zt zn]; ins.
-        eapply ORB; eauto. }
-      { desf. eauto. }
-      { apply ext_sb_tid_init in R2. desf.
-        { left. right. now rewrite <- R2. }
-        destruct (classic (is_init x)) as [XINIT|NINT].
-        { destruct x as [xl | xt xn],
-                   y as [yl | yt yn]; ins.
-          exfalso. eapply ORD; eauto. }
-        destruct x as [xl | xt xn],
-                 y as [yl | yt yn]; ins.
-        exfalso. eapply ORB; eauto. }
-      right. now apply ext_sb_trans with (y := y). }
-    unfolder. intros x _ y _ ACTNEQ.
-    destruct (classic (is_init x)) as [XINIT|XNIT],
-             (classic (is_init y)) as [YINIT|YNIT].
-    all: destruct x as [xl | xt xn],
-                  y as [yl | yt yn]; ins.
-    all: eauto.
-    { destruct LOTOTAL with xl yl; ins.
-      all: eauto 11.
-      congruence. }
-    destruct (classic (xt = yt)) as [TEQ|TNEQ]; subst.
-    { destruct NPeano.Nat.lt_total with xn yn as [LT | [EQ | GT]].
-      all: eauto 11.
-      congruence. }
-    destruct OTOTAL with xt yt; eauto; ins. }
-  assert (DIFF : acts_set G' \₁ acts_set G ≡₁
-            (fun x => In x (isort sord l))).
-  { rewrite (SubToFullExecInternal.diff_elems ENUM).
-    unfolder. split; intros x HSET.
-    all: eapply in_isort_iff; eauto. }
-  (* Proof *)
-  constructor; ins.
-  { apply NoDup_StronglySorted with (r := sord).
-    { ins. }
-    apply StronglySorted_isort, ENUM; ins. }
-  { intros x y (SB & DOM & CODOM).
-    apply DIFF in DOM, CODOM.
-    apply total_order_from_isort; ins.
-    { apply ENUM. }
-    unfolder; splits.
-    all: try now eapply in_isort_iff; eauto.
-    subst sord. red in SB. unfolder in SB. desf.
-    now right. }
-  { intros x y (y' & (RF & DOM & CODOM) & EQ & NCMT).
-    subst y'. apply DIFF in DOM, CODOM.
-    apply total_order_from_isort; ins.
-    { apply ENUM. }
-    unfolder; splits.
-    all: try now eapply in_isort_iff; eauto.
-    subst sord. left. right. apply ORDRF.
-    apply DIFF in DOM, CODOM.
-    split; eauto.
-    exists y; unfolder; eauto. }
-  apply ENUM.
-Qed.
-
-End SubToFullExec.

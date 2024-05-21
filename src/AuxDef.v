@@ -180,6 +180,30 @@ Proof using.
   apply IHL; ins.
 Qed.
 
+Lemma StronglySorted_sub {A} (l : list A) r ext_r
+    (SUB : r ⊆ ext_r)
+    (TOT : strict_total_order (fun x => In x l) r)
+    (EXT_TOT : strict_total_order ⊤₁ ext_r)
+    (SORT : StronglySorted ext_r l) :
+  StronglySorted r l.
+Proof using.
+  induction l; ins.
+  unfolder in EXT_TOT. desf.
+  unfolder in TOT. desf.
+  apply StronglySorted_inv in SORT. desf.
+  constructor; ins.
+  { apply IHl; eauto.
+    unfolder; splits; eauto. }
+  apply ForallE. intros x HIN.
+  destruct TOT0 with a x as [HORD|HORD]; eauto.
+  { intro F; subst. apply EXT_TOT with x.
+    eapply ForallE; eauto. }
+  apply SUB in HORD.
+  enough (HORD' : ext_r a x).
+  { exfalso. eauto. }
+  eapply ForallE; eauto.
+Qed.
+
 Lemma same_lab_u2v_compose {A} lab1 lab2 (f : A -> actid)
     (U2V : same_lab_u2v lab1 lab2) :
   same_lab_u2v (lab1 ∘ f) (lab2 ∘ f).
