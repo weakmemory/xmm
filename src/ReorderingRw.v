@@ -1209,8 +1209,7 @@ Lemma simrel_exec_a_helper sc w sw l
       (singl_rel sw a))
     (exec_mapped G_t' mapper (lab_t'  ∘ mapper))
     (mapper ↑ sc)
-    traces'
-    (singl_rel w a).
+    traces'.
 Proof using.
   (* Shorthands *)
   set (G_s_ := exec_add_rf
@@ -1275,18 +1274,11 @@ Proof using.
   subst f cmt G_s'. ins.
   constructor; ins.
   { admit. (* TODO: e <> a ==> all good *) }
-  { admit. (* NOTE: unstable constraint *) }
-  { rewrite set_minus_union_l, codom_singl_rel.
-    apply set_subset_union_r1. }
   { rewrite CMTEQ, set_minus_union_l.
     subst dtrmt. basic_solver 11. }
-  { rewrite CMTEQ, dom_singl_rel.
-    admit. (* w is in E_t', but is not a. Then it is in E_t *) }
-  { admit. (* NOTE: unstable constraint *) }
   { admit. (* NOTE: unstable constraint *) }
   { constructor; ins.
     all: admit. }
-  { admit. (* NOTE: unstable constraint *) }
   { set (ENUM := WCore.g_acts_fin_enum END_WF).
     desf.
     set (l1 := filterP delta l0).
@@ -1380,9 +1372,9 @@ Lemma simrel_exec_a sc w
     (RF : rf_t' w a)
     (SIM : reord_simrel_rw G_s G_t a b)
     (STEP : WCore.exec_inst G_t G_t' sc traces b) :
-  exists G_s' rfre sc',
+  exists G_s' sc',
     << SIM' : reord_simrel_rw G_s' G_t' a b >> /\
-    << STEP : WCore.reexec G_s G_s' sc' traces' rfre >>.
+    << STEP : WCore.reexec G_s G_s' sc' traces' >>.
 Proof using SWAPPED_TRACES.
   (* TODO: check article *)
   (* Case1 : Gt' *)
@@ -1430,11 +1422,11 @@ Proof using.
   now apply exeeqv_eq, simrel_exec_iff_reexecstart_helper.
 Qed.
 
-Lemma simrel_exec_iff_helper l sc rfre
+Lemma simrel_exec_iff_helper l sc
     (U2V : same_label_u2v (lab_t' b) l)
     (SAME : E_t a <-> E_t b)
     (CONS : WCore.is_cons G_t sc)
-    (STEP : WCore.reexec G_t G_t' sc traces rfre)
+    (STEP : WCore.reexec G_t G_t' sc traces)
     (SIM_ACTS : reord_simrel_rw_actids G_t a b)
     (NRMWDEP : ~rmw_dep_t' a b)
     (NRMW : ~rmw_t' a b)
@@ -1448,8 +1440,7 @@ Lemma simrel_exec_iff_helper l sc rfre
       (exec_mapped G_t' mapper (lab_t' ∘ mapper))
       a l)
     (mapper ↑ sc)
-    traces'
-    (mapper ↑ rfre).
+    traces'.
 Proof using.
   red in STEP. desf. red.
   assert (A_NEQ_B : a <> b).
@@ -1464,13 +1455,8 @@ Proof using.
     desf. }
   exists (option_map mapper ∘ f ∘ mapper), (mapper ↑₁ dtrmt).
   constructor; ins.
-  { admit. (* NOTE: ignore because rfre might get removed *) }
-  { admit. (* NOTE: rfre might be removed*) }
   { rewrite CMTEQ. now apply set_collect_mori, STEP. }
-  { rewrite CMTEQ, <- set_collect_dom.
-    now apply set_collect_mori, STEP. }
   { admit. (* NOTE: ignore for now, until new constraint drops *)  }
-  { admit. (* OLD BROKEN VERSION -- ignore *) }
   { constructor; ins.
     { rewrite CMTEQ. admit. (* looks easy *) }
     { rewrite CMTEQ. now apply set_collect_mori, STEP. }
@@ -1484,7 +1470,6 @@ Proof using.
     all: eauto using ReordCommon.mapper_inj,
                      ReordCommon.mapper_surj.
     now rewrite ReordCommon.mapper_mapper_compose. }
-  { admit. (* NOTE: ignore for now, until new constraint drops*) }
   { admit. (* Basic start wf-ness *) }
   { rewrite simrel_exec_iff_reexecstart_helper_eq.
     all: eauto using rsrw_a_neq_b.
@@ -1500,14 +1485,14 @@ Proof using.
   admit. (* Is_cons *)
 Admitted.
 
-Lemma simrel_reexec sc rfre
+Lemma simrel_reexec sc
     (CONS : WCore.is_cons G_t sc)
     (CONS' : WCore.is_cons G_s (mapper ↑ sc))
     (SIM : reord_simrel_rw G_s G_t a b)
-    (STEP : WCore.reexec G_t G_t' sc traces rfre) :
-  exists G_s' rfre sc',
+    (STEP : WCore.reexec G_t G_t' sc traces) :
+  exists G_s' sc',
     << SIM' : reord_simrel_rw G_s' G_t' a b >> /\
-    << STEP : WCore.reexec G_s G_s' sc' traces' (mapper ↓ rfre) >>.
+    << STEP : WCore.reexec G_s G_s' sc' traces' >>.
 Proof using SWAPPED_TRACES.
   admit.
 Admitted.
