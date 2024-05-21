@@ -95,89 +95,52 @@ Proof using.
   exfalso. eapply list_neq_helper. eauto.
 Qed.
 
-Lemma total_order_from_isort {A} (l : list A) ord
-    (NODUP : NoDup l)
-    (ORD : strict_total_order ⊤₁ ord) :
-  total_order_from_list (isort ord l) ≡
+Lemma total_order_from_sorted {A} (l : list A) ord
+    (ORD : strict_total_order ⊤₁ ord)
+    (SORT : StronglySorted ord l) :
+  total_order_from_list l ≡
     restr_rel (fun x => In x l) ord.
 Proof using.
   induction l as [ | h t IHL]; ins.
   { unfold total_order_from_list. unfolder.
     split; intros x y HREL; desf.
     exfalso. eapply app_cons_not_nil; eauto. }
+  change (h :: t) with ([h] ++ t).
   split; intros x y HREL.
-  { apply total_order_from_list_app in HREL. ins. desf.
-    { apply in_filterP_iff in HREL. desf.
-      unfolder. splits; eauto.
-      apply in_isort_iff in HREL; eauto. }
-    { apply in_filterP_iff in HREL, HREL0. desf.
-      red in ORD. desf. unfolder.
-      destruct (classic (y = h)) as [EQ|NEQ]; subst.
-      { splits; eauto 11. apply in_isort_iff in HREL; eauto. }
-      destruct ORD0 with y h as [HORD|HORD]; ins.
-      splits; eauto.
-      all: try now (right; eapply in_isort_iff; eauto).
-      red in ORD. desf. now apply ORD1 with h. }
-    { apply total_order_from_filterP in HREL.
-      destruct HREL as (HREL & _ & _).
-      apply IHL in HREL.
-      all: try now apply nodup_cons in NODUP.
-      unfolder. unfolder in HREL. desf; eauto. }
-    change (h :: filterP (fun y => ~ ord y h) (isort ord t))
-      with ([h] ++ filterP (fun y => ~ ord y h) (isort ord t)) in *.
-    apply total_order_from_list_app in HREL.
-    unfolder. ins; desf.
-    { apply in_filterP_iff in HREL0. desf.
-      apply in_isort_iff in HREL0.
-      destruct (classic (x = y)) as [EQ|NEQ]; subst.
-      { apply nodup_cons in NODUP. desf. }
-      red in ORD. desf. unfolder.
-      destruct ORD0 with x y as [HORD|HORD]; ins.
-      splits; eauto. }
-    { exfalso. red in HREL. desf.
-      eapply list_neq_helper; eauto. }
-    apply total_order_from_filterP in HREL.
-    destruct HREL as (HREL & _ & _).
-    apply IHL in HREL.
-    { unfolder in HREL. unfolder. desf. eauto. }
-    apply nodup_cons in NODUP. desf. }
-  apply total_order_from_list_app.
+  { apply total_order_from_list_app in HREL.
+    unfolder. ins. desf; splits; ins; eauto.
+    all: apply StronglySorted_inv in SORT; desf.
+    all: try now (exfalso; red in HREL; desf;
+                  eapply list_neq_helper; eauto).
+    { eapply ForallE; eauto. }
+    { apply IHL in HREL; ins.
+      apply HREL. }
+    all: eauto using total_order_from_list_in1,
+                     total_order_from_list_in2. }
+  unfolder in ORD. desf.
+  apply total_order_from_list_app. ins.
+  apply StronglySorted_inv in SORT; desf.
   unfolder in HREL. desf.
-  { exfalso. eapply ORD. eauto. }
-  { left; split; ins; eauto.
-    apply in_filterP_iff; split; ins.
-    now apply in_isort_iff. }
-  { right; right.
-    change (x :: filterP (fun y0 => ~ ord y0 x) (isort ord t))
-      with ([x] ++ filterP (fun y0 => ~ ord y0 x) (isort ord t)).
-    apply total_order_from_list_app. ins.
-    left. splits; eauto. apply in_filterP_iff. split.
-    { apply in_isort_iff; ins. }
-    intro F. eapply ORD with (x := x).
-    do 2 (red in ORD; desf).
-    now apply ORD1 with (y := y). }
-  ins. apply nodup_cons in NODUP. desf.
-  destruct (classic (ord x h)) as [XORD|XORD],
-           (classic (ord y h)) as [YORD|YORD].
-  { right. left. apply total_order_from_filterP.
-    unfolder; splits; ins. apply IHL; ins. }
-  { left; split.
-    { apply in_filterP_iff; split; ins.
-      apply in_isort_iff; ins. }
-    right. apply in_filterP_iff; ins.
-    split; ins. apply in_isort_iff; ins. }
-  { exfalso.
-    destruct (classic (x = h)) as [EQ|NEQ]; subst; eauto.
-    do 2 (red in ORD; desf).
-    destruct ORD0 with x h as [HORD|HORD]; ins.
-    apply ORD with x, ORD1 with y; ins.
-    apply ORD1 with h; ins. }
-  right. right.
-  change (h :: filterP (fun y0 => ~ ord y0 h) (isort ord t))
-    with ([h] ++ filterP (fun y0 => ~ ord y0 h) (isort ord t)).
-  apply total_order_from_list_app. do 2 right.
-  apply total_order_from_filterP. unfolder. splits; ins.
-  apply IHL; ins.
+  all: eauto.
+  { exfalso. eauto. }
+  { exfalso. apply ORD with x. apply ORD1 with y; ins.
+    eapply ForallE; eauto. }
+  do 2 right. apply IHL; ins.
+Qed.
+
+Lemma total_order_from_isort {A} (l : list A) ord
+    (NODUP : NoDup l)
+    (ORD : strict_total_order ⊤₁ ord) :
+  total_order_from_list (isort ord l) ≡
+    restr_rel (fun x => In x l) ord.
+Proof using.
+  rewrite total_order_from_sorted with (ord := ord)
+                                      (l := isort ord l).
+  all: ins.
+  { unfolder. split; intros x y HREL; desf.
+    all: splits; ins.
+    all: eapply in_isort_iff; eauto. }
+  apply StronglySorted_isort; ins.
 Qed.
 
 Lemma StronglySorted_sub {A} (l : list A) r ext_r
