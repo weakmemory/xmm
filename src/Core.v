@@ -400,6 +400,10 @@ Notation "'Wre'" := (dom_rel rfre).
 Definition f_cmt (f : actid -> option actid) := is_some ∘ f.
 Definition sb_rfre := (sb ∪ rf ⨾ ⦗E \₁ Rre⦘ ∪ rfre ⨾ ⦗Rre⦘)⁺.
 
+Record stable_uncmt_reads_gen f (thrdle : relation actid) : Prop := 
+  { surg_closed : eq^? ⨾ thrdle ⨾ eq^? ⊆ thrdle;
+    surg_uncmt : rf ⨾ ⦗E' \₁ f_cmt f⦘ ⊆ thrdle; }.
+
 Record correct_embeding f : Prop :=
 { reexec_embd_inj : inj_dom (f_cmt f) f;
   reexec_embd_dom : f_cmt f ⊆₁ E';
@@ -408,15 +412,6 @@ Record correct_embeding f : Prop :=
                       lab' ec = lab e;
   reexec_embd_sb : Some ↓ (f ↑ restr_rel (f_cmt f) sb') ⊆ sb;
   reexec_embd_rf : Some ↓ (f ↑ restr_rel (f_cmt f) rf') ⊆ rf; }.
-
-Record stable_uncmt_reads_gen f r w : Prop :=
-{ surg_is_r : R r;
-  surg_is_w : W w;
-  surg_ncmt : ~f_cmt f r;
-  surg_sb : sb w r;
-  surg_sbrf : dom_rel (rf ⨾ ⦗eq r⦘) ∩₁ codom_rel (⦗eq w⦘ ⨾ sb_rf^?) ⊆₁
-              dom_rel (sb_rf^? ⨾ sb ⨾ ⦗eq r⦘); }.
-
 
 Definition reexec_start dtrmt := Build_execution
   (restrict G dtrmt).(acts_set)
@@ -430,7 +425,7 @@ Definition reexec_start dtrmt := Build_execution
   (restrict G dtrmt).(rf)
   (restrict G dtrmt).(co).
 
-Record reexec_gen f dtrmt : Prop :=
+Record reexec_gen f thrdle dtrmt : Prop :=
 { (* Correct start *)
   newlab_correct : forall e (DTRMT : dtrmt e), lab' e = lab e;
   rfre_racy : rfre ⊆ re;
@@ -438,7 +433,7 @@ Record reexec_gen f dtrmt : Prop :=
   dtrmt_cmt : dtrmt ⊆₁ (f_cmt f);
   rfre_writes_cmt : Wre ⊆₁ (f_cmt f);
   rfrre_embd_gc : rfre ⊆ Some ↓ (f ↑ rf');
-  reexec_sur : forall r w, stable_uncmt_reads_gen f r w;
+  reexec_sur : stable_uncmt_reads_gen f thrdle;
   (* Correct embedding *)
   reexec_embd_corr : correct_embeding f;
   reexec_embd_sbrfe : Some ↓ (f ↑ restr_rel (f_cmt f) sb_rf') ⊆
