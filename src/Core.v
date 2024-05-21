@@ -1,5 +1,5 @@
 Require Import Lia Setoid Program.Basics.
-Require Import AuxDef.
+Require Import AuxDef AuxRel.
 Require Import ThreadTrace.
 
 From PromisingLib Require Import Language Basic.
@@ -400,9 +400,17 @@ Notation "'Wre'" := (dom_rel rfre).
 Definition f_cmt (f : actid -> option actid) := is_some ∘ f.
 Definition sb_rfre := (sb ∪ rf ⨾ ⦗E \₁ Rre⦘ ∪ rfre ⨾ ⦗Rre⦘)⁺.
 
-Record stable_uncmt_reads_gen f (thrdle : relation actid) : Prop := 
-  { surg_closed : eq^? ⨾ thrdle ⨾ eq^? ⊆ thrdle;
-    surg_uncmt : rf ⨾ ⦗E' \₁ f_cmt f⦘ ⊆ thrdle; }.
+Record stable_uncmt_reads_gen f (thrdle : relation thread_id) : Prop := 
+  { surg_init_least : forall t, thrdle tid_init t ;
+    surg_init_min : forall t, thrdle t tid_init -> t = tid_init ;
+    surg_uncmt : rf ⨾ ⦗E' \₁ f_cmt f⦘ ⊆ tid ↓ thrdle ; }.
+
+Lemma surg_sb_closed f thrdle 
+    (STABLE_UNCMT : stable_uncmt_reads_gen f thrdle) : 
+  sb^? ⨾ tid ↓ thrdle ⨾ sb^? ⊆ tid ↓ thrdle.
+Proof.
+  by destruct STABLE_UNCMT; apply thrdle_sb_closed.
+Qed.
 
 Record correct_embeding f : Prop :=
 { reexec_embd_inj : inj_dom (f_cmt f) f;
