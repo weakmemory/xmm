@@ -96,7 +96,7 @@ Proof using.
 Qed.
 
 Lemma total_order_from_sorted {A} (l : list A) ord
-    (ORD : strict_total_order ⊤₁ ord)
+    (ORD : strict_total_order (fun x => In x l) ord)
     (SORT : StronglySorted ord l) :
   total_order_from_list l ≡
     restr_rel (fun x => In x l) ord.
@@ -114,7 +114,9 @@ Proof using.
                   eapply list_neq_helper; eauto).
     { eapply ForallE; eauto. }
     { apply IHL in HREL; ins.
-      apply HREL. }
+      { apply HREL. }
+      unfolder in ORD; unfolder; desf.
+      splits; ins; eauto. }
     all: eauto using total_order_from_list_in1,
                      total_order_from_list_in2. }
   unfolder in ORD. desf.
@@ -126,6 +128,7 @@ Proof using.
   { exfalso. apply ORD with x. apply ORD1 with y; ins.
     eapply ForallE; eauto. }
   do 2 right. apply IHL; ins.
+  unfolder; splits; ins; eauto.
 Qed.
 
 Lemma total_order_from_isort {A} (l : list A) ord
@@ -136,10 +139,11 @@ Lemma total_order_from_isort {A} (l : list A) ord
 Proof using.
   rewrite total_order_from_sorted with (ord := ord)
                                       (l := isort ord l).
-  all: ins.
   { unfolder. split; intros x y HREL; desf.
     all: splits; ins.
     all: eapply in_isort_iff; eauto. }
+  { unfolder. unfolder in ORD. desf.
+    splits; ins; eauto. }
   apply StronglySorted_isort; ins.
 Qed.
 
