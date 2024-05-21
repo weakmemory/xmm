@@ -353,7 +353,7 @@ Record reexec_gen f thrdle dtrmt : Prop :=
     (Build_t sc G'                   G' (f_cmt f));
   rexec_final_cons : is_cons G' sc; }.
 
-Definition reexec : Prop := exists f dtrmt, reexec_gen f dtrmt.
+Definition reexec : Prop := exists f thrdle dtrmt, reexec_gen f thrdle dtrmt.
 
 End ExecRexec.
 
