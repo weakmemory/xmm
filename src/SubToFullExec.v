@@ -897,7 +897,7 @@ Lemma sub_to_full_exec_sort_part sc G G' cmt l tord
               (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ⊆ tid ↓ tord)
     (ENUM : SubToFullExecInternal.enumd_diff G G' cmt l) :
   exists l',
-    << SORT : total_order_from_list l' ⊆ tid ↓ tord ∪ sb G' >> /\
+    << SORT : restr_rel (fun x => In x l) (tid ↓ tord ∪ sb G') ⊆ total_order_from_list l' >> /\
     << ENUM : SubToFullExecInternal.enumd_diff G G' cmt l' >>.
 Proof using.
   destruct partial_order_included_in_total_order
@@ -915,7 +915,28 @@ Proof using.
   exists l'; split; ins. red.
   rewrite total_order_from_sorted with (ord := tid ↓ tord'' ∪ ext_sb).
   all: ins.
-  { admit. }
+  { subst tord''.
+    rewrite <- (SubToFullExecInternal.diff_elems ENUM'),
+            <- (SubToFullExecInternal.diff_elems ENUM).
+    unfolder. intros x y HREL.
+    assert (XINIT : ~is_init x).
+    { eapply SubToFullExecInternal.diff_no_init; eauto.
+      unfolder; desf. }
+    assert (YINIT : ~is_init y).
+    { eapply SubToFullExecInternal.diff_no_init; eauto.
+      unfolder; desf. }
+    assert (XINIT' : tid x <> tid_init).
+    { intro F. apply XINIT.
+      apply WF. ins. unfolder.
+      split; ins; desf. }
+    assert (YINIT' : tid y <> tid_init).
+    { intro F. apply YINIT.
+      apply WF. ins. unfolder.
+      split; ins; desf. }
+    desf; splits; ins; eauto.
+    { apply SUB in HREL. eauto. }
+    red in HREL. unfolder in HREL. desf.
+    eauto. }
   admit.
 Admitted.
 
