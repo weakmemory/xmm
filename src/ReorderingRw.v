@@ -1430,7 +1430,7 @@ Proof using.
   now apply exeeqv_eq, simrel_exec_iff_reexecstart_helper.
 Qed.
 
-Lemma simrel_exec_iff_helper l sc rfre
+Lemma simrel_reexec_iff_helper l sc rfre
     (U2V : same_label_u2v (lab_t' b) l)
     (SAME : E_t a <-> E_t b)
     (CONS : WCore.is_cons G_t sc)
@@ -1490,12 +1490,28 @@ Proof using.
     all: eauto using rsrw_a_neq_b.
     destruct (enumd_diff_seq (WCore.reexec_start_wf STEP) (WCore.reexec_steps STEP))
              as (el & DIFF); ins.
-    eapply sub_to_full_exec.
+    assert (TORD : exists tord,
+        << MIN : min_elt tord tid_init >> /\
+        << ORD : strict_partial_order tord >> /\
+        << SUBRF : rf_t' ⨾ ⦗E_t' \₁ WCore.f_cmt f⦘ ⊆ tid ↓ tord >>).
+    { admit. (* Not in this branch *) }
+    desf.
+    edestruct sub_to_full_exec_sort_part with (tord := tord)
+                                              (l := el)
+                                         as (el' & SORT & ENUM).
+    all: eauto.
+    { apply STEP. }
+    { admit. (* The new reexec cond *) }
+    apply sub_to_full_exec with el'.
     { admit. (* Start wf *) }
     { admit. (* end wf *) }
-    { (* We should try to extract the l from the steps
-         made by G_t but swap a and b *)
-    admit. (* enumd_diff *) }
+    { constructor; ins.
+      { apply ENUM. }
+      { rewrite <- (SubToFullExecInternal.diff_elems ENUM).
+        ins. admit. }
+      { admit. }
+      { admit. }
+      admit. }
     admit. (* Traces *) }
   admit. (* Is_cons *)
 Admitted.
