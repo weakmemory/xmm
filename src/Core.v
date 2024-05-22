@@ -417,8 +417,33 @@ Notation "'E'" := (acts_set G).
 
 Lemma wf_gc_fin_exec : fin_exec GC.
 Proof using WF.
-  admit.
-Admitted.
+  red.
+  set (T := threads_set GC \₁ eq tid_init).
+  arewrite (EC \₁ is_init ≡₁ ⋃₁t ∈ T, EC ∩₁ (fun x => t = tid x)).
+  { subst T. split; intros x HSET.
+    { destruct HSET as [XE XINI]. unfolder. exists (tid x).
+      splits; ins; try now apply WF.
+      intro F. apply XINI. apply WF.
+      unfolder. now split. }
+    unfolder in HSET. desf.
+    split; ins. intro F. apply HSET2.
+    destruct x; ins. }
+  apply set_finite_bunion; subst T.
+  { eapply set_finite_mori; try now apply WF.
+    red. basic_solver. }
+  intros t (THR & NINIT).
+  assert (NINIT' : t <> tid_init); eauto.
+  destruct (pfx_cont1 (pfx WF) NINIT') as [N EQ].
+  rewrite EQ. apply set_size_finite.
+  eexists. apply thread_seq_set_size.
+Qed.
+
+Lemma wf_g_fin_exec : fin_exec G.
+Proof using WF.
+  red. eapply set_finite_mori with (x := EC \₁ is_init).
+  { red. apply set_minus_mori; [apply WF | basic_solver]. }
+  apply wf_gc_fin_exec.
+Qed.
 
 Lemma wf_g : Wf G.
 Proof using WF.
