@@ -718,10 +718,6 @@ Proof using.
   { replace ∅ with (mapper ↑₁ ∅); [| now rewrite set_collect_empty].
     apply WCore.wf_iff_struct_and_props; split.
     { destruct STEP. constructor; ins.
-      { unfold FinExecution.fin_exec_full. ins.
-        apply set_finite_unionI.
-        { apply set_finite_set_collect, start_wf. }
-        apply set_finite_eq. }
       { unfold FinThreads.fin_threads. ins.
         apply start_wf. }
       { now rewrite start_wf.(WCore.cc_ctrl_empty), collect_rel_empty. }
@@ -891,10 +887,6 @@ Proof using.
     { admit. (* Trace *) }
     apply WCore.wf_iff_struct_and_props; split.
     { constructor; ins.
-      { unfold FinExecution.fin_exec_full. ins.
-        apply set_finite_unionI.
-        { apply set_finite_set_collect, start_wf. }
-        apply set_finite_eq. }
       { unfold FinThreads.fin_threads. ins.
         apply start_wf. }
       { now rewrite start_wf.(WCore.cc_ctrl_empty), collect_rel_empty. }
@@ -1228,6 +1220,8 @@ Proof using.
   set (cmt := acts_set G_s_ \₁ eq a).
   set (f := fun x => ifP cmt x then Some x else None).
   (* Asserts *)
+  assert (DTRMT_INIT : mapper ↑₁ E_t' ∩₁ is_init ⊆₁ dtrmt).
+  { admit. }
   assert (ACTEQ : E_t' ≡₁ E_t ∪₁ eq b).
   { admit. (* TODO: use step *) }
   assert (WINE : E_t w).
@@ -1317,7 +1311,9 @@ Proof using.
           left. apply in_filterP_iff; split.
           all: try now apply and_not_or.
           apply in_filterP_iff; split; ins.
-          apply ELEMS, HSET. }
+          apply ELEMS. split; try now apply HSET.
+          intro F. apply HSET, DTRMT_INIT.
+          split; ins. apply HSET. }
         apply in_app_iff in HSET; ins.
         destruct HSET as [IN | [EQA | [EQB | F]]]; ins.
         { apply in_filterP_iff in IN. desf.
@@ -1360,7 +1356,10 @@ Proof using.
         all: ins.
         apply in_filterP_iff; split.
         { apply in_filterP_iff; split.
-          { now apply ELEMS. }
+          { apply ELEMS. split; ins.
+            intro F. apply DOM.
+            split; try now apply DTRMT_INIT.
+            admit. }
           apply set_subset_single_l in DOM.
           rewrite set_minus_inter_r in DOM.
           rewrite ACTEQ in DOM at 2.

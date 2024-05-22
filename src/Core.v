@@ -445,6 +445,16 @@ Proof using WF.
   apply wf_gc_fin_exec.
 Qed.
 
+Lemma g_acts_fin_enum :
+  exists l,
+    << NODUP : NoDup l >> /\
+    << ELEMS : E \₁ is_init ≡₁ fun x => In x l >>.
+Proof using WF.
+  set (HFIN := wf_g_fin_exec).
+  apply set_finiteE in HFIN.
+  desf.
+Qed.
+
 Lemma wf_g : Wf G.
 Proof using WF.
   eapply sub_WF; try now apply WF.
