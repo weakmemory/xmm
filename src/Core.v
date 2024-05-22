@@ -120,7 +120,6 @@ Notation "'E'" := (acts_set G).
   to do with the actual model in question.
 *)
 Record wf_struct : Prop := {
-  wstru_fin_exec : fin_exec_full GC;
   wstru_fin_threads : fin_threads GC;
   wstru_cc_ctrl_empty : ctrlc ≡ ∅₂;
   wstru_struct_cc_addr_empty : addrc ≡ ∅₂;
@@ -164,7 +163,6 @@ Record wf : Prop := {
   sub_rfW : cmt ∩₁ R ⊆₁ codom_rel (⦗cmt⦘ ⨾ rfc);
 
   pfx : exec_prefix GC G;
-  wf_fin_exec : fin_exec_full GC;
   wf_fin_threads : fin_threads GC;
 }.
 
@@ -417,17 +415,8 @@ Notation "'rf'" := (rf G).
 Notation "'EC'" := (acts_set GC).
 Notation "'E'" := (acts_set G).
 
-Lemma g_acts_fin_enum :
-  exists l,
-    << ELEMS : E ≡₁ fun x => In x l >> /\
-    << NODUP : NoDup l >> /\
-    << ORD : sb ⊆ total_order_from_list l >>.
+Lemma wf_gc_fin_exec : fin_exec GC.
 Proof using WF.
-  (*
-    1. Take the set of all threads
-    2. Map each tid into a thread_seq_set
-    3. Concat
-   *)
   admit.
 Admitted.
 

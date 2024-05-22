@@ -40,6 +40,7 @@ Notation "'W'" := (is_w lab).
 Notation "'R'" := (is_r lab).
 Notation "'F'" := (is_f lab).
 Notation "'bob'" := (bob G).
+Notation "'Loc_' l" := (fun x => loc x = Some l) (at level 1).
 
 Definition ppo_alt := (sb ∩ same_loc ∪ bob)⁺.
 Definition hb_alt := (ppo_alt ∪ rf)⁺.
@@ -141,10 +142,9 @@ Proof using.
   apply wf_vfE in VF2; unfolder in VF2; desf.
 Qed.
 
-(* TODO: this is limited to E, which is bad. *)
 Lemma srf_exists b
     (HIN : E b)
-    (FIN_ACTS : set_finite E)
+    (FIN_ACTS : set_finite (E \₁ is_init))
     (WF : Wf G)
     (IS_R : R b) :
   exists a, srf a b.
@@ -166,8 +166,19 @@ Proof using.
     splits; ins.
     hahn_rewrite <- sb_in_hb.
     basic_solver 21. }
-  assert (ACT_LIST : exists El, E ≡₁ (fun x => In x El)); desf.
-  { apply set_finiteE in FIN_ACTS. desf. eauto. }
+  assert (ACT_LIST : exists El, E ∩₁ Loc_ l ≡₁ (fun x => In x El)); desf.
+  { apply set_finiteE in FIN_ACTS. desf.
+    exists (InitEvent l :: filterP (Loc_ l) findom). split; intros x HSET.
+    { destruct HSET as [EX LX].
+      ins. destruct x as [xl | xt xn]; ins; eauto.
+      { unfold loc in LX. rewrite (wf_init_lab WF) in LX.
+        desf. eauto. }
+      right.
+      apply in_filterP_iff; split; try now apply LX.
+      apply FIN_ACTS0. split; ins. }
+    ins. desf. apply in_filterP_iff in HSET.
+    destruct HSET as [INX LX]. split; ins.
+    now apply FIN_ACTS0. }
   forward (eapply last_exists with (s:= co ⨾ ⦗fun x => vf x b⦘)
                                    (dom := filterP W El)
                                    (a := InitEvent l)).
@@ -190,7 +201,10 @@ Proof using.
     hahn_rewrite WF.(wf_coE) in A.
     hahn_rewrite WF.(wf_coD) in A.
     hahn_rewrite WF.(wf_col) in A.
-    unfold same_loc in *; unfolder in *; desf; splits; eauto; congruence. }
+    unfold same_loc in *; unfolder in *; desf; splits; eauto.
+    apply ACT_LIST. split; ins.
+    rewrite <- A3. unfold loc.
+    now rewrite (wf_init_lab WF). }
   ins; desc.
   assert (A: (co ⨾ ⦗fun x : actid => vf x b⦘)^? (InitEvent l) b0).
   { apply rt_of_trans; [|by subst].
