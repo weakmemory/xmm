@@ -26,7 +26,7 @@ Lemma wf_after_steps traces X X'
 Proof using.
   induction STEP as [X X' STEP | X | X X'' X' STEP1 WF1 STEP2 WF2].
   all: eauto.
-  do 2 (red in STEP; desf). apply STEP.
+  do 2 (red in STEP; desf).
 Qed.
 
 Lemma cmt_after_steps traces X X'
@@ -35,7 +35,8 @@ Lemma cmt_after_steps traces X X'
 Proof using.
   induction STEP as [X X' STEP | X | X X'' X' STEP1 EQ1 STEP2 EQ2].
   all: eauto.
-  { do 2 (red in STEP; desf). apply STEP. }
+  { do 2 (red in STEP; desf).
+    apply STRUCT. }
   now rewrite EQ2, EQ1.
 Qed.
 
@@ -45,7 +46,8 @@ Lemma gc_after_steps traces X X'
 Proof using.
   induction STEP as [X X' STEP | X | X X'' X' STEP1 EQ1 STEP2 EQ2].
   all: try congruence.
-  do 2 (red in STEP; desf). apply STEP.
+  do 2 (red in STEP; desf).
+  apply STRUCT.
 Qed.
 
 Lemma init_events_after_steps traces X X'
@@ -54,10 +56,10 @@ Lemma init_events_after_steps traces X X'
 Proof using.
   induction STEP as [X X' STEP | X | X X'' X' STEP1 EQ1 STEP2 EQ2].
   { do 2 (red in STEP; desf).
-    rewrite (WCore.e_new STEP), set_inter_union_l.
+    rewrite (WCore.caes_e_new STRUCT), set_inter_union_l.
     arewrite (eq e ∩₁ is_init ≡₁ ∅).
     { unfolder; split; ins; desf.
-      now apply (WCore.e_notinit STEP). }
+      now apply (WCore.caes_e_notinit STRUCT). }
     now rewrite set_union_empty_r. }
   { ins. }
   now rewrite EQ2, EQ1.
@@ -68,7 +70,8 @@ Lemma events_after_steps traces X X'
   acts_set (WCore.G X) ⊆₁ acts_set (WCore.G X').
 Proof using.
   induction STEP as [X X' STEP | X | X X'' X' STEP1 SUB1 STEP2 SUB2].
-  { do 2 (red in STEP; desf). rewrite (WCore.e_new STEP).
+  { do 2 (red in STEP; desf).
+    rewrite (WCore.caes_e_new STRUCT).
     basic_solver. }
   all: basic_solver.
 Qed.
@@ -105,9 +108,9 @@ Proof using.
   induction STEP as [X X' STEP | X | X X'' X' STEP1 DIFF1 STEP2 DIFF2].
   { destruct STEP as [e STEP]. exists [e].
     red in STEP. desf. constructor; ins.
-    all: rewrite (WCore.e_new STEP).
+    all: rewrite (WCore.caes_e_new STRUCT).
     { unfolder; split; intros x HSET; desf; eauto.
-      split; auto. apply STEP. }
+      split; auto. apply STRUCT. }
     { unfolder; intros x y HREL; ins; desf.
       exfalso. eapply sb_irr; eauto. }
     { unfolder; intros x y HREL; ins; desf.
@@ -116,7 +119,7 @@ Proof using.
     assert (HIN : acts_set G' x).
     { apply (wf_rfE WFEND) in HSET. unfolder in HSET.
       desf. }
-    apply (WCore.e_new STEP) in HIN. apply HIN. }
+    apply (WCore.caes_e_new STRUCT) in HIN. apply HIN. }
   { exists []. constructor; ins.
     all: basic_solver. }
   destruct DIFF1 as [l1 DIFF1], DIFF2 as [l2 DIFF2]; ins.
@@ -161,13 +164,13 @@ Proof using.
       apply DIFF2. split; ins. }
     { exfalso. apply HREL3.
       apply ext_sb_dense with (e2 := y).
-      { eauto using WCore.pfx, pfx_cont2, wf_after_steps. }
+      { eauto using WCore.wf_g_cont, wf_after_steps. }
       { intro F.
         assert (WF : WCore.wf X').
         { eauto using wf_after_steps. }
         assert (INIT : is_init x).
         { apply (WCore.wf_gc_acts WF). split; ins.
-          apply (WCore.pfx WF). ins. }
+          apply (sub_E (WCore.wf_g_sub_gc WF)). ins. }
         apply HREL3.
         eapply init_events_after_steps with (X := X'') (X' := X').
         all: eauto.
@@ -197,7 +200,7 @@ Proof using.
         unfolder in HREL. desf.
         arewrite (lab (WCore.G X'') = lab G'); ins.
         apply SUB. }
-      destruct (WCore.sub_rfD) with (X := X'') (x := y) as [RF | CMT].
+      destruct (WCore.wf_sub_rfD) with (X := X'') (x := y) as [RF | CMT].
       all: eauto using wf_after_steps; try now split.
       { exfalso. destruct RF as [x' RF]; ins.
         apply (sub_rf SUB) in RF. unfolder in RF. desf.
