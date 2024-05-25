@@ -164,6 +164,15 @@ Proof using.
   apply mapper_self_inv; ins.
 Qed.
 
+Lemma mapper_mapper_compose' {A} (f : actid -> A)
+    (NEQ : a <> b) :
+  f ∘ mapper ∘ mapper = f.
+Proof using.
+  now rewrite Combinators.compose_assoc,
+              mapper_mapper_compose,
+              Combinators.compose_id_right.
+Qed.
+
 Lemma mapper_surj (NEQ : a <> b) :
   surj_dom ⊤₁ mapper.
 Proof using.

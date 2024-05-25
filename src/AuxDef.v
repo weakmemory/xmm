@@ -358,6 +358,34 @@ Proof using.
   all: auto || exfalso; eauto.
 Qed.
 
+Lemma nsame_loc_nrmw G x y
+    (WF : Wf G)
+    (NLOC : ~same_loc (lab G) x y) :
+  ~rmw G x y.
+Proof using.
+  intro F. now apply (wf_rmwl WF) in F.
+Qed.
+
+Lemma rsrw_a_b_nrmw_dep G x y
+    (IS_W : is_w (lab G) x)
+    (WF : Wf G) :
+  ~rmw_dep G x y.
+Proof using.
+  intro F. apply (wf_rmw_depD WF) in F.
+  unfolder in F. destruct F as (IS_R & _ & _ ).
+  unfold is_r, is_w in *. desf.
+Qed.
+
+Lemma w_nrmwdep G y
+    (IS_W : is_w (lab G) y)
+    (WF : Wf G) :
+  ~codom_rel (rmw_dep G) y.
+Proof using.
+  intros [x F]. apply (wf_rmw_depD WF) in F.
+  unfolder in F. destruct F as (_ & _ & IS_R).
+  unfold R_ex, is_w in *. desf.
+Qed.
+
 Lemma new_event_plus e G G'
     (NEW : ~ acts_set G e)
     (ADD : acts_set G' ≡₁ acts_set G ∪₁ eq e) :
