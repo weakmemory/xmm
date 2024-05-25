@@ -164,10 +164,12 @@ Proof using.
   apply mapper_self_inv; ins.
 Qed.
 
-Lemma mapper_surj (NEQ : a <> b) y :
-  exists x, y = mapper x.
+Lemma mapper_surj (NEQ : a <> b) :
+  surj_dom ⊤₁ mapper.
 Proof using.
-  exists (mapper y). now rewrite mapper_self_inv.
+  red. intros y.
+  exists (mapper y).
+  now rewrite mapper_self_inv.
 Qed.
 
 Lemma mapper_inj (NEQ : a <> b) : inj_dom ⊤₁ mapper.

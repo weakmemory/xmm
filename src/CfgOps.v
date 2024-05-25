@@ -232,7 +232,7 @@ Qed.
 
 Lemma cfg_mapped_wf_props f lab'
     (FINJ : inj_dom ⊤₁ f)
-    (FSURJ : forall y, exists x, y = f x)
+    (FSURJ : surj_dom ⊤₁ f)
     (HLAB : labC = lab' ∘ f)
     (FMAPINIT : forall l, f (InitEvent l) = InitEvent l)
     (PRESRVE_RMW : f ↑ rmwC ⊆ immediate (@sb (exec_mapped GC f lab')))
@@ -301,7 +301,7 @@ Qed.
 
 Lemma cfg_mapped_wf f lab'
     (FINJ : inj_dom ⊤₁ f)
-    (FSURJ : forall y, exists x, y = f x)
+    (FSURJ : surj_dom ⊤₁ f)
     (HLAB : labC = lab' ∘ f)
     (PRESRVE_RMW : f ↑ rmwC ⊆ immediate (@sb (exec_mapped GC f lab')))
     (PRESERVE_RMW_DEP : f ↑ rmw_depC ⊆ (@sb (exec_mapped GC f lab')))

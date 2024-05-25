@@ -14,6 +14,9 @@ Open Scope program_scope.
 
 Set Implicit Arguments.
 
+Definition surj_dom {A B} (s : B -> Prop) (f : A -> B) :=
+  forall y, exists x, y = f x.
+
 Definition edges_to {A} (e : A) := (fun _ _ => True) ⨾ ⦗eq e⦘.
 Hint Unfold edges_to : unfolderDb.
 
@@ -251,7 +254,7 @@ Qed.
 Lemma conjugate_sub {A} r (f : A -> option A)
     (m m' : A -> A)
     (MINJ : inj_dom ⊤₁ m)
-    (MSURJ : forall y, exists x, y = m x)
+    (MSURJ : surj_dom ⊤₁ m)
     (INV : m' ∘ m = id) :
   Some ↓ ((option_map m ∘ f ∘ m') ↑ (m ↑ r)) ⊆
     m ↑ (Some ↓ (f ↑ r)).
