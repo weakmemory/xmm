@@ -5,6 +5,7 @@ From imm Require Import imm_bob.
 From imm Require Import SubExecution.
 
 Require Import Program.Basics.
+Require Import AuxDef.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -55,23 +56,22 @@ Definition rhb := (rpo ∪ sw)⁺.
 Definition vf := ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf^? ⨾ hb^? ⨾ psc^? ⨾ hb^?.
 Definition srf := (vf ∩ same_loc) ⨾ ⦗R⦘ \ (co ⨾ vf).
 
-Lemma thrdle_sb_closed thrdle 
-    (INIT_LEAST: forall t, thrdle tid_init t) 
-    (INIT_MIN: forall t, thrdle t tid_init -> t = tid_init) :  
+Lemma thrdle_sb_closed thrdle
+    (INIT_LEAST : least_elt thrdle tid_init)
+    (INIT_MIN : wmin_elt thrdle tid_init) :
   sb^? ⨾ tid ↓ thrdle ⨾ sb^? ⊆ tid ↓ thrdle.
 Proof.
   rewrite crE, !seq_union_l, !seq_union_r, !seq_id_l, !seq_id_r, !unionA.
   apply inclusion_union_l; try done.
   arewrite (tid ↓ thrdle ⨾ sb ⊆ tid ↓ thrdle).
-  { unfold map_rel. 
-    intros x y [z [TID SB]].
+  { unfolder. intros x y (z & TID & SB).
     apply sb_tid_init in SB.
     destruct SB as [EQ|INIT]; try by rewrite <- EQ.
     apply is_init_tid in INIT; rewrite INIT in *.
-    apply INIT_MIN in TID; rewrite TID.
+    apply INIT_MIN in TID; rewrite <- TID.
     apply INIT_LEAST. }
   arewrite (sb ⨾ tid ↓ thrdle ⊆ tid ↓ thrdle).
-  { unfold map_rel. 
+  { unfold map_rel.
     intros x y [z [SB TID]].
     apply sb_tid_init in SB.
     destruct SB as [EQ|INIT]; try by rewrite -> EQ.
