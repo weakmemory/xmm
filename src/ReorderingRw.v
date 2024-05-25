@@ -1248,7 +1248,7 @@ Proof using.
     Some ↓ (f ↑ r) ≡ restr_rel cmt r).
   { admit. (* TODO: f is a partial id *) }
   (* Actual proof *)
-  red. exists f, dtrmt.
+  red. exists f, (fun x y => y = tid a), dtrmt.
   assert (INA : E_t a).
   { admit. (* TODO: lemma condition? *) }
   assert (START_WF : WCore.wf
@@ -1286,7 +1286,7 @@ Proof using.
   { admit. (* TODO: e <> a ==> all good *) }
   { rewrite CMTEQ, set_minus_union_l.
     subst dtrmt. basic_solver 11. }
-  { admit. (* NOTE: unstable constraint *) }
+  { admit. (* TODO *) }
   { constructor; ins.
     all: admit. }
   { set (ENUM := WCore.g_acts_fin_enum END_WF).
@@ -1468,7 +1468,9 @@ Proof using.
       rewrite ReordCommon.mapper_self_inv; ins. }
     desf. rewrite ReordCommon.mapper_self_inv in Heq0; ins.
     desf. }
-  exists (option_map mapper ∘ f ∘ mapper), (mapper ↑₁ dtrmt).
+  exists (option_map mapper ∘ f ∘ mapper),
+         thrdle,
+         (mapper ↑₁ dtrmt).
   constructor; ins.
   { rewrite CMTEQ. now apply set_collect_mori, STEP. }
   { admit. (* NOTE: ignore for now, until new constraint drops *)  }
@@ -1490,18 +1492,15 @@ Proof using.
     all: eauto using rsrw_a_neq_b.
     destruct (enumd_diff_seq (WCore.reexec_start_wf STEP) (WCore.reexec_steps STEP))
              as (el & DIFF); ins.
-    assert (TORD : exists tord,
-        << MIN : min_elt tord tid_init >> /\
-        << ORD : strict_partial_order tord >> /\
-        << SUBRF : rf_t' ⨾ ⦗E_t' \₁ WCore.f_cmt f⦘ ⊆ tid ↓ tord >>).
-    { admit. (* Not in this branch *) }
     desf.
-    edestruct sub_to_full_exec_sort_part with (tord := tord)
+    edestruct sub_to_full_exec_sort_part with (tord := thrdle)
                                               (l := el)
                                          as (el' & SORT & ENUM).
     all: eauto.
     { apply STEP. }
-    { admit. (* The new reexec cond *) }
+    { admit. (* TODO *) }
+    { admit. (* TODO: change condition *) }
+    { admit. }
     apply sub_to_full_exec with el'.
     { admit. (* Start wf *) }
     { admit. (* end wf *) }
