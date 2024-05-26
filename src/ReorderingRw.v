@@ -24,6 +24,8 @@ From imm Require Import imm_bob.
 From imm Require Import SubExecution.
 From imm Require Import CombRelations.
 
+Set Implicit Arguments.
+
 Section SimRel.
 
 Variable G_s G_t : execution.
@@ -74,6 +76,8 @@ Record reord_simrel_rw_actids : Prop := {
   rsrw_srf_val : funeq (val
     (upd (lab_t ∘ mapper) a (lab_s a))
   ) (srf_s ⨾ ⦗eq a⦘);
+  rsrw_b_tid : tid b <> tid_init;
+  rsrw_a_tid : tid a <> tid_init;
 }.
 
 Record reord_simrel_rw_core : Prop :=
@@ -183,7 +187,7 @@ Definition rsrw_G_s_niff :=
     (exec_add_read_event_nctrl rsrw_G_s_iff a)
     (srf_s ⨾ ⦗eq a⦘).
 
-Lemma rsrw_struct_same
+Lemma rsrw_struct_iff
     (SAME : E_t a <-> E_t b) :
   reord_simrel_rw_struct <-> exec_equiv G_s rsrw_G_s_iff.
 Proof using RSRW_ACTIDS.
@@ -217,37 +221,40 @@ Qed.
 
 Lemma rsrw_struct_niff
     (INA : E_t a)
-    (NOTINB : ~E_t b)
-    (U2V  : same_label_u2v (lab_s a) (lab_t b))
-    (EQVLAB : lab_s = upd (lab_t ∘ mapper) a (lab_s a)) :
+    (NOTINB : ~E_t b) :
   reord_simrel_rw_struct <->
     exec_equiv G_s rsrw_G_s_niff.
 Proof using RSRW_ACTIDS.
   unfold rsrw_G_s_niff, rsrw_G_s_iff.
   split; [intro STRUCT | intro EQUIV].
   { constructor; ins.
-    all: try now apply STRUCT. }
+    all: try now apply STRUCT.
+    now apply rsrw_struct_same_lab. }
   constructor; ins.
   all: try now apply EQUIV.
   all: try now (exfalso; apply NOTINB, SAME, INA).
-  { rewrite EQVLAB, upd_compose; [| apply ReordCommon.mapper_inj, rsrw_a_neq_b].
-    rewrite ReordCommon.mapper_mapper_compose'.
-    all: auto using rsrw_a_neq_b.
-    rewrite ReordCommon.mapper_eq_a. do 2 red. intros e _.
-    tertium_non_datur (e = b) as [HEQ|NEQ]; subst; rupd; ins.
+  { rewrite (exeeqv_lab EQUIV); ins. do 2 red.
+    intros e _.
+    rewrite upd_compose, ReordCommon.mapper_mapper_compose',
+            ReordCommon.mapper_eq_a.
+    all: eauto using rsrw_a_neq_b, rsrw_mapper_inj.
+    destruct (classic (e = b)) as [EQ|NEQ]; subst; rupd.
+    all: try now apply RSRW_ACTIDS.
     red. desf. }
-  { rewrite EQVLAB, upd_compose; [| apply ReordCommon.mapper_inj, rsrw_a_neq_b].
-    rewrite ReordCommon.mapper_eq_a.
-    change (val (upd lab_t b (lab_s a) ∘ mapper) ∘ mapper)
-      with (val (upd lab_t b (lab_s a)) ∘ mapper ∘ mapper).
-    rewrite ReordCommon.mapper_mapper_compose'.
-    all: auto using rsrw_a_neq_b.
-    unfold val. rupd. }
-  rewrite EQUIV.(exeeqv_acts _ _); ins.
+  { rewrite (exeeqv_lab EQUIV); ins.
+    change (val (upd (lab_t ∘ mapper) a (lab_s a)) ∘ mapper)
+      with (val (upd (lab_t ∘ mapper) a (lab_s a)  ∘ mapper)).
+    unfold val.
+    rewrite upd_compose, ReordCommon.mapper_mapper_compose',
+            ReordCommon.mapper_eq_a.
+    all: eauto using rsrw_a_neq_b, rsrw_mapper_inj.
+    destruct (classic (e = b)) as [EQ|NEQ]; subst; rupd.
+    congruence. }
+  rewrite (exeeqv_acts EQUIV); ins.
   rewrite set_inter_union_l.
   arewrite (eq a ∩₁ is_init ≡₁ ∅); [| now rewrite set_union_empty_r].
   split; [| basic_solver]. intros x (EQ & INIT). subst.
-  red. now apply RSRW_ACTIDS.(rsrw_ninit_a).
+  red. now apply (rsrw_ninit_a RSRW_ACTIDS).
 Qed.
 
 End SimRel.
@@ -304,7 +311,7 @@ Proof using.
   all: try now apply STRUCT.
   { unfolder. intros F. desf. }
   { admit. }
-  all: rewrite STRUCT.(rsrw_init _ _ _ _).
+  all: rewrite (rsrw_init STRUCT).
   all: rewrite set_collect_interE, ReordCommon.mapper_is_init; ins.
   all: try now apply ACTIDS.
   all: eauto using rsrw_mapper_inj.
@@ -368,8 +375,137 @@ Notation "'srf_s'" := (srf G_s).
 
 Notation "'mapper'" := (ReordCommon.mapper a b).
 
+Hypothesis WF : Wf G_s.
+Hypothesis SIMREL : reord_simrel_rw G_s G_t a b.
 Hypothesis IS_CONS : WCore.is_cons G_t sc.
 Hypothesis SWAPPED_TRACES : ReordCommon.traces_swapped traces traces' a b.
+
+Lemma simrel_niff_start_wf
+    (INA : E_t' a)
+    (NINB : ~E_t b)
+    (NINB' : ~E_t' b)
+    (SIM_ACTS : reord_simrel_rw_actids G_s G_t a b)
+    (WF' : WCore.wf {|
+      WCore.sc := sc;
+      WCore.G := G_t;
+      WCore.GC := G_t';
+      WCore.cmt := ∅;
+    |}) :
+  WCore.wf {|
+    WCore.sc := mapper ↑ sc;
+    WCore.G := rsrw_G_s_niff G_s G_t a b;
+    WCore.GC := rsrw_G_s_niff G_s G_t' a b;
+    WCore.cmt := ∅;
+  |}.
+Proof using.
+  assert (WF_G_t' : Wf G_t').
+  { apply WF'. }
+  assert (FIN_LAB : lab_t' = lab_t).
+  { symmetry. apply WF'. }
+  split.
+  { admit. }
+  replace ∅ with (mapper ↑₁ ∅) by  now rewrite set_collect_empty.
+  apply cfg_add_event_nctrl_wf_props with (X := {|
+    WCore.sc := mapper ↑ sc;
+    WCore.G := exec_upd_lab _ _ _;
+    WCore.GC := exec_upd_lab _ _ _;
+    WCore.cmt := mapper ↑₁ ∅
+  |}); ins.
+  { apply SIM_ACTS. }
+  { apply SIM_ACTS. }
+  { admit. }
+  { admit. }
+  { now apply WF_G_t'. }
+  { admit. }
+  { admit. }
+  { apply NINB'.
+    unfolder in DOM1. unfolder in DOM2.
+    destruct DOM1 as (y & y' & x' & RF & _ & MAPX).
+    destruct DOM2 as (_ & x'' & _ & EQ1 & EQ2).
+    subst x'' x.
+    admit. }
+  { rewrite FIN_LAB.
+    apply SIM_ACTS. }
+  { rewrite transp_seq.
+    arewrite (⦗eq a⦘⁻¹ ≡ ⦗eq a⦘).
+    { basic_solver. }
+    apply functional_seq; eauto using wf_srff.
+    basic_solver. }
+  { admit.
+    (* rewrite <- (rsrw_actids2 (rsrw_struct SIMREL)); ins.
+    rewrite wf_srfE at 1; ins. basic_solver.  *)
+  }
+  { rewrite exec_upd_lab_R with (G := exec_mapped G_t' mapper (lab_t' ∘ mapper)),
+            exec_upd_lab_W with (G := exec_mapped G_t' mapper (lab_t' ∘ mapper)),
+            exec_mapped_R with (G := G_t') (f := mapper) (lab' := lab_t' ∘ mapper),
+            exec_mapped_W with (G := G_t') (f := mapper) (lab' := lab_t' ∘ mapper).
+    all: try symmetry; ins.
+    all: eauto using rsrw_mapper_inj, rsrw_mapper_surj,
+                     ReordCommon.mapper_mapper_compose',
+                     rsrw_a_neq_b.
+    all: admit. }
+  { admit. }
+  { destruct srf_exists with G_s a.
+    all: admit. }
+  { now rewrite (WCore.wf_cc_ctrl_empty WF'),
+            collect_rel_empty. }
+  { admit. }
+  apply cfg_upd_lab_wf_props with (e := a) (X := {|
+    WCore.sc := mapper ↑ sc;
+    WCore.G := exec_mapped _ _ _;
+    WCore.GC := exec_mapped _ _ _;
+    WCore.cmt := mapper ↑₁ ∅;
+  |}); ins.
+  { apply SIM_ACTS. }
+  { rewrite FIN_LAB.
+    erewrite rsrw_struct_same_lab with (G_s := G_s).
+    all: eauto using rsrw_struct.
+    unfold compose.
+    rewrite upds, ReordCommon.mapper_eq_a.
+    apply same_label_u2v_comm, SIM_ACTS. }
+  { admit. }
+  rewrite <- FIN_LAB.
+  apply cfg_mapped_wf_props with (X := {|
+    WCore.sc := sc;
+    WCore.G := G_t;
+    WCore.GC := G_t';
+    WCore.cmt := ∅;
+  |}); ins.
+  all: try now apply WF'.
+  all: eauto using rsrw_mapper_inj, rsrw_mapper_surj.
+  { rewrite ReordCommon.mapper_mapper_compose'; ins.
+    eauto using rsrw_a_neq_b. }
+  { apply ReordCommon.mapper_init_actid.
+    all: apply SIM_ACTS. }
+  { apply ReordCommon.mapped_G_t_immsb_helper; ins.
+    all: try now apply SIM_ACTS.
+    all: admit. }
+  { apply ReordCommon.mapped_G_t_sb_helper; ins.
+    all: try now apply SIM_ACTS.
+    all: admit. }
+  { admit. }
+  admit.
+Admitted.
+
+Lemma simrel_niff_end_wf
+    (INA : E_t' a)
+    (NINB' : ~E_t' b)
+    (SIM_ACTS : reord_simrel_rw_actids G_s G_t a b)
+    (WF' : WCore.wf {|
+      WCore.sc := sc;
+      WCore.G := G_t';
+      WCore.GC := G_t';
+      WCore.cmt := ∅;
+    |}) :
+  WCore.wf {|
+    WCore.sc := mapper ↑ sc;
+    WCore.G := rsrw_G_s_niff G_s G_t' a b;
+    WCore.GC := rsrw_G_s_niff G_s G_t' a b;
+    WCore.cmt := ∅;
+  |}.
+Proof using.
+  admit.
+Admitted.
 
 Lemma simrel_exec_iff e
     (E_NOT_A : e <> a)
@@ -521,19 +657,17 @@ Admitted.
 Lemma simrel_exec_niff e
     (E_NOT_A : e <> a)
     (E_NOT_B : e <> b)
-    (B_TID : tid a <> tid_init)
     (STEP : WCore.exec_inst G_t G_t' sc traces e)
     (SIM_ACTS : reord_simrel_rw_actids G_s G_t a b)
     (INA :   E_t a)
-    (NINB : ~E_t b)
-    (BINIT : forall l0 (LOC : loc lab_t' b = Some l0), E_t' (InitEvent l0)) :
+    (NINB : ~E_t b) :
   WCore.exec_inst
     (rsrw_G_s_niff G_s G_t  a b)
     (rsrw_G_s_niff G_s G_t' a b)
     (mapper ↑ sc)
     traces'
     e.
-Proof using IS_CONS.
+Proof using IS_CONS WF SIMREL.
   assert (INA' : E_t' a).
   { apply (WCore.cae_e_new (WCore.add_event STEP)).
     ins. now left. }
@@ -541,7 +675,7 @@ Proof using IS_CONS.
   { intro F'.
     apply (WCore.cae_e_new (WCore.add_event STEP)) in F'.
     ins.  destruct F' as [HIN|HEQ]; ins. }
-  assert (FIN_LAB : lab G_t' = lab_t).
+  assert (FIN_LAB : lab_t' = lab_t).
   { symmetry. eapply sub_lab.
     eapply WCore.wf_g_sub_gc
     with (X := {|
@@ -551,77 +685,18 @@ Proof using IS_CONS.
       WCore.cmt := ∅;
     |}).
     apply STEP. }
+  assert (WF' : WCore.wf {|
+    WCore.sc := sc;
+    WCore.G := G_t;
+    WCore.GC := G_t';
+    WCore.cmt := ∅;
+  |}).
+  { apply STEP. }
+  assert (WF_G_t' : Wf G_t').
+  { apply WF'. }
   (* Actual proof *)
   constructor; ins.
-  { replace ∅ with (mapper ↑₁ ∅); [| now rewrite set_collect_empty].
-    apply WCore.wf_iff_struct_and_props; split.
-    { constructor; ins.
-      { apply STEP. }
-      { now rewrite (WCore.wf_cc_ctrl_empty (WCore.start_wf STEP)),
-                    collect_rel_empty. }
-      { now rewrite (WCore.wf_cc_addr_empty (WCore.start_wf STEP)),
-                    collect_rel_empty. }
-      { now rewrite (WCore.wf_cc_data_empty (WCore.start_wf STEP)),
-                    collect_rel_empty. }
-      { admit. (* TODO: need weaker lemma *) }
-      { admit. }
-      { admit. (* TODO: easy *) }
-      admit. }
-    apply cfg_add_event_nctrl_wf_props with (X := {|
-      WCore.sc := mapper ↑ sc;
-      WCore.G := exec_upd_lab _ _ _;
-      WCore.GC := exec_upd_lab _ _ _;
-      WCore.cmt := mapper ↑₁ ∅
-    |}); ins.
-    { apply SIM_ACTS. }
-    { admit. (* TODO: trivial *) }
-    { admit. (* TODO: easy *) }
-    { admit. (* TODO: Wf G_t' *) }
-    { admit. (* TODO: a is sb max *) }
-    { admit. }
-    { admit. (* TODO: wf_srfE *) }
-    { rewrite FIN_LAB.
-      apply SIM_ACTS. }
-    { admit. }
-    { admit. (* TODO: wf_srf *) }
-    { admit. (* TODO: wf_srfD *) }
-    { admit. (* TODO: srf prop *) }
-    { admit. (* TODO: srf exists *) }
-    { apply cfg_upd_lab_wf_props with (e := a) (X := {|
-        WCore.sc := mapper ↑ sc;
-        WCore.G := exec_mapped _ _ _;
-        WCore.GC := exec_mapped _ _ _;
-        WCore.cmt := mapper ↑₁ ∅;
-      |}); ins.
-      { apply SIM_ACTS. }
-      { unfold compose. rewrite FIN_LAB, ReordCommon.mapper_eq_a.
-        apply same_label_u2v_comm. apply SIM_ACTS. (* NOTE: label *) }
-      { admit. (* TODO: excludes srf edge, so must be easy *) }
-      rewrite <- FIN_LAB.
-      apply cfg_mapped_wf_props with (X := {|
-        WCore.sc := sc;
-        WCore.G := G_t;
-        WCore.GC := G_t';
-        WCore.cmt := ∅;
-      |}); ins.
-      all: eauto using rsrw_mapper_inj, rsrw_mapper_surj.
-      all: try now apply STEP.
-      { rewrite ReordCommon.mapper_mapper_compose'; ins.
-        eauto using rsrw_a_neq_b. }
-      { apply ReordCommon.mapper_init_actid.
-        all: apply SIM_ACTS. }
-      { apply ReordCommon.mapped_G_t_immsb_helper; ins.
-        all: try now apply SIM_ACTS.
-        all: admit. }
-      { apply ReordCommon.mapped_G_t_sb_helper; ins.
-        all: try now apply SIM_ACTS.
-        all: admit. }
-      (* FIXME: uses auto gen names *)
-      { admit. (* TODO: lemma *) }
-       admit. }
-    { rewrite (WCore.wf_cc_ctrl_empty (WCore.start_wf STEP)).
-      now rewrite collect_rel_empty. }
-    admit. (* TODO *) }
+  { now apply simrel_niff_start_wf. }
   { replace ∅ with (mapper ↑₁ ∅) by now rewrite set_collect_empty.
     replace e with (mapper e) by now rewrite ReordCommon.mapper_neq.
     destruct STEP. red in add_event. desf. ins.
@@ -681,24 +756,44 @@ Proof using IS_CONS.
       rewrite ReordCommon.mapper_mapper_compose'; ins.
       eauto using rsrw_a_neq_b. }
     { admit. (* Trace *) }
-    apply WCore.wf_iff_struct_and_props; split.
-    { admit. }
-    admit. (* TODO *) }
+    replace (mapper ↑₁ ∅) with (∅ : actid -> Prop).
+    { apply simrel_niff_end_wf; ins. }
+    now rewrite set_collect_empty. }
   admit. (* TODO: is cons *)
 Admitted.
 
 Lemma simrel_exec_not_a_not_b e
     (E_NOT_A : e <> a)
     (E_NOT_B : e <> b)
-    (STEP : WCore.exec_inst G_t G_t' sc traces e)
-    (SIM : reord_simrel_rw G_s G_t a b) :
+    (STEP : WCore.exec_inst G_t G_t' sc traces e) :
   exists G_s' sc',
     WCore.exec_inst G_s G_s' sc' traces' e.
-Proof using IS_CONS.
+Proof using IS_CONS SIMREL WF SWAPPED_TRACES.
   destruct (classic (E_t a)) as [INA|NINA];
   destruct (classic (E_t b)) as [INB|NINB].
-  admit.
-Admitted.
+  { exists (rsrw_G_s_iff G_s G_t' a b), (mapper ↑ sc).
+    replace G_s with (rsrw_G_s_iff G_s G_t a b) at 1.
+    { apply simrel_exec_iff; ins.
+      apply SIMREL. }
+    symmetry.
+    apply exeeqv_eq, rsrw_struct_iff; ins.
+    all: apply SIMREL. }
+  { exists (rsrw_G_s_niff G_s G_t' a b), (mapper ↑ sc).
+    replace G_s with (rsrw_G_s_niff G_s G_t a b) at 1.
+    { apply simrel_exec_niff; ins.
+      apply SIMREL. }
+    symmetry.
+    apply exeeqv_eq, rsrw_struct_niff; ins.
+    all: apply SIMREL. }
+  { exfalso. now apply (rsrw_actids_t_ord (rsrw_core SIMREL)). }
+  exists (rsrw_G_s_iff G_s G_t' a b), (mapper ↑ sc).
+  replace G_s with (rsrw_G_s_iff G_s G_t a b) at 1.
+  { apply simrel_exec_iff; ins.
+    apply SIMREL. }
+  symmetry.
+  apply exeeqv_eq, rsrw_struct_iff; ins.
+  all: apply SIMREL.
+Qed.
 
 Lemma simrel_exec_b_helper
     (INA : ~E_t a)
@@ -717,18 +812,38 @@ Lemma simrel_exec_b_helper
               (mapper ↑ sc)
               traces'
               b >>.
-Proof using.
-  assert (FIN_LAB : lab G_t' = lab_t).
-  { admit. }
-  assert (B_IS_R : R_t' b).
-  { admit. }
+Proof using IS_CONS WF SIMREL.
+  assert (NINB' : ~E_t' b).
+  { intro F'.
+    apply (WCore.cae_e_new (WCore.add_event STEP)) in F'.
+    ins.  destruct F' as [HIN|HEQ]; ins.
+    eapply rsrw_a_neq_b; eauto. }
+  assert (FIN_LAB : lab_t' = lab_t).
+  { symmetry. eapply sub_lab.
+    eapply WCore.wf_g_sub_gc
+    with (X := {|
+      WCore.G := G_t;
+      WCore.GC := G_t';
+      WCore.sc := sc;
+      WCore.cmt := ∅;
+    |}).
+    apply STEP. }
+  assert (WF' : WCore.wf {|
+    WCore.sc := sc;
+    WCore.G := G_t;
+    WCore.GC := G_t';
+    WCore.cmt := ∅;
+  |}).
+  { apply STEP. }
+  assert (WF_G_t' : Wf G_t').
+  { apply WF'. }
   assert (SRFEQ : exists sw, srf_s ⨾ ⦗eq a⦘ ≡ singl_rel sw a).
   { admit. }
   destruct SRFEQ as [sw SRFEQ].
   apply rel_extensionality in SRFEQ.
   split.
   { constructor; ins.
-    { admit. (* Start wf *) }
+    { admit. (* Start wf -- a bit complex *) }
     { red. eexists _, _, _, _.
       splits.
       { admit. (* TODO: struct *) }
@@ -738,10 +853,12 @@ Proof using.
         all: unfold compose, is_w, is_r; rupd; ins.
         all: admit. }
       { admit. (* traces *) }
-      admit. (* End wf -- todo lemma *) }
+      admit. }
     admit. (* IS_cons *) }
   constructor; ins.
-  { admit. (* Start wf *) }
+  { apply simrel_niff_start_wf; ins.
+    apply (WCore.cae_e_new (WCore.add_event STEP)).
+    ins. now right. }
   { destruct STEP. red in add_event. desf.
     exists (option_map mapper r), (option_map mapper w),
            (mapper ↑₁ W1), (mapper ↑₁ W2).
@@ -775,7 +892,7 @@ Proof using.
           WCore.G := exec_mapped G_t'  _ _;
           WCore.GC := exec_mapped G_t' _ _;
           WCore.cmt := mapper ↑₁ ∅
-        |}).
+        |}); ins.
       { admit. }
       rewrite <- ReordCommon.mapper_eq_a with (a := a) (b := b) at 13.
       rewrite <- FIN_LAB.
@@ -793,77 +910,43 @@ Proof using.
             WCore.cmt := ∅;
         |}).
       all: eauto using rsrw_mapper_inj, rsrw_mapper_surj.
-      admit. }
+      rewrite ReordCommon.mapper_mapper_compose'; ins.
+      eapply rsrw_a_neq_b; eauto. }
     { admit. (* Trace stuff *) }
-    apply WCore.wf_iff_struct_and_props; split.
-    { admit. (* STRUCT *) }
-    replace ∅ with (mapper ↑₁ ∅) by now rewrite set_collect_empty.
-    unfold rsrw_G_s_iff, rsrw_G_s_niff. rewrite SRFEQ.
-    apply cfg_add_event_nctrl_wf_props with (X := {|
-      WCore.sc := mapper ↑ sc;
-      WCore.G := exec_upd_lab _ _ _;
-      WCore.GC := exec_upd_lab _ _ _;
-       WCore.cmt := mapper ↑₁ ∅
-    |}); ins.
-    { apply SIM_ACTS. }
-    { admit. (* TODO: condition *) }
-    { admit. (* <-> b is not in E_t', which is true *) }
-    { admit. (* a is a read in source *) }
-    { admit. }
-    { admit. (* WF-ness noise *) }
-    { admit. (* Other wf-ness noise *) }
-    { admit. (* True, because it implies b being in E_t *) }
-    { admit. (* Hyp *) }
-    { admit. }
-    { admit. (* Inferrable from hyps *) }
-    { admit. (* Inferrable from hyps *) }
-    { admit. }
-    { admit. }
-    { apply cfg_upd_lab_wf_props with (X := {|
-        WCore.sc := mapper ↑ sc;
-        WCore.G := exec_mapped _ _ _;
-        WCore.GC := exec_mapped _ _ _;
-        WCore.cmt := mapper ↑₁ ∅;
-      |}); ins.
-      { apply SIM_ACTS. }
-      { admit. }
-      { admit. (* True because b is not in E_t *) }
-      apply cfg_mapped_wf_props with (X := {|
-        WCore.sc := sc;
-        WCore.G := G_t';
-        WCore.GC := G_t';
-        WCore.cmt := ∅;
-      |}); ins.
-      all: eauto using rsrw_mapper_inj, rsrw_mapper_surj.
-      { admit. }
-      { apply ReordCommon.mapper_init_actid.
-        all: apply SIM_ACTS. }
-      { apply ReordCommon.mapped_G_t_immsb_helper.
-        all: admit. }
-      { apply ReordCommon.mapped_G_t_sb_helper.
-        all: admit. }
-      { admit. (* TODO *) }
-      { admit. (* WFness noise *) }
-      { apply start_wf. }
-      { apply start_wf. }
-      { apply start_wf. }
-      apply WF_NEW. }
-    { admit. (* Easy *) }
-    admit. (* Looks easy too *) }
+    apply simrel_niff_end_wf; ins.
+    apply (WCore.caes_e_new STRUCT).
+    ins. now right. (* TODO: turn into assert *) }
   admit. (* IS_cons *)
 Admitted.
 
 Lemma simrel_exec_b
-   (CONS' : WCore.is_cons G_s (mapper ↑ sc))
-    (SIM : reord_simrel_rw G_s G_t a b)
+    (CONS' : WCore.is_cons G_s (mapper ↑ sc))
     (STEP : WCore.exec_inst G_t G_t' sc traces a) :
   exists G_s' sc',
     << SIM' : reord_simrel_rw G_s' G_t' a b >> /\
     exists G_s'_int,
       << STEP1 : WCore.exec_inst G_s G_s'_int sc' traces' a >> /\
       << STEP2 : WCore.exec_inst G_s'_int G_s' sc' traces' b >>.
-Proof using SWAPPED_TRACES IS_CONS.
-  admit. (* TODO: research *)
+Proof using SWAPPED_TRACES IS_CONS SIMREL.
+  destruct (classic (E_t a)) as [INA|NINA].
+  { exfalso.
+    now apply (WCore.cae_e_notin (WCore.add_event STEP)). }
+  destruct (classic (E_t b)) as [INB|NINB].
+  { exfalso. eapply rsrw_actids_t_ord; eauto.
+    apply SIMREL. }
+  exists (rsrw_G_s_niff G_s G_t' a b), (mapper ↑ sc).
+  split.
+  { admit. }
+  exists (rsrw_G_s_niff G_s G_t a b).
+  split; red.
+  { replace G_s with (rsrw_G_s_iff G_s G_t a b) at 1.
+    { apply simrel_exec_b_helper; ins.
+      apply SIMREL. }
+    symmetry.
+    apply exeeqv_eq, rsrw_struct_iff; ins.
+    all: apply SIMREL. }
+  apply simrel_exec_b_helper; ins.
+  apply SIMREL.
 Admitted.
 
 Lemma simrel_exec_a_helper w
