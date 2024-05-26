@@ -398,7 +398,7 @@ Definition f_cmt (f : actid -> option actid) := is_some ∘ f.
 Record stable_uncmt_reads_gen f thrdle : Prop :=
 { surg_init_least : least_elt thrdle tid_init;
   surg_init_min : wmin_elt thrdle tid_init;
-  surg_uncmt : rf ⨾ ⦗E' \₁ f_cmt f⦘ ⊆ tid ↓ thrdle;
+  surg_uncmt : rf' ⨾ ⦗E' \₁ f_cmt f⦘ ⊆ tid ↓ thrdle;
   surg_ord : partial_order thrdle; }.
 
 Lemma surg_sb_closed f thrdle

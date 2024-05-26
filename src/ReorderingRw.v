@@ -1218,14 +1218,22 @@ Proof using REEXEC.
     ) as (ls & INCL & ENUM'); eauto.
     { apply partial_order_to_strict, GREEXEC. }
     { admit. }
-    { admit. (* TODO: fix sub2full *) }
+    { arewrite ((tid ↓ (thrdle \ ⦗⊤₁⦘))^? ≡ tid ↓ thrdle).
+      { admit. }
+      transitivity (rf_t' ⨾ ⦗E_t' \₁ WCore.f_cmt f⦘).
+      { basic_solver. }
+      apply GREEXEC. }
     apply sub_to_full_exec with (l := ls).
     { admit. (* reexec wf start again *) }
     { constructor; ins.
-      all: rewrite ?ReordCommon.mapper_acts_iff; ins.
-      all: try now apply ENUM'.
-      { rewrite rsrw_G_s_iff_sb; ins. apply ENUM'. }
-      { admit. }
+      { apply ENUM'. }
+      { rewrite !ReordCommon.mapper_acts_iff; ins.
+        apply ENUM'. }
+      { rewrite !ReordCommon.mapper_acts_iff,
+                rsrw_G_s_iff_sb; ins.
+        apply ENUM'. }
+      { rewrite !ReordCommon.mapper_acts_iff, CMTEQ; ins.
+          admit. }
       admit. }
     admit. }
   admit.
