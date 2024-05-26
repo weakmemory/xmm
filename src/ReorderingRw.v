@@ -1217,7 +1217,10 @@ Proof using REEXEC.
       WF'
     ) as (ls & INCL & ENUM'); eauto.
     { apply partial_order_to_strict, GREEXEC. }
-    { admit. }
+    { unfolder. intros x (THRDLE & RESTR).
+      apply not_and_or in RESTR; desf.
+      apply GREEXEC in THRDLE.
+      congruence. }
     { arewrite ((tid ↓ (thrdle \ ⦗⊤₁⦘)^?) ≡ tid ↓ thrdle).
       { apply map_rel_more; ins.
         apply partial_order_to_strict_inv, GREEXEC. }
