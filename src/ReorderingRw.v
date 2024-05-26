@@ -950,6 +950,8 @@ Proof using SWAPPED_TRACES IS_CONS SIMREL.
 Admitted.
 
 Lemma simrel_exec_a_helper w
+    (INA : E_t a)
+    (NINB : ~E_t b)
     (CONS : WCore.is_cons G_t sc)
     (CONS' : WCore.is_cons G_s (mapper ↑ sc))
     (RF : rf_t' w b)
@@ -957,37 +959,36 @@ Lemma simrel_exec_a_helper w
     (STEP : WCore.exec_inst G_t G_t' sc traces b) :
   WCore.reexec
     (rsrw_G_s_niff G_s G_t  a b)
-    (rsrw_G_s_niff G_s G_t' a b)
+    (rsrw_G_s_iff  G_s G_t' a b)
     (mapper ↑ sc)
     traces'.
 Proof using.
-  (* Shorthands *)
-  assert (SRFEQ : exists sw, srf_s ⨾ ⦗eq a⦘ ≡ singl_rel sw a).
-  { admit. }
-  destruct SRFEQ as [sw SRFEQ].
-  unfold rsrw_G_s_iff, rsrw_G_s_niff.
-  apply rel_extensionality in SRFEQ. rewrite SRFEQ.
-  set (G_s_ := exec_add_rf
-    (exec_add_read_event_nctrl
-      (exec_upd_lab
-        (exec_mapped G_t mapper (lab_t' ∘ mapper))
-        a (lab_s a)) a)
-    (singl_rel sw a)).
-  set (G_s' :=
-    exec_mapped G_t' mapper (lab_t'  ∘ mapper)).
+  (* Defs *)
   set (dtrmt := mapper ↑₁ E_t \₁ codom_rel (
-    ⦗eq a⦘ ⨾ (sb G_s_ ∪ rf G_s_)＊
+    ⦗eq a⦘ ⨾ (
+      sb (rsrw_G_s_niff G_s G_t a b) ∪
+      rf (rsrw_G_s_niff G_s G_t a b)
+    )＊
   )).
-  set (delta := acts_set G_s' \₁ dtrmt).
-  set (cmt := acts_set G_s_ \₁ eq a).
+  set (delta := acts_set (rsrw_G_s_iff  G_s G_t' a b) \₁ dtrmt).
+  set (cmt := acts_set (rsrw_G_s_niff G_s G_t a b) \₁ eq a).
   set (f := fun x => ifP cmt x then Some x else None).
-  (* Asserts *)
-  assert (DTRMT_INIT : mapper ↑₁ E_t' ∩₁ is_init ⊆₁ dtrmt).
-  { admit. }
-  assert (ACTEQ : E_t' ≡₁ E_t ∪₁ eq b).
-  { admit. (* TODO: use step *) }
-  assert (WINE : E_t w).
-  { admit. }
+  (* Assers *)
+  assert (WF' : WCore.wf {|
+    WCore.G := G_t;
+    WCore.GC := G_t';
+    WCore.sc := sc;
+    WCore.cmt := ∅;
+  |}).
+  { apply STEP. }
+  assert (WF_G_t' : Wf G_t').
+  { apply WF'. }
+  assert (INA' : E_t' a).
+  { apply (WCore.cae_e_new (WCore.add_event STEP)).
+    ins. now left. }
+  assert (INB' : E_t' b).
+  { apply (WCore.cae_e_new (WCore.add_event STEP)).
+    ins. now right. }
   assert (CMTEQ : WCore.f_cmt f ≡₁ cmt).
   { subst f. unfold WCore.f_cmt, is_some, compose.
     unfolder. split; ins; desf. }
@@ -996,66 +997,34 @@ Proof using.
   { admit. (* TODO: f is a partial id *) }
   (* Actual proof *)
   red. exists f, (fun x y => y = tid a), dtrmt.
-  assert (INA : E_t a).
-  { admit. (* TODO: lemma condition? *) }
-  assert (START_WF : WCore.wf
-    {|
-      WCore.sc := mapper ↑ sc;
-      WCore.G :=
-        WCore.reexec_start G_s_
-          (exec_mapped G_t' mapper
-            (lab_t' ∘ mapper)) dtrmt;
-      WCore.GC :=
-        exec_mapped G_t' mapper (lab_t' ∘ mapper);
-      WCore.cmt :=
-        fun x : actid => WCore.f_cmt f x
-    |}).
-  { admit. }
-  assert (END_WF : WCore.wf
-    {|
-      WCore.sc := mapper ↑ sc;
-      WCore.G := exec_mapped G_t' mapper (lab_t' ∘ mapper);
-      WCore.GC := exec_mapped G_t' mapper (lab_t' ∘ mapper);
-      WCore.cmt :=
-        fun x : actid =>
-        WCore.f_cmt
-          (fun x0 : actid =>
-          ifP ((mapper ↑₁ E_t ∪₁ eq a) \₁ eq a) x0 then
-          Some x0 else None) x
-    |}).
-  { admit. }
-  assert (END_WF' : Wf G_t').
-  { admit. }
-  assert (WINE' : (mapper ↑₁ E_t') w).
-  { admit. }
-  subst f cmt G_s'. ins.
-  constructor; ins.
+  subst f cmt. constructor; ins.
   { admit. (* TODO: e <> a ==> all good *) }
   { rewrite CMTEQ, set_minus_union_l.
     subst dtrmt. basic_solver 11. }
   { admit. (* TODO *) }
   { constructor; ins.
     all: admit. }
-  { admit. }
-  { set (ENUM := WCore.g_acts_fin_enum END_WF).
-    desf.
+  { admit. (* start wf *) }
+  { set (G_t_fin := WCore.wf_gc_fin_exec WF'); ins.
+    apply set_finiteE in G_t_fin.
+    destruct G_t_fin as (l & NODUP & LEQ).
     set (l1 := filterP delta l).
     set (l2 := filterP (set_compl (eq a ∪₁ eq b)) l1).
     apply sub_to_full_exec with (l := l2 ++ [a; b]).
     all: subst l2 l1 delta.
-    { admit. }
-    { admit. }
+    { admit. (* start wf *) }
     { constructor; ins.
       { apply nodup_app; splits.
         { now do 2 apply nodup_filterP. }
-        { admit. (* TODO a <> b *) }
-        intros x HL1 HL2.
-        apply in_filterP_iff in HL1.
-        destruct HL1 as [_ HL1]. ins.
-        unfolder in HL1. desf; eauto. }
+        { constructor; ins.
+          apply and_not_or; split.
+          all: try symmetry.
+          all: eauto using rsrw_a_neq_b. }
+        red. intros x IN1 IN2.
+        apply in_filterP_iff in IN1; desf.
+        unfolder in IN0. ins. desf; eauto. }
       { admit. (* TODO: easy *)  }
-      { intros x y HREL.
-        admit. (* Not obvious, but should be true *)}
+      { admit. (* Not obvious, but should be true *)}
       { admit. }
       admit. } (* TODO follows from wf-ness *)
     admit. (* TODO: trace coherency *) }
