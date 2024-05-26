@@ -190,7 +190,8 @@ Proof using.
     all: ins.
     rewrite set_minus_union_l, set_minus_disjoint.
     all: ins.
-    unfolder. intros x y HREL. desf.
+    unfolder. intros x y HREL.
+    destruct HREL as ((RF & HIN & YNCMT) & ACTS). desf.
     { apply total_order_from_list_r.
       apply (SubToFullExecInternal.diff_rf DIFF2).
       unfolder. splits; eauto.
@@ -198,17 +199,17 @@ Proof using.
     { apply total_order_from_list_bridge.
       { apply DIFF1. split; ins. }
       apply DIFF2. split; ins. }
-    { exfalso. apply HREL1.
+    { exfalso. apply YNCMT.
       assert (IS_R : is_r (lab (WCore.G X'')) y).
-      { apply (wf_rfD WFEND) in HREL.
-        unfolder in HREL. desf.
+      { apply (wf_rfD WFEND) in RF.
+        unfolder in RF. desf.
         arewrite (lab (WCore.G X'') = lab G'); ins.
         apply SUB. }
-      destruct (WCore.wf_sub_rfD) with (X := X'') (x := y) as [RF | CMT].
+      destruct (WCore.wf_sub_rfD) with (X := X'') (x := y) as [RF' | CMT].
       all: eauto using wf_after_steps; try now split.
-      { exfalso. destruct RF as [x' RF]; ins.
-        apply (sub_rf SUB) in RF. unfolder in RF. desf.
-        apply HREL5.
+      { exfalso. destruct RF' as [x' RF']; ins.
+        apply (sub_rf SUB) in RF'. unfolder in RF'. desf.
+        apply ACTS2.
         rewrite (wf_rff WFEND) with (x := y) (y := x) (z := x').
         all: ins. }
       eapply cmt_after_steps with (X := X) in CMT; eauto. }

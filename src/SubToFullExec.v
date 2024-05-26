@@ -242,7 +242,7 @@ Record enumd_diff (l : list actid) : Prop := {
   nodup : NoDup l;
   diff_elems : E' \₁ E ≡₁ fun x => In x l;
   diff_sb : restr_rel (E' \₁ E) sb' ⊆ total_order_from_list l;
-  diff_rf : restr_rel (E' \₁ E) rf' ⨾ ⦗E' \₁ cmt⦘ ⊆ total_order_from_list l;
+  diff_rf : restr_rel (E' \₁ E) (rf' ⨾ ⦗E' \₁ cmt⦘) ⊆ total_order_from_list l;
   diff_rf_d : (E' \₁ E) ∩₁ R ⊆₁ codom_rel rf';
 }.
 
@@ -285,6 +285,41 @@ Lemma diff_no_init l
 Proof.
   unfolder. intros x [INE' NOTINE] INIT.
   apply NOTINE, (WCore.wf_g_init WF); ins.
+Qed.
+
+Lemma uncmt_rf_same_tid_sub_sb l
+    (WF : WCore.wf X)
+    (ENUM : enumd_diff l) :
+  restr_rel (E' \₁ E) (rf' ⨾ ⦗E' \₁ cmt⦘) ∩ same_tid ⊆ sb'.
+Proof using.
+  intros x y (RF & TID).
+  assert (XINIT : ~ is_init x).
+  { eapply diff_no_init; eauto. apply RF. }
+  assert (YINIT : ~ is_init y).
+  { eapply diff_no_init; eauto. apply RF. }
+  assert (XYNEQ : x <> y).
+  { intro F. subst. eapply rf_irr.
+    { apply WF. }
+    ins. unfolder in RF. desf.
+    eauto. }
+  unfold sb. unfolder. splits.
+  all: try now apply RF.
+  destruct x as [xl | xt xn],
+           y as [yl | yt yn]; ins.
+  split; ins.
+  red in TID. ins. subst.
+  destruct NPeano.Nat.lt_total with xn yn as [LT | [EQ | GT]].
+  all: eauto; try congruence.
+  assert (SB : restr_rel (E' \₁ E) sb'
+                (ThreadEvent yt yn) (ThreadEvent yt xn)).
+  { unfold sb. unfolder. ins; splits; ins.
+    all: apply RF. }
+  exfalso. eapply total_order_from_list_irreflexive.
+  { apply ENUM. }
+  eapply total_order_from_list_trans.
+  { apply ENUM. }
+  { apply ENUM in RF. eauto. }
+  now apply ENUM in SB.
 Qed.
 
 Lemma enumd_deltaG_prefix h t
@@ -849,7 +884,7 @@ Lemma sub_to_full_exec_sort sc G G' cmt l tord
     (OTOT : strict_total_order ⊤₁ tord)
     (ORB : min_elt tord tid_init)
     (ORDRF : restr_rel (acts_set G' \₁ acts_set G)
-              (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ⊆ (tid ↓ tord)^?)
+              (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ⊆ tid ↓ tord^?)
     (ENUM : SubToFullExecInternal.enumd_diff G G' cmt l) :
   exists l',
     << SORT : StronglySorted (tid ↓ tord ∪ ext_sb) l' >> /\
@@ -917,25 +952,23 @@ Proof using.
     apply SUB. right.
     red in SB. unfolder in SB. desf. }
   { intros x y HREL.
-    assert (HEQ :
-      restr_rel
-        (acts_set G' \₁ acts_set G)
-        (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ≡
-      restr_rel
-        (acts_set G' \₁ acts_set G)
-        (rf G') ⨾ ⦗acts_set G' \₁ cmt⦘).
-    { basic_solver. }
-    apply HEQ in HREL. clear HEQ.
     apply total_order_from_isort; ins.
     { apply ENUM. }
     unfolder; splits.
-    { apply ORDRF in HREL. destruct HREL as [EQ|TORD].
-      { admit. (* TODO *) }
-      apply SUB. now left. }
+    { apply SUB.
+      destruct (classic (tid x = tid y)) as [TIDEQ|NTEQ].
+      { right. enough (SB : sb G' x y).
+        { unfold sb in SB. unfolder in SB. apply SB. }
+        eapply SubToFullExecInternal.uncmt_rf_same_tid_sub_sb.
+        all: eauto.
+        split; ins. }
+      apply ORDRF in HREL.
+      destruct HREL as [EQ|TORD]; ins.
+      now left. }
     all: destruct HREL as (_ & DOM & CODOM).
     all: try now eapply in_isort_iff, DIFF; eauto. }
   apply ENUM.
-Admitted.
+Qed.
 
 Lemma sub_to_full_exec_sort_part sc G G' cmt l tord
     (WF : WCore.wf {|
@@ -947,7 +980,7 @@ Lemma sub_to_full_exec_sort_part sc G G' cmt l tord
     (OPA : strict_partial_order tord)
     (ORB : min_elt tord tid_init)
     (ORDRF : restr_rel (acts_set G' \₁ acts_set G)
-              (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ⊆ (tid ↓ tord)^?)
+              (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ⊆ (tid ↓ tord^?))
     (ENUM : SubToFullExecInternal.enumd_diff G G' cmt l) :
   exists l',
     << SORT : restr_rel (fun x => In x l) (tid ↓ tord ∪ sb G') ⊆ total_order_from_list l' >> /\
