@@ -190,9 +190,9 @@ Proof using.
   now rewrite XHEQ, YHEQ, HEQ.
 Qed.
 
-Lemma mapper_acts
-    (SAME : E_t a <-> E_t b) :
-  mapper ↑₁ E_t ≡₁ E_t.
+Lemma mapper_acts_iff (s : actid -> Prop)
+    (SAME : s a <-> s b) :
+  mapper ↑₁ s ≡₁ s.
 Proof using.
   unfolder; split; ins; desf.
   { tertium_non_datur (y = a) as [HEQA|NEQA];
@@ -201,6 +201,17 @@ Proof using.
   tertium_non_datur (x = a) as [HEQA|NEQA];
   tertium_non_datur (x = b) as [HEQB|NEQB]; subst.
   all: eauto using mapper_eq_a, mapper_eq_b, mapper_neq.
+Qed.
+
+Lemma mapper_acts_niff (s : actid -> Prop)
+    (INA : s a)
+    (NINB : ~s b) :
+  mapper ↑₁ s ∪₁ eq a ≡₁ s ∪₁ eq b.
+Proof using.
+  rewrite <- mapper_eq_b.
+  rewrite <- set_collect_eq with (f := mapper) (a := b).
+  rewrite <- set_collect_union, mapper_acts_iff; ins.
+  unfolder; split; ins; desf; eauto.
 Qed.
 
 Lemma mapper_init_actid l
@@ -404,7 +415,7 @@ Proof using REORD.
                ?REORD.(gs_addr), ?REORD.(gt_addr),
                ?REORD.(gs_ctrl), ?REORD.(gt_ctrl).
   all: try now (symmetry; apply collect_rel_empty).
-  { rewrite mapper_acts; [apply REORD | ins]. }
+  { rewrite mapper_acts_iff; [apply REORD | ins]. }
   rewrite <- REORD.(events_lab), Combinators.compose_assoc,
           mapper_mapper_compose, Combinators.compose_id_right; ins.
   apply REORD.
@@ -530,7 +541,7 @@ Proof using.
     unfolder. ins. desf. now apply WF. }
   { intros x HSET. unfolder in HSET.
     desf. apply WF. unfolder; split; ins.
-    apply mapper_acts with (a := a) (b := b) in HSET0; ins.
+    apply mapper_acts_iff with (a := a) (b := b) in HSET0; ins.
     unfolder in HSET0; desf. now rewrite mapper_self_inv. }
   all: apply mapped_G_t_cont; ins; apply WF.
 Qed.
