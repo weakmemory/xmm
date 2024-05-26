@@ -98,13 +98,12 @@ Qed.
 
 Lemma wf_vfE
     (WF : Wf G) :
-  vf ≡ ⦗E⦘ ⨾ vf. (* TODO: vf is actually E -> E *)
+  vf ≡ ⦗E⦘ ⨾ vf ⨾ ⦗E⦘.
 Proof using.
   split; [| basic_solver].
   unfold vf. hahn_frame.
-  seq_rewrite <- !(id_inter E E).
-  now rewrite !set_interK.
-Qed.
+  admit.
+Admitted.
 
 Lemma vf_dom : dom_rel vf ⊆₁ W.
 Proof using.
@@ -113,12 +112,11 @@ Qed.
 
 Lemma wf_srfE
     (WF : Wf G) :
-  srf ≡ ⦗E⦘ ⨾ srf. (* TODO: srf is actually E -> E *)
+  srf ≡ ⦗E⦘ ⨾ srf ⨾ ⦗E⦘.
 Proof using.
   split; [| basic_solver]. unfold srf.
   rewrite wf_vfE at 1 by auto.
-  rewrite seq_eqv_inter_ll, seqA.
-  basic_solver.
+  unfolder. ins. desf. splits; eauto.
 Qed.
 
 Lemma wf_srfD : srf ≡ ⦗W⦘ ⨾ srf ⨾ ⦗R⦘.
