@@ -78,12 +78,10 @@ Record reord_simrel_rw_actids : Prop := {
   ) (srf_s ⨾ ⦗eq a⦘);
   rsrw_b_tid : tid b <> tid_init;
   rsrw_a_tid : tid a <> tid_init;
-}.
-
-Record reord_simrel_rw_core : Prop :=
-{ rsrw_actids_t_ord : forall (INB : E_t b) (NOTINA : ~E_t a), False;
   rsrw_a_max : forall (INA : E_t a) (NOTINB : ~E_t b),
-                  max_elt (sb G_t) a; }.
+                  max_elt (sb G_t) a;
+  rsrw_actids_t_ord : forall (INB : E_t b) (NOTINA : ~E_t a), False;
+}.
 
 Record reord_simrel_rw_struct : Prop := {
   rsrw_lab_val_end : forall (INB : E_t b),
@@ -116,7 +114,6 @@ Record reord_simrel_rw_struct : Prop := {
 
 Record reord_simrel_rw : Prop :=
 { rsrw_actids : reord_simrel_rw_actids;
-  rsrw_core : reord_simrel_rw_core;
   rsrw_struct : reord_simrel_rw_struct; }.
 
 Hypothesis RSRW_ACTIDS : reord_simrel_rw_actids.
@@ -257,6 +254,31 @@ Proof using RSRW_ACTIDS.
   red. now apply (rsrw_ninit_a RSRW_ACTIDS).
 Qed.
 
+Lemma rsrw_G_s_iff_sb
+    (SAME : E_t a <-> E_t b) :
+  sb rsrw_G_s_iff ≡ sb_t.
+Proof using.
+  unfold sb. ins.
+  now rewrite ReordCommon.mapper_acts_iff.
+Qed.
+
+Lemma rsrw_G_s_niff_sb
+    (INA : E_t a)
+    (NINB : ~E_t b) :
+  sb rsrw_G_s_niff ≡ sb_t ∪ ⦗E_t⦘ ⨾ ext_sb ⨾ ⦗eq b⦘.
+Proof using RSRW_ACTIDS.
+  unfold sb. ins.
+  rewrite ReordCommon.mapper_acts_niff; ins.
+  split; [| basic_solver].
+  unfolder. intros x y (DOM & SB & CODOM).
+  desf; eauto.
+  { exfalso. eapply rsrw_a_max with y; ins.
+    unfold sb; unfolder. splits; ins.
+    apply ext_sb_trans with b; ins.
+    apply RSRW_ACTIDS. }
+  exfalso. eapply ext_sb_irr; eauto.
+Qed.
+
 End SimRel.
 
 Module ReordRwSimRelProps.
@@ -303,6 +325,8 @@ Lemma sim_rel_init
     (STRUCT : reord_simrel_rw_struct G_s G_t a b) :
   reord_simrel_rw (WCore.init_exec G_s) (WCore.init_exec G_t) a b.
 Proof using.
+  assert (WF : Wf (WCore.init_exec G_s)).
+  { admit. }
   constructor; constructor; ins.
   all: try now (rewrite collect_rel_empty; ins).
   all: try now (exfalso; apply ACTIDS.(rsrw_ninit_a G_s G_t a b), INA).
@@ -310,7 +334,12 @@ Proof using.
   all: try now apply ACTIDS.
   all: try now apply STRUCT.
   { unfolder. intros F. desf. }
-  { admit. }
+  { arewrite (srf (WCore.init_exec G_s) ≡ ∅₂).
+    { rewrite wf_srfD, wf_srfE; ins.
+      split; [| basic_solver].
+      unfolder. intros _ y (_ & _ & (INY & INIT) & IS_R).
+      eapply read_or_fence_is_not_init; eauto. }
+    basic_solver. }
   all: rewrite (rsrw_init STRUCT).
   all: rewrite set_collect_interE, ReordCommon.mapper_is_init; ins.
   all: try now apply ACTIDS.
@@ -790,7 +819,7 @@ Proof using IS_CONS SIMREL WF SWAPPED_TRACES.
     symmetry.
     apply exeeqv_eq, rsrw_struct_niff; ins.
     all: apply SIMREL. }
-  { exfalso. now apply (rsrw_actids_t_ord (rsrw_core SIMREL)). }
+  { exfalso. now apply (rsrw_actids_t_ord (rsrw_actids SIMREL)). }
   exists (rsrw_G_s_iff G_s G_t' a b), (mapper ↑ sc).
   split; red.
   { admit. }
@@ -962,11 +991,13 @@ Lemma simrel_exec_a_helper w
     (RF : rf_t' w b)
     (SIM_ACTS : reord_simrel_rw_actids G_s G_t a b)
     (STEP : WCore.exec_inst G_t G_t' sc traces b) :
-  WCore.reexec
-    (rsrw_G_s_niff G_s G_t  a b)
-    (rsrw_G_s_iff  G_s G_t' a b)
-    (mapper ↑ sc)
-    traces'.
+  exists dtrmt,
+    WCore.reexec
+      (rsrw_G_s_niff G_s G_t  a b)
+      (rsrw_G_s_iff  G_s G_t' a b)
+      (mapper ↑ sc)
+      traces'
+      dtrmt.
 Proof using.
   (* Defs *)
   set (dtrmt := mapper ↑₁ E_t \₁ codom_rel (
@@ -1001,7 +1032,8 @@ Proof using.
     Some ↓ (f ↑ r) ≡ restr_rel cmt r).
   { admit. (* TODO: f is a partial id *) }
   (* Actual proof *)
-  red. exists f, (fun x y => y = tid a), dtrmt.
+  exists dtrmt.
+  red. exists f, (fun x y => y = tid a).
   subst f cmt. constructor; ins.
   { admit. (* TODO: e <> a ==> all good *) }
   { rewrite CMTEQ, set_minus_union_l.
@@ -1012,7 +1044,7 @@ Proof using.
   { admit. (* start wf *) }
   { set (G_t_fin := WCore.wf_gc_fin_exec WF'); ins.
     apply set_finiteE in G_t_fin.
-    destruct G_t_fin as (l & NODUP & LEQ).
+    destruct G_t_fin as (l & NODUP & LEQ). (* TODO: sort l *)
     set (l1 := filterP delta l).
     set (l2 := filterP (set_compl (eq a ∪₁ eq b)) l1).
     apply sub_to_full_exec with (l := l2 ++ [a; b]).
@@ -1029,7 +1061,7 @@ Proof using.
         apply in_filterP_iff in IN1; desf.
         unfolder in IN0. ins. desf; eauto. }
       { admit. (* TODO: easy *)  }
-      { admit. (* Not obvious, but should be true *)}
+      { admit. }
       { admit. }
       admit. } (* TODO follows from wf-ness *)
     admit. (* TODO: trace coherency *) }
@@ -1045,12 +1077,11 @@ Admitted.
 
 Lemma simrel_exec_a w
     (RF : rf_t' w b)
-    (SIM : reord_simrel_rw G_s G_t a b)
     (STEP : WCore.exec_inst G_t G_t' sc traces b) :
   exists G_s' sc',
     << SIM' : reord_simrel_rw G_s' G_t' a b >> /\
-    << STEP : WCore.reexec G_s G_s' sc' traces' >>.
-Proof using SWAPPED_TRACES IS_CONS.
+    << STEP : exists dtrmt, WCore.reexec G_s G_s' sc' traces' dtrmt >>.
+Proof using SWAPPED_TRACES IS_CONS SIMREL.
   destruct (classic (E_t b)) as [INB | NINB].
   { exfalso. apply (WCore.cae_e_notin (WCore.add_event STEP)).
     ins. }
@@ -1059,12 +1090,14 @@ Proof using SWAPPED_TRACES IS_CONS.
   exists (rsrw_G_s_iff G_s G_t' a b), (mapper ↑ sc).
   split; red.
   { admit. }
+  edestruct simrel_exec_a_helper as (dtrmt & REEXEC); eauto.
+  { apply SIMREL. }
+  exists dtrmt.
   replace G_s with (rsrw_G_s_niff G_s G_t a b) at 1.
-  { eapply simrel_exec_a_helper; eauto.
-    apply SIM. }
+  { apply REEXEC. }
   symmetry. apply exeeqv_eq, rsrw_struct_niff.
   all: ins.
-  all: apply SIM.
+  all: apply SIMREL.
 Admitted.
 
 End SimRelExec.
@@ -1072,7 +1105,9 @@ End SimRelExec.
 Section SimRelReexec.
 
 Variable G_t G_t' G_s : execution.
+Variable sc : relation actid.
 Variable traces traces' : thread_id -> trace label -> Prop.
+Variable dtrmt : actid -> Prop.
 Variable a b : actid.
 
 Notation "'lab_t'" := (lab G_t).
@@ -1125,126 +1160,78 @@ Notation "'srf_s'" := (srf G_s).
 Notation "'mapper'" := (ReordCommon.mapper a b).
 
 Hypothesis SWAPPED_TRACES : ReordCommon.traces_swapped traces traces' a b.
+Hypothesis REEXEC : WCore.reexec G_t G_t' sc traces dtrmt.
 
-
-Lemma simrel_exec_iff_reexecstart_helper l dtrmt
-    (A_NEQ_B : a <> b) :
-  exec_equiv
-    (WCore.reexec_start
-      (exec_upd_lab
-        (exec_mapped G_t mapper
-            (lab_t' ∘ mapper)) a
-        l)
-      (exec_upd_lab
-        (exec_mapped G_t' mapper
-            (lab_t' ∘ mapper)) a
-        l) (mapper ↑₁ dtrmt))
-    (exec_upd_lab
-        (exec_mapped (WCore.reexec_start G_t G_t' dtrmt)
-          mapper (lab_t' ∘ mapper)) a l).
-Proof using.
-  constructor; ins.
-  { rewrite set_collect_interE; eauto using ReordCommon.mapper_inj. }
-  all: rewrite !collect_rel_seq, <- collect_rel_eqv; ins.
-  all: eapply inj_dom_mori; eauto using ReordCommon.mapper_inj; ins.
-Qed.
-
-Lemma simrel_exec_iff_reexecstart_helper_eq l dtrmt
-    (A_NEQ_B : a <> b) :
-  WCore.reexec_start
-    (exec_upd_lab
-      (exec_mapped G_t mapper
-          (lab_t' ∘ mapper)) a
-      l)
-    (exec_upd_lab
-      (exec_mapped G_t' mapper
-          (lab_t' ∘ mapper)) a
-       l) (mapper ↑₁ dtrmt) =
-  exec_upd_lab
-    (exec_mapped (WCore.reexec_start G_t G_t' dtrmt)
-      mapper (lab_t' ∘ mapper)) a l.
-Proof using.
-  now apply exeeqv_eq, simrel_exec_iff_reexecstart_helper.
-Qed.
-
-Lemma simrel_reexec_iff_helper l sc
-    (U2V : same_label_u2v (lab_t' b) l)
-    (SAME : E_t a <-> E_t b)
-    (CONS : WCore.is_cons G_t sc)
-    (STEP : WCore.reexec G_t G_t' sc traces)
-    (SIM_ACTS : reord_simrel_rw_actids G_s G_t a b)
-    (NRMWDEP : ~rmw_dep_t' a b)
-    (NRMW : ~rmw_t' a b)
-    (NRMWCODOM : ~codom_rel rmw_t' a)
-    (NRMWDOM : ~dom_rel rmw_t' b) :
+Lemma simrel_reexec_iff_to_iff
+    (IFF : E_t a <-> E_t b)
+    (IFFD : dtrmt a <-> dtrmt b)
+    (IFF' : E_t' a <-> E_t' b)
+    (SIM_ACTS : reord_simrel_rw_actids G_s G_t a b) :
   WCore.reexec
-    (exec_upd_lab
-      (exec_mapped G_t  mapper (lab_t'  ∘ mapper))
-      a l)
-    (exec_upd_lab
-      (exec_mapped G_t' mapper (lab_t' ∘ mapper))
-      a l)
+    (rsrw_G_s_iff G_s G_t  a b)
+    (rsrw_G_s_iff G_s G_t' a b)
     (mapper ↑ sc)
-    traces'.
-Proof using.
-  red in STEP. desf. red.
-  assert (A_NEQ_B : a <> b).
-  { admit. }
+    traces'
+    (mapper ↑₁ dtrmt).
+Proof using REEXEC.
+  red in REEXEC.
+  destruct REEXEC as (f & thrdle & GREEXEC).
+  assert (WF' : WCore.wf {|
+    WCore.G := WCore.reexec_start G_t G_t' dtrmt;
+    WCore.GC := G_t';
+    WCore.sc := sc;
+    WCore.cmt := WCore.f_cmt f;
+  |}).
+  { apply GREEXEC. }
+  assert (WF_G_t' : Wf G_t').
+  { apply WF'. }
   assert (CMTEQ : WCore.f_cmt (option_map mapper ∘ f ∘ mapper) ≡₁
                   mapper ↑₁ WCore.f_cmt f).
-  { unfold WCore.f_cmt, compose, is_some, option_map.
-    unfolder. split; intros x HSET.
-    { desf. exists (mapper x); split; desf.
-      rewrite ReordCommon.mapper_self_inv; ins. }
-    desf. rewrite ReordCommon.mapper_self_inv in Heq0; ins.
-    desf. }
+  { admit. }
+  (* The proof *)
   exists (option_map mapper ∘ f ∘ mapper),
-         thrdle,
-         (mapper ↑₁ dtrmt).
+         thrdle.
   constructor; ins.
-  { rewrite CMTEQ. now apply set_collect_mori, STEP. }
-  { admit. (* NOTE: ignore for now, until new constraint drops *)  }
+  { destruct (classic (e = a)) as [EQA|NEQA]; subst.
+    all: rupd; ins.
+    unfolder in DTRMT.
+    destruct DTRMT as (e' & DTRMT & EQ).
+    subst e. unfold compose.
+    rewrite ReordCommon.mapper_self_inv; ins.
+    { now apply GREEXEC. }
+    eauto using rsrw_a_neq_b. }
+  { rewrite CMTEQ. apply set_collect_mori; ins.
+    apply GREEXEC. }
   { constructor; ins.
-    { rewrite CMTEQ. admit. (* looks easy *) }
-    { rewrite CMTEQ. now apply set_collect_mori, STEP. }
-    { admit. (* f respects this property, mapper saves tids *) }
-    { admit. (* f preserves label. With mapper it preserves it too *) }
-    { admit. (* Looks easy too *) }
-    rewrite CMTEQ, collect_rel_restr; eauto using ReordCommon.mapper_inj.
-    transitivity (mapper ↑ (Some ↓ (f ↑ restr_rel (WCore.f_cmt f) rf_t'))).
-    all: try now apply collect_rel_mori, STEP.
-    apply conjugate_sub.
-    all: eauto using ReordCommon.mapper_inj,
-                     ReordCommon.mapper_surj.
-    now rewrite ReordCommon.mapper_mapper_compose. }
-  { admit. (* Basic start wf-ness *) }
-  { rewrite simrel_exec_iff_reexecstart_helper_eq.
-    all: eauto using rsrw_a_neq_b.
-    destruct (enumd_diff_seq (WCore.reexec_start_wf STEP) (WCore.reexec_steps STEP))
-             as (el & DIFF); ins.
-    desf.
-    edestruct sub_to_full_exec_sort_part with (tord := thrdle)
-                                              (l := el)
-                                         as (el' & SORT & ENUM).
-    all: eauto.
-    { apply STEP. }
-    { admit. (* TODO *) }
-    { admit. (* TODO: change condition *) }
+    all: try now apply GREEXEC.
+    rewrite CMTEQ.
+    admit. (* TODO: should be easy *) }
+  { admit. (* TODO: should be easy *) }
+  { admit. (* TODO: hard *) }
+  { destruct (enumd_diff_seq
+      WF'
+      (WCore.reexec_steps GREEXEC)
+    ) as (l & ENUM); ins.
+    destruct (
+      @sub_to_full_exec_sort_part _ _ _ _ l (thrdle \ ⦗⊤₁⦘)
+      WF'
+    ) as (ls & INCL & ENUM'); eauto.
+    { apply partial_order_to_strict, GREEXEC. }
     { admit. }
-    apply sub_to_full_exec with el'.
-    { admit. (* Start wf *) }
-    { admit. (* end wf *) }
+    { admit. (* TODO: fix sub2full *) }
+    apply sub_to_full_exec with (l := ls).
+    { admit. (* reexec wf start again *) }
     { constructor; ins.
-      { apply ENUM. }
-      { rewrite <- (SubToFullExecInternal.diff_elems ENUM).
-        ins. admit. }
-      { admit. }
+      all: rewrite ?ReordCommon.mapper_acts_iff; ins.
+      all: try now apply ENUM'.
+      { rewrite rsrw_G_s_iff_sb; ins. apply ENUM'. }
       { admit. }
       admit. }
-    admit. (* Traces *) }
-  admit. (* Is_cons *)
+    admit. }
+  admit.
 Admitted.
 
+(*
 Lemma simrel_reexec sc
     (CONS : WCore.is_cons G_t sc)
     (CONS' : WCore.is_cons G_s (mapper ↑ sc))
@@ -1255,7 +1242,7 @@ Lemma simrel_reexec sc
     << STEP : WCore.reexec G_s G_s' sc' traces' >>.
 Proof using SWAPPED_TRACES.
   admit.
-Admitted.
+Admitted. *)
 
 End SimRelReexec.
 
