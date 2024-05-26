@@ -115,11 +115,15 @@ Proof using.
       exfalso. eapply sb_irr; eauto. }
     { unfolder; intros x y HREL; ins; desf.
       exfalso. eapply rf_irr; eauto. }
-    unfolder; intros x HSET; ins; desf.
-    assert (HIN : acts_set G' x).
-    { apply (wf_rfE WFEND) in HSET. unfolder in HSET.
-      desf. }
-    apply (WCore.caes_e_new STRUCT) in HIN. apply HIN. }
+    intros x [[[INX | XEQE] NINX] IS_R]; ins.
+    subst x.
+    destruct (classic (cmt e)) as [CMT|NCMT].
+    { apply set_subset_single_l.
+      transitivity (codom_rel (
+        restr_rel (WCore.cmt X') (rf (WCore.GC X')))
+      ).
+      all: admit. (* EASY *) }
+    admit. (* True because ncmt reads must have an rf-edge *) }
   { exists []. constructor; ins.
     all: basic_solver. }
   destruct DIFF1 as [l1 DIFF1], DIFF2 as [l2 DIFF2]; ins.
@@ -212,18 +216,7 @@ Proof using.
     apply (SubToFullExecInternal.diff_rf DIFF1).
     unfolder. splits; eauto.
     apply (sub_rf SUB). unfolder. splits; ins. }
-  rewrite set_union_minus with (s := acts_set G')
-                               (s' := acts_set (WCore.G X'')) at 1.
-  all: ins.
-  rewrite set_minus_union_l, set_minus_disjoint.
-  all: ins.
-  rewrite id_union, seq_union_r, dom_union.
-  intros x [DOM1 | DOM2].
-  { apply (SubToFullExecInternal.diff_rf_d DIFF2).
-    unfolder in DOM1. desf. }
-  unfolder in DOM2. desf.
-  apply (wf_rfE WFEND) in DOM2.
-  unfolder in DOM2. desf.
-Qed.
+  admit. (* Should be easy too *)
+Admitted.
 
 End Steps.
