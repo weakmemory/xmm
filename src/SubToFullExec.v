@@ -849,7 +849,7 @@ Lemma sub_to_full_exec_sort sc G G' cmt l tord
     (OTOT : strict_total_order ⊤₁ tord)
     (ORB : min_elt tord tid_init)
     (ORDRF : restr_rel (acts_set G' \₁ acts_set G)
-              (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ⊆ tid ↓ tord)
+              (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ⊆ (tid ↓ tord)^?)
     (ENUM : SubToFullExecInternal.enumd_diff G G' cmt l) :
   exists l',
     << SORT : StronglySorted (tid ↓ tord ∪ ext_sb) l' >> /\
@@ -916,19 +916,26 @@ Proof using.
     all: try now eapply in_isort_iff; eauto.
     apply SUB. right.
     red in SB. unfolder in SB. desf. }
-  { intros x y (y' & (RF & DOM & CODOM) & EQ & NCMT).
-    subst y'. apply DIFF in DOM, CODOM.
+  { intros x y HREL.
+    assert (HEQ :
+      restr_rel
+        (acts_set G' \₁ acts_set G)
+        (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ≡
+      restr_rel
+        (acts_set G' \₁ acts_set G)
+        (rf G') ⨾ ⦗acts_set G' \₁ cmt⦘).
+    { basic_solver. }
+    apply HEQ in HREL. clear HEQ.
     apply total_order_from_isort; ins.
     { apply ENUM. }
     unfolder; splits.
-    all: try now eapply in_isort_iff; eauto.
-    apply SUB. left.
-    apply ORDRF.
-    apply DIFF in DOM, CODOM.
-    split; eauto.
-    exists y; unfolder; eauto. }
+    { apply ORDRF in HREL. destruct HREL as [EQ|TORD].
+      { admit. (* TODO *) }
+      apply SUB. now left. }
+    all: destruct HREL as (_ & DOM & CODOM).
+    all: try now eapply in_isort_iff, DIFF; eauto. }
   apply ENUM.
-Qed.
+Admitted.
 
 Lemma sub_to_full_exec_sort_part sc G G' cmt l tord
     (WF : WCore.wf {|
@@ -940,7 +947,7 @@ Lemma sub_to_full_exec_sort_part sc G G' cmt l tord
     (OPA : strict_partial_order tord)
     (ORB : min_elt tord tid_init)
     (ORDRF : restr_rel (acts_set G' \₁ acts_set G)
-              (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ⊆ tid ↓ tord)
+              (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ⊆ (tid ↓ tord)^?)
     (ENUM : SubToFullExecInternal.enumd_diff G G' cmt l) :
   exists l',
     << SORT : restr_rel (fun x => In x l) (tid ↓ tord ∪ sb G') ⊆ total_order_from_list l' >> /\
