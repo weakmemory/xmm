@@ -233,6 +233,17 @@ Proof using.
   intro F. apply INJ in F; ins.
 Qed.
 
+Lemma set_collect_diff (A B : Type) (f : A -> B) s s'
+    (INJ : inj_dom ⊤₁ f) :
+  f ↑₁ (s \₁ s') ≡₁ f ↑₁ s \₁ f ↑₁ s'.
+Proof using.
+  unfolder. split; intros x HSET; desf.
+  { split; eauto. intro F.
+    destruct F as (y' & HSET2 & FHEQ).
+    apply INJ in FHEQ; ins. subst. eauto. }
+  exists y; splits; eauto.
+Qed.
+
 Lemma set_collect_interE (A B : Type) (f : A -> B) s s'
     (INJ : inj_dom ⊤₁ f) :
   f ↑₁ (s ∩₁ s') ≡₁ f ↑₁ s ∩₁ f ↑₁ s'.
