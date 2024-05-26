@@ -1162,9 +1162,45 @@ Notation "'mapper'" := (ReordCommon.mapper a b).
 Hypothesis SWAPPED_TRACES : ReordCommon.traces_swapped traces traces' a b.
 Hypothesis REEXEC : WCore.reexec G_t G_t' sc traces dtrmt.
 
-Lemma simrel_reexec_iff_to_iff
-    (IFF : E_t a <-> E_t b)
-    (IFFD : dtrmt a <-> dtrmt b)
+Lemma simrel_reexec_rf thrdle f l
+    (THRDLE : rf_t' ⨾ ⦗E_t' \₁ WCore.f_cmt f⦘ ⊆ tid ↓ thrdle)
+    (LISTORD : restr_rel (fun x => In x l) (tid ↓ (thrdle \ ⦗⊤₁⦘) ∪ sb_t')
+      ⊆ total_order_from_list l)
+    (WF : Wf G_t')
+    (DIFF : SubToFullExecInternal.enumd_diff
+      (WCore.reexec_start G_t G_t' dtrmt) G_t'
+      (fun x : actid => WCore.f_cmt f x) l)
+    (SIM_ACTS : reord_simrel_rw_actids G_s G_t a b) :
+  restr_rel
+    (mapper ↑₁ E_t' \₁ mapper ↑₁ dtrmt ∩₁ mapper ↑₁ E_t)
+    (mapper ↑ rf_t'
+     ⨾ ⦗mapper ↑₁ E_t' \₁
+        mapper ↑₁ (fun x : actid => WCore.f_cmt f x)⦘)
+   ⊆ total_order_from_list l.
+Proof using.
+  rewrite <- set_collect_interE, <- !set_collect_diff,
+          <- collect_rel_eqv, <- collect_rel_seq,
+          collect_rel_restr.
+  all: eauto using rsrw_mapper_inj.
+  all: try now (eapply inj_dom_mori; eauto using rsrw_mapper_inj).
+  intros x' y' (x & y & HREL & XEQ & YEQ). subst.
+  destruct (classic (x = a)) as [XEQA|NXQA],
+           (classic (x = b)) as [XEQB|NXQB],
+           (classic (y = a)) as [YEQA|YXQA],
+           (classic (y = b)) as [YEQB|YXQB].
+  all: try subst x; try subst y.
+  all: try now (exfalso; eapply rsrw_a_neq_b; eauto).
+  all: rewrite ?ReordCommon.mapper_eq_a, ?ReordCommon.mapper_eq_b.
+  all: rewrite ?ReordCommon.mapper_neq; ins.
+  { exfalso. eapply rf_irr; eauto.
+    unfolder in HREL. apply HREL. }
+  { admit. (* Unsolveable *) }
+  { admit. }
+  all: admit.
+Admitted.
+
+Lemma simrel_reexec_iff_to_iff_d_iff
+    (IFFD : (dtrmt ∩₁ E_t) a <-> (dtrmt ∩₁ E_t) b)
     (IFF' : E_t' a <-> E_t' b)
     (SIM_ACTS : reord_simrel_rw_actids G_s G_t a b) :
   WCore.reexec
@@ -1231,12 +1267,22 @@ Proof using REEXEC.
     { admit. (* reexec wf start again *) }
     { constructor; ins.
       { apply ENUM'. }
-      { rewrite !ReordCommon.mapper_acts_iff; ins.
+      { rewrite <- set_collect_interE.
+        all: eauto using rsrw_mapper_inj.
+        rewrite !ReordCommon.mapper_acts_iff; ins.
         apply ENUM'. }
-      { rewrite !ReordCommon.mapper_acts_iff,
+      { rewrite <- set_collect_interE.
+        all: eauto using rsrw_mapper_inj.
+        rewrite !ReordCommon.mapper_acts_iff,
                 rsrw_G_s_iff_sb; ins.
         apply ENUM'. }
-      { rewrite !ReordCommon.mapper_acts_iff, CMTEQ; ins.
+      { rewrite CMTEQ. <- set_collect_interE,
+                <- !set_collect_diff,
+                <- collect_rel_eqv,
+                <- collect_rel_seq,
+                collect_rel_restr.
+        all: eauto using rsrw_mapper_inj.
+        rewrite !ReordCommon.mapper_acts_iff, CMTEQ; ins.
           admit. }
       admit. }
     admit. }
