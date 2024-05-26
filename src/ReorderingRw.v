@@ -1218,8 +1218,9 @@ Proof using REEXEC.
     ) as (ls & INCL & ENUM'); eauto.
     { apply partial_order_to_strict, GREEXEC. }
     { admit. }
-    { arewrite ((tid ↓ (thrdle \ ⦗⊤₁⦘))^? ≡ tid ↓ thrdle).
-      { admit. }
+    { arewrite ((tid ↓ (thrdle \ ⦗⊤₁⦘)^?) ≡ tid ↓ thrdle).
+      { apply map_rel_more; ins.
+        apply partial_order_to_strict_inv, GREEXEC. }
       transitivity (rf_t' ⨾ ⦗E_t' \₁ WCore.f_cmt f⦘).
       { basic_solver. }
       apply GREEXEC. }

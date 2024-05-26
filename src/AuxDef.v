@@ -540,3 +540,15 @@ Proof using.
   apply or_not_and. apply not_and_or in NEQ1, NEQ2.
   desf. left; intro NEQ3. subst. eauto.
 Qed.
+
+Lemma partial_order_to_strict_inv {A} (r : relation A)
+    (PART : partial_order r) :
+  (r \ ⦗⊤₁⦘)^? ≡ r.
+Proof using.
+  unfolder in *. desf. split.
+  { ins; desf; eauto 11. }
+  intros x y HREL.
+  destruct (classic (x = y)) as [EQ|NEQ]; subst; eauto.
+  right; split; eauto.
+  apply or_not_and; eauto.
+Qed.
