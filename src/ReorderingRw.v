@@ -767,11 +767,14 @@ Lemma simrel_exec_not_a_not_b e
     (E_NOT_B : e <> b)
     (STEP : WCore.exec_inst G_t G_t' sc traces e) :
   exists G_s' sc',
-    WCore.exec_inst G_s G_s' sc' traces' e.
+    << SIM : reord_simrel_rw G_s' G_t' a b >> /\
+    << STEP : WCore.exec_inst G_s G_s' sc' traces' e >>.
 Proof using IS_CONS SIMREL WF SWAPPED_TRACES.
   destruct (classic (E_t a)) as [INA|NINA];
   destruct (classic (E_t b)) as [INB|NINB].
   { exists (rsrw_G_s_iff G_s G_t' a b), (mapper ↑ sc).
+    split; red.
+    { admit. }
     replace G_s with (rsrw_G_s_iff G_s G_t a b) at 1.
     { apply simrel_exec_iff; ins.
       apply SIMREL. }
@@ -779,6 +782,8 @@ Proof using IS_CONS SIMREL WF SWAPPED_TRACES.
     apply exeeqv_eq, rsrw_struct_iff; ins.
     all: apply SIMREL. }
   { exists (rsrw_G_s_niff G_s G_t' a b), (mapper ↑ sc).
+    split; red.
+    { admit. }
     replace G_s with (rsrw_G_s_niff G_s G_t a b) at 1.
     { apply simrel_exec_niff; ins.
       apply SIMREL. }
@@ -787,13 +792,15 @@ Proof using IS_CONS SIMREL WF SWAPPED_TRACES.
     all: apply SIMREL. }
   { exfalso. now apply (rsrw_actids_t_ord (rsrw_core SIMREL)). }
   exists (rsrw_G_s_iff G_s G_t' a b), (mapper ↑ sc).
+  split; red.
+  { admit. }
   replace G_s with (rsrw_G_s_iff G_s G_t a b) at 1.
   { apply simrel_exec_iff; ins.
     apply SIMREL. }
   symmetry.
   apply exeeqv_eq, rsrw_struct_iff; ins.
   all: apply SIMREL.
-Qed.
+Admitted.
 
 Lemma simrel_exec_b_helper
     (INA : ~E_t a)
@@ -952,8 +959,6 @@ Admitted.
 Lemma simrel_exec_a_helper w
     (INA : E_t a)
     (NINB : ~E_t b)
-    (CONS : WCore.is_cons G_t sc)
-    (CONS' : WCore.is_cons G_s (mapper ↑ sc))
     (RF : rf_t' w b)
     (SIM_ACTS : reord_simrel_rw_actids G_s G_t a b)
     (STEP : WCore.exec_inst G_t G_t' sc traces b) :
@@ -1031,19 +1036,35 @@ Proof using.
   admit.
 Admitted.
 
+Lemma simrel_exec_a_a_in_E
+    (SIM : reord_simrel_rw G_s G_t a b) :
+  E_t a.
+Proof using.
+  admit.
+Admitted.
+
 Lemma simrel_exec_a w
-    (CONS' : WCore.is_cons G_s (mapper ↑ sc))
-    (RF : rf_t' w a)
+    (RF : rf_t' w b)
     (SIM : reord_simrel_rw G_s G_t a b)
     (STEP : WCore.exec_inst G_t G_t' sc traces b) :
   exists G_s' sc',
     << SIM' : reord_simrel_rw G_s' G_t' a b >> /\
     << STEP : WCore.reexec G_s G_s' sc' traces' >>.
 Proof using SWAPPED_TRACES IS_CONS.
-  (* TODO: check article *)
-  (* Case1 : Gt' *)
-  (* Case2: mapped Gt but with executed a *)
-  admit.
+  destruct (classic (E_t b)) as [INB | NINB].
+  { exfalso. apply (WCore.cae_e_notin (WCore.add_event STEP)).
+    ins. }
+  assert (INA : E_t a).
+  { now apply simrel_exec_a_a_in_E. }
+  exists (rsrw_G_s_iff G_s G_t' a b), (mapper ↑ sc).
+  split; red.
+  { admit. }
+  replace G_s with (rsrw_G_s_niff G_s G_t a b) at 1.
+  { eapply simrel_exec_a_helper; eauto.
+    apply SIM. }
+  symmetry. apply exeeqv_eq, rsrw_struct_niff.
+  all: ins.
+  all: apply SIM.
 Admitted.
 
 End SimRelExec.
