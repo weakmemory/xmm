@@ -243,7 +243,7 @@ Record enumd_diff (l : list actid) : Prop := {
   diff_elems : E' \₁ E ≡₁ fun x => In x l;
   diff_sb : restr_rel (E' \₁ E) sb' ⊆ total_order_from_list l;
   diff_rf : restr_rel (E' \₁ E) rf' ⨾ ⦗E' \₁ cmt⦘ ⊆ total_order_from_list l;
-  diff_rf_d : dom_rel (rf' ⨾ ⦗E' \₁ E⦘) ⊆₁ E';
+  diff_rf_d : (E' \₁ E) ∩₁ R ⊆₁ codom_rel rf';
 }.
 
 Notation "'X'" := ({|
@@ -749,15 +749,58 @@ Section SubToFullExec.
 
 Variable traces : thread_id -> trace label -> Prop.
 
+Lemma sub_to_full_exec_end_wf sc G G' cmt l
+    (WF : WCore.wf (WCore.Build_t sc G G' cmt))
+    (ENUM : SubToFullExecInternal.enumd_diff G G' cmt l) :
+  WCore.wf (WCore.Build_t sc G' G' cmt).
+Proof using.
+  assert (SUB : sub_execution G' G ∅₂ ∅₂).
+  { apply WF. }
+  assert (EQLAB : lab G' = lab G).
+  { symmetry. apply SUB. }
+  assert (WF_G' : Wf G').
+  { apply WF. }
+  split.
+  { constructor; ins.
+    all: try now apply WF.
+    basic_solver. }
+  constructor; ins.
+  all: try now apply WF.
+  { constructor; ins.
+    all: try now apply WF_G'.
+    { now apply wf_rmwE. }
+    { now apply wf_dataE. }
+    { now apply wf_addrE. }
+    { now apply wf_ctrlE. }
+    { now apply wf_rmw_depE. }
+    basic_solver. }
+  { basic_solver. }
+  { basic_solver. }
+  { intros x (INE' & IS_R).
+    destruct (classic (acts_set G x)) as [INE|NINE].
+    { apply set_subset_single_l.
+      transitivity (codom_rel (rf G) ∪₁ cmt).
+      { apply set_subset_eq, WF. split; ins.
+        now rewrite <- EQLAB. }
+      rewrite (sub_rf SUB). basic_solver. }
+    destruct (classic (cmt x)) as [CMT|NCMT].
+    { now right. }
+    left. apply (SubToFullExecInternal.diff_rf_d ENUM).
+    unfolder; splits; ins.
+    now rewrite <- EQLAB. }
+  rewrite EQLAB. apply WF.
+Qed.
+
 Lemma sub_to_full_exec sc G G' cmt l
     (WF : WCore.wf (WCore.Build_t sc G G' cmt))
-    (WF' : WCore.wf (WCore.Build_t sc G' G' cmt))
     (ENUM : SubToFullExecInternal.enumd_diff G G' cmt l)
     (COH : trace_coherent traces G') :
   (WCore.cfg_add_event_uninformative traces)＊
     (WCore.Build_t sc G G' cmt)
     (WCore.Build_t sc G' G' cmt).
 Proof using.
+  assert (WF' : WCore.wf (WCore.Build_t sc G' G' cmt)).
+  { eapply sub_to_full_exec_end_wf; eauto. }
   generalize G WF ENUM.
   clear      G WF ENUM.
   induction l as [ | h t IHl]; ins.
@@ -790,10 +833,10 @@ Proof using.
     apply total_order_from_list_cons in LT; desf.
     exfalso; eauto. }
   intros x IN.
-  tertium_non_datur (h = x) as [EQ|NEQ]; subst.
-  { apply ENUM; desf. }
-  eapply SubToFullExecInternal.diff_rf_d; eauto.
-  eapply dom_rel_mori; eauto; basic_solver.
+  destruct IN as ((INX & NINX) & IS_R).
+  apply not_or_and in NINX. desf.
+  apply (SubToFullExecInternal.diff_rf_d ENUM).
+  unfolder; splits; ins.
 Qed.
 
 Lemma sub_to_full_exec_sort sc G G' cmt l tord
