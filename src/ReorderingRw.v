@@ -1276,14 +1276,7 @@ Proof using REEXEC.
         rewrite !ReordCommon.mapper_acts_iff,
                 rsrw_G_s_iff_sb; ins.
         apply ENUM'. }
-      { rewrite CMTEQ. <- set_collect_interE,
-                <- !set_collect_diff,
-                <- collect_rel_eqv,
-                <- collect_rel_seq,
-                collect_rel_restr.
-        all: eauto using rsrw_mapper_inj.
-        rewrite !ReordCommon.mapper_acts_iff, CMTEQ; ins.
-          admit. }
+      { admit. }
       admit. }
     admit. }
   admit.
