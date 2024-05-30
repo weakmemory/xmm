@@ -326,7 +326,12 @@ Lemma sim_rel_init
   reord_simrel_rw (WCore.init_exec G_s) (WCore.init_exec G_t) a b.
 Proof using.
   assert (WF : Wf (WCore.init_exec G_s)).
-  { admit. }
+  { constructor. all : try basic_solver.
+    { ins. unfold is_total. ins. admit. } 
+    { ins. destruct H. destruct H. assert (EQ : x = InitEvent l).
+      { destruct H. admit. } rewrite <- EQ. apply H. }
+    { ins. admit. }
+    ins. rewrite is_init_tid; destruct EE. admit. eauto. }
   constructor; constructor; ins.
   all: try now (rewrite collect_rel_empty; ins).
   all: try now (exfalso; apply ACTIDS.(rsrw_ninit_a G_s G_t a b), INA).
@@ -442,7 +447,7 @@ Proof using.
   |}); ins.
   { apply SIM_ACTS. }
   { apply SIM_ACTS. }
-  { admit. }
+  { admit. } 
   { admit. }
   { now apply WF_G_t'. }
   { admit. }
@@ -474,8 +479,7 @@ Proof using.
                      rsrw_a_neq_b.
     all: admit. }
   { admit. }
-  { destruct srf_exists with G_s a.
-    all: admit. }
+  { admit. }
   { now rewrite (WCore.wf_cc_ctrl_empty WF'),
             collect_rel_empty. }
   { admit. }
