@@ -807,7 +807,35 @@ Proof using IS_CONS SIMREL WF SWAPPED_TRACES.
   destruct (classic (E_t b)) as [INB|NINB].
   { exists (rsrw_G_s_iff G_s G_t' a b), (mapper ↑ sc).
     split; red.
-    { admit. }
+    { assert (INA' : E_t' a).
+      { apply (WCore.cae_e_new (WCore.add_event STEP)).
+        ins. now left. }
+      assert (INB' : E_t' b).
+      { apply (WCore.cae_e_new (WCore.add_event STEP)).
+        ins. basic_solver. }
+      assert (FIN_LAB : lab_t' = lab_t).
+        { symmetry. eapply sub_lab.
+          eapply WCore.wf_g_sub_gc
+          with (X := {|
+            WCore.G := G_t;
+            WCore.GC := G_t';
+            WCore.sc := sc;
+            WCore.cmt := ∅;
+          |}).
+          apply STEP. }
+      constructor. 
+      { constructor; destruct SIMREL; destruct rsrw_actids0; eauto; ins.   
+        { admit. }
+        { admit. }
+        { rewrite FIN_LAB; eauto. }
+        { admit. }
+        { ins. rewrite FIN_LAB. destruct rsrw_struct0. admit. }
+        { admit. }
+        admit. }
+        constructor; destruct SIMREL; destruct rsrw_actids0; eauto; ins.
+        { admit. }
+        { admit. }
+        admit. } 
     replace G_s with (rsrw_G_s_iff G_s G_t a b) at 1.
     { apply simrel_exec_iff; ins.
       apply SIMREL. }
