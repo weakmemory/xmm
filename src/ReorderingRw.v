@@ -1057,6 +1057,16 @@ Proof using.
   assert (INB' : E_t' b).
   { apply (WCore.cae_e_new (WCore.add_event STEP)).
     ins. now right. }
+    assert (FIN_LAB : lab_t' = lab_t).
+    { symmetry. eapply sub_lab.
+      eapply WCore.wf_g_sub_gc
+      with (X := {|
+        WCore.G := G_t;
+        WCore.GC := G_t';
+        WCore.sc := sc;
+        WCore.cmt := ∅;
+      |}).
+      apply STEP. }
   assert (CMTEQ : WCore.f_cmt f ≡₁ cmt).
   { subst f. unfold WCore.f_cmt, is_some, compose.
     unfolder. split; ins; desf. }
@@ -1067,11 +1077,15 @@ Proof using.
   exists dtrmt.
   red. exists f, (fun x y => y = tid a).
   subst f cmt. constructor; ins.
-  { admit. (* TODO: e <> a ==> all good *) }
+  { rewrite FIN_LAB; eauto. }
   { rewrite CMTEQ, set_minus_union_l.
     subst dtrmt. basic_solver 11. }
   { admit. (* TODO *) }
   { constructor; ins.
+    { rewrite CMTEQ. unfold inj_dom. ins. desf. }
+    { rewrite CMTEQ. unfold set_union. unfold set_minus. admit. }
+    { admit. }
+    { rewrite FIN_LAB. desf. }
     all: admit. }
   { admit. (* start wf *) }
   { set (G_t_fin := WCore.wf_gc_fin_exec WF'); ins.
