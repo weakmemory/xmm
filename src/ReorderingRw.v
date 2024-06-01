@@ -540,6 +540,21 @@ Proof using.
   admit.
 Admitted.
 
+Lemma target_labels e
+    (STEP : WCore.exec_inst G_t G_t' sc traces e) : 
+    lab_t' = lab_t.
+Proof using.
+  symmetry. eapply sub_lab.
+  eapply WCore.wf_g_sub_gc
+  with (X := {|
+    WCore.G := G_t;
+    WCore.GC := G_t';
+    WCore.sc := sc;
+    WCore.cmt := ∅;
+  |}).
+  apply STEP. 
+Qed.
+
 Lemma simrel_exec_iff e
     (E_NOT_A : e <> a)
     (E_NOT_B : e <> b)
@@ -554,16 +569,6 @@ Lemma simrel_exec_iff e
     e.
 Proof using IS_CONS.
   (* Useful props *)
-  assert (FIN_LAB : lab_t' = lab_t).
-  { symmetry. eapply sub_lab.
-    eapply WCore.wf_g_sub_gc
-    with (X := {|
-      WCore.G := G_t;
-      WCore.GC := G_t';
-      WCore.sc := sc;
-      WCore.cmt := ∅;
-    |}).
-    apply STEP. }
   assert (SAME' : E_t' a <-> E_t' b).
   { rewrite <- !set_subset_single_l with (s := E_t'),
             (WCore.cae_e_new (WCore.add_event STEP)),
@@ -592,7 +597,7 @@ Proof using IS_CONS.
     all: rewrite ?updI, ?ReordCommon.mapper_self_inv.
     all: try now apply WF_G_t'.
     all: eauto using rsrw_a_neq_b.
-    { rewrite FIN_LAB. eauto using rsrw_lab_a_eq_lab_b. }
+    { rewrite target_labels with (e := e). eauto using rsrw_lab_a_eq_lab_b. }
     all: intro F; subst.
     all: apply (wf_rfE WF_G_t') in HREL.
     all: unfolder in HREL; desf; eauto.
@@ -600,7 +605,7 @@ Proof using IS_CONS.
     all: intro F; apply (WCore.cae_e_new (WCore.add_event STEP)) in F.
     all: ins; unfolder in F; desf. }
   assert (U2V : same_label_u2v ((lab_t' ∘ mapper) a) (lab_s a)).
-  { rewrite FIN_LAB. unfold compose.
+  { rewrite target_labels with (e := e). unfold compose.
     rewrite ReordCommon.mapper_eq_a.
     apply same_label_u2v_comm, SIM_ACTS. }
   (* actual proof *)
@@ -613,7 +618,7 @@ Proof using IS_CONS.
       WCore.cmt := mapper ↑₁ ∅;
     |}); ins.
     { apply SIM_ACTS. }
-    rewrite <- FIN_LAB.
+    rewrite <- target_labels with (e := e).
     apply ReordCommon.mapped_G_t_cfg with (X := {|
       WCore.sc := sc;
       WCore.G := G_t;
@@ -646,7 +651,7 @@ Proof using IS_CONS.
           WCore.GC := exec_mapped G_t' _ _;
           WCore.cmt := mapper ↑₁ ∅;
         |}); ins.
-      rewrite <- FIN_LAB.
+        rewrite <- target_labels with (e := e).
       apply cfg_mapped_add_step_props with
         (X := {|
             WCore.sc := sc;
@@ -708,16 +713,6 @@ Proof using IS_CONS WF SIMREL.
   { intro F'.
     apply (WCore.cae_e_new (WCore.add_event STEP)) in F'.
     ins.  destruct F' as [HIN|HEQ]; ins. }
-  assert (FIN_LAB : lab_t' = lab_t).
-  { symmetry. eapply sub_lab.
-    eapply WCore.wf_g_sub_gc
-    with (X := {|
-      WCore.G := G_t;
-      WCore.GC := G_t';
-      WCore.sc := sc;
-      WCore.cmt := ∅;
-    |}).
-    apply STEP. }
   assert (WF' : WCore.wf {|
     WCore.sc := sc;
     WCore.G := G_t;
@@ -771,7 +766,7 @@ Proof using IS_CONS WF SIMREL.
           WCore.cmt := mapper ↑₁ ∅
         |}).
       { admit. }
-      rewrite <- FIN_LAB.
+      rewrite <- target_labels with (e := e).
       apply cfg_mapped_add_step_props with
         (X := {|
             WCore.sc := sc;
@@ -807,7 +802,25 @@ Proof using IS_CONS SIMREL WF SWAPPED_TRACES.
   destruct (classic (E_t b)) as [INB|NINB].
   { exists (rsrw_G_s_iff G_s G_t' a b), (mapper ↑ sc).
     split; red.
-    { admit. }
+    { assert (INA' : E_t' a).
+      { apply (WCore.cae_e_new (WCore.add_event STEP)).
+        ins. now left. }
+      assert (INB' : E_t' b).
+      { apply (WCore.cae_e_new (WCore.add_event STEP)).
+        ins. basic_solver. }
+      constructor. 
+      { constructor; destruct SIMREL; destruct rsrw_actids0; eauto; ins.   
+        { admit. }
+        { admit. }
+        { rewrite target_labels with (e := e); eauto. }
+        { admit. }
+        { ins. rewrite target_labels with (e := e). destruct rsrw_struct0. admit. }
+        { admit. }
+        admit. }
+        constructor; destruct SIMREL; destruct rsrw_actids0; eauto; ins.
+        { admit. }
+        { admit. }
+        admit. } 
     replace G_s with (rsrw_G_s_iff G_s G_t a b) at 1.
     { apply simrel_exec_iff; ins.
       apply SIMREL. }
@@ -858,16 +871,6 @@ Proof using IS_CONS WF SIMREL.
     apply (WCore.cae_e_new (WCore.add_event STEP)) in F'.
     ins.  destruct F' as [HIN|HEQ]; ins.
     eapply rsrw_a_neq_b; eauto. }
-  assert (FIN_LAB : lab_t' = lab_t).
-  { symmetry. eapply sub_lab.
-    eapply WCore.wf_g_sub_gc
-    with (X := {|
-      WCore.G := G_t;
-      WCore.GC := G_t';
-      WCore.sc := sc;
-      WCore.cmt := ∅;
-    |}).
-    apply STEP. }
   assert (WF' : WCore.wf {|
     WCore.sc := sc;
     WCore.G := G_t;
@@ -935,7 +938,7 @@ Proof using IS_CONS WF SIMREL.
         |}); ins.
       { admit. }
       rewrite <- ReordCommon.mapper_eq_a with (a := a) (b := b) at 13.
-      rewrite <- FIN_LAB.
+      rewrite <- target_labels with (e := a).
       apply cfg_mapped_add_step_props with
         (X := {|
             WCore.sc := sc;
@@ -1039,11 +1042,15 @@ Proof using.
   exists dtrmt.
   red. exists f, (fun x y => y = tid a).
   subst f cmt. constructor; ins.
-  { admit. (* TODO: e <> a ==> all good *) }
+  { rewrite target_labels with (e := e); eauto. }
   { rewrite CMTEQ, set_minus_union_l.
     subst dtrmt. basic_solver 11. }
   { admit. (* TODO *) }
   { constructor; ins.
+    { rewrite CMTEQ. unfold inj_dom. ins. desf. }
+    { rewrite CMTEQ. unfold set_union. unfold set_minus. admit. }
+    { admit. }
+    { rewrite target_labels with (e := e). desf. }
     all: admit. }
   { admit. (* start wf *) }
   { set (G_t_fin := WCore.wf_gc_fin_exec WF'); ins.
