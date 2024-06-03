@@ -627,8 +627,10 @@ Proof using IS_CONS.
     |}); ins.
     all: try now apply SIM_ACTS.
     all: eauto using rsrw_a_neq_b, rsrw_tid_a_tid_b.
-    { admit. (* TODO: rsrw_a_b_nrmw_dep *) }
-    { admit. (* TODO: nsame_loc_nrmw *) }
+    { apply rsrw_a_b_nrmw_dep; eauto. unfold is_w. destruct SIM_ACTS. 
+        rewrite target_labels with (e := e). eauto. apply STEP. }
+    { apply nsame_loc_nrmw; eauto. rewrite target_labels with (e := e).
+      2: apply STEP. destruct SIMREL. destruct rsrw_actids0. eauto. }
     { admit. (* TODO: supplied by simrel *) }
     admit. (* NOTE: unproveable *) }
   { assert ( STEP' : WCore.exec_inst G_t G_t' sc traces e ); eauto.
@@ -686,8 +688,10 @@ Proof using IS_CONS.
     |}); ins.
     all: try now apply SIM_ACTS.
     all: eauto using rsrw_a_neq_b, rsrw_tid_a_tid_b.
-    { admit. (* TODO: see above *) }
-    { admit. (* TODO: see above *) }
+    { apply rsrw_a_b_nrmw_dep; eauto. unfold is_w. destruct SIM_ACTS. 
+        rewrite target_labels with (e := e). eauto. apply STEP'. }
+    { apply nsame_loc_nrmw; eauto. rewrite target_labels with (e := e).
+      2: apply STEP'. destruct SIMREL. destruct rsrw_actids0. eauto. }
     { admit. (* TODO: see above *) }
     admit. (* TODO: see abouve *) }
   admit. (* TODO: is_cons *)
