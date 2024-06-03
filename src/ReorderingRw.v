@@ -811,17 +811,20 @@ Proof using IS_CONS SIMREL WF SWAPPED_TRACES.
       { apply (WCore.cae_e_new (WCore.add_event STEP)).
         ins. basic_solver. }
       constructor. 
-      { constructor; destruct SIMREL; destruct rsrw_actids0; eauto; ins.   
-        { admit. }
-        { admit. }
+      { constructor; destruct SIMREL; destruct rsrw_actids0; eauto; ins. 
+        { unfold is_w. rewrite target_labels with (e := e). eauto. apply STEP. }
+        { unfold is_w. rewrite target_labels with (e := e). eauto. apply STEP. }
         { rewrite target_labels with (e := e); eauto. }
         { admit. }
         { ins. rewrite target_labels with (e := e). 2: apply STEP. 
-          destruct rsrw_struct0. admit. }
-        { admit. }
+          destruct rsrw_struct0. unfold upd. basic_solver. }
+        { unfold upd. unfold val. rewrite target_labels with (e := e).
+          2: apply STEP. apply rsrw_b_lab0 in INB. unfold val in INB. basic_solver. }
         admit. }
         constructor; destruct SIMREL; destruct rsrw_actids0; eauto; ins.
-        { admit. }
+        { rewrite target_labels with (e := e). 2: apply STEP.
+          unfold upd. unfold val. apply rsrw_b_lab0 in INB.
+          unfold val in INB. basic_solver. } 
         { admit. }
         admit. } 
     replace G_s with (rsrw_G_s_iff G_s G_t a b) at 1.
