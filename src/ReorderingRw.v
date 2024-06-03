@@ -597,7 +597,7 @@ Proof using IS_CONS.
     all: rewrite ?updI, ?ReordCommon.mapper_self_inv.
     all: try now apply WF_G_t'.
     all: eauto using rsrw_a_neq_b.
-    { rewrite target_labels with (e := e). eauto using rsrw_lab_a_eq_lab_b. }
+    { rewrite target_labels with (e := e). eauto using rsrw_lab_a_eq_lab_b. apply STEP. }
     all: intro F; subst.
     all: apply (wf_rfE WF_G_t') in HREL.
     all: unfolder in HREL; desf; eauto.
@@ -607,7 +607,7 @@ Proof using IS_CONS.
   assert (U2V : same_label_u2v ((lab_t' ∘ mapper) a) (lab_s a)).
   { rewrite target_labels with (e := e). unfold compose.
     rewrite ReordCommon.mapper_eq_a.
-    apply same_label_u2v_comm, SIM_ACTS. }
+    apply same_label_u2v_comm, SIM_ACTS. apply STEP. }
   (* actual proof *)
   constructor; ins.
   { replace ∅ with (mapper ↑₁ ∅) by now rewrite set_collect_empty.
@@ -631,7 +631,8 @@ Proof using IS_CONS.
     { admit. (* TODO: nsame_loc_nrmw *) }
     { admit. (* TODO: supplied by simrel *) }
     admit. (* NOTE: unproveable *) }
-  { destruct STEP. red in add_event. desf.
+  { assert ( STEP' : WCore.exec_inst G_t G_t' sc traces e ); eauto.
+    destruct STEP. red in add_event. desf.
     exists (option_map mapper r), (option_map mapper w),
            (mapper ↑₁ W1), (mapper ↑₁ W2).
     splits; ins.
@@ -727,6 +728,7 @@ Proof using IS_CONS WF SIMREL.
   { now apply simrel_niff_start_wf. }
   { replace ∅ with (mapper ↑₁ ∅) by now rewrite set_collect_empty.
     replace e with (mapper e) by now rewrite ReordCommon.mapper_neq.
+    assert ( STEP' : WCore.exec_inst G_t G_t' sc traces e ); eauto.
     destruct STEP. red in add_event. desf. ins.
     exists (option_map mapper r), (option_map mapper w),
            (mapper ↑₁ W1), (mapper ↑₁ W2).
@@ -814,7 +816,8 @@ Proof using IS_CONS SIMREL WF SWAPPED_TRACES.
         { admit. }
         { rewrite target_labels with (e := e); eauto. }
         { admit. }
-        { ins. rewrite target_labels with (e := e). destruct rsrw_struct0. admit. }
+        { ins. rewrite target_labels with (e := e). 2: apply STEP. 
+          destruct rsrw_struct0. admit. }
         { admit. }
         admit. }
         constructor; destruct SIMREL; destruct rsrw_actids0; eauto; ins.
@@ -902,7 +905,8 @@ Proof using IS_CONS WF SIMREL.
   { apply simrel_niff_start_wf; ins.
     apply (WCore.cae_e_new (WCore.add_event STEP)).
     ins. now right. }
-  { destruct STEP. red in add_event. desf.
+  { assert ( STEP' : WCore.exec_inst G_t G_t' sc traces a ); eauto.
+    destruct STEP. red in add_event. desf.
     exists (option_map mapper r), (option_map mapper w),
            (mapper ↑₁ W1), (mapper ↑₁ W2).
     splits.
@@ -1042,7 +1046,7 @@ Proof using.
   exists dtrmt.
   red. exists f, (fun x y => y = tid a).
   subst f cmt. constructor; ins.
-  { rewrite target_labels with (e := e); eauto. }
+  { rewrite target_labels with (e := b); eauto. }
   { rewrite CMTEQ, set_minus_union_l.
     subst dtrmt. basic_solver 11. }
   { admit. (* TODO *) }
@@ -1050,7 +1054,7 @@ Proof using.
     { rewrite CMTEQ. unfold inj_dom. ins. desf. }
     { rewrite CMTEQ. unfold set_union. unfold set_minus. admit. }
     { admit. }
-    { rewrite target_labels with (e := e). desf. }
+    { rewrite target_labels with (e := b). desf. apply STEP. }
     all: admit. }
   { admit. (* start wf *) }
   { set (G_t_fin := WCore.wf_gc_fin_exec WF'); ins.
