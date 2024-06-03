@@ -330,8 +330,8 @@ Proof using.
     { ins. unfold is_total. ins. admit. } 
     { ins. destruct H. destruct H. assert (EQ : x = InitEvent l).
       { destruct H. admit. } rewrite <- EQ. apply H. }
-    { ins. admit. }
-    ins. rewrite is_init_tid; destruct EE. admit. eauto. }
+    { ins. unfold lab. admit. }
+    ins. rewrite is_init_tid; destruct EE. destruct STRUCT. admit. eauto. }
   constructor; constructor; ins.
   all: try now (rewrite collect_rel_empty; ins).
   all: try now (exfalso; apply ACTIDS.(rsrw_ninit_a G_s G_t a b), INA).
@@ -437,7 +437,38 @@ Proof using.
   assert (FIN_LAB : lab_t' = lab_t).
   { symmetry. apply WF'. }
   split.
-  { admit. }
+  { replace ∅ with (mapper ↑₁ ∅) by  now rewrite set_collect_empty.
+    apply cfg_add_event_nctrl_wf_struct with (X := {|
+      WCore.sc := mapper ↑ sc;
+      WCore.G := exec_upd_lab _ _ _;
+        WCore.GC := exec_upd_lab _ _ _;
+        WCore.cmt := mapper ↑₁ ∅
+      |}); ins. 
+    { admit. }
+    { apply SIM_ACTS. }
+    { apply SIM_ACTS. }
+    { admit. }
+    { admit. }
+    { admit. }
+    rewrite <- FIN_LAB.
+    apply cfg_mapped_wf_struct with (X := {|
+      WCore.sc := sc;
+      WCore.G := G_t;
+      WCore.GC := G_t';
+      WCore.cmt := ∅;
+    |}); ins.
+    all: try now apply WF'.
+    all: eauto using rsrw_mapper_inj, rsrw_mapper_surj.
+    { apply ReordCommon.mapped_G_t_cont. all: try apply SIM_ACTS.
+      { admit. }
+      { intros NEG. rewrite NEG in INA. eauto. }
+      admit. }
+    { rewrite FIN_LAB. 
+      apply ReordCommon.mapped_G_t_cont. all: try apply SIM_ACTS.
+      { admit. }
+      { intros NEG. rewrite NEG in INA. eauto. }
+      admit. }
+    all: admit. }
   replace ∅ with (mapper ↑₁ ∅) by  now rewrite set_collect_empty.
   apply cfg_add_event_nctrl_wf_props with (X := {|
     WCore.sc := mapper ↑ sc;
@@ -447,7 +478,9 @@ Proof using.
   |}); ins.
   { apply SIM_ACTS. }
   { apply SIM_ACTS. }
-  { admit. } 
+  { unfold set_collect. intros NEG. desf. destruct classic with (y = b) as [IN|NIN].
+    { subst. eauto. }
+    admit. } 
   { admit. }
   { now apply WF_G_t'. }
   { admit. }
@@ -947,7 +980,9 @@ Proof using IS_CONS WF SIMREL.
           WCore.GC := exec_mapped G_t' _ _;
           WCore.cmt := mapper ↑₁ ∅
         |}); ins.
-      { admit. }
+      { destruct SIM_ACTS. unfold compose. rewrite ReordCommon.mapper_eq_a.
+        rewrite target_labels with (e := a). 2: apply STEP'.
+        apply same_label_u2v_comm; eauto. }
       rewrite <- ReordCommon.mapper_eq_a with (a := a) (b := b) at 13.
       rewrite <- target_labels with (e := a).
       apply cfg_mapped_add_step_props with
@@ -1262,8 +1297,7 @@ Proof using REEXEC.
     apply GREEXEC. }
   { constructor; ins.
     all: try now apply GREEXEC.
-    rewrite CMTEQ.
-    admit. (* TODO: should be easy *) }
+    rewrite CMTEQ. admit. (* TODO: should be easy *) }
   { admit. (* TODO: should be easy *) }
   { admit. (* TODO: hard *) }
   { destruct (enumd_diff_seq
