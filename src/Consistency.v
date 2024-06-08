@@ -53,6 +53,7 @@ Notation "'vf'" := (vf G).
 Notation "'srf'" := (srf G).
 Notation "'eco'" := (eco G).
 Notation "'psc'" := (imm.psc G).
+Notation "'fr'" := (fr G).
 
 (*???????????*)
 Definition furr := ⦗W⦘ ⨾ rf^? ⨾ hb^? ⨾ sc^? ⨾ hb^?.
@@ -166,6 +167,33 @@ Proof using.
     { rewrite hb_helper. basic_solver. }
     rotate 1; apply srf_hb_irr; auto.
 Qed.
+
+Lemma rhb_co_srf_irr
+        (WF  : Wf G)
+        (CONS : WCore.is_cons G sc) 
+        (CSC  : coh_sc sc) :
+    irreflexive (rhb ⨾ co ⨾ srf^?).
+Proof using.
+    admit. 
+Admitted.
+
+Lemma rhb_fr_srf_irr
+        (WF  : Wf G)
+        (CONS : WCore.is_cons G sc) 
+        (CSC  : coh_sc sc) :
+    irreflexive (rhb ⨾ fr ⨾ srf^?).
+Proof using.
+    admit.
+Admitted.
+
+Lemma rhb_srf_co_rf_irr
+        (WF  : Wf G)
+        (CONS : WCore.is_cons G sc) 
+        (CSC  : coh_sc sc) :
+    irreflexive (rhb ⨾ srf⁻¹ ⨾ co ⨾ rf).
+Proof using.
+    admit.
+Admitted.
 
 End HB.
 
