@@ -53,7 +53,7 @@ Definition rpo :=
   ⦗R ∪₁ W⦘ ⨾ sb ⨾ ⦗is_rel⦘ ∪
   ⦗F ∩₁ is_rel⦘ ⨾ sb ⨾ ⦗W ∩₁ is_rlx⦘.
 Definition rhb := (rpo ∪ sw)⁺.
-Definition vf := ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf^? ⨾ hb^? ⨾ psc^? ⨾ hb^?.
+Definition vf := ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf^? ⨾ hb^?.
 Definition srf := (vf ∩ same_loc) ⨾ ⦗R⦘ \ (co ⨾ vf).
 
 Lemma thrdle_sb_closed thrdle
@@ -150,7 +150,6 @@ Proof using.
   rewrite WF.(wf_rfD), WF.(wf_rfE).
   unfold vf; unfolder; ins; desf.
   splits; eauto.
-  do 3 (exists y; splits; eauto).
 Qed.
 
 Lemma wf_srff (WF : Wf G) : functional srf⁻¹.

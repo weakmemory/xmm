@@ -55,27 +55,18 @@ Notation "'eco'" := (eco G).
 Notation "'psc'" := (imm.psc G).
 Notation "'fr'" := (fr G).
 
-(*???????????*)
-Definition furr := ⦗W⦘ ⨾ rf^? ⨾ hb^? ⨾ sc^? ⨾ hb^?.
-Definition coh_sc sc := irreflexive (sc ⨾ hb ⨾ (eco ⨾ hb)^?).
-
-Lemma furr_hb_irr
+Lemma vf_hb_irr
         (WF  : Wf G)
-        (CONS : WCore.is_cons G sc) 
-        (CSC  : coh_sc sc) :
-    irreflexive (furr ⨾ hb).
+        (CONS : WCore.is_cons G sc) :
+    irreflexive (vf ⨾ hb).
 Proof using.
-    unfold furr. arewrite_id ⦗W⦘. rels. arewrite (rf^? ⊆ eco^?).
-    generalize (eco_trans WF); ins; relsf. rewrite (crE sc).
+    unfold vf. arewrite_id ⦗W⦘; arewrite_id ⦗E⦘.
+    rels. arewrite (rf^? ⊆ eco^?).
+    generalize (eco_trans WF); ins; relsf.
     generalize (@hb_trans G); ins; relsf.
     relsf; repeat (splits; try apply irreflexive_union).
-    { rotate 1. destruct CONS. apply cons_coherence. }
-    rewrite crE at 1; relsf; repeat (splits; try apply irreflexive_union).
-    { rotate 1; relsf; destruct CONS. admit. }
-    rewrite crE; relsf; apply irreflexive_union; splits.
-    { rewrite (dom_r (wf_ecoD WF)). admit. }
-    revert CSC; unfold coh_sc; basic_solver 21.
-Admitted. 
+    by rotate 1; apply CONS.
+Qed.
 
 Lemma srf_sub_vf 
         (WF  : Wf G)
@@ -85,66 +76,12 @@ Proof using.
     unfold srf. basic_solver. 
 Qed.
 
-Lemma furr_hb_sc_hb 
-        (WF  : Wf G)
-        (CONS : WCore.is_cons G sc) 
-        (CSC  : coh_sc sc) :
-    furr ⨾ hb ⨾ sc^? ⨾ hb^? ⊆ furr.
-Proof using.
-    admit.
-Admitted.
-
-Lemma furr_hb_sc_hb_irr 
-        (WF  : Wf G)
-        (CONS : WCore.is_cons G sc) 
-        (CSC  : coh_sc sc) :
-  irreflexive (furr ⨾ hb ⨾ (sc ⨾ hb)^?).
-Proof using.
-    case_refl _. apply furr_hb_irr; eauto.
-    arewrite (furr ⨾ hb ⨾ sc ⊆ furr).
-    generalize @furr_hb_sc_hb; basic_solver 21.
-    apply furr_hb_irr; eauto.
-Qed.
-
-Lemma vf_in_furr
-        (WF  : Wf G)
-        (CONS : WCore.is_cons G sc) 
-        (CSC  : coh_sc sc) :
-    vf ⊆ furr.
-Proof using.
-  destruct CONS. cdes cons_coherence.
-  unfold vf; unfold furr; eauto.
-  rewrite (dom_l WF.(wf_rfD)) at 1.
-  (*???*) admit.
-Admitted.
-
-Lemma srf_in_furr 
-        (WF  : Wf G)
-        (CONS : WCore.is_cons G sc) 
-        (CSC  : coh_sc sc) :
-    srf ⊆ furr.
-Proof using. 
-    rewrite srf_sub_vf; eauto. 
-    apply vf_in_furr; eauto. 
-Qed.
-
-Lemma srf_hb_sc_hb_irr
-        (WF  : Wf G)
-        (CONS : WCore.is_cons G sc) 
-        (CSC  : coh_sc sc) :
-    irreflexive (srf ⨾ hb ⨾ (sc ⨾ hb)^?).
-Proof using.
-    rewrite srf_in_furr; try apply furr_hb_sc_hb_irr; eauto.
-Admitted.
-
 Lemma srf_hb_irr
         (WF  : Wf G)
-        (CONS : WCore.is_cons G sc) 
-        (CSC  : coh_sc sc) :
+        (CONS : WCore.is_cons G sc) :
     irreflexive (srf ⨾ hb).
 Proof using.
-    generalize srf_hb_sc_hb_irr.
-    basic_solver 10.
+    rewrite srf_sub_vf; try apply vf_hb_irr; eauto.
 Qed.
 
 Lemma hb_helper : hb ≡ co ∪ rhb.
@@ -159,8 +96,7 @@ Admitted.
 
 Lemma rhb_srf_irr
         (WF  : Wf G)
-        (CONS : WCore.is_cons G sc) 
-        (CSC  : coh_sc sc) :
+        (CONS : WCore.is_cons G sc) :
     irreflexive (rhb ⨾ srf).
 Proof using.
     apply irreflexive_inclusion with (r' := hb ⨾ srf).
@@ -170,8 +106,7 @@ Qed.
 
 Lemma rhb_co_srf_irr
         (WF  : Wf G)
-        (CONS : WCore.is_cons G sc) 
-        (CSC  : coh_sc sc) :
+        (CONS : WCore.is_cons G sc) :
     irreflexive (rhb ⨾ co ⨾ srf^?).
 Proof using.
     admit. 
@@ -179,8 +114,7 @@ Admitted.
 
 Lemma rhb_fr_srf_irr
         (WF  : Wf G)
-        (CONS : WCore.is_cons G sc) 
-        (CSC  : coh_sc sc) :
+        (CONS : WCore.is_cons G sc) :
     irreflexive (rhb ⨾ fr ⨾ srf^?).
 Proof using.
     admit.
@@ -188,8 +122,7 @@ Admitted.
 
 Lemma rhb_srf_co_rf_irr
         (WF  : Wf G)
-        (CONS : WCore.is_cons G sc) 
-        (CSC  : coh_sc sc) :
+        (CONS : WCore.is_cons G sc) :
     irreflexive (rhb ⨾ srf⁻¹ ⨾ co ⨾ rf).
 Proof using.
     admit.
@@ -252,11 +185,11 @@ Lemma read_extent (m : actid -> actid)
     WCore.is_cons G_t sc_t ->  WCore.is_cons G_s sc_s.
 Proof using.
     admit.
-Admitted.
+Admitted. 
 
 
 
 End Draft.
 
-End Consistency.
+End Consistency. 
 
