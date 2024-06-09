@@ -54,6 +54,7 @@ Notation "'srf'" := (srf G).
 Notation "'eco'" := (eco G).
 Notation "'psc'" := (imm.psc G).
 Notation "'fr'" := (fr G).
+Notation "'sw'" := (sw G).
 
 Lemma vf_hb_irr
         (WF  : Wf G)
@@ -84,15 +85,46 @@ Proof using.
     rewrite srf_sub_vf; try apply vf_hb_irr; eauto.
 Qed.
 
-Lemma hb_helper : hb ≡ co ∪ rhb.
+Lemma rhb_in_hb
+        (WF  : Wf G)
+        (CONS : WCore.is_cons G sc) :
+    rhb ⊆ hb.
 Proof using.
-    admit.
-Admitted.
+    unfold rhb; unfold hb. rewrite rpo_in_sb; basic_solver.
+Qed. 
 
-Lemma hb_locs : hb ∩ same_loc ≡ rhb ∩ same_loc.
+Lemma hb_helper
+        (WF  : Wf G)
+        (CONS : WCore.is_cons G sc) :
+    hb ≡ co ∪ rhb.
 Proof using.
+    split.
+    2: { rewrite rhb_in_hb; eauto. 
+         rewrite inclusion_union_l with 
+            (r := co) (r' := hb) (r'' := hb); try basic_solver.
+         admit. }
     admit. 
 Admitted.
+
+Lemma hb_locs
+        (WF  : Wf G)
+        (CONS : WCore.is_cons G sc) :
+    hb ∩ same_loc ≡ rhb ∩ same_loc.
+Proof using.
+    rewrite hb_helper; eauto; split.
+    2: { basic_solver. }
+    rewrite inter_union_l. rewrite inclusion_union_l with (r := co ∩ same_loc)
+        (r' := rhb ∩ same_loc) (r'' := rhb ∩ same_loc); try basic_solver.
+    admit. 
+Admitted.
+
+Lemma co_in_hb
+        (WF  : Wf G)
+        (CONS : WCore.is_cons G sc) :
+    co ⊆ hb.
+Proof using.
+    rewrite hb_helper; eauto. basic_solver.
+Qed.
 
 Lemma rhb_srf_irr
         (WF  : Wf G)
@@ -100,8 +132,27 @@ Lemma rhb_srf_irr
     irreflexive (rhb ⨾ srf).
 Proof using.
     apply irreflexive_inclusion with (r' := hb ⨾ srf).
-    { rewrite hb_helper. basic_solver. }
+    { rewrite hb_helper; basic_solver. }
     rotate 1; apply srf_hb_irr; auto.
+Qed.
+
+Lemma vf_hb
+        (WF  : Wf G)
+        (CONS : WCore.is_cons G sc) :
+    vf ⨾ hb ⨾ hb^? ⊆ vf.
+Proof using.
+    unfold vf.
+    generalize (@hb_trans G); basic_solver 21.
+Qed.
+
+Lemma vf_hb_hb_irr 
+        (WF  : Wf G)
+        (CONS : WCore.is_cons G sc) :
+    irreflexive (vf ⨾ hb ⨾ hb).
+Proof using.
+    arewrite (vf ⨾ hb ⊆ vf).
+    generalize @vf_hb; basic_solver 21.
+    apply vf_hb_irr; eauto.
 Qed.
 
 Lemma rhb_co_srf_irr
@@ -109,7 +160,11 @@ Lemma rhb_co_srf_irr
         (CONS : WCore.is_cons G sc) :
     irreflexive (rhb ⨾ co ⨾ srf^?).
 Proof using.
-    admit. 
+    rewrite rhb_in_hb; eauto. rewrite srf_sub_vf; eauto.
+    rewrite co_in_hb; eauto. case_refl _. 
+    2: { rotate 1. apply vf_hb_hb_irr; eauto. }
+    generalize (@hb_trans G); ins; relsf.
+    admit.
 Admitted.
 
 Lemma rhb_fr_srf_irr
