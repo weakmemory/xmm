@@ -208,7 +208,13 @@ Notation "'R_s'" := (is_r lab_s).
 Notation "'hb_s'" := (hb G_s).
 Notation "'rhb_s'" := (rhb G_s).
 Notation "'same_loc_s'" := (same_loc lab_s).
+Notation "'vf_s'" := (vf G_s).
 Notation "'srf_s'" := (srf G_s).
+Notation "'eco_s'" := (eco G_s).
+Notation "'psc_s'" := (imm.psc G_s).
+Notation "'fr_s'" := (fr G_s).
+Notation "'sw_s'" := (sw G_s).
+
 
 Notation "'lab_t'" := (lab G_t).
 Notation "'val_t'" := (val lab_t).
@@ -227,11 +233,64 @@ Notation "'R_t'" := (is_r lab_t).
 Notation "'hb_t'" := (hb G_t).
 Notation "'rhb_t'" := (rhb G_t).
 Notation "'same_loc_t'" := (same_loc lab_t).
+Notation "'vf_t'" := (vf G_t).
 Notation "'srf_t'" := (srf G_t).
+Notation "'eco_t'" := (eco G_t).
+Notation "'psc_t'" := (imm.psc G_t).
+Notation "'fr_t'" := (fr G_t).
+Notation "'sw_t'" := (sw G_t).
+
+Lemma rhb_eco_irr_equiv :
+    irreflexive (rhb_s ⨾ eco_s) <-> irreflexive (hb_s ⨾ eco_s).
+Proof using.
+    admit. 
+Admitted.
+
+Lemma fr_sub (m : actid -> actid) 
+        (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
+        (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
+        (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
+        (RF_MAP : rf_s ≡ (m ↑ rf_t) ∪ (srf_s ⨾ ⦗eq a⦘))
+        (MO_MAP : co_s ≡ m ↑ co_t) :  
+    fr_s ⊆ m ↑ fr_t ∪ srf_s⁻¹ ⨾ co_s.
+Proof using.
+    unfold fr. rewrite RF_MAP. rewrite transp_union.
+    rewrite seq_union_l. rewrite MO_MAP. rewrite transp_seq, seqA.
+    rewrite <- collect_rel_transp. admit. 
+Admitted.
+
+Lemma eco_sub (m : actid -> actid) 
+        (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
+        (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
+        (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
+        (RF_MAP : rf_s ≡ (m ↑ rf_t) ∪ (srf_s ⨾ ⦗eq a⦘))
+        (MO_MAP : co_s ≡ m ↑ co_t) :  
+    eco_s ⊆ m ↑ eco_t ∪ srf_s ∪ co_s ⨾ srf_s^? ∪ fr_s ⨾ srf_s^? ∪ srf_s⁻¹ ⨾ co_s ⨾ rf_s.
+Proof using.
+    unfold eco. repeat rewrite collect_rel_union. 
+    repeat apply inclusion_union_l. rewrite RF_MAP. 
+    apply inclusion_union_l. 1, 2 : basic_solver 21.
+    { rewrite MO_MAP. case_refl _. 
+        { basic_solver 21. }
+        rewrite RF_MAP. rewrite seq_union_r.
+        apply inclusion_union_l. 2 : basic_solver 21. 
+        admit. }
+    case_refl _. basic_solver 21. unfold fr.
+    admit.
+Admitted. 
+
+Lemma rhb_sub (m : actid -> actid) 
+        (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
+        (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
+        (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
+        (RF_MAP : rf_s ≡ (m ↑ rf_t) ∪ (srf_s ⨾ ⦗eq a⦘))
+        (MO_MAP : co_s ≡ m ↑ co_t) :  
+    rhb_s ⨾ ⦗eq a⦘ ⊆ m ↑ rhb_t.
+Proof using.
+    admit. 
+Admitted.
 
 Lemma read_extent (m : actid -> actid) 
-        (TID_MAP : forall x, tid x = tid (m x))
-        (LAB_MAP : same_lab_u2v (lab_s ∘ m) lab_t) 
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
@@ -239,10 +298,12 @@ Lemma read_extent (m : actid -> actid)
         (MO_MAP : co_s ≡ m ↑ co_t) :  
     WCore.is_cons G_t sc_t ->  WCore.is_cons G_s sc_s.
 Proof using.
-    admit.
+    intros CONS. constructor. 
+    { case_refl _. 
+        { admit. }
+        apply rhb_eco_irr_equiv. admit. }
+    all : admit.
 Admitted. 
-
-
 
 End Draft.
 
