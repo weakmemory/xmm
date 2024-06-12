@@ -164,8 +164,8 @@ Proof using.
     rewrite co_in_hb; eauto. case_refl _. 
     2: { rotate 1. apply vf_hb_hb_irr; eauto. }
     generalize (@hb_trans G); ins; relsf.
-    admit.
-Admitted.
+    apply hb_irr; eauto. apply CONS.
+Qed.
 
 Lemma rhb_fr_srf_irr
         (WF  : Wf G)
