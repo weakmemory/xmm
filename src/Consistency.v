@@ -56,6 +56,16 @@ Notation "'psc'" := (imm.psc G).
 Notation "'fr'" := (fr G).
 Notation "'sw'" := (sw G).
 
+Lemma hb_eco_irr        
+        (WF  : Wf G)
+        (CONS : WCore.is_cons G sc) :
+    irreflexive (hb ⨾ eco).
+Proof using.
+    destruct CONS. apply irreflexive_inclusion 
+                        with (r' := hb ⨾ eco^?); eauto.
+    apply inclusion_seq_mon; basic_solver.
+Qed.
+    
 Lemma vf_hb_irr
         (WF  : Wf G)
         (CONS : WCore.is_cons G sc) :
@@ -96,14 +106,14 @@ Qed.
 Lemma hb_helper
         (WF  : Wf G)
         (CONS : WCore.is_cons G sc) :
-    hb ≡ co ∪ rhb.
+    hb ≡ sb ∪ rhb.
 Proof using.
     split.
     2: { rewrite rhb_in_hb; eauto. 
          rewrite inclusion_union_l with 
-            (r := co) (r' := hb) (r'' := hb); try basic_solver.
-         admit. }
-    admit. 
+            (r := sb) (r' := hb) (r'' := hb); try basic_solver.
+            unfold hb. rewrite path_ut_last. basic_solver. }
+    unfold hb, rhb. admit. 
 Admitted.
 
 Lemma hb_locs
@@ -113,15 +123,15 @@ Lemma hb_locs
 Proof using.
     rewrite hb_helper; eauto; split.
     2: { basic_solver. }
-    rewrite inter_union_l. rewrite inclusion_union_l with (r := co ∩ same_loc)
+    rewrite inter_union_l. rewrite inclusion_union_l with (r := sb ∩ same_loc)
         (r' := rhb ∩ same_loc) (r'' := rhb ∩ same_loc); try basic_solver.
-    admit. 
-Admitted.
+    unfold rhb. rewrite <- ct_step. unfold rpo. basic_solver 8. 
+Qed.
 
-Lemma co_in_hb
+Lemma sb_in_hb
         (WF  : Wf G)
         (CONS : WCore.is_cons G sc) :
-    co ⊆ hb.
+    sb ⊆ hb.
 Proof using.
     rewrite hb_helper; eauto. basic_solver.
 Qed.
@@ -155,13 +165,13 @@ Proof using.
     apply vf_hb_irr; eauto.
 Qed.
 
-Lemma rhb_co_srf_irr
+Lemma rhb_sb_srf_irr
         (WF  : Wf G)
         (CONS : WCore.is_cons G sc) :
-    irreflexive (rhb ⨾ co ⨾ srf^?).
+    irreflexive (rhb ⨾ sb ⨾ srf^?).
 Proof using.
     rewrite rhb_in_hb; eauto. rewrite srf_sub_vf; eauto.
-    rewrite co_in_hb; eauto. case_refl _. 
+    rewrite sb_in_hb; eauto. case_refl _. 
     2: { rotate 1. apply vf_hb_hb_irr; eauto. }
     generalize (@hb_trans G); ins; relsf.
     apply hb_irr; eauto. apply CONS.
@@ -172,13 +182,16 @@ Lemma rhb_fr_srf_irr
         (CONS : WCore.is_cons G sc) :
     irreflexive (rhb ⨾ fr ⨾ srf^?).
 Proof using.
-    admit.
+    case_refl _. 
+    { rewrite fr_in_eco; eauto. rewrite rhb_in_hb; eauto.
+      apply hb_eco_irr; eauto. }
+    admit. 
 Admitted.
 
-Lemma rhb_srf_co_rf_irr
+Lemma rhb_srf_sb_rf_irr
         (WF  : Wf G)
         (CONS : WCore.is_cons G sc) :
-    irreflexive (rhb ⨾ srf⁻¹ ⨾ co ⨾ rf).
+    irreflexive (rhb ⨾ srf⁻¹ ⨾ sb ⨾ rf).
 Proof using.
     admit.
 Admitted.
@@ -240,10 +253,16 @@ Notation "'psc_t'" := (imm.psc G_t).
 Notation "'fr_t'" := (fr G_t).
 Notation "'sw_t'" := (sw G_t).
 
-Lemma rhb_eco_irr_equiv :
+Lemma rhb_eco_irr_equiv
+        (WF  : Wf G_s)
+        (CONS : WCore.is_cons G_s sc_s) :
     irreflexive (rhb_s ⨾ eco_s) <-> irreflexive (hb_s ⨾ eco_s).
 Proof using.
-    admit. 
+    split. admit.
+    intros IR. apply irreflexive_inclusion 
+                    with (r' := hb_s ⨾ eco_s); eauto.
+    apply inclusion_seq_mon. apply rhb_in_hb 
+                    with (sc := sc_s); eauto. eauto.
 Admitted.
 
 Lemma fr_sub (m : actid -> actid) 
