@@ -56,7 +56,7 @@ Notation "'psc'" := (imm.psc G).
 Notation "'fr'" := (fr G).
 Notation "'sw'" := (sw G).
 
-Lemma hb_eco_irr        
+Lemma hb_eco_irr
         (WF  : Wf G)
         (CONS : WCore.is_cons G sc) :
     irreflexive (hb ⨾ eco).
@@ -79,9 +79,7 @@ Proof using.
     by rotate 1; apply CONS.
 Qed.
 
-Lemma srf_sub_vf 
-        (WF  : Wf G)
-        (CONS : WCore.is_cons G sc) :
+Lemma srf_sub_vf :
     srf ⊆ vf.
 Proof using.
     unfold srf. basic_solver. 
@@ -95,17 +93,13 @@ Proof using.
     rewrite srf_sub_vf; try apply vf_hb_irr; eauto.
 Qed.
 
-Lemma rhb_in_hb
-        (WF  : Wf G)
-        (CONS : WCore.is_cons G sc) :
+Lemma rhb_in_hb :
     rhb ⊆ hb.
 Proof using.
     unfold rhb; unfold hb. rewrite rpo_in_sb; basic_solver.
 Qed. 
 
-Lemma hb_helper
-        (WF  : Wf G)
-        (CONS : WCore.is_cons G sc) :
+Lemma hb_helper :
     hb ≡ sb ∪ rhb.
 Proof using.
     split.
@@ -113,12 +107,17 @@ Proof using.
          rewrite inclusion_union_l with 
             (r := sb) (r' := hb) (r'' := hb); try basic_solver.
             unfold hb. rewrite path_ut_last. basic_solver. }
-    unfold hb, rhb. admit. 
+    unfold hb, rhb. induction 1.
+    { destruct H; try basic_solver. right. apply ct_step. basic_solver. }
+    destruct IHclos_trans1; destruct IHclos_trans2. 
+    { left. assert (TRANS : transitive sb). apply sb_trans. 
+      unfold transitive in TRANS. basic_solver. }
+    { admit. }
+    { admit. }
+    right. apply ct_ct. basic_solver.
 Admitted.
 
-Lemma hb_locs
-        (WF  : Wf G)
-        (CONS : WCore.is_cons G sc) :
+Lemma hb_locs :
     hb ∩ same_loc ≡ rhb ∩ same_loc.
 Proof using.
     rewrite hb_helper; eauto; split.
@@ -128,9 +127,7 @@ Proof using.
     unfold rhb. rewrite <- ct_step. unfold rpo. basic_solver 8. 
 Qed.
 
-Lemma sb_in_hb
-        (WF  : Wf G)
-        (CONS : WCore.is_cons G sc) :
+Lemma sb_in_hb :
     sb ⊆ hb.
 Proof using.
     rewrite hb_helper; eauto. basic_solver.
@@ -146,9 +143,7 @@ Proof using.
     rotate 1; apply srf_hb_irr; auto.
 Qed.
 
-Lemma vf_hb
-        (WF  : Wf G)
-        (CONS : WCore.is_cons G sc) :
+Lemma vf_hb :
     vf ⨾ hb ⨾ hb^? ⊆ vf.
 Proof using.
     unfold vf.
@@ -185,7 +180,7 @@ Proof using.
     case_refl _. 
     { rewrite fr_in_eco; eauto. rewrite rhb_in_hb; eauto.
       apply hb_eco_irr; eauto. }
-    admit. 
+    unfold fr.
 Admitted.
 
 Lemma rhb_srf_sb_rf_irr
@@ -253,19 +248,17 @@ Notation "'psc_t'" := (imm.psc G_t).
 Notation "'fr_t'" := (fr G_t).
 Notation "'sw_t'" := (sw G_t).
 
-Lemma rhb_eco_irr_equiv
-        (WF  : Wf G_s)
-        (CONS : WCore.is_cons G_s sc_s) :
+Lemma rhb_eco_irr_equiv :
     irreflexive (rhb_s ⨾ eco_s) <-> irreflexive (hb_s ⨾ eco_s).
 Proof using.
     split. admit.
     intros IR. apply irreflexive_inclusion 
                     with (r' := hb_s ⨾ eco_s); eauto.
-    apply inclusion_seq_mon. apply rhb_in_hb 
-                    with (sc := sc_s); eauto. eauto.
+    apply inclusion_seq_mon. apply rhb_in_hb; eauto. vauto.
 Admitted.
 
 Lemma fr_sub (m : actid -> actid) 
+        (INJ : inj_dom E_t m)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
@@ -275,10 +268,18 @@ Lemma fr_sub (m : actid -> actid)
 Proof using.
     unfold fr. rewrite RF_MAP. rewrite transp_union.
     rewrite seq_union_l. rewrite MO_MAP. rewrite transp_seq, seqA.
-    rewrite <- collect_rel_transp. admit. 
+    rewrite <- collect_rel_transp. arewrite_id ⦗eq a⦘.
+    rels. assert (EQ : m ↑ (rf_t⁻¹ ⨾ co_t) ≡ m ↑ rf_t⁻¹ ⨾ m ↑ co_t).
+    { eapply collect_rel_seq. assert (IN1 : codom_rel rf_t⁻¹ ⊆₁ E_t).
+      { rewrite codom_transp. induction 1. admit. }
+      assert (IN2 : dom_rel co_t ⊆₁ E_t).
+      { induction 1. admit. }
+      rewrite IN1, IN2. basic_solver. }
+    rewrite EQ; basic_solver.
 Admitted.
 
 Lemma eco_sub (m : actid -> actid) 
+        (INJ : inj_dom E_t m)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
@@ -292,24 +293,26 @@ Proof using.
     { rewrite MO_MAP. case_refl _. 
         { basic_solver 21. }
         rewrite RF_MAP. rewrite seq_union_r.
-        apply inclusion_union_l. 2 : basic_solver 21. 
+        apply inclusion_union_l. 2 : basic_solver 21.
         admit. }
     case_refl _. basic_solver 21. unfold fr.
-    admit.
+    rewrite MO_MAP. rewrite RF_MAP. admit.
 Admitted. 
 
 Lemma rhb_sub (m : actid -> actid) 
+        (INJ : inj_dom E_t m)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
         (RF_MAP : rf_s ≡ (m ↑ rf_t) ∪ (srf_s ⨾ ⦗eq a⦘))
         (MO_MAP : co_s ≡ m ↑ co_t) :  
-    rhb_s ⨾ ⦗eq a⦘ ⊆ m ↑ rhb_t.
+    rhb_s ⊆ m ↑ rhb_t. (*TODO : fix*)
 Proof using.
-    admit. 
+    admit.
 Admitted.
 
 Lemma read_extent (m : actid -> actid) 
+        (INJ : inj_dom E_t m)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
@@ -320,7 +323,10 @@ Proof using.
     intros CONS. constructor. 
     { case_refl _. 
         { admit. }
-        apply rhb_eco_irr_equiv. admit. }
+        apply rhb_eco_irr_equiv. rewrite eco_sub; eauto.
+        repeat rewrite seq_union_r. repeat rewrite irreflexive_union; splits.
+        { rewrite rhb_sub; eauto. erewrite <- collect_rel_seq. all: admit. }
+    all : admit. }
     all : admit.
 Admitted. 
 
