@@ -107,16 +107,33 @@ Proof using.
          rewrite inclusion_union_l with 
             (r := sb) (r' := hb) (r'' := hb); try basic_solver.
             unfold hb. rewrite path_ut_last. basic_solver. }
-    unfold hb, rhb. induction 1.
+    unfold hb, rhb. intros x y H. apply clos_trans_t1n in H.
+    induction H. 
     { destruct H; try basic_solver. right. apply ct_step. basic_solver. }
-    destruct IHclos_trans1; destruct IHclos_trans2. 
+    destruct H; destruct IHclos_trans_1n. 
     { left. assert (TRANS : transitive sb). apply sb_trans. 
       unfold transitive in TRANS. basic_solver. }
+    { induction H0. assert (TRANS : transitive sb). apply sb_trans. 
+        { destruct H0.
+          { left. unfold transitive in TRANS. basic_solver. }
+            admit. }
+        destruct H0. 
+        { destruct H2. destruct H2.
+            { left. assert (TRANS : transitive sb). apply sb_trans.
+              unfold transitive in TRANS. basic_solver. }
+            { assert (TRANS : transitive sb). apply sb_trans.
+              unfold transitive in TRANS. assert (SB : sb x y). basic_solver.
+              apply IHclos_trans_1n in SB. basic_solver. 
+              apply ct_step. right. basic_solver. }
+            assert (TRANS : transitive sb). apply sb_trans.
+            unfold transitive in TRANS. assert (SB : sb x y). basic_solver.
+            apply IHclos_trans_1n. basic_solver. admit. }
+        admit. }
     { admit. }
-    { admit. }
-    right. apply ct_ct. basic_solver.
+    right. apply ct_ct. admit.
 Admitted.
 
+(* TODO : try without hb_helper *)
 Lemma hb_locs :
     hb ∩ same_loc ≡ rhb ∩ same_loc.
 Proof using.
@@ -317,10 +334,13 @@ Lemma read_extent (m : actid -> actid)
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
         (RF_MAP : rf_s ≡ (m ↑ rf_t) ∪ (srf_s ⨾ ⦗eq a⦘))
-        (MO_MAP : co_s ≡ m ↑ co_t) :  
-    WCore.is_cons G_t sc_t ->  WCore.is_cons G_s sc_s.
+        (MO_MAP : co_s ≡ m ↑ co_t) 
+        (CONS : WCore.is_cons G_t sc_t) 
+        (WF_t : Wf G_t) 
+        (WF_s : Wf G_s) :
+    WCore.is_cons G_s sc_s.
 Proof using.
-    intros CONS. constructor. 
+    constructor.
     { case_refl _. 
         { admit. }
         apply rhb_eco_irr_equiv. rewrite eco_sub; eauto.
