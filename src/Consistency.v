@@ -363,6 +363,16 @@ Proof using.
     basic_solver.
 Qed.
 
+Lemma empty_codom_irr (A : Type) (r r' : relation A) 
+        (EMP : codom_rel r ≡₁ ∅) :
+    irreflexive (r ⨾ r').
+Proof using.
+    apply empty_irr. split; try basic_solver.
+    intros x y H. destruct H. destruct H. assert (Q : ∅ x0). 
+    { apply EMP. basic_solver. }
+    destruct Q. 
+Qed.
+
 Lemma rhb_codom (m : actid -> actid) 
         (INJ : inj_dom E_t m)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
@@ -401,10 +411,38 @@ Proof using.
         apply rhb_eco_irr_equiv. rewrite eco_sub; eauto.
         repeat rewrite seq_union_r. repeat rewrite irreflexive_union; splits.
         { admit. }
-        { rotate 1. admit. }
-        { admit. }
-        { admit. }
-    all : admit. }
+        { rotate 1. eapply empty_irr. 
+          split; try basic_solver.
+          intros x y H. destruct H. destruct H. destruct H0. destruct H0.
+          assert (F : (⦗eq a⦘ ⨾ rhb_s) x x1). 
+          { unfold seq. exists x0. split; auto. }
+          assert (T : codom_rel(⦗eq a⦘ ⨾ rhb_s) ≡₁ ∅). 
+          { apply rhb_codom with (m := m); eauto. }
+          assert (Q : ∅ x1). apply T. basic_solver.
+          destruct Q. }
+        { case_refl _. 
+          { admit. }
+          rotate 1. apply empty_irr.
+          split; try basic_solver.
+          intros x y H. destruct H. destruct H. destruct H0. destruct H0.
+          assert (F : (⦗eq a⦘ ⨾ rhb_s) x x1). 
+          { unfold seq. exists x0. split; auto. }
+          assert (T : codom_rel(⦗eq a⦘ ⨾ rhb_s) ≡₁ ∅). 
+          { apply rhb_codom with (m := m); eauto. }
+          assert (Q : ∅ x1). apply T. basic_solver.
+          destruct Q. }
+        { case_refl _. 
+          { admit. }
+          rotate 1. apply empty_irr.
+          split; try basic_solver.
+          intros x y H. destruct H. destruct H. destruct H0. destruct H0.
+          assert (F : (⦗eq a⦘ ⨾ rhb_s) x x1). 
+          { unfold seq. exists x0. split; auto. }
+          assert (T : codom_rel(⦗eq a⦘ ⨾ rhb_s) ≡₁ ∅). 
+          { apply rhb_codom with (m := m); eauto. }
+          assert (Q : ∅ x1). apply T. basic_solver.
+          destruct Q. }
+    admit. }
     all : admit.
 Admitted. 
 
