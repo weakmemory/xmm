@@ -308,7 +308,7 @@ Lemma eco_sub (m : actid -> actid)
         (MO_MAP : co_s ≡ m ↑ co_t) 
         (WF_t : Wf G_t) 
         (WF_s : Wf G_s) :  
-    eco_s ⊆ m ↑ eco_t ∪ srf_s ∪ co_s ⨾ srf_s^? ∪ fr_s ⨾ srf_s^? ∪ srf_s⁻¹ ⨾ co_s ⨾ rf_s.
+    eco_s ⊆ m ↑ eco_t ∪ srf_s ⨾ ⦗eq a⦘ ∪ co_s ⨾ (srf_s ⨾ ⦗eq a⦘)^? ∪ fr_s ⨾ (srf_s ⨾ ⦗eq a⦘)^? ∪ srf_s⁻¹ ⨾ co_s ⨾ rf_s.
 Proof using.
     unfold eco. repeat rewrite collect_rel_union. 
     repeat apply inclusion_union_l. rewrite RF_MAP. 
@@ -337,6 +337,7 @@ Admitted.
 Lemma rhb_sub (m : actid -> actid) 
         (INJ : inj_dom E_t m)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
+        (* (NIN : ~ E_t a) *)
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
         (RF_MAP : rf_s ≡ (m ↑ rf_t) ∪ (srf_s ⨾ ⦗eq a⦘))
@@ -345,8 +346,22 @@ Lemma rhb_sub (m : actid -> actid)
         (WF_s : Wf G_s) : 
     rhb_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rhb_t. 
 Proof using.
-    admit.
+    assert (EQ : E_s \₁ eq a ≡₁ m ↑₁ E_t \₁ eq a).
+    { rewrite E_MAP. basic_solver 21. }
+    unfold rhb. admit.
 Admitted.
+
+Lemma codom_ct_alt (A : Type) (r r' : relation A) 
+        (EMP : codom_rel (r ⨾ r') ≡₁ ∅) :
+    codom_rel (r ⨾ r'⁺) ≡₁ ∅.
+Proof using.
+    split; try basic_solver. intros x H. induction H.
+    destruct H. destruct H. induction H0. 
+        { apply EMP. basic_solver. }
+    apply EMP in IHclos_trans1; eauto. 
+    apply EMP in IHclos_trans1.
+    basic_solver.
+Qed.
 
 Lemma rhb_codom (m : actid -> actid) 
         (INJ : inj_dom E_t m)
@@ -357,17 +372,15 @@ Lemma rhb_codom (m : actid -> actid)
         (MO_MAP : co_s ≡ m ↑ co_t) 
         (WF_t : Wf G_t) 
         (WF_s : Wf G_s) : 
-    codom_rel (⦗eq a⦘ ⨾ rhb_s) ≡₁ ∅.
+    codom_rel(⦗eq a⦘ ⨾ rhb_s) ≡₁ ∅.
 Proof using.
     unfold rhb. rewrite path_ut_first.
-    rewrite seq_union_r. rewrite codom_union.
-    apply set_union_eq_empty. split.
-    { assert (EMP : (⦗eq a⦘ ⨾ rpo_s⁺) ≡ ∅₂).
-        { apply seq_eq_max_t. unfold max_elt. ins.
-          (* assert (F : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ⦗eq b⦘). *)
-          admit. }
-        rewrite EMP. basic_solver. }
-        admit. 
+    rewrite seq_union_r. rewrite codom_union. 
+    assert (EMP : codom_rel(⦗eq a⦘ ⨾ rpo_s⁺) ≡₁ ∅).
+        { apply codom_ct_alt; eauto. } 
+    assert (EMP' : codom_rel (⦗eq a⦘ ⨾ rpo_s＊ ⨾ sw_s ⨾ (rpo_s ∪ sw_s)＊) ≡₁ ∅).
+        { admit. }
+    rewrite EMP, EMP'. basic_solver.
 Admitted.
 
 Lemma read_extent (m : actid -> actid) 
@@ -387,7 +400,10 @@ Proof using.
         { admit. }
         apply rhb_eco_irr_equiv. rewrite eco_sub; eauto.
         repeat rewrite seq_union_r. repeat rewrite irreflexive_union; splits.
-        {  all: admit. }
+        { admit. }
+        { rotate 1. admit. }
+        { admit. }
+        { admit. }
     all : admit. }
     all : admit.
 Admitted. 
