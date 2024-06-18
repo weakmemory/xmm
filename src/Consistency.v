@@ -28,6 +28,8 @@ Module Consistency.
 
 Section HB. 
 
+Open Scope program_scope.
+
 Variable G : execution.
 Variable sc : relation actid.
 
@@ -216,6 +218,21 @@ Proof using.
     admit.
 Admitted. *)
 
+Lemma rhb_eco_irr_equiv
+        (WF  : Wf G):
+    irreflexive (rhb ⨾ eco) <-> irreflexive (hb ⨾ eco).
+Proof using.
+    split. 
+    { intros H. unfold irreflexive. intros x H0. destruct H0. destruct H0.
+      assert (SAME_LOC : same_loc x x0). apply loceq_eco in H1; eauto.
+      unfold same_loc; eauto. assert (RHB : rhb x x0). 
+      { eapply hb_locs. basic_solver. }
+      destruct H with (x := x). basic_solver. }
+    intros IR. apply irreflexive_inclusion 
+                    with (r' := hb ⨾ eco); eauto.
+    apply inclusion_seq_mon. apply rhb_in_hb; eauto. vauto.
+Qed.
+
 End HB.
 
 Section Draft. 
@@ -272,26 +289,6 @@ Notation "'eco_t'" := (eco G_t).
 Notation "'psc_t'" := (imm.psc G_t).
 Notation "'fr_t'" := (fr G_t).
 Notation "'sw_t'" := (sw G_t).
-
-Lemma rhb_eco_irr_equiv_s
-        (WF  : Wf G_s):
-    irreflexive (rhb_s ⨾ eco_s) <-> irreflexive (hb_s ⨾ eco_s).
-Proof using.
-    split. admit.
-    intros IR. apply irreflexive_inclusion 
-                    with (r' := hb_s ⨾ eco_s); eauto.
-    apply inclusion_seq_mon. apply rhb_in_hb; eauto. vauto.
-Admitted.
-
-Lemma rhb_eco_irr_equiv_t
-        (WF  : Wf G_t):
-    irreflexive (rhb_t ⨾ eco_t) <-> irreflexive (hb_t ⨾ eco_t).
-Proof using.
-    split. admit.
-    intros IR. apply irreflexive_inclusion 
-                    with (r' := hb_t ⨾ eco_t); eauto.
-    apply inclusion_seq_mon. apply rhb_in_hb; eauto. vauto.
-Admitted.
 
 Lemma fr_sub (m : actid -> actid)
         (INJ : inj_dom E_t m)
@@ -469,7 +466,7 @@ Proof using.
     constructor.
     { case_refl _.
         { admit. }
-        apply rhb_eco_irr_equiv_s; eauto. rewrite eco_sub; eauto.
+        apply rhb_eco_irr_equiv; eauto. rewrite eco_sub; eauto.
         repeat rewrite seq_union_r. repeat rewrite irreflexive_union; splits.
         { assert (H : m ↑ eco_t ≡ ⦗E_s \₁ eq a⦘ ⨾ m ↑ eco_t).
           { rewrite acts_set_helper; eauto.
