@@ -487,7 +487,39 @@ Lemma read_extent (m : actid -> actid)
 Proof using.
     constructor.
     { case_refl _.
-        { admit. }
+        { rewrite hb_helper; eauto. rewrite irreflexive_union. split.
+          { destruct WF_s. admit. }
+          intros x H. destruct classic with (P := (E_s \₁ eq a) x) as [EQ | EQ].
+          { assert (F : (rhb_s ⨾ ⦗E_s \₁ eq a⦘) x x <-> rhb_s x x).
+            { unfold seq. split; auto. ins. exists x. split; eauto.
+              destruct EQ. basic_solver. }
+            apply F in H. assert (F' : (m ↑ rhb_t) x x).
+            { apply rhb_sub; eauto. }
+            assert (IRR : irreflexive rhb_t).
+            { apply irreflexive_inclusion with (r' := hb_t); eauto.
+              apply rhb_in_hb; eauto. destruct CONS. apply hb_irr; eauto. }
+            assert (REST : (rhb_t) ≡ restr_rel E_t (rhb_t)).
+            { rewrite restr_relE. rewrite wf_rhbE; eauto.
+              basic_solver 21. }
+            assert (IRR' : irreflexive (restr_rel E_t (rhb_t))).
+            { rewrite <- REST. apply IRR. }
+            assert (IRR'' : irreflexive (m ↑ restr_rel E_t rhb_t)).
+            { apply collect_rel_irr_inj; eauto. }
+            rewrite <- REST in IRR''. basic_solver. }
+          assert (EQA : eq a x). 
+          { assert (ALTNIN : ~ (m ↑₁ E_t) x). 
+            { intros NEG. apply acts_set_helper in NEG; eauto. }
+            unfold set_minus in EQ. apply not_and_or in EQ.
+            destruct EQ. 
+            { assert (G : rhb_s ≡ ⦗E_s⦘ ⨾ rhb_s ⨾ ⦗E_s⦘).
+              { rewrite wf_rhbE; eauto. basic_solver. }
+            apply G in H. exfalso. apply H0. destruct H. destruct H. apply H. }
+            unfold not in H0. destruct classic with (P := eq a x) as [EQ' | EQ'].
+            { basic_solver. }
+            exfalso. apply H0. basic_solver. }
+          rewrite <- EQA in H. destruct rhb_codom with (m := m); eauto.
+          unfold codom_rel in H0. specialize (H0 a). 
+          apply H0. exists a. basic_solver. }
         apply rhb_eco_irr_equiv; eauto. rewrite eco_sub; eauto.
         repeat rewrite seq_union_r. repeat rewrite irreflexive_union; splits.
         { assert (H : m ↑ eco_t ≡ ⦗E_s \₁ eq a⦘ ⨾ m ↑ eco_t).
