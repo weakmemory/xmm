@@ -1217,8 +1217,7 @@ Lemma simrel_exec_a_helper sc w sw l
       (singl_rel sw a))
     (exec_mapped G_t' mapper (lab_t'  ∘ mapper))
     (mapper ↑ sc)
-    traces'
-    (singl_rel w a).
+    traces'.
 Proof using.
   (* Shorthands *)
   set (G_s_ := exec_add_rf
@@ -1259,9 +1258,9 @@ Lemma simrel_exec_a sc w
     (RF : rf_t' w a)
     (SIM : reord_simrel_rw G_s G_t a b)
     (STEP : WCore.exec_inst G_t G_t' sc traces b) :
-  exists G_s' rfre sc',
+  exists G_s' sc',
     << SIM' : reord_simrel_rw G_s' G_t' a b >> /\
-    << STEP : WCore.reexec G_s G_s' sc' traces' rfre >>.
+    << STEP : WCore.reexec G_s G_s' sc' traces' >>.
 Proof using SWAPPED_TRACES.
   (* TODO: check article *)
   (* Case1 : Gt' *)
@@ -1269,14 +1268,14 @@ Proof using SWAPPED_TRACES.
   admit.
 Admitted.
 
-Lemma simrel_reexec sc rfre
+Lemma simrel_reexec sc
     (CONS : WCore.is_cons G_t sc)
     (CONS' : WCore.is_cons G_s (mapper ↑ sc))
     (SIM : reord_simrel_rw G_s G_t a b)
-    (STEP : WCore.reexec G_t G_t' sc traces rfre) :
-  exists G_s' rfre sc',
+    (STEP : WCore.reexec G_t G_t' sc traces) :
+  exists G_s' sc',
     << SIM' : reord_simrel_rw G_s' G_t' a b >> /\
-    << STEP : WCore.reexec G_s G_s' sc' traces' (mapper ↓ rfre) >>.
+    << STEP : WCore.reexec G_s G_s' sc' traces' >>.
 Proof using SWAPPED_TRACES.
   admit.
 Admitted.

@@ -374,7 +374,6 @@ Section ExecRexec.
 Variables G G' : execution.
 Variables sc : relation actid.
 Variable traces : thread_id -> trace label -> Prop.
-Variable rfre : relation actid.
 
 Notation "'E''" := (acts_set G').
 Notation "'E'" := (acts_set G).
@@ -394,19 +393,15 @@ Notation "'rf'" := (rf G).
 Notation "'sb_rf'" := ((sb ∪ rf)⁺).
 Notation "'sb_rf''" := ((sb' ∪ rf')⁺).
 
-Notation "'Rre'" := (codom_rel rfre).
-Notation "'Wre'" := (dom_rel rfre).
-
 Definition f_cmt (f : actid -> option actid) := is_some ∘ f.
-Definition sb_rfre := (sb ∪ rf ⨾ ⦗E \₁ Rre⦘ ∪ rfre ⨾ ⦗Rre⦘)⁺.
 
-Record stable_uncmt_reads_gen f (thrdle : relation thread_id) : Prop := 
+Record stable_uncmt_reads_gen f (thrdle : relation thread_id) : Prop :=
   { surg_init_least : forall t, thrdle tid_init t ;
     surg_init_min : forall t, thrdle t tid_init -> t = tid_init ;
     surg_uncmt : rf ⨾ ⦗E' \₁ f_cmt f⦘ ⊆ tid ↓ thrdle ; }.
 
-Lemma surg_sb_closed f thrdle 
-    (STABLE_UNCMT : stable_uncmt_reads_gen f thrdle) : 
+Lemma surg_sb_closed f thrdle
+    (STABLE_UNCMT : stable_uncmt_reads_gen f thrdle) :
   sb^? ⨾ tid ↓ thrdle ⨾ sb^? ⊆ tid ↓ thrdle.
 Proof.
   by destruct STABLE_UNCMT; apply thrdle_sb_closed.
@@ -436,16 +431,10 @@ Definition reexec_start dtrmt := Build_execution
 Record reexec_gen f thrdle dtrmt : Prop :=
 { (* Correct start *)
   newlab_correct : forall e (DTRMT : dtrmt e), lab' e = lab e;
-  rfre_racy : rfre ⊆ re;
-  dtrmt_not_reexec : dtrmt ⊆₁ E \₁ codom_rel (⦗Rre⦘ ⨾ (sb ∪ rf)＊);
   dtrmt_cmt : dtrmt ⊆₁ (f_cmt f);
-  rfre_writes_cmt : Wre ⊆₁ (f_cmt f);
-  rfrre_embd_gc : rfre ⊆ Some ↓ (f ↑ rf');
-  reexec_sur : stable_uncmt_reads_gen f thrdle;
+  reexec_sur : forall r w, stable_uncmt_reads_gen f r w;
   (* Correct embedding *)
   reexec_embd_corr : correct_embeding f;
-  reexec_embd_sbrfe : Some ↓ (f ↑ restr_rel (f_cmt f) sb_rf') ⊆
-                      restr_rel (Some ↓₁ (f ↑₁ (f_cmt f))) sb_rfre;
   (* Reproducable steps *)
   reexec_start_wf : wf (Build_t sc (reexec_start dtrmt) G' (f_cmt f));
   reexec_steps : (cfg_add_event_uninformative traces)＊
