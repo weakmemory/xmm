@@ -84,7 +84,7 @@ Qed.
 Lemma srf_sub_vf :
     srf ⊆ vf.
 Proof using.
-    unfold srf. basic_solver. 
+    unfold srf. basic_solver.
 Qed.
 
 Lemma srf_hb_irr
@@ -144,7 +144,7 @@ Proof using.
     2: { basic_solver. }
     rewrite inter_union_l. rewrite inclusion_union_l with (r := sb ∩ same_loc)
         (r' := rhb ∩ same_loc) (r'' := rhb ∩ same_loc); try basic_solver.
-    unfold rhb. rewrite <- ct_step. unfold rpo. basic_solver 8. 
+    unfold rhb. rewrite <- ct_step. unfold rpo. basic_solver 8.
 Qed.
 
 Lemma sb_in_hb :
@@ -162,7 +162,7 @@ Qed.
 
 Lemma rf_rhb_sub_vf 
         (WF  : Wf G):
-    rf^? ⨾ rhb ⊆ vf.
+    ⦗W⦘ ⨾ rf^? ⨾ rhb ⊆ vf.
 Proof using.
     unfold vf. rewrite rhb_in_hb; eauto.
     assert (EQ1 : rf ≡ ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf). 
@@ -170,11 +170,13 @@ Proof using.
     case_refl _. 
     { rewrite <- inclusion_id_cr with (r := rf).
       rewrite <- inclusion_step_cr with (r := hb) (r' := hb). 2 : basic_solver.
-      rels. admit. } 
+      rels. assert (EQ2 : hb ≡ ⦗E⦘ ⨾ hb ⨾ ⦗E⦘). 
+      { rewrite wf_hbE; eauto. basic_solver. }
+      rewrite EQ2. basic_solver. }
     rewrite <- inclusion_step_cr with (r := hb) (r' := hb). 2 : basic_solver.
     rewrite <- inclusion_step_cr with (r := rf) (r' := rf). 2 : basic_solver.
     rewrite EQ1. basic_solver.
-Admitted.
+Qed.
 
 (* 
 Lemma rhb_srf_irr
@@ -488,7 +490,7 @@ Proof using.
     constructor.
     { case_refl _.
         { rewrite hb_helper; eauto. rewrite irreflexive_union. split.
-          { destruct WF_s. admit. }
+          { apply sb_irr; eauto. }
           intros x H. destruct classic with (P := (E_s \₁ eq a) x) as [EQ | EQ].
           { assert (F : (rhb_s ⨾ ⦗E_s \₁ eq a⦘) x x <-> rhb_s x x).
             { unfold seq. split; auto. ins. exists x. split; eauto.
@@ -584,7 +586,9 @@ Proof using.
           { apply rhb_codom with (m := m); eauto. }
           assert (Q : ∅ x1). apply T. basic_solver.
           destruct Q. }
-    rotate 2. assert (IN : co_s ⨾ rf_s^? ⨾ rhb_s ⨾ (srf_s ⨾ ⦗eq a⦘)⁻¹
+    assert (IN' : rhb_s ⨾ (srf_s ⨾ ⦗eq a⦘)⁻¹ ⨾ co_s ⨾ rf_s^? ⊆ rhb_s ⨾ (srf_s ⨾ ⦗eq a⦘)⁻¹ ⨾ co_s ⨾ ⦗W_s⦘ ⨾ rf_s^? ).
+    { rewrite wf_coD; eauto. basic_solver 21. } rewrite IN'.
+    rotate 3. assert (IN : co_s ⨾ ⦗W_s⦘ ⨾ rf_s^? ⨾ rhb_s ⨾ (srf_s ⨾ ⦗eq a⦘)⁻¹
                             ⊆ co_s ⨾ vf_s ⨾ (srf_s ⨾ ⦗eq a⦘)⁻¹).
       { rewrite <- rf_rhb_sub_vf; basic_solver. }
     rewrite IN. arewrite_id ⦗eq a⦘. rels. unfold srf. basic_solver 21. }
