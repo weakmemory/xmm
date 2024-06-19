@@ -107,9 +107,7 @@ Lemma cfg_upd_lab_wf e l
     (WF : WCore.wf X) :
   WCore.wf (cfg_upd_lab e l).
 Proof using.
-  apply WCore.wf_iff_struct_and_props.
-  apply WCore.wf_iff_struct_and_props in WF.
-  desf; split.
+  red. red in WF. desf; split.
   { apply cfg_upd_lab_wf_struct; ins. }
   apply cfg_upd_lab_wf_props; ins.
 Qed.
@@ -219,9 +217,7 @@ Lemma cfg_add_event_nctrl_wf e delta_rf
     (WF : WCore.wf X) :
   WCore.wf (cfg_add_read_event_nctrl e delta_rf).
 Proof using.
-  apply WCore.wf_iff_struct_and_props.
-  apply WCore.wf_iff_struct_and_props in WF.
-  desf; split.
+  red. red in WF. desf; split.
   { apply cfg_add_event_nctrl_wf_struct; ins.
     all: try now apply STRUCT.
     apply PROPS. }
@@ -293,6 +289,8 @@ Proof using.
   constructor; ins.
   all: try now (rewrite <- collect_rel_empty; apply collect_rel_more;
                 ins; apply WF).
+  { unfold FinThreads.fin_threads. ins.
+    apply WF. }
   arewrite (is_init ≡₁ f ↑₁ is_init).
   { unfold is_init. unfolder; splits; ins; desf.
     { eexists; split; eauto; ins. }
@@ -317,9 +315,7 @@ Lemma cfg_mapped_wf f lab'
     (WF : WCore.wf X) :
   WCore.wf (cfg_mapped f lab').
 Proof using.
-  apply WCore.wf_iff_struct_and_props.
-  apply WCore.wf_iff_struct_and_props in WF.
-  desf; split.
+  red. red in WF. desf; split.
   { apply cfg_mapped_wf_struct; ins. }
   apply cfg_mapped_wf_props; ins.
   all: apply STRUCT.

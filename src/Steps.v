@@ -1,7 +1,8 @@
 Require Import Lia Setoid Program.Basics.
 Require Import AuxDef.
 Require Import Core.
-Import WCore.
+Require Import SubToFullExec.
+Require Import ThreadTrace.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -16,344 +17,213 @@ From RecordUpdate Require Import RecordSet.
 
 Import ListNotations.
 
-(* Lemma add_step_same_committed (X X' : t) (STEP : add_step X X') : committed X' ≡₁ committed X.
+Set Implicit Arguments.
+
+Lemma wf_after_steps traces X X'
+    (WF_START : WCore.wf X)
+    (STEP : (WCore.cfg_add_event_uninformative traces)＊ X X') :
+  WCore.wf X'.
 Proof using.
+  induction STEP as [X X' STEP | X | X X'' X' STEP1 WF1 STEP2 WF2].
+  all: eauto.
   do 2 (red in STEP; desf).
-  unfold committed. now rewrite COMMITENTR.
 Qed.
 
-Lemma add_step_wf (X X' : t) (WF : wf X) (STEP : add_step X X') : wf X'.
+Lemma cmt_after_steps traces X X'
+    (STEP : (WCore.cfg_add_event_uninformative traces)＊ X X') :
+  WCore.cmt X' ≡₁ WCore.cmt X.
 Proof using.
-  unfold add_step, add_step_, add_step_exec in *.
-  desf; constructor; auto; intros.
-  all: rewrite ?CONT', ?COMMITENTR, ?NCOMMITIDS; auto; try apply WF.
-  all: try now apply NCOMMITIDS.
-  all: try now apply NCOMMITIDS; rewrite COMMITENTR in CIN;
-               apply WF.
-  all: try now rewrite updo by congruence;
-               apply WF; apply THREADS.
-
-  all: apply set_subset_eq with (P := set_compl _) (a := e) in NRMW.
-  all: rewrite RMW', dom_union, set_compl_union in NRMW.
-  all: apply EVENTS in IN; unfolder in IN; desf; ins.
-  all: try now rewrite upds.
-  2: { exfalso. eapply NRMW; eauto.
-       clear. basic_solver. }
-  all: rewrite updo.
-  all: try now apply WF; auto; apply NRMW.
-  all: injection as Heq; subst.
-  all: eapply EVENT; eauto.
-  all: clear; basic_solver.
+  induction STEP as [X X' STEP | X | X X'' X' STEP1 EQ1 STEP2 EQ2].
+  all: eauto.
+  { do 2 (red in STEP; desf).
+    apply STRUCT. }
+  now rewrite EQ2, EQ1.
 Qed.
 
-Lemma commit_step_wf (X X' : t) (WF: wf X)
-                (cid : Commit.id) (e : actid)
-                (STEP: commit_step cid e X X'): wf X'.
+Lemma gc_after_steps traces X X'
+    (STEP : (WCore.cfg_add_event_uninformative traces)＊ X X') :
+  WCore.GC X' = WCore.GC X.
 Proof using.
-  desf; constructor; intros.
-  all: rewrite ?(cmt_K STEP).
-  all: try (apply WF; erewrite <- ?cmt_G by eassumption; auto).
-
-  { rewrite (cmt_G STEP).
-    now apply WF. }
-  { rewrite (cmt_noncid STEP).
-    apply set_size_inf_minus_singl.
-    apply WF. }
-  { apply (cmt_noncid STEP) in NCI.
-    rewrite (cmt_centries STEP), updo; [apply WF | symmetry].
-    all: apply NCI. }
-  assert (AA : cid0 <> cid).
-  { intro F. now rewrite F, (cmt_centries STEP), upds in CIN. }
-  rewrite (cmt_centries STEP), updo in CIN by auto.
-  apply WF in CIN. apply (cmt_noncid STEP). basic_solver.
+  induction STEP as [X X' STEP | X | X X'' X' STEP1 EQ1 STEP2 EQ2].
+  all: try congruence.
+  do 2 (red in STEP; desf).
+  apply STRUCT.
 Qed.
 
-Lemma rf_change_step_disjoint (G : execution) (r : actid) (WF : Wf G) :
-  set_disjoint ((fun a => is_init a) ∩₁ acts_set G) (codom_rel (⦗eq r⦘⨾ (sb G ∪ rf G)⁺)).
+Lemma init_events_after_steps traces X X'
+    (STEP : (WCore.cfg_add_event_uninformative traces)＊ X X') :
+  acts_set (WCore.G X') ∩₁ is_init ≡₁ acts_set (WCore.G X) ∩₁ is_init.
 Proof using.
-  unfolder. intros e (INIT & _) (e' & EQ & REL). subst e'.
-  induction REL as [r e REL |]; auto.
-  destruct REL as [REL|REL].
-  all: apply no_sb_to_init in REL || apply no_rf_to_init in REL.
-  all: now unfolder in REL.
+  induction STEP as [X X' STEP | X | X X'' X' STEP1 EQ1 STEP2 EQ2].
+  { do 2 (red in STEP; desf).
+    rewrite (WCore.caes_e_new STRUCT), set_inter_union_l.
+    arewrite (eq e ∩₁ is_init ≡₁ ∅).
+    { unfolder; split; ins; desf.
+      now apply (WCore.caes_e_notinit STRUCT). }
+    now rewrite set_union_empty_r. }
+  { ins. }
+  now rewrite EQ2, EQ1.
 Qed.
 
-Lemma rfc_imG_wf (G'' : execution) sc'' (w r : actid) (X X' : t)
-  (STEP : rf_change_step_ G'' sc'' w r X X') (WF : Wf (G X)) : Wf G''.
+Lemma events_after_steps traces X X'
+    (STEP : (WCore.cfg_add_event_uninformative traces)＊ X X') :
+  acts_set (WCore.G X) ⊆₁ acts_set (WCore.G X').
 Proof using.
-  eapply sub_WF; eauto using rfc_sub.
-  rewrite (rfc_acts STEP).
-  erewrite <- (set_minus_disjoint (_ ∩₁ _)).
-  { apply set_subset_minus; basic_solver. }
-  eapply set_disjoint_more.
-  all: try apply rf_change_step_disjoint; eauto.
-  unfold rfc_remove_events; basic_solver.
+  induction STEP as [X X' STEP | X | X X'' X' STEP1 SUB1 STEP2 SUB2].
+  { do 2 (red in STEP; desf).
+    rewrite (WCore.caes_e_new STRUCT).
+    basic_solver. }
+  all: basic_solver.
 Qed.
 
-Lemma rfc_imG_no_broken_rmw (G'' : execution) sc'' (w r e e' : actid) (X X' : t)
-  (STEP : rf_change_step_ G'' sc'' w r X X')
-  (WF : Wf (G X))
-  (RMW : rmw (G X) e e')
-  (E_SAVED : acts_set G'' e):
-  rmw G'' e e'.
+Lemma execution_after_steps traces X X'
+    (STARTWF : WCore.wf X)
+    (STEP : (WCore.cfg_add_event_uninformative traces)＊ X X') :
+  sub_execution (WCore.G X') (WCore.G X) ∅₂ ∅₂.
 Proof using.
-  apply (sub_rmw (rfc_sub STEP)).
-  apply wf_rmwE in RMW; eauto using rfc_imG_wf.
-  unfolder in RMW.
-  destruct RMW as (DOML & RMW & DOMR).
-  unfolder. splits; auto.
-  apply (rfc_acts STEP).
-  unfolder. splits; auto.
-  unfold rfc_remove_events. unfolder.
-  intros (x & z & [EQ1 EQ2] & REL). subst x z.
-  apply (rfc_acts STEP) in E_SAVED.
-  destruct E_SAVED as [_ NOT_REMOVED].
-  unfold rfc_remove_events in NOT_REMOVED. unfolder in NOT_REMOVED.
-  apply NOT_REMOVED. do 2 exists r. splits; auto. clear NOT_REMOVED.
- (* immediate set of a union *)
- (* r <> e? *)
- (* We seem to be stuck due to the same po-rf problem *)
-  admit.
+  induction STEP as [X X' STEP | X | X X'' X' STEP1 SUB1 STEP2 SUB2].
+  { admit. (* TODO: deltas *) }
+  { constructor; ins.
+    all: admit. (* TODO: spam WF *) }
+  admit. (* Sub exection is trans? *)
 Admitted.
 
-Lemma rfc_endG_preserve_r (r w : actid) (G : execution) (e : actid)
-  : is_r (lab (rfc_endG r w G)) e = is_r (lab G) e.
+(* TODO: lemma about subset of acts *)
+
+Section Steps.
+
+Variable X X' : WCore.t.
+Variable traces : thread_id -> trace label -> Prop.
+
+Notation "'G'" := (WCore.G X).
+Notation "'G''" := (WCore.G X').
+Notation "'cmt'" := (WCore.cmt X).
+
+Lemma enumd_diff_seq
+    (STARTWF : WCore.wf X)
+    (STEP : (WCore.cfg_add_event_uninformative traces)＊ X X') :
+  exists l, SubToFullExecInternal.enumd_diff G G' cmt l.
 Proof using.
-  unfold rfc_endG, upd_rval, is_r in *; ins.
-  destruct (classic (e = r)) as [EQ|NEQ].
-  { subst; rewrite upds.
-    destruct (lab G r); auto. }
-  rewrite updo by assumption.
-  destruct (lab G r); auto.
+  assert (WFEND : Wf G') by eauto using WCore.wf_g, wf_after_steps.
+  induction STEP as [X X' STEP | X | X X'' X' STEP1 DIFF1 STEP2 DIFF2].
+  { destruct STEP as [e STEP]. exists [e].
+    red in STEP. desf. constructor; ins.
+    all: rewrite (WCore.caes_e_new STRUCT).
+    { unfolder; split; intros x HSET; desf; eauto.
+      split; auto. apply STRUCT. }
+    { unfolder; intros x y HREL; ins; desf.
+      exfalso. eapply sb_irr; eauto. }
+    { unfolder; intros x y HREL; ins; desf.
+      exfalso. eapply rf_irr; eauto. }
+    unfolder; intros x HSET; ins; desf.
+    assert (HIN : acts_set G' x).
+    { apply (wf_rfE WFEND) in HSET. unfolder in HSET.
+      desf. }
+    apply (WCore.caes_e_new STRUCT) in HIN. apply HIN. }
+  { exists []. constructor; ins.
+    all: basic_solver. }
+  destruct DIFF1 as [l1 DIFF1], DIFF2 as [l2 DIFF2]; ins.
+  all: eauto using wf_after_steps, WCore.wf_g.
+  assert (SUB1 : acts_set (WCore.G X'') ⊆₁ acts_set G').
+  { eauto using events_after_steps. }
+  assert (DISJ : set_disjoint (acts_set G' \₁ acts_set (WCore.G X'')) (acts_set G)).
+  { apply set_disjoint_subset_r with (s' := acts_set (WCore.G X'')).
+    all: eauto using events_after_steps.
+    basic_solver. }
+  assert (SUB : sub_execution G' (WCore.G X'') ∅₂ ∅₂).
+  { eauto using execution_after_steps, wf_after_steps. }
+  exists (l1 ++ l2). constructor; ins.
+  { apply nodup_append.
+    { apply DIFF1. }
+    { apply DIFF2. }
+    red. intros x IN1 IN2.
+    apply DIFF1 in IN1. apply DIFF2 in IN2.
+    destruct IN1, IN2; ins. }
+  { arewrite ((fun x => In x (l1 ++ l2)) ≡₁
+                (fun x => In x l1) ∪₁ (fun x => In x l2)).
+    { unfolder. split; ins.
+      all: rewrite in_app_iff in *; desf. }
+    rewrite <- (SubToFullExecInternal.diff_elems DIFF1),
+            <- (SubToFullExecInternal.diff_elems DIFF2).
+    rewrite set_union_minus with (s := acts_set G')
+                                 (s' := acts_set (WCore.G X'')) at 1.
+    all: ins.
+    rewrite set_minus_union_l, set_minus_disjoint; ins.
+    basic_solver. }
+  { rewrite set_union_minus with (s := acts_set G')
+                                 (s' := acts_set (WCore.G X'')) at 1.
+    all: ins.
+    rewrite set_minus_union_l, set_minus_disjoint.
+    all: ins.
+    unfolder. intros x y HREL. desf.
+    { apply total_order_from_list_r.
+      apply (SubToFullExecInternal.diff_sb DIFF2).
+      unfolder. splits; eauto. }
+    { apply total_order_from_list_bridge.
+      { apply DIFF1. split; ins. }
+      apply DIFF2. split; ins. }
+    { exfalso. apply HREL3.
+      apply ext_sb_dense with (e2 := y).
+      { eauto using WCore.wf_g_cont, wf_after_steps. }
+      { intro F.
+        assert (WF : WCore.wf X').
+        { eauto using wf_after_steps. }
+        assert (INIT : is_init x).
+        { apply (WCore.wf_gc_acts WF). split; ins.
+          apply (sub_E (WCore.wf_g_sub_gc WF)). ins. }
+        apply HREL3.
+        eapply init_events_after_steps with (X := X'') (X' := X').
+        all: eauto.
+        split; ins. }
+      { ins. }
+      red in HREL. unfolder in HREL. desf. }
+    apply total_order_from_list_l.
+    apply (SubToFullExecInternal.diff_sb DIFF1).
+    unfolder. splits; eauto.
+    apply (sub_sb SUB). unfolder. splits; ins. }
+  { rewrite set_union_minus with (s := acts_set G')
+                                 (s' := acts_set (WCore.G X'')) at 1.
+    all: ins.
+    rewrite set_minus_union_l, set_minus_disjoint.
+    all: ins.
+    unfolder. intros x y HREL. desf.
+    { apply total_order_from_list_r.
+      apply (SubToFullExecInternal.diff_rf DIFF2).
+      unfolder. splits; eauto.
+      intro F. eapply cmt_after_steps with (X := X) in F; eauto. }
+    { apply total_order_from_list_bridge.
+      { apply DIFF1. split; ins. }
+      apply DIFF2. split; ins. }
+    { exfalso. apply HREL1.
+      assert (IS_R : is_r (lab (WCore.G X'')) y).
+      { apply (wf_rfD WFEND) in HREL.
+        unfolder in HREL. desf.
+        arewrite (lab (WCore.G X'') = lab G'); ins.
+        apply SUB. }
+      destruct (WCore.wf_sub_rfD) with (X := X'') (x := y) as [RF | CMT].
+      all: eauto using wf_after_steps; try now split.
+      { exfalso. destruct RF as [x' RF]; ins.
+        apply (sub_rf SUB) in RF. unfolder in RF. desf.
+        apply HREL5.
+        rewrite (wf_rff WFEND) with (x := y) (y := x) (z := x').
+        all: ins. }
+      eapply cmt_after_steps with (X := X) in CMT; eauto. }
+    apply total_order_from_list_l.
+    apply (SubToFullExecInternal.diff_rf DIFF1).
+    unfolder. splits; eauto.
+    apply (sub_rf SUB). unfolder. splits; ins. }
+  rewrite set_union_minus with (s := acts_set G')
+                               (s' := acts_set (WCore.G X'')) at 1.
+  all: ins.
+  rewrite set_minus_union_l, set_minus_disjoint.
+  all: ins.
+  rewrite id_union, seq_union_r, dom_union.
+  intros x [DOM1 | DOM2].
+  { apply (SubToFullExecInternal.diff_rf_d DIFF2).
+    unfolder in DOM1. desf. }
+  unfolder in DOM2. desf.
+  apply (wf_rfE WFEND) in DOM2.
+  unfolder in DOM2. desf.
 Qed.
 
-Lemma rfc_endG_preserve_w (r w : actid) (G : execution) (e : actid)
-  : is_w (lab (rfc_endG r w G)) e = is_w (lab G) e.
-Proof using.
-  unfold rfc_endG, upd_rval, is_w in *; ins.
-  destruct (classic (e = r)) as [EQ|NEQ].
-  { subst; rewrite upds.
-    destruct (lab G r); auto. }
-  rewrite updo by assumption.
-  destruct (lab G r); auto.
-Qed.
-
-Lemma rfc_endG_preserve_f (r w : actid) (G : execution) (e : actid)
-  : is_f (lab (rfc_endG r w G)) e = is_f (lab G) e.
-Proof using.
-  unfold rfc_endG, upd_rval, is_f in *; ins.
-  destruct (classic (e = r)) as [EQ|NEQ].
-  { subst; rewrite upds.
-    destruct (lab G r); auto. }
-  rewrite updo by assumption.
-  destruct (lab G r); auto.
-Qed.
-
-Lemma rfc_endG_r_eq (r w : actid) (G : execution)
-  : is_r (lab (rfc_endG r w G)) ≡₁ is_r (lab G).
-Proof using.
-  unfolder; splits; intros.
-  all: now rewrite ?rfc_endG_preserve_r in *.
-Qed.
-
-Lemma rfc_endG_w_eq (r w : actid) (G : execution)
-  : is_w (lab (rfc_endG r w G)) ≡₁ is_w (lab G).
-Proof using.
-  unfolder; splits; intros.
-  all: now rewrite ?rfc_endG_preserve_w in *.
-Qed.
-
-Lemma rfc_endG_f_eq (r w : actid) (G : execution)
-  : is_f (lab (rfc_endG r w G)) ≡₁ is_f (lab G).
-Proof using.
-  unfolder; splits; intros.
-  all: now rewrite ?rfc_endG_preserve_f in *.
-Qed.
-
-Lemma rfc_endG_preserve_loc (e : actid) (r w : actid) (G : execution)
-  : loc (lab (rfc_endG r w G)) e = loc (lab G) e.
-Proof using.
-  unfold rfc_endG, upd_rval, loc. simpl.
-  destruct (classic (e = r)) as [EQ|NEQ].
-  { subst; rewrite upds.
-    destruct (lab G r); auto. }
-  rewrite updo by assumption.
-  destruct (lab G r); auto.
-Qed.
-
-Lemma rfc_endG_same_loc_eq (r w : actid) (G : execution)
-  : same_loc (lab (rfc_endG r w G)) ≡ same_loc (lab G).
-Proof using.
-  unfold same_loc; unfolder; splits; intros.
-  all: now rewrite ?rfc_endG_preserve_loc in *.
-Qed.
-
-Lemma rfc_endG_eqE (r w : actid) (G : execution)
-  : acts_set (rfc_endG r w G) ≡₁ acts_set G.
-Proof using.
-  unfold acts_set; unfold rfc_endG; simpl.
-  easy.
-Qed.
-
-Lemma rfc_endG_eqRex_bool (e : actid) (r w : actid) (G : execution)
-  : R_ex (lab (rfc_endG r w G)) e = R_ex (lab G) e.
-Proof using.
-  unfold rfc_endG, upd_rval, R_ex. simpl.
-  destruct (classic (e = r)) as [EQ|NEQ].
-  { subst; rewrite upds.
-    destruct (lab G r); auto. }
-  rewrite updo by assumption.
-  destruct (lab G r); auto.
-Qed.
-
-Lemma rfc_endG_eqRex (r w : actid) (G : execution)
-  : R_ex (lab (rfc_endG r w G)) ≡₁ R_ex (lab G).
-Proof using.
-  unfolder; splits; intros.
-  all: now rewrite ?rfc_endG_eqRex_bool in *.
-Qed.
-
-Lemma update_rf_ineq_l (r x y : actid) (G : execution)
-  (WF : Wf G) (RF : (rf G \ edges_to r) x y) (IS_READ : is_r (lab G) r) :
-  x <> r.
-Proof using.
-  destruct RF as [RF INEQ]. intro F; subst.
-  apply (wf_rfD WF) in RF.
-  unfolder in RF; desc.
-  unfold is_w, is_r in *; destruct (lab G r); auto.
-Qed.
-
-Lemma update_rf_ineq_r (r x y : actid) (G : execution)
-  (WF : Wf G) (RF : (rf G \ edges_to r) x y) (IS_READ : is_r (lab G) r) :
-  y <> r.
-Proof using.
-  destruct RF as [RF INEQ]. intro; subst.
-  apply INEQ; basic_solver.
-Qed.
-
-Lemma rfc_endG_wf (r w : actid) (G : execution) (WF : Wf G)
-  (R_MEM : acts_set G w)
-  (W_MEM : acts_set G r)
-  (R_READ : is_r (lab G) r)
-  (W_WRITE : is_w (lab G) w)
-  (W_R_SAME_LOC : same_loc (lab G) w r):
-  Wf (rfc_endG r w G).
-Proof using.
-  assert (SUB : rf G \ edges_to r ⊆ rf G) by basic_solver.
-  constructor; try now apply WF.
-  all: rewrite ?rfc_endG_r_eq, ?rfc_endG_w_eq, ?rfc_endG_f_eq, ?rfc_endG_eqRex.
-  all: rewrite ?rfc_endG_same_loc_eq, ?rfc_endG_eqE.
-  all: try solve [unfold rfc_endG; simpl; now apply WF].
-
-  { unfold rfc_endG; simpl.
-    rewrite seq_union_l, seq_union_r.
-    rewrite <- single_rel_compress by assumption.
-    now erewrite <- rel_compress_sub by (apply WF || eauto). }
-  { unfold rfc_endG; simpl.
-    rewrite seq_union_l, seq_union_r.
-    rewrite <- single_rel_compress by assumption.
-    now erewrite <- rel_compress_sub by (apply WF || eauto). }
-  { unfold rfc_endG; simpl.
-    set (HH := wf_rfl WF).
-    apply inclusion_union_l; basic_solver. }
-  { unfold rfc_endG; simpl. apply funeq_union.
-    { intros x y RF.
-      unfold val; simpl.
-      rewrite updo by (eapply update_rf_ineq_l; eauto).
-      rewrite updo by (eapply update_rf_ineq_r; eauto).
-      apply wf_rfv; basic_solver. }
-    intros x y [EQ EQ']. subst.
-    unfold val; simpl.
-    rewrite upds. unfold is_r, is_w in *.
-    destruct (lab G r) eqn:HEQ1; destruct (lab G w) eqn:HEQ2.
-    all: try easy; simpl.
-    rewrite updo by (intro F; subst; congruence).
-    now rewrite HEQ2. }
-  { unfold rfc_endG; simpl.
-    rewrite transp_union. apply functional_union.
-    { eapply functional_mori; unfold flip; eauto using wf_rff, transp_mori. }
-    { basic_solver. }
-    unfolder; intros e [y [RF F]] [y' [EQ1 EQ2]]; subst.
-    apply F; eauto. }
-  { intro ol.
-    rewrite rfc_endG_w_eq, rfc_endG_eqE.
-    enough (HEQ :
-      (fun x : actid => loc _ x = ol) ≡₁
-      (fun x : actid => loc _ x = ol)
-    ) by (rewrite HEQ; unfold rfc_endG; simpl; apply WF).
-    unfold same_loc; unfolder; splits; intros.
-    all: now rewrite ?rfc_endG_preserve_loc in *. }
-  { intros l [e [INACT LOC]].
-    apply rfc_endG_eqE in INACT.
-    rewrite rfc_endG_preserve_loc in LOC.
-    apply WF; eauto. }
-  unfold rfc_endG; simpl. intros l.
-  enough (HNEQ: InitEvent l <> r) by (rewrite updo; apply WF || auto).
-  intro F; subst. eapply read_or_fence_is_not_init; eauto.
-Qed.
-
-Lemma rf_change_step_wf w r (X X' : t)
-  (WF : wf X) (STEP : rf_change_step w r X X')
-  : wf X'.
-Proof using.
-  unfold rf_change_step in STEP. destruct STEP as (G'' & sc & CONDS).
-  desc. constructor.
-  { erewrite rfc_G by eassumption.
-    apply rfc_endG_wf.
-    all: try now (erewrite sub_lab; apply RFC).
-    { eapply rfc_imG_wf; eauto.
-      apply WF. }
-    { eapply rfc_acts; eauto. unfolder; splits.
-      { eapply rfc_act_w; eauto. }
-      intros (r' & r'' & ((EQ & EQ') & PORF)); subst r''; subst r'.
-      admit. }
-    eapply rfc_acts; eauto. unfolder; splits.
-    { eapply rfc_act_r; eauto. }
-    admit. }
-  { rewrite (rfc_G RFC), CONTINUATION.
-    intros e INIT ACT NRMW.
-    apply rfc_endG_eqE in ACT.
-    unfold rfc_endG in NRMW; simpl in NRMW.
-    unfold rfc_new_cont.
-    edestruct (excluded_middle_informative _).
-    { exfalso.
-      apply (rfc_acts RFC) in ACT.
-      now apply ACT. }
-    apply set_subset_eq with (P := set_compl _) (a := e) in NRMW.
-    rewrite (sub_rmw (rfc_sub RFC)) in NRMW.
-    rewrite dom_eqv1, set_compl_inter in NRMW.
-    destruct (NRMW e) as [MEM | DOM]; try (auto || basic_solver).
-    (* NOW prove that the right half of RMW didn't get cut *)
-    admit. }
-  { intros tid HTHREAD.
-    rewrite CONTINUATION. unfold rfc_new_cont.
-    apply WF.
-    enough (HEQ : threads_set (G X') ≡₁ threads_set (G X)) by now apply HEQ.
-    rewrite (rfc_G RFC).
-    unfold rfc_endG; simpl.
-    (* TODO G'' and (G X) have same thread sets *)
-    admit. }
-  { rewrite NCOMMITIDS.
-    apply set_size_inf_union.
-    apply WF. }
-  { intros cid NON_CMT.
-    apply NCOMMITIDS in NON_CMT.
-    rewrite COMMIT_ENTRIES; unfold rfc_new_commit_entries.
-    edestruct (excluded_middle_informative _); auto.
-    apply WF; unfolder in NON_CMT; basic_solver. }
-  intros cid ENTRY.
-  rewrite COMMIT_ENTRIES in ENTRY. unfold rfc_new_commit_entries in ENTRY.
-  apply NCOMMITIDS.
-  edestruct (excluded_middle_informative _); try basic_solver.
-  left. now apply WF.
-Admitted.
-
-Lemma reexec_step_wf w r (X X' : t)
-  (WF : wf X) (STEP : reexec_step w r X X') : wf X'.
-Proof using.
-  cdes STEP.
-  assert (WF'' : wf X'').
-  { eapply rf_change_step_wf; eauto. }
-  clear - RESTORE WF''. induction RESTORE; eauto.
-  eapply add_step_wf; eauto.
-Qed. *)
+End Steps.

@@ -13,6 +13,8 @@ From imm Require Import imm_s_hb.
 From imm Require Import imm_bob.
 From imm Require Import imm_s.
 From imm Require Import SubExecution.
+From imm Require Import FinExecution.
+From imm Require Import FinThreads.
 
 From RecordUpdate Require Import RecordSet.
 (* Import RecordSetNotations. *)
@@ -118,6 +120,7 @@ Notation "'E'" := (acts_set G).
   to do with the actual model in question.
 *)
 Record wf_struct : Prop := {
+  wstru_fin_threads : fin_threads GC;
   wstru_cc_ctrl_empty : ctrlc ≡ ∅₂;
   wstru_struct_cc_addr_empty : addrc ≡ ∅₂;
   wstru_cc_data_empty : datac ≡ ∅₂;
@@ -142,25 +145,9 @@ Record wf_props := {
   wprop_sub_rfW : cmt ∩₁ R ⊆₁ codom_rel (⦗cmt⦘ ⨾ rfc);
 }.
 
-(* TODO: replace this with `wf_struct /\ wf_props`? *)
-Record wf : Prop := {
-  cc_ctrl_empty : ctrlc ≡ ∅₂;
-  cc_addr_empty : addrc ≡ ∅₂;
-  cc_data_empty : datac ≡ ∅₂;
-
-  wf_gc : Wf GC;
-  wf_scc : wf_sc GC sc;
-  wf_g_init : EC ∩₁ is_init ⊆₁ E;
-  wf_gc_acts : (tid ↓₁ eq tid_init) ∩₁ EC ⊆₁ is_init;
-
-  C_sub_EC : cmt ⊆₁ EC;
-  sub_sb : restr_rel (cmt ∩₁ E) sbc ⊆ sb;
-  sub_rf : restr_rel (cmt ∩₁ E) rfc ⊆ rf;
-  sub_rfD : E ∩₁ R ⊆₁ codom_rel rf ∪₁ cmt;
-  sub_rfW : cmt ∩₁ R ⊆₁ codom_rel (⦗cmt⦘ ⨾ rfc);
-
-  pfx : exec_prefix GC G;
-}.
+Definition wf : Prop :=
+  << STRUCT : wf_struct >> /\
+  << PROPS : wf_props >>.
 
 Lemma wf_iff_struct_and_props :
   wf <-> << STRUCT : wf_struct >> /\ << PROPS : wf_props >>.
@@ -168,7 +155,86 @@ Proof using.
   split; [intros WF | intros STRUPROPS].
   { split; constructor; ins; apply WF. }
   constructor; ins; try apply STRUPROPS.
-  constructor; ins; apply STRUPROPS.
+Qed.
+
+Lemma wf_cc_ctrl_empty (WF : wf) : ctrlc ≡ ∅₂.
+Proof using.
+  apply WF.
+Qed.
+
+Lemma wf_cc_addr_empty (WF : wf) : addrc ≡ ∅₂.
+Proof using.
+  apply WF.
+Qed.
+
+Lemma wf_cc_data_empty (WF : wf) : datac ≡ ∅₂.
+Proof using.
+  apply WF.
+Qed.
+
+Lemma wf_gc (WF : wf) : Wf GC.
+Proof using.
+  apply WF.
+Qed.
+
+Lemma wf_scc (WF : wf) : wf_sc GC sc.
+Proof using.
+  apply WF.
+Qed.
+
+Lemma wf_g_init (WF : wf) : EC ∩₁ is_init ⊆₁ E.
+Proof using.
+  apply WF.
+Qed.
+
+Lemma wf_gc_acts (WF : wf) : (tid ↓₁ eq tid_init) ∩₁ EC ⊆₁ is_init.
+Proof using.
+  apply WF.
+Qed.
+
+Lemma wf_g_sub_gc (WF : wf) : sub_execution GC G ∅₂ ∅₂.
+Proof using.
+  apply WF.
+Qed.
+
+Lemma wf_C_sub_EC (WF : wf) : cmt ⊆₁ EC.
+Proof using.
+  apply WF.
+Qed.
+
+Lemma wf_sub_sb (WF : wf) : restr_rel (cmt ∩₁ E) sbc ⊆ sb.
+Proof using.
+  apply WF.
+Qed.
+
+Lemma wf_sub_rf (WF : wf) : restr_rel (cmt ∩₁ E) rfc ⊆ rf.
+Proof using.
+  apply WF.
+Qed.
+
+Lemma wf_sub_rfD (WF : wf) : E ∩₁ R ⊆₁ codom_rel rf ∪₁ cmt.
+Proof using.
+  apply WF.
+Qed.
+
+Lemma wf_sub_rfW (WF : wf) : cmt ∩₁ R ⊆₁ codom_rel (⦗cmt⦘ ⨾ rfc).
+Proof using.
+  apply WF.
+Qed.
+
+Lemma wf_fin_threads (WF : wf) : fin_threads GC.
+Proof using.
+  apply WF.
+Qed.
+
+Lemma wf_g_cont (WF : wf) : contigious_actids G.
+Proof using.
+  apply WF.
+Qed.
+
+Lemma wf_gc_cont (WF : wf) : contigious_actids GC.
+Proof using.
+  apply WF.
 Qed.
 
 End CoreDefs.
@@ -234,26 +300,52 @@ Definition new_event_correct e : Prop :=
     exists tr, traces (tid e) tr /\ trace_prefix (trace_fin (l ++ [lab' e])) tr
   end.
 
-Record cfg_add_event_gen e r w W1 W2 :=
-{ e_notin : ~(E e);
-  e_notinit : ~ is_init e;
-  e_new : E' ≡₁ E ∪₁ (eq e);
-  e_correct : new_event_correct e;
-
-  cmt_graph_same : GC' = GC;
-
-  (* Skipping condition for sb *)
-  rf_new : rf G' ≡ rf G ∪ rf_delta_R GC e w ∪ rf_delta_W GC e (cmt ∩₁ E);
-  co_new : co G' ≡ co G ∪ co_delta GC e W1 W2;
-  rmw_new : rmw G' ≡ rmw G ∪ rmw_delta GC e r;
-
-  wf_new_conf : wf X';
+Record cfg_add_event_struct e :=
+{ caes_e_new : E' ≡₁ E ∪₁ (eq e);
+  caes_e_notin : ~(E e);
+  caes_e_notinit : ~ is_init e;
+  caes_cmt_graph_same : GC' = GC;
+  caes_cmt_smae : cmt' ≡₁ cmt;
 }.
 
-Definition cfg_add_event (e : actid) :=
-  exists r w W1 W2, cfg_add_event_gen e r w W1 W2.
+Record cfg_add_event_props e r w W1 W2 :=
+{ caep_rf_new : rf G' ≡ rf G ∪ rf_delta_R GC e w ∪ rf_delta_W GC e (cmt ∩₁ E);
+  caep_co_new : co G' ≡ co G ∪ co_delta GC e W1 W2;
+  caep_rmw_new : rmw G' ≡ rmw G ∪ rmw_delta GC e r;
+}.
+
+Definition cfg_add_event e :=
+  exists r w W1 W2,
+    << STRUCT : cfg_add_event_struct e >> /\
+    << PROPS : cfg_add_event_props e r w W1 W2 >> /\
+    << TRACE : new_event_correct e >> /\
+    << WF_NEW : wf X' >>.
 
 Definition cfg_add_event_uninformative := exists e, cfg_add_event e.
+
+Lemma cae_e_new e (STEP : cfg_add_event e) :
+  E' ≡₁ E ∪₁ (eq e).
+Proof using.
+  red in STEP. desf. apply STRUCT.
+Qed.
+
+Lemma cae_e_notin e (STEP : cfg_add_event e) :
+  ~(E e).
+Proof using.
+  red in STEP. desf. apply STRUCT.
+Qed.
+
+Lemma cae_e_notinit e (STEP : cfg_add_event e) :
+  ~is_init e.
+Proof using.
+  red in STEP. desf. apply STRUCT.
+Qed.
+
+Lemma cae_wf e (STEP : cfg_add_event e) :
+  wf X'.
+Proof using.
+  red in STEP. desf.
+Qed.
 
 End CfgAddEventStep.
 
@@ -340,7 +432,7 @@ Definition reexec_start dtrmt := Build_execution
 
 Record reexec_gen f dtrmt : Prop :=
 { (* Correct start *)
-  newlab_correct : forall e, dtrmt e -> lab' e = lab e;
+  newlab_correct : forall e (DTRMT : dtrmt e), lab' e = lab e;
   rfre_racy : rfre ⊆ re;
   dtrmt_not_reexec : dtrmt ⊆₁ E \₁ codom_rel (⦗Rre⦘ ⨾ (sb ∪ rf)＊);
   dtrmt_cmt : dtrmt ⊆₁ (f_cmt f);
@@ -352,7 +444,7 @@ Record reexec_gen f dtrmt : Prop :=
   reexec_embd_sbrfe : Some ↓ (f ↑ restr_rel (f_cmt f) sb_rf') ⊆
                       restr_rel (Some ↓₁ (f ↑₁ (f_cmt f))) sb_rfre;
   (* Reproducable steps *)
-  reexec_start_wf : wf (Build_t sc G G' (f_cmt f));
+  reexec_start_wf : wf (Build_t sc (reexec_start dtrmt) G' (f_cmt f));
   reexec_steps : (cfg_add_event_uninformative traces)＊
     (Build_t sc (reexec_start dtrmt) G' (f_cmt f))
     (Build_t sc G'                   G' (f_cmt f));
@@ -384,20 +476,50 @@ Notation "'rf'" := (rf G).
 Notation "'EC'" := (acts_set GC).
 Notation "'E'" := (acts_set G).
 
+Lemma wf_gc_fin_exec : fin_exec GC.
+Proof using WF.
+  red.
+  set (T := threads_set GC \₁ eq tid_init).
+  arewrite (EC \₁ is_init ≡₁ ⋃₁t ∈ T, EC ∩₁ (fun x => t = tid x)).
+  { subst T. split; intros x HSET.
+    { destruct HSET as [XE XINI]. unfolder. exists (tid x).
+      splits; ins; try now apply WF.
+      intro F. apply XINI. apply WF.
+      unfolder. now split. }
+    unfolder in HSET. desf.
+    split; ins. intro F. apply HSET2.
+    destruct x; ins. }
+  apply set_finite_bunion; subst T.
+  { eapply set_finite_mori; try now apply WF.
+    red. basic_solver. }
+  intros t (THR & NINIT).
+  assert (NINIT' : t <> tid_init); eauto.
+  destruct (wf_gc_cont WF NINIT') as [N EQ].
+  rewrite EQ. apply set_size_finite.
+  eexists. apply thread_seq_set_size.
+Qed.
+
+Lemma wf_g_fin_exec : fin_exec G.
+Proof using WF.
+  red. eapply set_finite_mori with (x := EC \₁ is_init).
+  { red. apply set_minus_mori; [apply WF | basic_solver]. }
+  apply wf_gc_fin_exec.
+Qed.
+
+Lemma g_acts_fin_enum :
+  exists l,
+    << NODUP : NoDup l >> /\
+    << ELEMS : E \₁ is_init ≡₁ fun x => In x l >>.
+Proof using WF.
+  set (HFIN := wf_g_fin_exec).
+  apply set_finiteE in HFIN.
+  desf.
+Qed.
+
 Lemma wf_g : Wf G.
 Proof using WF.
   eapply sub_WF; try now apply WF.
   rewrite set_interC; apply WF.
-Qed.
-
-Lemma wf_g_cont : contigious_actids G.
-Proof using WF.
-  apply WF.
-Qed.
-
-Lemma wf_gc_cont : contigious_actids GC.
-Proof using WF.
-  apply WF.
 Qed.
 
 Lemma wf_g_acts : (tid ↓₁ eq tid_init) ∩₁ E ⊆₁ is_init.
@@ -421,7 +543,7 @@ Lemma wf_set_sz thr N
     (SZ_EQ : set_size (E ∩₁ (fun e => thr = tid e)) = NOnum N) :
   E ∩₁ (fun e => thr = tid e) ≡₁ thread_seq_set thr N.
 Proof using WF.
-  set (HEQ := wf_g_cont NOT_INIT). desf.
+  set (HEQ := wf_g_cont WF NOT_INIT). desf.
   rewrite HEQ in *.
   now apply thread_seq_N_eq_set_size.
 Qed.
@@ -440,7 +562,7 @@ Lemma all_trace_fin t
     (NOT_INIT : t <> tid_init) :
   trace_finite (thread_trace G t).
 Proof using WF.
-  set (CONT := wf_g_cont NOT_INIT). desf.
+  set (CONT := wf_g_cont WF NOT_INIT). desf.
   unfold thread_trace, trace_finite.
   eexists. erewrite thread_actid_trace_form; eauto.
   ins.
@@ -481,16 +603,8 @@ Lemma add_step_event_set e
   (E' ∩₁ set_compl is_init) e.
 Proof using.
   red in ADD_STEP. desf.
-  split; try apply ADD_STEP.
+  split; try apply STRUCT.
   now right.
-Qed.
-
-Lemma new_conf_wf e
-    (ADD_STEP : cfg_add_event traces X X' e) :
-  wf X'.
-Proof using.
-  red in ADD_STEP. desf.
-  apply ADD_STEP.
 Qed.
 
 (* Lemma new_event_max_sb e
@@ -517,11 +631,8 @@ Lemma same_lab e
   lab' = lab.
 Proof using.
   red in ADD_STEP. desf.
-  erewrite sub_lab with (G' := G)  (G := GC),
-           sub_lab with (G' := G') (G := GC').
-  { f_equal; apply ADD_STEP. }
-  { apply ADD_STEP. }
-  apply WF.
+  erewrite (sub_lab (wf_g_sub_gc WF)), (sub_lab (wf_g_sub_gc WF_NEW)).
+  f_equal. apply STRUCT.
 Qed.
 
 Lemma add_step_trace_eq e N
@@ -534,11 +645,11 @@ Proof using.
   assert (SAME : lab' = lab) by (eapply same_lab; eauto).
   red in ADD_STEP. desf.
   eapply add_event_to_trace.
-  all: try now apply ADD_STEP.
-  { eapply wf_actid_tid; apply ADD_STEP; now right. }
-  { now rewrite updI. }
-  { apply SZ_EQ. }
-  apply WF.
+  all: try now apply STRUCT.
+  all: eauto using wf_g_cont.
+  all: try now rewrite updI.
+  eapply (wf_actid_tid WF_NEW); try apply STRUCT.
+  now right.
 Qed.
 
 Lemma add_step_new_event_correct e
@@ -547,7 +658,7 @@ Lemma add_step_new_event_correct e
     trace_prefix (trace_app (thread_trace G (tid e)) (trace_fin [lab' e])) tr.
 Proof using.
   red in ADD_STEP. desf.
-  generalize (e_correct ADD_STEP).
+  generalize TRACE.
   unfold new_event_correct. desf.
 Qed.
 
@@ -569,15 +680,12 @@ Proof using.
   { now rewrite NO_CHANGE. }
   unfold thread_trace. erewrite same_lab; eauto.
   f_equal. red in ADD_STEP; desf.
-  unfold thread_actid_trace. rewrite ADD_STEP.(e_new).
-  rewrite set_inter_union_l.
+  unfold thread_actid_trace.
+  rewrite (caes_e_new STRUCT), set_inter_union_l.
   arewrite (eq e ∩₁ (fun x => thr = tid x) ≡₁ ∅); [basic_solver |].
   now rewrite set_union_empty_r.
 Qed.
 
 End WCoreStepProps.
-
-Global Hint Resolve new_conf_wf add_step_trace_coh :
-  xmm.
 
 End WCore.

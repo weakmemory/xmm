@@ -17,6 +17,8 @@ From imm Require Import imm_bob.
 From imm Require Import SubExecution.
 From imm Require Import CombRelations.
 
+Set Implicit Arguments.
+
 Module SubToFullExecInternal.
 
 Section DeltaGraph.
@@ -111,11 +113,11 @@ Proof using.
     eapply NEW, ext_sb_dense; eauto; [apply WF |].
     enough (SB : sb' x y); try now apply wf_rmwi; ins.
     unfold sb in SB; unfolder in SB; desf. }
-  { rewrite (WCore.cc_data_empty WF).
+  { rewrite (WCore.wf_cc_data_empty WF).
     now rewrite seq_false_l, seq_false_r. }
-  { rewrite (WCore.cc_addr_empty WF).
+  { rewrite (WCore.wf_cc_addr_empty WF).
     now rewrite seq_false_l, seq_false_r. }
-  { rewrite (WCore.cc_ctrl_empty WF).
+  { rewrite (WCore.wf_cc_ctrl_empty WF).
     now rewrite seq_false_l, seq_false_r. }
   { rewrite (sub_rf SUB), <- !restr_relE, restr_set_union.
     erewrite restr_irrefl_eq, union_false_r; eauto using rf_irr. }
@@ -148,9 +150,9 @@ Lemma delta_G_cont_ids
   contigious_actids delta_G.
 Proof using.
   assert (NINIT : ~is_init h).
-  { intro F. apply NIN, WF.(WCore.wf_g_init). ins. }
+  { intro F. apply NIN, (WCore.wf_g_init WF). ins. }
   assert (NINIT' : tid h <> tid_init).
-  { intro F. apply NINIT. apply WF.(WCore.wf_gc_acts).
+  { intro F. apply NINIT, (WCore.wf_gc_acts WF).
     unfolder. ins. }
   eapply add_event_to_contigious; eauto; ins.
   { apply WF. }
@@ -282,7 +284,7 @@ Lemma diff_no_init l
   E' \₁ E ⊆₁ set_compl is_init.
 Proof.
   unfolder. intros x [INE' NOTINE] INIT.
-  apply NOTINE, WF.(WCore.wf_g_init); ins.
+  apply NOTINE, (WCore.wf_g_init WF); ins.
 Qed.
 
 Lemma enumd_deltaG_prefix h t
@@ -296,7 +298,7 @@ Proof using.
   all: try now apply IN_D.
   intro F. enough (INIT : is_init h).
   { eapply diff_no_init; eauto. }
-  apply WF.(WCore.wf_gc_acts). unfolder. ins.
+  apply (WCore.wf_gc_acts WF). unfolder. ins.
   split; auto; apply IN_D.
 Qed.
 
@@ -340,7 +342,7 @@ Proof using.
   assert (NIRID : tid h <> tid_init).
   { intro F.
     eapply diff_no_init with (x := h) (l := h :: t); ins.
-    apply WF.(WCore.wf_gc_acts). unfolder; split; ins.
+    apply (WCore.wf_gc_acts WF). unfolder; split; ins.
     apply IN_D. }
   assert (DCOH : trace_coherent traces (delta_G G G' h)).
   { eapply trace_coherent_sub; eauto.
@@ -444,7 +446,7 @@ Lemma X_prime_wf_helper
     (WF_fin : WCore.wf X_fin) :
   WCore.wf X'.
 Proof using.
-  constructor; ins.
+  constructor; ins; constructor; ins.
   all: try now (eapply enumd_deltaG_prefix; eauto).
   all: try rewrite delta_G_sb; auto.
   all: try now apply WF.
@@ -453,6 +455,7 @@ Proof using.
   all: try rewrite !restr_relE.
   all: repeat apply union_mori; try apply seq_restr_helper.
   all: eauto using set_subset_inter_l, set_subset_inter_r.
+  { eapply delta_G_cont_ids, enumd_head_most_sb; eauto. }
   { transitivity E; [apply WF | basic_solver]. }
   { erewrite sub_sb with (G := G') (G' := G); try now apply WF.
     apply seq_restr_helper; eauto using set_subset_inter_l,
@@ -469,7 +472,7 @@ Proof using.
   intros h' (HEQH & IS_R); subst h'.
   tertium_non_datur (cmt h) as [CMT|NCMT].
   { now right. }
-  destruct (WF_fin.(WCore.sub_rfD)) with (x := h) as [RF|CMT].
+  destruct (WCore.wf_sub_rfD WF_fin) with (x := h) as [RF|CMT].
   all: ins; try now right.
   { split; ins; replace lab' with lab; [ins | apply WF]. }
   destruct RF as [w RF]. do 2 left. right.
@@ -503,9 +506,8 @@ Proof using.
   { unfold is_w in *. desf. }
   (* Proof of step *)
   exists h, None, (Some w), ∅, ∅.
-  constructor; ins.
+  splits; [constructor | constructor | |]; ins.
   { apply IN_D. }
-  { eapply enumd_deltaG_new_event_correct; eauto. }
   { unfold WCore.rf_delta_W. rewrite H_IS_NW.
     arewrite (singl_rel w h ∩ W' × R' ≡ singl_rel w h).
     { rewrite inter_absorb_r; ins.
@@ -522,6 +524,7 @@ Proof using.
     rewrite wf_coD with (G := G'); [basic_solver | apply WF]. }
   { unfold WCore.rmw_delta, W_ex.
     rewrite wf_rmwD with (G := G'); [basic_solver | apply WF]. }
+  { eapply enumd_deltaG_new_event_correct; eauto. }
   apply X_prime_wf_helper; auto; apply IN_D.
 Qed.
 
@@ -552,9 +555,8 @@ Proof using.
     { destruct RF as (w & w' & (EQ & INE) & RF); subst w'.
       eapply step_once_read_helper; eauto. }
     exists h, None, None, ∅, ∅.
-    constructor; ins.
+    splits; [constructor | constructor | |]; ins.
     { apply IN_D. }
-    { eapply enumd_deltaG_new_event_correct; eauto. }
     { unfold WCore.rf_delta_W. rewrite H_IS_NW.
       arewrite (⦗E⦘ ⨾ rf' ⨾ ⦗eq h⦘ ≡ ∅₂).
       { split; [| basic_solver].
@@ -566,9 +568,10 @@ Proof using.
       rewrite wf_coD with (G := G'); [basic_solver | apply WF]. }
     { unfold WCore.rmw_delta, W_ex.
       rewrite wf_rmwD with (G := G'); [basic_solver| apply WF]. }
+    { eapply enumd_deltaG_new_event_correct; eauto. }
     apply X_prime_wf_helper; eauto; apply IN_D. }
   (* Case 2: ~cmt h *)
-  edestruct (WF'.(WCore.sub_rfD)) as [[w RF] | CMT']; ins.
+  edestruct (WCore.wf_sub_rfD WF') as [[w RF] | CMT']; ins.
   { ins. split; eauto. apply IN_D. }
   all: ins.
   eapply step_once_read_helper; eauto.
@@ -594,7 +597,7 @@ Proof using.
   unfold sb in RMW. unfolder in RMW; desf.
   assert (IN_D : (E' \₁ E) h).
   { apply ENUM; desf. }
-  destruct (pfx_cont2 (WCore.pfx WF) HTID) as [N HEQ].
+  destruct (WCore.wf_g_cont WF HTID) as [N HEQ].
   erewrite added_event_to_contigious with (G' := delta_G G G' h)
                                           (N := N) (G := G) in RMW0.
   all: ins; try now apply IN_D.
@@ -618,7 +621,8 @@ Proof using.
     apply wf_rfD in RF; [unfolder in RF; desf | apply WF]. }
   assert (SUBRF : rf ⊆ rf').
   { rewrite sub_rf with (G := G'); [basic_solver | apply WF]. }
-  splits; auto. edestruct (WCore.sub_rfD) as [RF'|CMT]; eauto; ins.
+  splits; auto.
+  edestruct (WCore.wf_sub_rfD WF) as [RF'|CMT]; eauto; ins.
   destruct RF' as [h' RF']. exfalso. apply NIN.
   erewrite wf_rff with (G := G') (x := r)
                        (y := h) (z := h').
@@ -657,7 +661,8 @@ Proof using.
   (* Case 2: no rmw *)
   tertium_non_datur (codom_rel rmw' h) as [[r RMW] | NRMW];
     [exists h, (Some r), None, W1, W2 | exists h, None, None, W1, W2].
-  all: subst W1 W2; constructor; ins.
+  all: subst W1 W2.
+  all: splits; [constructor | constructor | |]; ins.
   all: try now apply IN_D.
   all: try now (eapply enumd_deltaG_new_event_correct; eauto).
   all: try now (apply X_prime_wf_helper; eauto; apply IN_D).
@@ -706,9 +711,8 @@ Proof using.
   { unfold is_w in *. desf. }
 
   exists h, None, None, ∅, ∅.
-  constructor; ins.
+  splits; [constructor | constructor | |]; ins.
   { apply IN_D. }
-  { eapply enumd_deltaG_new_event_correct; eauto. }
   { apply union_more; [apply union_more; auto |].
     { rewrite wf_rfD; [basic_solver | apply WF]. }
     unfold WCore.rf_delta_W. rewrite HIS_NW.
@@ -720,6 +724,7 @@ Proof using.
   { apply union_more; auto. unfold WCore.rmw_delta.
     rewrite wf_rmwD; try now apply WF.
     basic_solver. }
+  { eapply enumd_deltaG_new_event_correct; eauto. }
   apply X_prime_wf_helper; eauto; apply IN_D.
 Qed.
 
@@ -765,7 +770,7 @@ Proof using.
   { eapply SubToFullExecInternal.step_once; eauto. }
   eapply rt_trans; [apply rt_step; eauto | ].
   red in STEP; desf.
-  apply IHl; [eapply WCore.new_conf_wf; eauto |].
+  apply IHl; [eapply WCore.cae_wf; eauto |].
   constructor; ins.
   { eapply nodup_consD, ENUM. }
   { rewrite set_minus_union_r, SubToFullExecInternal.diff_elems,
@@ -790,5 +795,152 @@ Proof using.
   eapply SubToFullExecInternal.diff_rf_d; eauto.
   eapply dom_rel_mori; eauto; basic_solver.
 Qed.
+
+Lemma sub_to_full_exec_sort sc G G' cmt l tord
+    (WF : WCore.wf {|
+      WCore.sc := sc;
+      WCore.G := G;
+      WCore.GC := G';
+      WCore.cmt := cmt
+    |})
+    (OTOT : strict_total_order ⊤₁ tord)
+    (ORB : min_elt tord tid_init)
+    (ORDRF : restr_rel (acts_set G' \₁ acts_set G)
+              (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ⊆ tid ↓ tord)
+    (ENUM : SubToFullExecInternal.enumd_diff G G' cmt l) :
+  exists l',
+    << SORT : StronglySorted (tid ↓ tord ∪ ext_sb) l' >> /\
+    << ENUM : SubToFullExecInternal.enumd_diff G G' cmt l' >>.
+Proof using.
+  destruct partial_order_included_in_total_order
+    with actid (tid ↓ tord ∪ ext_sb)
+    as (sord & SUB & TOT).
+  { unfolder; split.
+    { intros x HREL. desf.
+      { eapply OTOT. eauto. }
+      eapply ext_sb_irr. eauto. }
+    unfolder in OTOT.
+    intros x y z R1 R2. desf.
+    all: eauto using ext_sb_trans.
+    all: destruct x as [xl | xt xn],
+                  y as [yl | yt yn],
+                  z as [zl | zt zn]; ins.
+    all: eauto.
+    all: try now (exfalso; eapply ORB; eauto).
+    all: desf; eauto. }
+  assert (DIFF : acts_set G' \₁ acts_set G ≡₁
+            fun x => In x (isort sord l)).
+  { rewrite (SubToFullExecInternal.diff_elems ENUM).
+    unfolder. split; intros x HSET.
+    all: eapply in_isort_iff; eauto. }
+  assert (SORT : StronglySorted sord (isort sord l)).
+  { apply StronglySorted_isort, ENUM; ins. }
+  exists (isort sord l). split.
+  { apply StronglySorted_sub with sord.
+    all: eauto.
+    unfolder in OTOT. desf.
+    unfolder. splits.
+    { intros x HREL; desf; eauto.
+      eapply ext_sb_irr; eauto. }
+    { intros x y z R1 R2. desf; eauto using ext_sb_trans.
+      all: destruct x as [xl | xt xn],
+                    y as [yl | yt yn],
+                    z as [zl | zt zn]; ins.
+      all: eauto.
+      all: try now (exfalso; eapply ORB; eauto).
+      all: desf; eauto. }
+    intros x XIN y YIN NEQ.
+    apply DIFF in XIN, YIN.
+    assert (XINIT : ~is_init x).
+    { eapply SubToFullExecInternal.diff_no_init; eauto. }
+    assert (YINIT : ~is_init y).
+    { eapply SubToFullExecInternal.diff_no_init; eauto. }
+    destruct x as [xl | xt xn],
+             y as [yl | yt yn]; ins.
+    destruct (classic (xt = yt)) as [TEQ|TNEQ]; subst.
+    { destruct NPeano.Nat.lt_total with xn yn as [LT | [EQ | LT]]; eauto.
+      congruence. }
+    destruct OTOT0 with xt yt; eauto. }
+  constructor; ins.
+  { apply NoDup_StronglySorted with (r := sord).
+    { apply TOT. }
+    apply StronglySorted_isort, ENUM; ins. }
+  { intros x y (SB & DOM & CODOM).
+    apply DIFF in DOM, CODOM.
+    apply total_order_from_isort; ins.
+    { apply ENUM. }
+    unfolder; splits.
+    all: try now eapply in_isort_iff; eauto.
+    apply SUB. right.
+    red in SB. unfolder in SB. desf. }
+  { intros x y (y' & (RF & DOM & CODOM) & EQ & NCMT).
+    subst y'. apply DIFF in DOM, CODOM.
+    apply total_order_from_isort; ins.
+    { apply ENUM. }
+    unfolder; splits.
+    all: try now eapply in_isort_iff; eauto.
+    apply SUB. left.
+    apply ORDRF.
+    apply DIFF in DOM, CODOM.
+    split; eauto.
+    exists y; unfolder; eauto. }
+  apply ENUM.
+Qed.
+
+Lemma sub_to_full_exec_sort_part sc G G' cmt l tord
+    (WF : WCore.wf {|
+      WCore.sc := sc;
+      WCore.G := G;
+      WCore.GC := G';
+      WCore.cmt := cmt
+    |})
+    (OPA : strict_partial_order tord)
+    (ORB : min_elt tord tid_init)
+    (ORDRF : restr_rel (acts_set G' \₁ acts_set G)
+              (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ⊆ tid ↓ tord)
+    (ENUM : SubToFullExecInternal.enumd_diff G G' cmt l) :
+  exists l',
+    << SORT : restr_rel (fun x => In x l) (tid ↓ tord ∪ sb G') ⊆ total_order_from_list l' >> /\
+    << ENUM : SubToFullExecInternal.enumd_diff G G' cmt l' >>.
+Proof using.
+  destruct partial_order_included_in_total_order
+    with thread_id tord
+    as (tord' & SUB & TOT).
+  { admit. }
+  set (tord'' := restr_rel (fun x => x <> tid_init) tord' ∪
+                 (fun x y => x = tid_init /\ y = tid_init)).
+  edestruct sub_to_full_exec_sort with (tord := tord'')
+                                    as (l' & SORT & ENUM').
+  all: eauto.
+  { admit. }
+  { admit. }
+  { admit. }
+  exists l'; split; ins. red.
+  rewrite total_order_from_sorted with (ord := tid ↓ tord'' ∪ ext_sb).
+  all: ins.
+  { subst tord''.
+    rewrite <- (SubToFullExecInternal.diff_elems ENUM'),
+            <- (SubToFullExecInternal.diff_elems ENUM).
+    unfolder. intros x y HREL.
+    assert (XINIT : ~is_init x).
+    { eapply SubToFullExecInternal.diff_no_init; eauto.
+      unfolder; desf. }
+    assert (YINIT : ~is_init y).
+    { eapply SubToFullExecInternal.diff_no_init; eauto.
+      unfolder; desf. }
+    assert (XINIT' : tid x <> tid_init).
+    { intro F. apply XINIT.
+      apply WF. ins. unfolder.
+      split; ins; desf. }
+    assert (YINIT' : tid y <> tid_init).
+    { intro F. apply YINIT.
+      apply WF. ins. unfolder.
+      split; ins; desf. }
+    desf; splits; ins; eauto.
+    { apply SUB in HREL. eauto. }
+    red in HREL. unfolder in HREL. desf.
+    eauto. }
+  admit.
+Admitted.
 
 End SubToFullExec.
