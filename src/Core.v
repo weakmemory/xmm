@@ -432,7 +432,7 @@ Record reexec_gen f thrdle dtrmt : Prop :=
 { (* Correct start *)
   newlab_correct : forall e (DTRMT : dtrmt e), lab' e = lab e;
   dtrmt_cmt : dtrmt ⊆₁ (f_cmt f);
-  reexec_sur : forall r w, stable_uncmt_reads_gen f r w;
+  reexec_sur : stable_uncmt_reads_gen f thrdle;
   (* Correct embedding *)
   reexec_embd_corr : correct_embeding f;
   (* Reproducable steps *)
