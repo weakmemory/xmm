@@ -1217,8 +1217,7 @@ Lemma simrel_exec_a_helper sc w sw l
       (singl_rel sw a))
     (exec_mapped G_t' mapper (lab_t'  ∘ mapper))
     (mapper ↑ sc)
-    traces'
-    (singl_rel w a).
+    traces'.
 Proof using.
   (* Shorthands *)
   set (G_s_ := exec_add_rf
@@ -1249,143 +1248,7 @@ Proof using.
     Some ↓ (f ↑ r) ≡ restr_rel cmt r).
   { admit. (* TODO: f is a partial id *) }
   (* Actual proof *)
-  red. exists f, dtrmt.
-  assert (INA : E_t a).
-  { admit. (* TODO: lemma condition? *) }
-  assert (START_WF : WCore.wf
-    {|
-      WCore.sc := mapper ↑ sc;
-      WCore.G :=
-        WCore.reexec_start G_s_
-          (exec_mapped G_t' mapper
-            (lab_t' ∘ mapper)) dtrmt;
-      WCore.GC :=
-        exec_mapped G_t' mapper (lab_t' ∘ mapper);
-      WCore.cmt :=
-        fun x : actid => WCore.f_cmt f x
-    |}).
-  { admit. }
-  assert (END_WF : WCore.wf
-    {|
-      WCore.sc := mapper ↑ sc;
-      WCore.G := exec_mapped G_t' mapper (lab_t' ∘ mapper);
-      WCore.GC := exec_mapped G_t' mapper (lab_t' ∘ mapper);
-      WCore.cmt :=
-        fun x : actid =>
-        WCore.f_cmt
-          (fun x0 : actid =>
-          ifP ((mapper ↑₁ E_t ∪₁ eq a) \₁ eq a) x0 then
-          Some x0 else None) x
-    |}).
-  { admit. }
-  assert (END_WF' : Wf G_t').
-  { admit. }
-  assert (WINE' : (mapper ↑₁ E_t') w).
-  { admit. }
-  subst f cmt G_s'. ins.
-  constructor; ins.
-  { admit. (* TODO: e <> a ==> all good *) }
-  { admit. (* NOTE: unstable constraint *) }
-  { rewrite set_minus_union_l, codom_singl_rel.
-    apply set_subset_union_r1. }
-  { rewrite CMTEQ, set_minus_union_l.
-    subst dtrmt. basic_solver 11. }
-  { rewrite CMTEQ, dom_singl_rel.
-    admit. (* w is in E_t', but is not a. Then it is in E_t *) }
-  { admit. (* NOTE: unstable constraint *) }
-  { admit. (* NOTE: unstable constraint *) }
-  { constructor; ins.
-    all: admit. }
-  { admit. (* NOTE: unstable constraint *) }
-  { set (ENUM := WCore.g_acts_fin_enum END_WF).
-    desf.
-    set (l1 := filterP delta l0).
-    set (l2 := filterP (set_compl (eq a ∪₁ eq b)) l1).
-    apply sub_to_full_exec with (l := l2 ++ [a; b]).
-    all: subst l2 l1 delta.
-    { ins. }
-    { ins. }
-    { constructor; ins.
-      { apply nodup_app; splits.
-        { now do 2 apply nodup_filterP. }
-        { admit. (* TODO a <> b *) }
-        intros x HL1 HL2.
-        apply in_filterP_iff in HL1.
-        destruct HL1 as [_ HL1]. ins.
-        unfolder in HL1. desf; eauto. }
-      { arewrite (mapper ↑₁ E_t ∪₁ eq a ≡₁ mapper ↑₁ E_t').
-        { rewrite ACTEQ. rewrite set_collect_union.
-          now rewrite set_collect_eq, ReordCommon.mapper_eq_b. }
-        arewrite (mapper ↑₁ E_t' \₁ dtrmt ∩₁ mapper ↑₁ E_t'
-                    ≡₁ mapper ↑₁ E_t' \₁ dtrmt).
-        { now rewrite set_minus_inter_r, set_minusK,
-                  set_union_empty_r. }
-        split; intros x HSET.
-        { apply in_app_iff; ins.
-          destruct (classic (x = a)) as [EQ | NEQA]; subst; eauto.
-          destruct (classic (x = b)) as [EQ | NEQB]; subst; eauto.
-          left. apply in_filterP_iff; split.
-          all: try now apply and_not_or.
-          apply in_filterP_iff; split; ins.
-          apply ELEMS. split; try now apply HSET.
-          intro F. apply HSET, DTRMT_INIT.
-          split; ins. apply HSET. }
-        apply in_app_iff in HSET; ins.
-        destruct HSET as [IN | [EQA | [EQB | F]]]; ins.
-        { apply in_filterP_iff in IN. desf.
-          apply in_filterP_iff in IN. desf. }
-        { subst x. subst dtrmt. apply set_subset_single_l.
-          rewrite set_minus_minus_r, ACTEQ, set_collect_union,
-                  set_collect_eq, ReordCommon.mapper_eq_b,
-                  set_minus_union_l, set_minusK, set_union_empty_l.
-          basic_solver 11. }
-        subst x. subst dtrmt. apply set_subset_single_l.
-        rewrite set_minus_minus_r, ACTEQ, set_collect_union,
-                  set_collect_eq, ReordCommon.mapper_eq_b,
-                  set_minus_union_l, set_minusK, set_union_empty_l.
-        apply set_subset_single_l. right. split.
-        { left. exists a. split; ins.
-          apply ReordCommon.mapper_eq_a. }
-        exists a, a. split; ins.
-        apply rt_step. left.
-        admit. (* TODO: easy *)  }
-      { intros x y HREL.
-        admit. (* Not obvious, but should be true *)}
-      { rewrite CMTEQ. intros x y (y' & HREL & NCMT).
-        red in NCMT. desf.
-        apply set_subset_single_l in NCMT0.
-        rewrite set_minus_minus_r, ACTEQ,
-                set_collect_union, set_collect_eq,
-                ReordCommon.mapper_eq_b, set_minusK,
-                set_union_empty_l in NCMT0.
-        apply -> set_subset_single_l in NCMT0.
-        destruct NCMT0 as [_ EQA]. subst y.
-        apply total_order_from_list_bridge; ins; eauto.
-        destruct HREL as (RF' & DOM & CODOM).
-        assert (RF'' : rf_t' x b).
-        { admit. (* x is not a and not b *) }
-        rewrite (wf_rff END_WF') with (x := b) (y := x)
-                                      (z := w).
-        all: ins.
-        rewrite (wf_rff END_WF') with (x := b) (y := x)
-                                      (z := w) in DOM.
-        all: ins.
-        apply in_filterP_iff; split.
-        { apply in_filterP_iff; split.
-          { apply ELEMS. split; ins.
-            intro F. apply DOM.
-            split; try now apply DTRMT_INIT.
-            admit. }
-          apply set_subset_single_l in DOM.
-          rewrite set_minus_inter_r in DOM.
-          rewrite ACTEQ in DOM at 2.
-          rewrite set_collect_union, set_collect_eq,
-                  ReordCommon.mapper_eq_b, set_minusK,
-                  set_union_empty_r in DOM.
-          now apply -> set_subset_single_l in DOM. }
-        admit. (* w is neither a or b *) }
-      admit. } (* TODO follows from wf-ness *)
-    admit. (* TODO: trace coherency *) }
+  red.
   admit.
 Admitted.
 
@@ -1395,9 +1258,9 @@ Lemma simrel_exec_a sc w
     (RF : rf_t' w a)
     (SIM : reord_simrel_rw G_s G_t a b)
     (STEP : WCore.exec_inst G_t G_t' sc traces b) :
-  exists G_s' rfre sc',
+  exists G_s' sc',
     << SIM' : reord_simrel_rw G_s' G_t' a b >> /\
-    << STEP : WCore.reexec G_s G_s' sc' traces' rfre >>.
+    << STEP : WCore.reexec G_s G_s' sc' traces' >>.
 Proof using SWAPPED_TRACES.
   (* TODO: check article *)
   (* Case1 : Gt' *)
@@ -1405,140 +1268,14 @@ Proof using SWAPPED_TRACES.
   admit.
 Admitted.
 
-Lemma simrel_exec_iff_reexecstart_helper l dtrmt
-    (A_NEQ_B : a <> b) :
-  exec_equiv
-    (WCore.reexec_start
-      (exec_upd_lab
-        (exec_mapped G_t mapper
-            (lab_t' ∘ mapper)) a
-        l)
-      (exec_upd_lab
-        (exec_mapped G_t' mapper
-            (lab_t' ∘ mapper)) a
-        l) (mapper ↑₁ dtrmt))
-    (exec_upd_lab
-        (exec_mapped (WCore.reexec_start G_t G_t' dtrmt)
-          mapper (lab_t' ∘ mapper)) a l).
-Proof using.
-  constructor; ins.
-  { rewrite set_collect_interE; eauto using ReordCommon.mapper_inj. }
-  all: rewrite !collect_rel_seq, <- collect_rel_eqv; ins.
-  all: eapply inj_dom_mori; eauto using ReordCommon.mapper_inj; ins.
-Qed.
-
-Lemma simrel_exec_iff_reexecstart_helper_eq l dtrmt
-    (A_NEQ_B : a <> b) :
-  WCore.reexec_start
-    (exec_upd_lab
-      (exec_mapped G_t mapper
-          (lab_t' ∘ mapper)) a
-      l)
-    (exec_upd_lab
-      (exec_mapped G_t' mapper
-          (lab_t' ∘ mapper)) a
-       l) (mapper ↑₁ dtrmt) =
-  exec_upd_lab
-    (exec_mapped (WCore.reexec_start G_t G_t' dtrmt)
-      mapper (lab_t' ∘ mapper)) a l.
-Proof using.
-  now apply exeeqv_eq, simrel_exec_iff_reexecstart_helper.
-Qed.
-
-Lemma simrel_reexec_iff_helper l sc rfre
-    (U2V : same_label_u2v (lab_t' b) l)
-    (SAME : E_t a <-> E_t b)
-    (CONS : WCore.is_cons G_t sc)
-    (STEP : WCore.reexec G_t G_t' sc traces rfre)
-    (SIM_ACTS : reord_simrel_rw_actids G_t a b)
-    (NRMWDEP : ~rmw_dep_t' a b)
-    (NRMW : ~rmw_t' a b)
-    (NRMWCODOM : ~codom_rel rmw_t' a)
-    (NRMWDOM : ~dom_rel rmw_t' b) :
-  WCore.reexec
-    (exec_upd_lab
-      (exec_mapped G_t  mapper (lab_t'  ∘ mapper))
-      a l)
-    (exec_upd_lab
-      (exec_mapped G_t' mapper (lab_t' ∘ mapper))
-      a l)
-    (mapper ↑ sc)
-    traces'
-    (mapper ↑ rfre).
-Proof using.
-  red in STEP. desf. red.
-  assert (A_NEQ_B : a <> b).
-  { admit. }
-  assert (CMTEQ : WCore.f_cmt (option_map mapper ∘ f ∘ mapper) ≡₁
-                  mapper ↑₁ WCore.f_cmt f).
-  { unfold WCore.f_cmt, compose, is_some, option_map.
-    unfolder. split; intros x HSET.
-    { desf. exists (mapper x); split; desf.
-      rewrite ReordCommon.mapper_self_inv; ins. }
-    desf. rewrite ReordCommon.mapper_self_inv in Heq0; ins.
-    desf. }
-  exists (option_map mapper ∘ f ∘ mapper), (mapper ↑₁ dtrmt).
-  constructor; ins.
-  { admit. (* NOTE: ignore because rfre might get removed *) }
-  { admit. (* NOTE: rfre might be removed*) }
-  { rewrite CMTEQ. now apply set_collect_mori, STEP. }
-  { rewrite CMTEQ, <- set_collect_dom.
-    now apply set_collect_mori, STEP. }
-  { admit. (* NOTE: ignore for now, until new constraint drops *)  }
-  { admit. (* OLD BROKEN VERSION -- ignore *) }
-  { constructor; ins.
-    { rewrite CMTEQ. admit. (* looks easy *) }
-    { rewrite CMTEQ. now apply set_collect_mori, STEP. }
-    { admit. (* f respects this property, mapper saves tids *) }
-    { admit. (* f preserves label. With mapper it preserves it too *) }
-    { admit. (* Looks easy too *) }
-    rewrite CMTEQ, collect_rel_restr; eauto using ReordCommon.mapper_inj.
-    transitivity (mapper ↑ (Some ↓ (f ↑ restr_rel (WCore.f_cmt f) rf_t'))).
-    all: try now apply collect_rel_mori, STEP.
-    apply conjugate_sub.
-    all: eauto using ReordCommon.mapper_inj,
-                     ReordCommon.mapper_surj.
-    now rewrite ReordCommon.mapper_mapper_compose. }
-  { admit. (* NOTE: ignore for now, until new constraint drops*) }
-  { admit. (* Basic start wf-ness *) }
-  { rewrite simrel_exec_iff_reexecstart_helper_eq.
-    all: eauto using rsrw_a_neq_b.
-    destruct (enumd_diff_seq (WCore.reexec_start_wf STEP) (WCore.reexec_steps STEP))
-             as (el & DIFF); ins.
-    assert (TORD : exists tord,
-        << MIN : min_elt tord tid_init >> /\
-        << ORD : strict_partial_order tord >> /\
-        << SUBRF : rf_t' ⨾ ⦗E_t' \₁ WCore.f_cmt f⦘ ⊆ tid ↓ tord >>).
-    { admit. (* Not in this branch *) }
-    desf.
-    edestruct sub_to_full_exec_sort_part with (tord := tord)
-                                              (l := el)
-                                         as (el' & SORT & ENUM).
-    all: eauto.
-    { apply STEP. }
-    { admit. (* The new reexec cond *) }
-    apply sub_to_full_exec with el'.
-    { admit. (* Start wf *) }
-    { admit. (* end wf *) }
-    { constructor; ins.
-      { apply ENUM. }
-      { rewrite <- (SubToFullExecInternal.diff_elems ENUM).
-        ins. admit. }
-      { admit. }
-      { admit. }
-      admit. }
-    admit. (* Traces *) }
-  admit. (* Is_cons *)
-Admitted.
-
-Lemma simrel_reexec sc rfre
+Lemma simrel_reexec sc
     (CONS : WCore.is_cons G_t sc)
     (CONS' : WCore.is_cons G_s (mapper ↑ sc))
     (SIM : reord_simrel_rw G_s G_t a b)
-    (STEP : WCore.reexec G_t G_t' sc traces rfre) :
-  exists G_s' rfre sc',
+    (STEP : WCore.reexec G_t G_t' sc traces) :
+  exists G_s' sc',
     << SIM' : reord_simrel_rw G_s' G_t' a b >> /\
-    << STEP : WCore.reexec G_s G_s' sc' traces' (mapper ↓ rfre) >>.
+    << STEP : WCore.reexec G_s G_s' sc' traces' >>.
 Proof using SWAPPED_TRACES.
   admit.
 Admitted.
