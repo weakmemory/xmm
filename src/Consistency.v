@@ -99,6 +99,27 @@ Lemma rhb_in_hb :
     rhb ⊆ hb.
 Proof using.
     unfold rhb; unfold hb. rewrite rpo_in_sb; basic_solver.
+Qed.
+
+Lemma seqA4 A (r r' r'' r''' : relation A) :
+    (r ⨾ r' ⨾ r'') ⨾ r''' ≡ r ⨾ r' ⨾ r'' ⨾ r'''.
+Proof using.
+    rewrite seqA. rewrite seqA. basic_solver.
+Qed.
+
+Lemma sb_trans_sw_in_rpo_sw :
+    ⦗(fun a : actid => R a) ∪₁ (fun a : actid => W a)⦘ ⨾ sb⁺ ⨾ sw ⊆ rpo ⨾ sw.
+Proof using.
+    assert (TRANS : transitive sb). apply sb_trans. 
+    assert (SB_TR : sb⁺ ≡ sb). apply ct_of_trans; eauto.
+    rewrite SB_TR. unfold rpo. intros x y H. apply seq_union_l; left.
+    apply seq_union_l; right. assert (REL_SW : sw ≡ (⦗fun a : actid => is_rel lab a⦘) ⨾ sw).
+    { unfold sw. unfold release. basic_solver 21. }
+    assert (SAME : ⦗(fun a : actid => R a) ∪₁ (fun a : actid => W a)⦘ ⨾ sb ⨾ sw ≡
+                   ⦗(fun a : actid => R a) ∪₁ (fun a : actid => W a)⦘ ⨾ sb ⨾ 
+                   (⦗fun a : actid => is_rel lab a⦘) ⨾ sw).
+    { rewrite <- REL_SW; eauto. }
+    apply SAME in H. apply seqA4. eauto.
 Qed. 
 
 Lemma hb_helper :
