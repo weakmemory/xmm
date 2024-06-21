@@ -120,7 +120,26 @@ Proof using.
                    (⦗fun a : actid => is_rel lab a⦘) ⨾ sw).
     { rewrite <- REL_SW; eauto. }
     apply SAME in H. apply seqA4. eauto.
-Qed. 
+Qed.
+
+Lemma sb_rpo_start x x0 y
+        (SB : sb x x0)
+        (SW : sw x0 y) 
+        (RX : ((fun a : actid => R a) ∪₁ (fun a : actid => W a)) x) :
+    rpo x x0.
+Proof using.
+    unfold rpo. left. right.
+    destruct SW. destruct H.
+    unfold release in H. assert (REL : is_rel lab x0).
+    { destruct H. destruct H. destruct H. basic_solver. }
+    basic_solver.
+Qed.
+
+Lemma trans_union A (r r' : relation A) : 
+    (r ∪ r')⁺ ≡ r＊ ⨾ r' ⨾ (r^? ⨾ r'^?)＊.
+Proof using.
+    admit. 
+Admitted.
 
 Lemma hb_helper :
     hb ≡ sb ∪ rhb.
@@ -139,18 +158,27 @@ Proof using.
     { induction H0. assert (TRANS : transitive sb). apply sb_trans. 
         { destruct H0.
           { left. unfold transitive in TRANS. basic_solver. }
-            admit. }
-        destruct H0. 
-        { destruct H2. destruct H2.
-            { left. assert (TRANS : transitive sb). apply sb_trans.
-              unfold transitive in TRANS. basic_solver. }
-            { assert (TRANS : transitive sb). apply sb_trans.
-              unfold transitive in TRANS. assert (SB : sb x y). basic_solver.
-              apply IHclos_trans_1n in SB. basic_solver. 
-              apply ct_step. right. basic_solver. }
-            assert (TRANS : transitive sb). apply sb_trans.
-            unfold transitive in TRANS. assert (SB : sb x y). basic_solver.
-            apply IHclos_trans_1n. basic_solver. admit. }
+          destruct classic with 
+                (P := (((fun a : actid => R a) ∪₁ (fun a : actid => W a)) x)) as [RX | WX].
+          { assert (START1 : (⦗(fun a : actid => R a) ∪₁ (fun a : actid => W a)⦘ ⨾ sb ⨾ sw) x y). basic_solver.
+            assert (START2 : (rpo ⨾ sw) x y). 
+            { apply sb_trans_sw_in_rpo_sw. basic_solver. }
+            unfold seq in START2. destruct START2. destruct H2.
+            right. apply ct_begin. unfold seq. exists x1. split. 
+            { left; eauto. }
+            apply inclusion_t_rt. apply ct_step.
+            right; eauto. }
+          admit. }
+        assert (TRANS : transitive sb). apply sb_trans. 
+        unfold transitive in TRANS. destruct classic with 
+        (P := (((fun a : actid => R a) ∪₁ (fun a : actid => W a)) x)) as [RX | WX].
+        { destruct H0.
+          { admit. }
+          assert (START : rpo x x0). 
+          { apply sb_rpo_start with (y := y); eauto. }
+          right. apply ct_begin. unfold seq. exists x0. split.
+          { left; eauto. }
+          apply inclusion_t_rt; eauto. }
         admit. }
     { admit. }
     right. apply ct_ct. unfold seq. exists y. split; auto.
