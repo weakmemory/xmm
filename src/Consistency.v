@@ -122,6 +122,23 @@ Proof using.
     apply SAME in H. apply seqA4. eauto.
 Qed.
 
+Lemma sb_sw_trans_in_rpo_sw_trans :
+    ⦗(fun a : actid => R a) ∪₁ (fun a : actid => W a)⦘ ⨾ sb ⨾ sw⁺ ⊆ rpo ⨾ sw⁺.
+Proof using.
+    unfold rpo. intros x y H. apply seq_union_l; left.
+    apply seq_union_l; right. assert (REL_SW : sw ≡ (⦗fun a : actid => is_rel lab a⦘) ⨾ sw).
+    { unfold sw. unfold release. basic_solver 21. }
+    assert (SAME : ⦗(fun a : actid => R a) ∪₁ (fun a : actid => W a)⦘ ⨾ sb ⨾ sw⁺ ≡
+                  ⦗(fun a : actid => R a) ∪₁ (fun a : actid => W a)⦘ ⨾ sb ⨾ 
+                  (⦗fun a : actid => is_rel lab a⦘ ⨾ sw)⁺).
+    { rewrite <- REL_SW; eauto. }
+    apply SAME in H. apply seqA4. 
+    assert (IN : ⦗(fun a : actid => R a) ∪₁ (fun a : actid => W a)⦘ ⨾ sb ⨾ (⦗fun a : actid => is_rel lab a⦘ ⨾ sw)⁺ ⊆ 
+                 ⦗(fun a : actid => R a) ∪₁ (fun a : actid => W a)⦘ ⨾ sb ⨾ ⦗fun a : actid => is_rel lab a⦘ ⨾ sw⁺).
+    { rewrite inclusion_ct_seq_eqv_l; vauto. }
+    apply IN in H. eauto.
+Qed.
+
 Lemma sb_rpo_start x x0 y
         (SB : sb x x0)
         (SW : sw x0 y) 
@@ -141,6 +158,31 @@ Proof using.
     admit. 
 Admitted.
 
+Lemma trans_helper A (r r' : relation A) 
+        (TRANS : transitive r) :
+    (r ∪ r')⁺ ≡ r'＊ ⨾ (r ⨾ r'⁺)＊ ⨾ r^?.
+Proof using.
+    admit. 
+Admitted.
+
+Lemma hb_weak_helper : 
+    sw＊ ⨾ (⦗(fun a : actid => R a) ∪₁ (fun a : actid => W a)⦘ ⨾ sb ⨾ sw⁺)＊ ⨾ sb^? ⊆ sb ∪ (rpo ∪ sw)⁺.
+Proof using.
+    rewrite sb_sw_trans_in_rpo_sw_trans. rewrite rtE. rewrite rtE. 
+    rewrite crE. rewrite !seq_union_l, !seq_union_r. 
+    apply inclusion_union_l; apply inclusion_union_l; apply inclusion_union_l.
+    { admit. }
+    { left. repeat destruct H. destruct H0. 
+      destruct H. destruct H. basic_solver. }
+    { rewrite inclusion_seq_eqv_l. rewrite inclusion_seq_eqv_r. right.
+      induction H. 
+      { destruct H. destruct H. apply ct_ct. unfold seq. exists x0. split.
+        { apply ct_step. left; vauto. }
+        apply ct_unionE. left; vauto. }
+      apply ct_ct. unfold seq. exists y. split; auto. }
+    all : admit.
+Admitted.
+
 Lemma hb_helper :
     hb ≡ sb ∪ rhb.
 Proof using.
@@ -155,31 +197,9 @@ Proof using.
     destruct H; destruct IHclos_trans_1n. 
     { left. assert (TRANS : transitive sb). apply sb_trans. 
       unfold transitive in TRANS. basic_solver. }
-    { induction H0. assert (TRANS : transitive sb). apply sb_trans. 
-        { destruct H0.
-          { left. unfold transitive in TRANS. basic_solver. }
-          destruct classic with 
-                (P := (((fun a : actid => R a) ∪₁ (fun a : actid => W a)) x)) as [RX | WX].
-          { assert (START1 : (⦗(fun a : actid => R a) ∪₁ (fun a : actid => W a)⦘ ⨾ sb ⨾ sw) x y). basic_solver.
-            assert (START2 : (rpo ⨾ sw) x y). 
-            { apply sb_trans_sw_in_rpo_sw. basic_solver. }
-            unfold seq in START2. destruct START2. destruct H2.
-            right. apply ct_begin. unfold seq. exists x1. split. 
-            { left; eauto. }
-            apply inclusion_t_rt. apply ct_step.
-            right; eauto. }
-          admit. }
-        assert (TRANS : transitive sb). apply sb_trans. 
-        unfold transitive in TRANS. destruct classic with 
-        (P := (((fun a : actid => R a) ∪₁ (fun a : actid => W a)) x)) as [RX | WX].
-        { destruct H0.
-          { admit. }
-          assert (START : rpo x x0). 
-          { apply sb_rpo_start with (y := y); eauto. }
-          right. apply ct_begin. unfold seq. exists x0. split.
-          { left; eauto. }
-          apply inclusion_t_rt; eauto. }
-        admit. }
+    { rewrite <- clos_trans_t1n_iff in H0. 
+      apply trans_helper in H0. 2: { apply sb_trans. }
+      admit. }
     { admit. }
     right. apply ct_ct. unfold seq. exists y. split; auto.
     apply ct_step. basic_solver.
