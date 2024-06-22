@@ -165,6 +165,12 @@ Proof using.
     admit. 
 Admitted.
 
+Lemma sw_sb_in_rpo :
+    sw ⨾ sb ⊆ rpo.
+Proof using.
+    admit. 
+Admitted.
+
 Lemma hb_weak_helper : 
     sw＊ ⨾ (⦗(fun a : actid => R a) ∪₁ (fun a : actid => W a)⦘ ⨾ sb ⨾ sw⁺)＊ ⨾ sb^? ⊆ sb ∪ (rpo ∪ sw)⁺.
 Proof using.
@@ -180,6 +186,10 @@ Proof using.
         { apply ct_step. left; vauto. }
         apply ct_unionE. left; vauto. }
       apply ct_ct. unfold seq. exists y. split; auto. }
+    { rewrite inclusion_seq_eqv_l. rewrite ct_rotl. rewrite -> seqA. 
+      rewrite -> seqA. rewrite ct_end. rewrite -> seqA. rewrite -> seqA.
+      rewrite sw_sb_in_rpo. right. destruct H. destruct H.
+      destruct H0. destruct H0. destruct H1. destruct H1. admit. }
     all : admit.
 Admitted.
 
