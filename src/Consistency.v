@@ -108,45 +108,54 @@ Proof using.
 Qed.
 
 Lemma sb_trans_sw_in_rpo_sw :
-    ⦗(fun a : actid => R a) ∪₁ (fun a : actid => W a)⦘ ⨾ sb⁺ ⨾ sw ⊆ rpo ⨾ sw.
+    sb⁺ ⨾ sw ⊆ rpo ⨾ sw.
 Proof using.
     assert (TRANS : transitive sb). apply sb_trans. 
     assert (SB_TR : sb⁺ ≡ sb). apply ct_of_trans; eauto.
     rewrite SB_TR. unfold rpo. intros x y H. apply seq_union_l; left.
     apply seq_union_l; right. assert (REL_SW : sw ≡ (⦗fun a : actid => is_rel lab a⦘) ⨾ sw).
     { unfold sw. unfold release. basic_solver 21. }
-    assert (SAME : ⦗(fun a : actid => R a) ∪₁ (fun a : actid => W a)⦘ ⨾ sb ⨾ sw ≡
-                   ⦗(fun a : actid => R a) ∪₁ (fun a : actid => W a)⦘ ⨾ sb ⨾ 
-                   (⦗fun a : actid => is_rel lab a⦘) ⨾ sw).
+    assert (SAME : sb ⨾ sw ≡
+                   sb ⨾ (⦗fun a : actid => is_rel lab a⦘) ⨾ sw).
     { rewrite <- REL_SW; eauto. }
-    apply SAME in H. apply seqA4. eauto.
+    apply SAME in H. apply seqA in H. eauto.
+Qed.
+
+Lemma sw_sb_in_rpo :
+    sw ⨾ sb ⊆ sw ⨾ rpo.
+Proof using.
+    unfold rpo. intros x y H. apply seq_union_r. left.
+    apply seq_union_r. left. apply seq_union_r. right.
+    assert (REL_SW : sw ≡ sw ⨾ (⦗fun a : actid => is_acq lab a⦘)).
+    { unfold sw. basic_solver 21. }
+    assert (SAME : sw ⨾ sb ≡
+                   sw ⨾ (⦗fun a : actid => is_acq lab a⦘) ⨾ sb).
+    { rewrite <- seqA. rewrite <- REL_SW; eauto. }
+    apply SAME in H. vauto.
 Qed.
 
 Lemma sb_sw_trans_in_rpo_sw_trans :
-    ⦗(fun a : actid => R a) ∪₁ (fun a : actid => W a)⦘ ⨾ sb ⨾ sw⁺ ⊆ rpo ⨾ sw⁺.
+    sb ⨾ sw⁺ ⊆ rpo ⨾ sw⁺.
 Proof using.
     unfold rpo. intros x y H. apply seq_union_l; left.
     apply seq_union_l; right. assert (REL_SW : sw ≡ (⦗fun a : actid => is_rel lab a⦘) ⨾ sw).
     { unfold sw. unfold release. basic_solver 21. }
-    assert (SAME : ⦗(fun a : actid => R a) ∪₁ (fun a : actid => W a)⦘ ⨾ sb ⨾ sw⁺ ≡
-                  ⦗(fun a : actid => R a) ∪₁ (fun a : actid => W a)⦘ ⨾ sb ⨾ 
-                  (⦗fun a : actid => is_rel lab a⦘ ⨾ sw)⁺).
+    assert (SAME : sb ⨾ sw⁺ ≡
+                   sb ⨾ (⦗fun a : actid => is_rel lab a⦘ ⨾ sw)⁺).
     { rewrite <- REL_SW; eauto. }
-    apply SAME in H. apply seqA4. 
-    assert (IN : ⦗(fun a : actid => R a) ∪₁ (fun a : actid => W a)⦘ ⨾ sb ⨾ (⦗fun a : actid => is_rel lab a⦘ ⨾ sw)⁺ ⊆ 
-                 ⦗(fun a : actid => R a) ∪₁ (fun a : actid => W a)⦘ ⨾ sb ⨾ ⦗fun a : actid => is_rel lab a⦘ ⨾ sw⁺).
+    apply SAME in H. apply seqA. 
+    assert (IN : sb ⨾ (⦗fun a : actid => is_rel lab a⦘ ⨾ sw)⁺ ⊆ 
+                 sb ⨾ ⦗fun a : actid => is_rel lab a⦘ ⨾ sw⁺).
     { rewrite inclusion_ct_seq_eqv_l; vauto. }
     apply IN in H. eauto.
 Qed.
 
 Lemma sb_rpo_start x x0 y
         (SB : sb x x0)
-        (SW : sw x0 y) 
-        (RX : ((fun a : actid => R a) ∪₁ (fun a : actid => W a)) x) :
+        (SW : sw x0 y) :
     rpo x x0.
 Proof using.
-    unfold rpo. left. right.
-    destruct SW. destruct H.
+    unfold rpo. left. right. destruct SW. destruct H.
     unfold release in H. assert (REL : is_rel lab x0).
     { destruct H. destruct H. destruct H. basic_solver. }
     basic_solver.
@@ -165,14 +174,8 @@ Proof using.
     admit. 
 Admitted.
 
-Lemma sw_sb_in_rpo :
-    sw ⨾ sb ⊆ rpo.
-Proof using.
-    admit. 
-Admitted.
-
 Lemma hb_weak_helper : 
-    sw＊ ⨾ (⦗(fun a : actid => R a) ∪₁ (fun a : actid => W a)⦘ ⨾ sb ⨾ sw⁺)＊ ⨾ sb^? ⊆ sb ∪ (rpo ∪ sw)⁺.
+    sw＊ ⨾ (sb ⨾ sw⁺)＊ ⨾ sb^? ⊆ sb ∪ (rpo ∪ sw)⁺.
 Proof using.
     rewrite sb_sw_trans_in_rpo_sw_trans. rewrite rtE. rewrite rtE. 
     rewrite crE. rewrite !seq_union_l, !seq_union_r. 
@@ -189,7 +192,16 @@ Proof using.
     { rewrite inclusion_seq_eqv_l. rewrite ct_rotl. rewrite -> seqA. 
       rewrite -> seqA. rewrite ct_end. rewrite -> seqA. rewrite -> seqA.
       rewrite sw_sb_in_rpo. right. destruct H. destruct H.
-      destruct H0. destruct H0. destruct H1. destruct H1. admit. }
+      destruct H0. destruct H0. destruct H1. destruct H1. 
+      destruct H2. destruct H2. apply ct_ct. unfold seq.
+      exists x0. split.
+      { apply ct_step. left; vauto. }
+      apply ct_ct. unfold seq. exists x1. split.
+      { apply rtE in H0. destruct H0.
+        { destruct H0. admit. }
+        admit. }
+      apply ct_ct. unfold seq. exists x2. split.
+      all : admit. }
     all : admit.
 Admitted.
 

@@ -49,8 +49,8 @@ Definition rpo :=
   sb ∩ same_loc ∪
   ⦗is_acq⦘ ⨾ sb ⨾ ⦗is_rel⦘ ∪
   ⦗R ∩₁ is_rlx⦘ ⨾ sb ⨾ ⦗F ∩₁ is_acq⦘ ∪
-  ⦗is_acq⦘ ⨾ sb ⨾ ⦗R ∪₁ W⦘ ∪
-  ⦗R ∪₁ W⦘ ⨾ sb ⨾ ⦗is_rel⦘ ∪
+  ⦗is_acq⦘ ⨾ sb ∪
+  sb ⨾ ⦗is_rel⦘ ∪
   ⦗F ∩₁ is_rel⦘ ⨾ sb ⨾ ⦗W ∩₁ is_rlx⦘.
 Definition rhb := (rpo ∪ sw)⁺.
 Definition vf := ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf^? ⨾ hb^?.
