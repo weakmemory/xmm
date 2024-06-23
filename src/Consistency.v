@@ -179,12 +179,106 @@ Proof using.
     basic_solver.
 Qed.
 
+Lemma ct_unit_left A (r : relation A) :
+    r ⨾ r⁺ ⊆ r⁺.
+Proof.
+  unfold seq, inclusion; ins; desf; vauto.
+Qed.
+
+Lemma ct_unit_helper A (r r' : relation A) :
+    r ⨾ r⁺ ⨾ r' ⊆ r⁺ ⨾ r'.
+Proof using.
+  unfold seq, inclusion; ins; desf; vauto.
+  exists z0; split; vauto.
+Qed.
+
+Lemma trans_helper_swapped A (r r' : relation A) 
+        (TRANS : transitive r) :
+    r ⨾ (r' ∪ r)⁺ ⊆ r ∪ (r ⨾ r'⁺)⁺ ⨾ r^?.
+Proof using.
+      rewrite path_union2. rewrite seq_union_r.
+      apply inclusion_union_l. rewrite seq_union_r.
+      apply inclusion_union_l.
+      { right. unfold seq. exists y. split; vauto. }
+      { rewrite rtE. rewrite ct_unit_helper. rewrite ct_of_trans; vauto.
+        rewrite seq_union_r. apply inclusion_union_l. 
+        { left. destruct H. destruct H. destruct H0. destruct H0.
+          basic_solver. }
+        right. unfold seq. exists y. split; vauto. }
+      rewrite ct_rotl. rewrite ct_of_trans with (r := r); vauto.
+      intros x y H. destruct H. destruct H. destruct H0. destruct H0.
+      destruct H1. destruct H1. destruct H1. destruct H1.
+      destruct H3. destruct H3. destruct H2.
+      { right. unfold seq. exists y. split; vauto.
+        assert (EQ : (fun x5 y0 : A => exists z : A, r x5 z /\ r'⁺ z y0)⁺ ≡ (r ⨾ r'⁺)⁺).
+        { unfold seq. basic_solver. }
+        apply EQ. assert (P1' : r⁺ x x1).
+        { apply ct_begin. basic_solver. }
+        assert (P1 : r x x1).
+        { apply ct_of_trans; vauto. }
+        assert (P2 : (r ⨾ r'⁺) x x3).
+        { unfold seq. basic_solver. }
+        assert (P3 : (r ⨾ r'⁺)⁺ x x4).
+        { apply ct_begin. basic_solver. }
+        apply ct_ct. unfold seq. exists x4. split; vauto. 
+        apply EQ. apply ct_step. unfold seq. exists x2; vauto. }
+      { right. unfold seq. exists x4. split; vauto.
+        assert (EQ : (fun x5 y0 : A => exists z : A, r x5 z /\ r'⁺ z y0)⁺ ≡ (r ⨾ r'⁺)⁺).
+        { unfold seq. basic_solver. }
+        apply EQ. assert (P1' : r⁺ x x1).
+        { apply ct_begin. basic_solver. }
+        assert (P1 : r x x1).
+        { apply ct_of_trans; vauto. }
+        assert (P2 : (r ⨾ r'⁺) x x3).
+        { unfold seq. basic_solver. }
+        assert (P3 : (r ⨾ r'⁺)⁺ x x4).
+        { apply ct_begin. basic_solver. }
+        vauto. }
+      right. 
+      assert (P4 : (r'^* ) x2 z).
+      { apply rt_rt. unfold seq; vauto. }
+      assert (EQ : (fun x5 y0 : A => exists z : A, r x5 z /\ r'⁺ z y0)⁺ ≡ (r ⨾ r'⁺)⁺).
+        { unfold seq. basic_solver. }
+      apply rtE in P4. destruct P4.
+      { destruct H2. unfold seq. exists x4. split; vauto. 
+        apply EQ. apply EQ. assert (P1' : r⁺ x x1).
+        { apply ct_begin. basic_solver. }
+        assert (P1 : r x x1).
+        { apply ct_of_trans; vauto. }
+        assert (P2 : (r ⨾ r'⁺) x x3).
+        { unfold seq. basic_solver. }
+        assert (P3 : (r ⨾ r'⁺)⁺ x x4).
+        { apply ct_begin. basic_solver. }
+        vauto. }
+      unfold seq. exists z. split; vauto.
+      apply EQ. apply ct_ct. unfold seq. exists x4. split; vauto.
+      apply EQ. apply EQ. assert (P1' : r⁺ x x1).
+      { apply ct_begin. basic_solver. }
+      assert (P1 : r x x1).
+      { apply ct_of_trans; vauto. }
+      assert (P2 : (r ⨾ r'⁺) x x3).
+      { unfold seq. basic_solver. }
+      assert (P3 : (r ⨾ r'⁺)⁺ x x4).
+      { apply ct_begin. basic_solver. }
+      vauto.
+Qed.
+
+Lemma swap_helper A (r r' : relation A) :
+    r ⨾ (r' ∪ r)⁺ ≡ r ⨾ (r ∪ r')⁺.
+Proof using.
+    unfold seq. split; intros x y H.
+    { destruct H. destruct H. exists x0. split; vauto. 
+      apply inclusion_t_t with (r := r' ∪ r); basic_solver. }
+    destruct H. destruct H. exists x0. split; vauto. 
+    apply inclusion_t_t with (r := r ∪ r'); basic_solver.
+Qed. 
+
 Lemma trans_helper A (r r' : relation A) 
         (TRANS : transitive r) :
-    r ⨾ (r ∪ r')⁺ ≡ r ∪ (r ⨾ r'⁺)⁺ ⨾ r^?.
+    r ⨾ (r ∪ r')⁺ ⊆ r ∪ (r ⨾ r'⁺)⁺ ⨾ r^?.
 Proof using.
-    admit.
-Admitted.
+    rewrite <- swap_helper. apply trans_helper_swapped; vauto.
+Qed.
 
 Lemma hb_helper :
     hb ≡ sb ∪ rhb.
