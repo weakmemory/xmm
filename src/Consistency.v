@@ -150,6 +150,12 @@ Proof using.
     apply IN in H. eauto.
 Qed.
 
+Lemma sb_sw_trans_trans : 
+    (sb ⨾ sw⁺)⁺ ⊆ (rpo ⨾ sw⁺)⁺.
+Proof using.
+    apply inclusion_t_t. apply sb_sw_trans_in_rpo_sw_trans.
+Qed.
+
 Lemma sb_rpo_start x x0 y
         (SB : sb x x0)
         (SW : sw x0 y) :
@@ -161,48 +167,23 @@ Proof using.
     basic_solver.
 Qed.
 
-Lemma trans_union A (r r' : relation A) : 
-    (r ∪ r')⁺ ≡ r＊ ⨾ r' ⨾ (r^? ⨾ r'^?)＊.
+Lemma rpo_sb_end x x0 y
+        (RPO : sw x x0)
+        (SB : sb x0 y) :
+    rpo x0 y.
 Proof using.
-    admit. 
-Admitted.
+    unfold rpo. left. left. right. destruct RPO. destruct H.
+    assert (ACQ : is_acq lab x0).
+    { destruct H0. destruct H0. destruct H1. destruct H1.
+      destruct H2. basic_solver. }
+    basic_solver.
+Qed.
 
 Lemma trans_helper A (r r' : relation A) 
         (TRANS : transitive r) :
-    (r ∪ r')⁺ ≡ r'＊ ⨾ (r ⨾ r'⁺)＊ ⨾ r^?.
+    r ⨾ (r ∪ r')⁺ ≡ r ∪ (r ⨾ r'⁺)⁺ ⨾ r^?.
 Proof using.
-    admit. 
-Admitted.
-
-Lemma hb_weak_helper : 
-    sw＊ ⨾ (sb ⨾ sw⁺)＊ ⨾ sb^? ⊆ sb ∪ (rpo ∪ sw)⁺.
-Proof using.
-    rewrite sb_sw_trans_in_rpo_sw_trans. rewrite rtE. rewrite rtE. 
-    rewrite crE. rewrite !seq_union_l, !seq_union_r. 
-    apply inclusion_union_l; apply inclusion_union_l; apply inclusion_union_l.
-    { admit. }
-    { left. repeat destruct H. destruct H0. 
-      destruct H. destruct H. basic_solver. }
-    { rewrite inclusion_seq_eqv_l. rewrite inclusion_seq_eqv_r. right.
-      induction H. 
-      { destruct H. destruct H. apply ct_ct. unfold seq. exists x0. split.
-        { apply ct_step. left; vauto. }
-        apply ct_unionE. left; vauto. }
-      apply ct_ct. unfold seq. exists y. split; auto. }
-    { rewrite inclusion_seq_eqv_l. rewrite ct_rotl. rewrite -> seqA. 
-      rewrite -> seqA. rewrite ct_end. rewrite -> seqA. rewrite -> seqA.
-      rewrite sw_sb_in_rpo. right. destruct H. destruct H.
-      destruct H0. destruct H0. destruct H1. destruct H1. 
-      destruct H2. destruct H2. apply ct_ct. unfold seq.
-      exists x0. split.
-      { apply ct_step. left; vauto. }
-      apply ct_ct. unfold seq. exists x1. split.
-      { apply rtE in H0. destruct H0.
-        { destruct H0. admit. }
-        admit. }
-      apply ct_ct. unfold seq. exists x2. split.
-      all : admit. }
-    all : admit.
+    admit.
 Admitted.
 
 Lemma hb_helper :
@@ -219,13 +200,42 @@ Proof using.
     destruct H; destruct IHclos_trans_1n. 
     { left. assert (TRANS : transitive sb). apply sb_trans. 
       unfold transitive in TRANS. basic_solver. }
-    { rewrite <- clos_trans_t1n_iff in H0. 
-      apply trans_helper in H0. 2: { apply sb_trans. }
-      admit. }
-    { admit. }
+    { assert (TRANS : transitive sb). 
+      { apply sb_trans. } 
+      rewrite <- clos_trans_t1n_iff in H0.
+      assert (PATH : (sb ⨾ (sb ∪ sw)⁺) x z).
+      { basic_solver. }
+      apply trans_helper in PATH; eauto. destruct PATH.
+      { left. basic_solver. }
+      destruct H2. destruct H2. destruct H3. 2 : 
+      { apply sb_sw_trans_trans in H2. assert (H' := H2).
+        apply ct_end in H2. destruct H2. destruct H2.
+        destruct H4. destruct H4. apply ct_end in H5.
+        destruct H5. destruct H5. assert (RPO : rpo x0 z).
+        { apply rpo_sb_end with (x0 := x0) (x := x3); eauto. }
+        right. apply ct_ct. unfold seq. exists x0. split.
+        { apply ct_unionE. right. unfold seq. exists x. split; vauto.
+          assert (EQ : (fun x4 y0 : actid =>
+                exists z0 : actid, rpo x4 z0 /\ sw＊ z0 y0)⁺ ≡ (rpo ⨾ sw＊)⁺).
+          { unfold seq. basic_solver. } 
+          apply EQ.
+          apply inclusion_t_t with (r := rpo ⨾ sw⁺); vauto.
+          apply inclusion_seq_mon; vauto.
+          apply inclusion_t_rt. }
+        apply ct_step. basic_solver. }
+      destruct H3. apply sb_sw_trans_trans in H2. assert (H' := H2).
+      right. apply ct_unionE. right. unfold seq. exists x. split; vauto.
+      assert (EQ : (fun x4 y0 : actid =>
+            exists z0 : actid, rpo x4 z0 /\ sw＊ z0 y0)⁺ ≡ (rpo ⨾ sw＊)⁺).
+      { unfold seq. basic_solver. } 
+      apply EQ.
+      apply inclusion_t_t with (r := rpo ⨾ sw⁺); basic_solver. }
+    { assert (RPO : rpo y z). 
+      { apply rpo_sb_end with (x := x); eauto. }
+      right. apply ct_ct. unfold seq. exists y. split; vauto. } 
     right. apply ct_ct. unfold seq. exists y. split; auto.
     apply ct_step. basic_solver.
-Admitted.
+Qed.
 
 (* TODO : try without hb_helper *)
 Lemma hb_locs :
