@@ -20,8 +20,6 @@ Open Scope nat_scope.
 
 Module I2Exec.
 
-Section MainDefs.
-
 Definition instr_id : Set := nat.
 
 Record intr_info : Set := {
@@ -29,14 +27,21 @@ Record intr_info : Set := {
   tick : nat;
 }.
 
+Section MainDefs.
+
 Variable G : execution.
 Variable e2instr : actid -> intr_info.
 
-Definition rmw_end := codom_rel (rmw G).
+Notation "'E'" := (acts_set G).
+Notation "'lab'" := (lab G).
+Notation "'rmw'" := (rmw G).
+Notation "'sb'" := (sb G).
 
-Definition nrmw_ord := restr_rel (set_compl is_init) (sb G \ rmw G).
+Definition rmw_end := codom_rel rmw.
 
-Definition rmw_ord := restr_rel (set_compl is_init) (rmw G).
+Definition nrmw_ord := restr_rel (set_compl is_init) (sb \ rmw).
+
+Definition rmw_ord := restr_rel (set_compl is_init) rmw.
 
 Inductive lab_ty : Set :=
 | TyLoad : lab_ty
@@ -44,7 +49,7 @@ Inductive lab_ty : Set :=
 | TyFence : lab_ty.
 
 Definition e_type e :=
-  match lab G e with
+  match lab e with
   | Aload _ _ _ _ => TyLoad
   | Astore _ _ _ _ => TyStore
   | Afence _ => TyFence
@@ -54,7 +59,7 @@ Definition same_instr x y : Prop :=
   instr (e2instr x) = instr (e2instr y).
 
 Record E2InstrWf : Prop := {
-  e2instr_inj : inj_dom (acts_set G ∩₁ set_compl is_init) e2instr;
+  e2instr_inj : inj_dom (E ∩₁ set_compl is_init) e2instr;
   nrmwend_even_tick : forall ins,
     tick ↑ restr_rel (fun x => instr x = ins) (e2instr ↑ nrmw_ord)
       ⊆ (fun x y => y = 2 + x)⁺;
