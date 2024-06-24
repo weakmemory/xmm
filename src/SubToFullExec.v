@@ -843,11 +843,12 @@ Lemma enumd_diff_listless  sc G G' cmt thrdle
       WCore.GC := G';
       WCore.cmt := cmt
     |})
-    (OPA : partial_order thrdle)
+    (ACYC : acyclic thrdle)
     (RFCO : acts_set G' ∩₁ is_r (lab G) ⊆₁ codom_rel (rf G'))
     (INITLEAST : least_elt thrdle tid_init)
     (MININIT : wmin_elt thrdle tid_init)
-    (ORDRF : rf G' ⨾ ⦗acts_set G' \₁ cmt⦘ ⊆ tid ↓ thrdle)
+    (ORDRF : (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ∩ compl_rel same_tid
+            ⊆ tid ↓ thrdle)
     (ORDRFI :
       restr_rel (acts_set G' \₁ acts_set G) (
           (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘)
@@ -855,7 +856,6 @@ Lemma enumd_diff_listless  sc G G' cmt thrdle
   exists l,
     SubToFullExecInternal.enumd_diff G G' cmt l.
 Proof using.
-  red in OPA. desf.
   assert (FIN : set_finite (acts_set G' \₁ acts_set G)).
   { arewrite (acts_set G' \₁ acts_set G ⊆₁ acts_set G' \₁ is_init).
     all: try now apply (WCore.wf_gc_fin_exec WF).
@@ -863,36 +863,33 @@ Proof using.
     intro INI. apply NINE, (WCore.wf_g_init WF); ins. }
   assert (FULL_SUB : restr_rel (acts_set G' \₁ acts_set G)
                                (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘)
-                     ⊆ tid ↓ (thrdle \ ⦗⊤₁⦘) ∪ sb G').
+                     ⊆ tid ↓ thrdle⁺ ∪ sb G').
   { arewrite (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘ ≡
               (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ∩ ⊤₂).
     { basic_solver. }
     arewrite (⊤₂ ≡ compl_rel same_tid ∪ same_tid).
     { split; [| basic_solver].
       rewrite unionC. unfolder; eauto using classic. }
-    rewrite inter_union_r, restr_union.
-    apply union_mori; [| now rewrite restr_inter, inter_restr_absorb_r].
-    intros x y ((RF & NTID) & _ & _). split.
-    { apply ORDRF, RF. }
-    unfold same_tid in NTID. intro F. red in F, NTID. desf. }
+    rewrite inter_union_r, restr_union, ORDRF,
+            !restr_inter, !inter_restr_absorb_r,
+            ORDRFI.
+    basic_solver. }
   apply set_finiteE in FIN. destruct FIN as (l' & NODUP & EQ).
   destruct partial_order_included_in_total_order
-    with actid (tid ↓ (thrdle \ ⦗⊤₁⦘) ∪ sb G')
+    with actid (tid ↓ thrdle⁺ ∪ sb G')
     as (tord & SUB & TOT).
-  { red. unfolder. split.
-    { ins. desf; eauto. eapply sb_irr; eauto. }
-    intros x y z R1 R2. desf.
-    { left. split; [eapply TRANS; eauto |].
-      intros (F & _). apply R0; split; ins.
-      apply ANTISYMM; ins. now rewrite <- F. }
+  { red. split.
+    { apply irreflexive_union; split; [| apply sb_irr].
+      unfolder. ins. eapply ACYC; eauto. }
+    unfolder. intros x y z R1 R2. desf.
+    { left. eapply t_trans; eauto. }
     { unfold sb, ext_sb in *. unfolder in R1.
-      all: ins; do 2 desf; eauto.
-      ins; left. split; ins.
-      intros (F & _). rewrite <- F in *.
-      apply MININIT in R2. eauto. }
+      all: ins; do 2 desf; eauto. }
     { unfold sb, ext_sb in *. unfolder in R2.
       all: ins; do 2 desf; eauto.
-      ins. exfalso. apply MININIT in R1. eauto. }
+      left. apply wmin_elt_t in MININIT.
+      ins. apply MININIT in R1. rewrite <- R1.
+      basic_solver. }
     right. now apply sb_trans with y. }
   exists (isort tord l'). constructor; ins.
   { apply NoDup_StronglySorted with tord.
