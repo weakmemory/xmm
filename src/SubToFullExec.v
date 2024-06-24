@@ -749,51 +749,6 @@ Section SubToFullExec.
 
 Variable traces : thread_id -> trace label -> Prop.
 
-Lemma sub_to_full_exec sc G G' cmt l
-    (WF : WCore.wf (WCore.Build_t sc G G' cmt))
-    (WF' : WCore.wf (WCore.Build_t sc G' G' cmt))
-    (ENUM : SubToFullExecInternal.enumd_diff G G' cmt l)
-    (COH : trace_coherent traces G') :
-  (WCore.cfg_add_event_uninformative traces)＊
-    (WCore.Build_t sc G G' cmt)
-    (WCore.Build_t sc G' G' cmt).
-Proof using.
-  generalize G WF ENUM.
-  clear      G WF ENUM.
-  induction l as [ | h t IHl]; ins.
-  { arewrite (G = G'); [| apply rt_refl].
-    eapply SubToFullExecInternal.enum_diff_done; eauto. }
-  set (delta_G := SubToFullExecInternal.delta_G G G' h).
-  assert (STEP : WCore.cfg_add_event_uninformative traces
-    (WCore.Build_t sc       G                G' cmt)
-    (WCore.Build_t sc delta_G                G' cmt)).
-  { eapply SubToFullExecInternal.step_once; eauto. }
-  eapply rt_trans; [apply rt_step; eauto | ].
-  red in STEP; desf.
-  apply IHl; [eapply WCore.cae_wf; eauto |].
-  constructor; ins.
-  { eapply nodup_consD, ENUM. }
-  { rewrite set_minus_union_r, SubToFullExecInternal.diff_elems,
-            set_inter_minus_r, SubToFullExecInternal.enumd_elems_inter.
-    all: eauto.
-    ins; split; [basic_solver |].
-    unfolder; ins; splits; eauto. intro F; subst.
-    eapply nodup_cons; [apply ENUM | ins]. }
-  { intros x y SB. unfolder in SB; desf.
-    assert (LT : total_order_from_list (h :: t) x y).
-    { eapply SubToFullExecInternal.diff_sb; unfolder; splits; ins; eauto. }
-    apply total_order_from_list_cons in LT; desf.
-    exfalso; eauto. }
-  { intros x y RF. unfolder in RF; desf.
-    assert (LT : total_order_from_list (h :: t) x y).
-    { eapply SubToFullExecInternal.diff_rf; unfolder; splits; ins; eauto. }
-    apply total_order_from_list_cons in LT; desf.
-    exfalso; eauto. }
-  rewrite set_minus_union_r.
-  rewrite <- (SubToFullExecInternal.diff_rf_d ENUM).
-  basic_solver.
-Qed.
-
 Lemma sub_to_full_exec_end_wf sc G G' cmt l
     (WF : WCore.wf (WCore.Build_t sc G G' cmt))
     (ENUM : SubToFullExecInternal.enumd_diff G G' cmt l) :
@@ -834,6 +789,52 @@ Proof using.
     unfolder; splits; ins.
     now rewrite <- EQLAB. }
   rewrite EQLAB. apply WF.
+Qed.
+
+Lemma sub_to_full_exec sc G G' cmt l
+    (WF : WCore.wf (WCore.Build_t sc G G' cmt))
+    (ENUM : SubToFullExecInternal.enumd_diff G G' cmt l)
+    (COH : trace_coherent traces G') :
+  (WCore.cfg_add_event_uninformative traces)＊
+    (WCore.Build_t sc G G' cmt)
+    (WCore.Build_t sc G' G' cmt).
+Proof using.
+  assert (WF' : WCore.wf (WCore.Build_t sc G' G' cmt)).
+  { eauto using sub_to_full_exec_end_wf. }
+  generalize G WF ENUM.
+  clear      G WF ENUM.
+  induction l as [ | h t IHl]; ins.
+  { arewrite (G = G'); [| apply rt_refl].
+    eapply SubToFullExecInternal.enum_diff_done; eauto. }
+  set (delta_G := SubToFullExecInternal.delta_G G G' h).
+  assert (STEP : WCore.cfg_add_event_uninformative traces
+    (WCore.Build_t sc       G                G' cmt)
+    (WCore.Build_t sc delta_G                G' cmt)).
+  { eapply SubToFullExecInternal.step_once; eauto. }
+  eapply rt_trans; [apply rt_step; eauto | ].
+  red in STEP; desf.
+  apply IHl; [eapply WCore.cae_wf; eauto |].
+  constructor; ins.
+  { eapply nodup_consD, ENUM. }
+  { rewrite set_minus_union_r, SubToFullExecInternal.diff_elems,
+            set_inter_minus_r, SubToFullExecInternal.enumd_elems_inter.
+    all: eauto.
+    ins; split; [basic_solver |].
+    unfolder; ins; splits; eauto. intro F; subst.
+    eapply nodup_cons; [apply ENUM | ins]. }
+  { intros x y SB. unfolder in SB; desf.
+    assert (LT : total_order_from_list (h :: t) x y).
+    { eapply SubToFullExecInternal.diff_sb; unfolder; splits; ins; eauto. }
+    apply total_order_from_list_cons in LT; desf.
+    exfalso; eauto. }
+  { intros x y RF. unfolder in RF; desf.
+    assert (LT : total_order_from_list (h :: t) x y).
+    { eapply SubToFullExecInternal.diff_rf; unfolder; splits; ins; eauto. }
+    apply total_order_from_list_cons in LT; desf.
+    exfalso; eauto. }
+  rewrite set_minus_union_r.
+  rewrite <- (SubToFullExecInternal.diff_rf_d ENUM).
+  basic_solver.
 Qed.
 
 Lemma enumd_diff_listless  sc G G' cmt thrdle
@@ -921,7 +922,6 @@ Proof using.
                                  as (l & ENUM).
   all: ins; try now apply STABLE.
   apply sub_to_full_exec with l; ins.
-  eauto using sub_to_full_exec_end_wf.
 Qed.
 
 End SubToFullExec.
