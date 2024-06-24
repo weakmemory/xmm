@@ -243,7 +243,7 @@ Record enumd_diff (l : list actid) : Prop := {
   diff_elems : E' \₁ E ≡₁ fun x => In x l;
   diff_sb : restr_rel (E' \₁ E) sb' ⊆ total_order_from_list l;
   diff_rf : restr_rel (E' \₁ E) (rf' ⨾ ⦗E' \₁ cmt⦘) ⊆ total_order_from_list l;
-  diff_rf_d : dom_rel (rf' ⨾ ⦗E' \₁ E⦘) ⊆₁ E';
+  diff_rf_d : (E' \₁ E) ∩₁ R ⊆₁ codom_rel rf';
 }.
 
 Notation "'X'" := ({|
@@ -789,11 +789,9 @@ Proof using.
     { eapply SubToFullExecInternal.diff_rf; unfolder; splits; ins; eauto. }
     apply total_order_from_list_cons in LT; desf.
     exfalso; eauto. }
-  intros x IN.
-  tertium_non_datur (h = x) as [EQ|NEQ]; subst.
-  { apply ENUM; desf. }
-  eapply SubToFullExecInternal.diff_rf_d; eauto.
-  eapply dom_rel_mori; eauto; basic_solver.
+  rewrite set_minus_union_r.
+  rewrite <- (SubToFullExecInternal.diff_rf_d ENUM).
+  basic_solver.
 Qed.
 
 End SubToFullExec.
