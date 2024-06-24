@@ -904,4 +904,24 @@ Proof using.
   rewrite <- RFCO. basic_solver.
 Qed.
 
+Lemma sub_to_full_exec_listless sc G G' cmt thrdle
+    (WF : WCore.wf (WCore.Build_t sc G G' cmt))
+    (COH : trace_coherent traces G')
+    (STABLE : WCore.stable_uncmt_reads_gen G' cmt thrdle)
+    (RFCO : acts_set G' ∩₁ is_r (lab G) ⊆₁ codom_rel (rf G'))
+    (ORDRFI :
+      restr_rel (acts_set G' \₁ acts_set G) (
+          (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘)
+      ) ∩ same_tid ⊆ sb G') :
+  (WCore.cfg_add_event_uninformative traces)＊
+    (WCore.Build_t sc G G' cmt)
+    (WCore.Build_t sc G' G' cmt).
+Proof using.
+  destruct (enumd_diff_listless) with sc G G' cmt thrdle
+                                 as (l & ENUM).
+  all: ins; try now apply STABLE.
+  apply sub_to_full_exec with l; ins.
+  eauto using sub_to_full_exec_end_wf.
+Qed.
+
 End SubToFullExec.
