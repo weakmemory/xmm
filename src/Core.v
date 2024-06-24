@@ -374,50 +374,42 @@ Section ExecRexec.
 Variables G G' : execution.
 Variables sc : relation actid.
 Variable traces : thread_id -> trace label -> Prop.
+Variable dtrmt cmt : actid -> Prop.
 
 Notation "'E''" := (acts_set G').
 Notation "'E'" := (acts_set G).
 Notation "'W'" := (is_w (lab G)).
 Notation "'R'" := (is_r (lab G)).
-Notation "'race'" := (race G).
 Notation "'lab''" := (lab G').
 Notation "'lab'" := (lab G).
-Notation "'same_loc'" := (same_loc lab).
 Notation "'hb'" := (hb G).
-Notation "'hbloc'" := (same_loc ∩ hb).
-Notation "'re'" := (⦗W⦘ ⨾ (race ∪ hbloc) ⨾ ⦗R⦘).
 Notation "'rf''" := (rf G').
 Notation "'sb''" := (sb G).
 Notation "'sb'" := (sb G).
 Notation "'rf'" := (rf G).
-Notation "'sb_rf'" := ((sb ∪ rf)⁺).
-Notation "'sb_rf''" := ((sb' ∪ rf')⁺).
 
-Definition f_cmt (f : actid -> option actid) := is_some ∘ f.
-
-Record stable_uncmt_reads_gen f (thrdle : relation thread_id) : Prop :=
+Record stable_uncmt_reads_gen thrdle : Prop :=
   { surg_init_min : wmin_elt thrdle tid_init;
     surg_init_least : least_elt thrdle tid_init;
     surg_order : acyclic thrdle;
-    surg_uncmt : (rf ⨾ ⦗E' \₁ f_cmt f⦘) ∩ compl_rel same_tid ⊆ tid ↓ thrdle; }.
+    surg_uncmt : (rf ⨾ ⦗E' \₁ cmt⦘) ∩ compl_rel same_tid ⊆ tid ↓ thrdle; }.
 
-Lemma surg_sb_closed f thrdle
-    (STABLE_UNCMT : stable_uncmt_reads_gen f thrdle) :
+Lemma surg_sb_closed thrdle
+    (STABLE_UNCMT : stable_uncmt_reads_gen thrdle) :
   sb^? ⨾ tid ↓ thrdle ⨾ sb^? ⊆ tid ↓ thrdle.
 Proof.
   by destruct STABLE_UNCMT; apply thrdle_sb_closed.
 Qed.
 
 Record correct_embeding f : Prop :=
-{ reexec_embd_inj : inj_dom (f_cmt f) f;
-  reexec_embd_dom : f_cmt f ⊆₁ E';
-  reexec_embd_tid : (fun x y => f x = Some y) ⊆ same_tid;
-  reexec_embd_lab : forall ec e (MAPPED : f e = Some ec),
-                      lab' ec = lab e;
-  reexec_embd_sb : Some ↓ (f ↑ restr_rel (f_cmt f) sb') ⊆ sb;
-  reexec_embd_rf : Some ↓ (f ↑ restr_rel (f_cmt f) rf') ⊆ rf; }.
+{ reexec_embd_inj : inj_dom cmt f;
+  reexec_embd_dom : cmt ⊆₁ E';
+  reexec_embd_tid : forall e (CMT : cmt e), tid (f e) = tid e;
+  reexec_embd_lab : forall e (CMT : cmt e), lab' (f e) = lab e;
+  reexec_embd_sb : f ↑ restr_rel cmt sb' ⊆ sb;
+  reexec_embd_rf : f ↑ restr_rel cmt rf' ⊆ rf; }.
 
-Definition reexec_start dtrmt := Build_execution
+Definition reexec_start := Build_execution
   (restrict G dtrmt).(acts_set)
 	(restrict G dtrmt).(threads_set)
   G'.(lab)
@@ -429,21 +421,22 @@ Definition reexec_start dtrmt := Build_execution
   (restrict G dtrmt).(rf)
   (restrict G dtrmt).(co).
 
-Record reexec_gen f thrdle dtrmt : Prop :=
+Record reexec_gen f thrdle : Prop :=
 { (* Correct start *)
   newlab_correct : forall e (DTRMT : dtrmt e), lab' e = lab e;
-  dtrmt_cmt : dtrmt ⊆₁ (f_cmt f);
-  reexec_sur : stable_uncmt_reads_gen f thrdle;
+  dtrmt_cmt : dtrmt ⊆₁ cmt;
+  dtrmt_in_G : dtrmt ⊆₁ E;
+  reexec_sur : stable_uncmt_reads_gen thrdle;
   (* Correct embedding *)
   reexec_embd_corr : correct_embeding f;
   (* Reproducable steps *)
-  reexec_start_wf : wf (Build_t sc (reexec_start dtrmt) G' (f_cmt f));
+  reexec_start_wf : wf (Build_t sc reexec_start G' cmt);
   reexec_steps : (cfg_add_event_uninformative traces)＊
-    (Build_t sc (reexec_start dtrmt) G' (f_cmt f))
-    (Build_t sc G'                   G' (f_cmt f));
+    (Build_t sc reexec_start G' cmt)
+    (Build_t sc G'           G' cmt);
   rexec_final_cons : is_cons G' sc; }.
 
-Definition reexec : Prop := exists f thrdle dtrmt, reexec_gen f thrdle dtrmt.
+Definition reexec : Prop := exists f thrdle, reexec_gen f thrdle.
 
 End ExecRexec.
 
