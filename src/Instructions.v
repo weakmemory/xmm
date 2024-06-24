@@ -37,6 +37,14 @@ Notation "'lab'" := (lab G).
 Notation "'rmw'" := (rmw G).
 Notation "'sb'" := (sb G).
 
+(* Set of all instruction ids in an execution *)
+Definition instr_ids_set := e2instr ↑₁ (E ∩₁ set_compl is_init).
+Notation "'Instr_id'" := (instr_ids_set).
+
+(* Set of all insturctions in an execution *)
+Definition instrs_set := instr ↑₁ instr_ids_set.
+Notation "'Instr'" := (instrs_set).
+
 Definition rmw_end := codom_rel rmw.
 
 Definition nrmw_ord := restr_rel (set_compl is_init) (sb \ rmw).
