@@ -794,4 +794,117 @@ Proof using.
   basic_solver.
 Qed.
 
+Lemma sub_to_full_exec_end_wf sc G G' cmt l
+    (WF : WCore.wf (WCore.Build_t sc G G' cmt))
+    (ENUM : SubToFullExecInternal.enumd_diff G G' cmt l) :
+  WCore.wf (WCore.Build_t sc G' G' cmt).
+Proof using.
+  assert (SUB : sub_execution G' G ∅₂ ∅₂).
+  { apply WF. }
+  assert (EQLAB : lab G' = lab G).
+  { symmetry. apply SUB. }
+  assert (WF_G' : Wf G').
+  { apply WF. }
+  split.
+  { constructor; ins.
+    all: try now apply WF.
+    basic_solver. }
+  constructor; ins.
+  all: try now apply WF.
+  { constructor; ins.
+    all: try now apply WF_G'.
+    { now apply wf_rmwE. }
+    { now apply wf_dataE. }
+    { now apply wf_addrE. }
+    { now apply wf_ctrlE. }
+    { now apply wf_rmw_depE. }
+    basic_solver. }
+  { basic_solver. }
+  { basic_solver. }
+  { intros x (INE' & IS_R).
+    destruct (classic (acts_set G x)) as [INE|NINE].
+    { apply set_subset_single_l.
+      transitivity (codom_rel (rf G) ∪₁ cmt).
+      { apply set_subset_eq, WF. split; ins.
+        now rewrite <- EQLAB. }
+      rewrite (sub_rf SUB). basic_solver. }
+    destruct (classic (cmt x)) as [CMT|NCMT].
+    { now right. }
+    left. apply (SubToFullExecInternal.diff_rf_d ENUM).
+    unfolder; splits; ins.
+    now rewrite <- EQLAB. }
+  rewrite EQLAB. apply WF.
+Qed.
+
+Lemma enumd_diff_listless  sc G G' cmt thrdle
+    (WF : WCore.wf {|
+      WCore.sc := sc;
+      WCore.G := G;
+      WCore.GC := G';
+      WCore.cmt := cmt
+    |})
+    (OPA : partial_order thrdle)
+    (RFCO : acts_set G' ∩₁ is_r (lab G) ⊆₁ codom_rel (rf G'))
+    (INITLEAST : least_elt thrdle tid_init)
+    (MININIT : wmin_elt thrdle tid_init)
+    (ORDRF : rf G' ⨾ ⦗acts_set G' \₁ cmt⦘ ⊆ tid ↓ thrdle)
+    (ORDRFI :
+      restr_rel (acts_set G' \₁ acts_set G) (
+          (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘)
+      ) ∩ same_tid ⊆ sb G') :
+  exists l,
+    SubToFullExecInternal.enumd_diff G G' cmt l.
+Proof using.
+  red in OPA. desf.
+  assert (FIN : set_finite (acts_set G' \₁ acts_set G)).
+  { arewrite (acts_set G' \₁ acts_set G ⊆₁ acts_set G' \₁ is_init).
+    all: try now apply (WCore.wf_gc_fin_exec WF).
+    unfolder. intros x (INE' & NINE). split; ins.
+    intro INI. apply NINE, (WCore.wf_g_init WF); ins. }
+  assert (FULL_SUB : restr_rel (acts_set G' \₁ acts_set G)
+                               (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘)
+                     ⊆ tid ↓ (thrdle \ ⦗⊤₁⦘) ∪ sb G').
+  { arewrite (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘ ≡
+              (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ∩ ⊤₂).
+    { basic_solver. }
+    arewrite (⊤₂ ≡ compl_rel same_tid ∪ same_tid).
+    { split; [| basic_solver].
+      rewrite unionC. unfolder; eauto using classic. }
+    rewrite inter_union_r, restr_union.
+    apply union_mori; [| now rewrite restr_inter, inter_restr_absorb_r].
+    intros x y ((RF & NTID) & _ & _). split.
+    { apply ORDRF, RF. }
+    unfold same_tid in NTID. intro F. red in F, NTID. desf. }
+  apply set_finiteE in FIN. destruct FIN as (l' & NODUP & EQ).
+  destruct partial_order_included_in_total_order
+    with actid (tid ↓ (thrdle \ ⦗⊤₁⦘) ∪ sb G')
+    as (tord & SUB & TOT).
+  { red. unfolder. split.
+    { ins. desf; eauto. eapply sb_irr; eauto. }
+    intros x y z R1 R2. desf.
+    { left. split; [eapply TRANS; eauto |].
+      intros (F & _). apply R0; split; ins.
+      apply ANTISYMM; ins. now rewrite <- F. }
+    { unfold sb, ext_sb in *. unfolder in R1.
+      all: ins; do 2 desf; eauto.
+      ins; left. split; ins.
+      intros (F & _). rewrite <- F in *.
+      apply MININIT in R2. eauto. }
+    { unfold sb, ext_sb in *. unfolder in R2.
+      all: ins; do 2 desf; eauto.
+      ins. exfalso. apply MININIT in R1. eauto. }
+    right. now apply sb_trans with y. }
+  exists (isort tord l'). constructor; ins.
+  { apply NoDup_StronglySorted with tord.
+    { apply TOT. }
+    apply StronglySorted_isort; ins. }
+  { rewrite EQ. unfolder; split.
+    all: intro; apply in_isort_iff. }
+  { rewrite total_order_from_isort, <- EQ, <- SUB; ins.
+    basic_solver. }
+  { rewrite total_order_from_isort, <- EQ, <- SUB; ins.
+    rewrite <- FULL_SUB. basic_solver. }
+  rewrite <- RFCO. basic_solver.
+Qed.
+
 End SubToFullExec.
