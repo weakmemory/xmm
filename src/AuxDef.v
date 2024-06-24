@@ -487,3 +487,9 @@ Lemma seq_seq_inter A (a b c d : A -> Prop) r :
 Proof using.
   basic_solver.
 Qed.
+
+Definition least_elt {A} (r : relation A) (a : A) : Prop :=
+  forall x, r a x.
+
+Definition maxl_elt {A} (r : relation A) (a : A) : Prop :=
+  forall x, r x a.

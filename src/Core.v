@@ -396,9 +396,10 @@ Notation "'sb_rf''" := ((sb' ∪ rf')⁺).
 Definition f_cmt (f : actid -> option actid) := is_some ∘ f.
 
 Record stable_uncmt_reads_gen f (thrdle : relation thread_id) : Prop :=
-  { surg_init_least : forall t, thrdle tid_init t ;
-    surg_init_min : forall t, thrdle t tid_init -> t = tid_init ;
-    surg_uncmt : rf ⨾ ⦗E' \₁ f_cmt f⦘ ⊆ tid ↓ thrdle ; }.
+  { surg_init_min : wmin_elt thrdle tid_init;
+    surg_init_least : least_elt thrdle tid_init;
+    surg_order : acyclic thrdle;
+    surg_uncmt : (rf ⨾ ⦗E' \₁ f_cmt f⦘) ∩ compl_rel same_tid ⊆ tid ↓ thrdle; }.
 
 Lemma surg_sb_closed f thrdle
     (STABLE_UNCMT : stable_uncmt_reads_gen f thrdle) :
