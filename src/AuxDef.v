@@ -493,8 +493,3 @@ Definition least_elt {A} (r : relation A) (a : A) : Prop :=
 
 Definition maxl_elt {A} (r : relation A) (a : A) : Prop :=
   forall x, r x a.
-
-Definition partial_order {A} (r : relation A) :=
-  << REFL : reflexive r >> /\
-  << TRANS : transitive r >> /\
-  << ANTISYMM : antisymmetric r >>.
