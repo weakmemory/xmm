@@ -392,7 +392,7 @@ Record stable_uncmt_reads_gen thrdle : Prop :=
   { surg_init_min : wmin_elt thrdle tid_init;
     surg_init_least : least_elt thrdle tid_init;
     surg_order : acyclic thrdle;
-    surg_uncmt : (rf ⨾ ⦗E' \₁ cmt⦘) ∩ compl_rel same_tid ⊆ tid ↓ thrdle; }.
+    surg_uncmt : (rf' ⨾ ⦗E' \₁ cmt⦘) ∩ compl_rel same_tid ⊆ tid ↓ thrdle; }.
 
 Lemma surg_sb_closed thrdle
     (STABLE_UNCMT : stable_uncmt_reads_gen thrdle) :
