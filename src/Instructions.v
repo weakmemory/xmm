@@ -61,7 +61,7 @@ Record E2InstrWf : Prop := {
   rmw_ticks : forall ins,
     tick ↑ restr_rel (fun x => instr x = ins) (e2instr ↑ rmw_ord)
       ⊆ (fun x y => y = 1 + x)⁺;
-  instr_ty : funeq e_type same_instr;
+  (* instr_ty : funeq e_type same_instr; *)
 }.
 
 End MainDefs.
