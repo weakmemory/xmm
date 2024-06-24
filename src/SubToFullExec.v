@@ -242,7 +242,7 @@ Record enumd_diff (l : list actid) : Prop := {
   nodup : NoDup l;
   diff_elems : E' \₁ E ≡₁ fun x => In x l;
   diff_sb : restr_rel (E' \₁ E) sb' ⊆ total_order_from_list l;
-  diff_rf : restr_rel (E' \₁ E) rf' ⨾ ⦗E' \₁ cmt⦘ ⊆ total_order_from_list l;
+  diff_rf : restr_rel (E' \₁ E) (rf' ⨾ ⦗E' \₁ cmt⦘) ⊆ total_order_from_list l;
   diff_rf_d : dom_rel (rf' ⨾ ⦗E' \₁ E⦘) ⊆₁ E';
 }.
 
