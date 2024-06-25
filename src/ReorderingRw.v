@@ -1208,16 +1208,19 @@ Lemma simrel_exec_a_helper sc w sw l
     (RF : rf_t' w b)
     (SIM_ACTS : reord_simrel_rw_actids G_t a b)
     (STEP : WCore.exec_inst G_t G_t' sc traces b) :
-  WCore.reexec
-    (exec_add_rf
-      (exec_add_read_event_nctrl
-        (exec_upd_lab
-          (exec_mapped G_t mapper (lab_t' ∘ mapper))
-          a l) a)
-      (singl_rel sw a))
-    (exec_mapped G_t' mapper (lab_t'  ∘ mapper))
-    (mapper ↑ sc)
-    traces'.
+  exists dtrmt cmt,
+    WCore.reexec
+      (exec_add_rf
+        (exec_add_read_event_nctrl
+          (exec_upd_lab
+            (exec_mapped G_t mapper (lab_t' ∘ mapper))
+            a l) a)
+        (singl_rel sw a))
+      (exec_mapped G_t' mapper (lab_t'  ∘ mapper))
+      (mapper ↑ sc)
+      traces'
+      dtrmt
+      cmt.
 Proof using.
   (* Shorthands *)
   set (G_s_ := exec_add_rf
@@ -1241,14 +1244,7 @@ Proof using.
   { admit. (* TODO: use step *) }
   assert (WINE : E_t w).
   { admit. }
-  assert (CMTEQ : WCore.f_cmt f ≡₁ cmt).
-  { subst f. unfold WCore.f_cmt, is_some, compose.
-    unfolder. split; ins; desf. }
-  assert (CMTEQ' : forall r,
-    Some ↓ (f ↑ r) ≡ restr_rel cmt r).
-  { admit. (* TODO: f is a partial id *) }
   (* Actual proof *)
-  red.
   admit.
 Admitted.
 
@@ -1258,9 +1254,9 @@ Lemma simrel_exec_a sc w
     (RF : rf_t' w a)
     (SIM : reord_simrel_rw G_s G_t a b)
     (STEP : WCore.exec_inst G_t G_t' sc traces b) :
-  exists G_s' sc',
+  exists G_s' sc' dtrmt' cmt',
     << SIM' : reord_simrel_rw G_s' G_t' a b >> /\
-    << STEP : WCore.reexec G_s G_s' sc' traces' >>.
+    << STEP : WCore.reexec G_s G_s' sc' traces' dtrmt' cmt' >>.
 Proof using SWAPPED_TRACES.
   (* TODO: check article *)
   (* Case1 : Gt' *)
@@ -1268,14 +1264,14 @@ Proof using SWAPPED_TRACES.
   admit.
 Admitted.
 
-Lemma simrel_reexec sc
+Lemma simrel_reexec sc dtrmt cmt
     (CONS : WCore.is_cons G_t sc)
     (CONS' : WCore.is_cons G_s (mapper ↑ sc))
     (SIM : reord_simrel_rw G_s G_t a b)
-    (STEP : WCore.reexec G_t G_t' sc traces) :
-  exists G_s' sc',
+    (STEP : WCore.reexec G_t G_t' sc traces dtrmt cmt) :
+  exists G_s' sc' dtrmt' cmt',
     << SIM' : reord_simrel_rw G_s' G_t' a b >> /\
-    << STEP : WCore.reexec G_s G_s' sc' traces' >>.
+    << STEP : WCore.reexec G_s G_s' sc' traces' dtrmt' cmt' >>.
 Proof using SWAPPED_TRACES.
   admit.
 Admitted.
