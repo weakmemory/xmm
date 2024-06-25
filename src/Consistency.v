@@ -373,58 +373,6 @@ Proof using.
     rewrite EQ1. basic_solver.
 Qed.
 
-(* 
-Lemma rhb_srf_irr
-        (WF  : Wf G)
-        (CONS : WCore.is_cons G sc) :
-    irreflexive (rhb ⨾ srf).
-Proof using.
-    apply irreflexive_inclusion with (r' := hb ⨾ srf).
-    { rewrite hb_helper; basic_solver. }
-    rotate 1; apply srf_hb_irr; auto.
-Qed.
-
-Lemma vf_hb_hb_irr 
-        (WF  : Wf G)
-        (CONS : WCore.is_cons G sc) :
-    irreflexive (vf ⨾ hb ⨾ hb).
-Proof using.
-    arewrite (vf ⨾ hb ⊆ vf).
-    generalize @vf_hb; basic_solver 21.
-    apply vf_hb_irr; eauto.
-Qed.
-
-Lemma rhb_sb_srf_irr
-        (WF  : Wf G)
-        (CONS : WCore.is_cons G sc) :
-    irreflexive (rhb ⨾ sb ⨾ srf^?).
-Proof using.
-    rewrite rhb_in_hb; eauto. rewrite srf_sub_vf; eauto.
-    rewrite sb_in_hb; eauto. case_refl _. 
-    2: { rotate 1. apply vf_hb_hb_irr; eauto. }
-    generalize (@hb_trans G); ins; relsf.
-    apply hb_irr; eauto. apply CONS.
-Qed.
-
-Lemma rhb_fr_srf_irr
-        (WF  : Wf G)
-        (CONS : WCore.is_cons G sc) :
-    irreflexive (rhb ⨾ fr ⨾ srf^?).
-Proof using.
-    case_refl _. 
-    { rewrite fr_in_eco; eauto. rewrite rhb_in_hb; eauto.
-      apply hb_eco_irr; eauto. }
-    unfold fr.
-Admitted.
-
-Lemma rhb_srf_sb_rf_irr
-        (WF  : Wf G)
-        (CONS : WCore.is_cons G sc) :
-    irreflexive (rhb ⨾ srf⁻¹ ⨾ sb ⨾ rf).
-Proof using.
-    admit.
-Admitted. *)
-
 Lemma rhb_eco_irr_equiv
         (WF  : Wf G):
     irreflexive (rhb ⨾ eco) <-> irreflexive (hb ⨾ eco).
@@ -623,7 +571,9 @@ Lemma rhb_sub (m : actid -> actid)
         (WF_s : Wf G_s) :
     rhb_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rhb_t. 
 Proof using.
-    unfold rhb. admit. 
+    unfold rhb. intros x y H. destruct H. destruct H.
+    destruct H0. destruct H0. apply ct_unionE in H.
+    destruct H. admit. 
 Admitted.
 
 Lemma codom_ct_alt (A : Type) (r r' : relation A)
@@ -660,12 +610,22 @@ Lemma rhb_codom (m : actid -> actid)
         (WF_s : Wf G_s) :
     codom_rel(⦗eq a⦘ ⨾ rhb_s) ≡₁ ∅.
 Proof using.
-    unfold rhb. rewrite path_ut_first.
+    unfold rhb. assert (SWAP : codom_rel (⦗eq a⦘ ⨾ (rpo_s ∪ sw_s)⁺) ≡₁ codom_rel (⦗eq a⦘ ⨾ (sw_s ∪ rpo_s)⁺)).
+    { admit. } 
+    rewrite SWAP. rewrite ct_unionE.
     rewrite seq_union_r. rewrite codom_union.
     assert (EMP : codom_rel(⦗eq a⦘ ⨾ rpo_s⁺) ≡₁ ∅).
         { apply codom_ct_alt; eauto. }
-    assert (EMP' : codom_rel (⦗eq a⦘ ⨾ rpo_s＊ ⨾ sw_s ⨾ (rpo_s ∪ sw_s)＊) ≡₁ ∅).
-        { rewrite <- ct_of_cr. admit. }
+    assert (EMP' : codom_rel (⦗eq a⦘ ⨾ rpo_s＊ ⨾ (sw_s ⨾ rpo_s＊)⁺) ≡₁ ∅).
+        { assert (BASE : codom_rel (⦗eq a⦘ ⨾ rpo_s＊ ⨾ sw_s ⨾ rpo_s＊) ≡₁ ∅).
+          { assert (BASE' : ⦗eq a⦘ ⨾ rpo_s＊ ⨾ sw_s ⨾ rpo_s＊ ≡ ∅₂).
+            { split; try basic_solver. intros x y H. destruct H. destruct H.
+              destruct H. destruct H. destruct H1. destruct H0. destruct H.
+              apply rtE in H. destruct H.
+              { destruct H. destruct H. admit. }
+              admit. }
+            rewrite BASE'. basic_solver. }
+          admit. }
     rewrite EMP, EMP'. basic_solver.
 Admitted.
 
