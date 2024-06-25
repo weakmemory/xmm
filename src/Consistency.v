@@ -448,6 +448,7 @@ Notation "'sw_t'" := (sw G_t).
 Lemma fr_sub (m : actid -> actid)
         (INJ : inj_dom E_t m)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
+        (IS_R : is_r lab_s a)
         (NIN : set_disjoint (m ↑₁ E_t) (eq a))
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
@@ -474,6 +475,7 @@ Qed.
 Lemma eco_sub (m : actid -> actid)
         (INJ : inj_dom E_t m)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
+        (IS_R : is_r lab_s a)
         (NIN : set_disjoint (m ↑₁ E_t) (eq a))
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
@@ -545,6 +547,7 @@ Qed.
 Lemma acts_set_helper (m : actid -> actid)
         (INJ : inj_dom E_t m)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
+        (IS_R : is_r lab_s a)
         (NIN : set_disjoint (m ↑₁ E_t) (eq a))
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
@@ -562,6 +565,7 @@ Qed.
 Lemma rhb_sub (m : actid -> actid)
         (INJ : inj_dom E_t m)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
+        (IS_R : is_r lab_s a)
         (NIN : set_disjoint (m ↑₁ E_t) (eq a))
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
@@ -598,9 +602,23 @@ Proof using.
     destruct Q.
 Qed.
 
+Lemma empty_seq_codom (A : Type) (r r' : relation A)
+        (EMP : codom_rel r ≡₁ ∅) :
+    codom_rel (r ⨾ r') ≡₁ ∅.
+Proof using.
+    split; try basic_solver. intros x H. induction H.
+    destruct H. destruct H. destruct EMP.
+    assert (IN : codom_rel r x1).
+    { exists x0; eauto. }
+    assert (F : ∅ x1). 
+    { apply H1 in IN; eauto. }
+    basic_solver.
+Qed.
+
 Lemma rhb_codom (m : actid -> actid)
         (INJ : inj_dom E_t m)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
+        (IS_R : is_r lab_s a)
         (NIN : set_disjoint (m ↑₁ E_t) (eq a))
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
@@ -610,28 +628,32 @@ Lemma rhb_codom (m : actid -> actid)
         (WF_s : Wf G_s) :
     codom_rel(⦗eq a⦘ ⨾ rhb_s) ≡₁ ∅.
 Proof using.
-    unfold rhb. assert (SWAP : codom_rel (⦗eq a⦘ ⨾ (rpo_s ∪ sw_s)⁺) ≡₁ codom_rel (⦗eq a⦘ ⨾ (sw_s ∪ rpo_s)⁺)).
-    { admit. } 
-    rewrite SWAP. rewrite ct_unionE.
-    rewrite seq_union_r. rewrite codom_union.
-    assert (EMP : codom_rel(⦗eq a⦘ ⨾ rpo_s⁺) ≡₁ ∅).
-        { apply codom_ct_alt; eauto. }
-    assert (EMP' : codom_rel (⦗eq a⦘ ⨾ rpo_s＊ ⨾ (sw_s ⨾ rpo_s＊)⁺) ≡₁ ∅).
-        { assert (BASE : codom_rel (⦗eq a⦘ ⨾ rpo_s＊ ⨾ sw_s ⨾ rpo_s＊) ≡₁ ∅).
-          { assert (BASE' : ⦗eq a⦘ ⨾ rpo_s＊ ⨾ sw_s ⨾ rpo_s＊ ≡ ∅₂).
-            { split; try basic_solver. intros x y H. destruct H. destruct H.
-              destruct H. destruct H. destruct H1. destruct H0. destruct H.
-              apply rtE in H. destruct H.
-              { destruct H. destruct H. admit. }
-              admit. }
-            rewrite BASE'. basic_solver. }
-          admit. }
-    rewrite EMP, EMP'. basic_solver.
-Admitted.
+    unfold rhb. rewrite ct_begin. rewrite <- seqA. rewrite seq_union_r.
+    rewrite seq_union_l. rewrite codom_union.
+    assert (EMP1 : codom_rel ((⦗eq a⦘ ⨾ rpo_s) ⨾ (rpo_s ∪ sw_s)＊) ≡₁ ∅).
+    { apply empty_seq_codom; eauto. }
+    assert (EMP2 : codom_rel (⦗eq a⦘ ⨾ sw_s) ≡₁ ∅).
+    { rewrite wf_swD; eauto. assert (READ : ⦗eq a⦘ ≡ ⦗eq a⦘ ⨾ ⦗R_s⦘).
+      { basic_solver. }
+      rewrite READ. rewrite seqA.
+      assert (F : ⦗fun a0 : actid => R_s a0⦘
+          ⨾ ⦗((fun a0 : actid => is_f lab_s a0) ∪₁ (fun a0 : actid => W_s a0))
+            ∩₁ (fun a0 : actid => is_rel lab_s a0)⦘ ≡ ∅₂).
+      { rewrite seq_eqv. rewrite set_inter_union_l. rewrite set_inter_union_r.
+        rewrite <- set_interA. rewrite <- set_interA. 
+        unfold is_f, is_w, is_r. basic_solver. }
+      rewrite <- seqA. rewrite <- seqA. apply empty_seq_codom. 
+      split; try basic_solver. rewrite READ. rewrite seqA.
+      rewrite codom_seq. rewrite F. apply codom_empty. }
+    assert (EMP3 : codom_rel ((⦗eq a⦘ ⨾ sw_s) ⨾ (rpo_s ∪ sw_s)＊) ≡₁ ∅).
+    { apply empty_seq_codom; eauto. }
+    rewrite EMP1, EMP3; basic_solver.
+Qed.
 
 Lemma read_extent (m : actid -> actid)
         (INJ : inj_dom E_t m)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
+        (IS_R : is_r lab_s a)
         (NIN : set_disjoint (m ↑₁ E_t) (eq a))
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
