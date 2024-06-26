@@ -24,6 +24,8 @@ From imm Require Import imm_bob.
 From imm Require Import SubExecution.
 From imm Require Import CombRelations.
 
+Set Implicit Arguments.
+
 Section SimRel.
 
 Variable G_s G_t : execution.
