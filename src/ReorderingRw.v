@@ -69,16 +69,19 @@ Record reord_simrel_rw_actids : Prop := {
   rsrw_a_is_w : is_w lab_t a;
   rsrw_b_is_r : is_r lab_t b;
   rsrw_a_b_ord : immediate ext_sb a b;
+  rsrw_loc : ~same_loc (lab_t) a b;
+  rsrw_u2v : same_label_u2v (lab_s a) (lab_t b);
+  rsrw_b_lab : forall (INB : E_t b), val_s a = val_t b;
+  rsrw_srf_val : funeq (val
+    (upd (lab_t ∘ mapper) a (lab_s a))
+  ) (srf_s ⨾ ⦗eq a⦘);
+  rsrw_b_tid : tid b <> tid_init;
+  rsrw_a_tid : tid a <> tid_init;
+  rsrw_actids_t_ord : forall (INB : E_t b) (NOTINA : ~E_t a), False;
 }.
 
-Record reord_simrel_rw_core : Prop :=
-{ rsrw_actids_t_ord : forall (INB : E_t b) (NOTINA : ~E_t a), False;
-  rsrw_a_max : forall (INA : E_t a) (NOTINB : ~E_t b),
-                  max_elt (sb G_t) a; }.
-
 Record reord_simrel_rw_struct : Prop := {
-  rsrw_lab_val_end : forall (INA : E_t a) (INB : E_t b),
-                       val lab_s a = val_t b;
+  rsrw_lab_val_end : forall (INB : E_t b), val lab_s a = val_t b;
   rsrw_lab_u2v : same_lab_u2v (lab_s ∘ mapper) lab_t;
   rsrw_lab_val : forall e (NOTB : e <> b),
                        (val_s ∘ mapper) e = val_t e;
@@ -97,7 +100,7 @@ Record reord_simrel_rw_struct : Prop := {
                  E_s ≡₁ mapper ↑₁ E_t ∪₁ eq a;
   rsrw_rf1 : forall (SAME : E_t a <-> E_t b), rf_s ≡ mapper ↑ rf_t;
   rsrw_rf2 : forall (INA : E_t a) (NOTINB : ~ E_t b),
-                    rf_s ≡ mapper ↑ rf_t ∪ (srf_s ⨾ ⦗eq b⦘);
+                    rf_s ≡ mapper ↑ rf_t ∪ (srf_s ⨾ ⦗eq a⦘);
   rsrw_data : data_s ≡ mapper ↑ data_t;
   rsrw_addr : addr_s ≡ mapper ↑ addr_t;
   rsrw_ctrl : ctrl_s ≡ mapper ↑ ctrl_t;
@@ -107,7 +110,6 @@ Record reord_simrel_rw_struct : Prop := {
 
 Record reord_simrel_rw : Prop :=
 { rsrw_actids : reord_simrel_rw_actids;
-  rsrw_core : reord_simrel_rw_core;
   rsrw_struct : reord_simrel_rw_struct; }.
 
 Hypothesis RSRW_ACTIDS : reord_simrel_rw_actids.
