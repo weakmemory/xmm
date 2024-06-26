@@ -144,6 +144,15 @@ Proof using RSRW_ACTIDS.
   now rewrite ReordCommon.mapper_eq_b in NEQ.
 Qed.
 
+Definition rsrw_G_s_iff :=
+  exec_upd_lab
+    (exec_mapped G_t mapper (lab_t ∘ mapper))
+  a (lab_s a).
+Definition rsrw_G_s_niff :=
+  exec_add_rf
+    (exec_add_read_event_nctrl rsrw_G_s_iff a)
+    (srf_s ⨾ ⦗eq a⦘).
+
 Lemma rsrw_struct_same_lab1
     (INA : E_t a)
     (INB : E_t b)
