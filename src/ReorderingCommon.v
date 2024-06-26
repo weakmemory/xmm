@@ -179,9 +179,9 @@ Proof using.
   now rewrite XHEQ, YHEQ, HEQ.
 Qed.
 
-Lemma mapper_acts
-    (SAME : E_t a <-> E_t b) :
-  mapper ↑₁ E_t ≡₁ E_t.
+Lemma mapper_acts_iff (s : actid -> Prop)
+    (SAME : s a <-> s b) :
+  mapper ↑₁ s ≡₁ s.
 Proof using.
   unfolder; split; ins; desf.
   { tertium_non_datur (y = a) as [HEQA|NEQA];
@@ -190,6 +190,17 @@ Proof using.
   tertium_non_datur (x = a) as [HEQA|NEQA];
   tertium_non_datur (x = b) as [HEQB|NEQB]; subst.
   all: eauto using mapper_eq_a, mapper_eq_b, mapper_neq.
+Qed.
+
+Lemma mapper_acts_niff (s : actid -> Prop)
+    (INA : s a)
+    (NINB : ~s b) :
+  mapper ↑₁ s ∪₁ eq a ≡₁ s ∪₁ eq b.
+Proof using.
+  rewrite <- mapper_eq_b.
+  rewrite <- set_collect_eq with (f := mapper) (a := b).
+  rewrite <- set_collect_union, mapper_acts_iff; ins.
+  unfolder; split; ins; desf; eauto.
 Qed.
 
 Lemma mapper_init_actid l
