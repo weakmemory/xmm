@@ -130,9 +130,9 @@ Lemma cfg_add_event_nctrl_wf_props e delta_rf
     (DELTA_RF_WFD : delta_rf ≡ ⦗WC⦘ ⨾ delta_rf ⨾ ⦗RC⦘)
     (DELTA_RF : delta_rf ⊆ same_locC)
     (DELTA_RF_CODOM : codom_rel delta_rf e)
-    (WF : WCore.wf_props X)
     (NCTRL : ctrlC ≡ ∅₂)
-    (RMW_SAVED : rmwC ⊆ immediate (@sb (exec_add_read_event_nctrl GC e))) :
+    (RMW_SAVED : rmwC ⊆ immediate (@sb (exec_add_read_event_nctrl GC e)))
+    (WF : WCore.wf_props X) :
   WCore.wf_props (cfg_add_read_event_nctrl e delta_rf).
 Proof using.
   assert (HINC : ~cmt e).
