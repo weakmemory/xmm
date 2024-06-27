@@ -254,6 +254,24 @@ Proof using.
   now rewrite mapper_init_actid.
 Qed.
 
+Lemma mapper_tid' x
+    (EQ_TID : tid a = tid b) :
+  tid (mapper x) = tid x.
+Proof using.
+  change (tid (mapper x)) with ((tid ∘ mapper) x).
+  now rewrite mapper_tid.
+Qed.
+
+Lemma mapper_thrdle r thrdle
+    (TIDEQ : tid a = tid b)
+    (SUB : r ⊆ tid ↓ thrdle) :
+  mapper ↑ r ⊆ tid ↓ thrdle.
+Proof using.
+  unfolder. ins. desf.
+  rewrite !mapper_tid'; ins.
+  now apply SUB.
+Qed.
+
 Lemma mapped_G_t_sb_helper lab' r
     (SUBORIG : r ⊆ sb_t)
     (ANINIT : ~is_init a)
