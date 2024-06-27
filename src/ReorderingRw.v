@@ -799,57 +799,52 @@ Proof using.
       rewrite ReordCommon.mapper_neq; ins. now rewrite FIN_LAB. }
     { unfolder. ins. desf. }
     { unfolder. eauto. }
-    { apply cfg_upd_lab_wf_props with (e := a) (l := l) (X := {|
-        WCore.sc := mapper ↑ sc;
-        WCore.G := exec_mapped G_t mapper (lab_t' ∘ mapper);
-        WCore.GC := exec_mapped G_t' mapper (lab_t' ∘ mapper);
-        WCore.cmt := mapper ↑₁ ∅;
-      |}); ins.
-      { apply SIM_ACTS. }
-      { unfold compose. now rewrite ReordCommon.mapper_eq_a. }
-      { unfolder. intro F. desf.
-        apply (wf_rfE (WCore.wf_gc (WCore.start_wf STEP))) in F.
-        ins. unfolder in F. desf.
-        apply NINB'.
-        rewrite ReordCommon.mapper_inj with (a := a) (b := b)
-                                            (x := b) (y := y').
-        all: ins.
-        now rewrite ReordCommon.mapper_eq_b. }
-      { unfolder. intro F. desf.
-        apply (wf_rfE (WCore.wf_gc (WCore.start_wf STEP))) in F.
-        ins. unfolder in F. desf.
-        apply NINB'.
-        rewrite ReordCommon.mapper_inj with (a := a) (b := b)
-                                            (x := b) (y := x').
-        all: ins.
-        now rewrite ReordCommon.mapper_eq_b. }
-      apply cfg_mapped_wf_props with (X := {|
-        WCore.sc := sc;
-        WCore.G := G_t;
-        WCore.GC := G_t';
-        WCore.cmt := ∅;
-      |}); ins.
-      all: try now apply STEP.
-      { apply ReordCommon.mapper_inj. eapply rsrw_a_neq_b; eauto. }
-      { tertium_non_datur (y = a) as [EQ|NEQA].
-        { subst. exists b. now rewrite ReordCommon.mapper_eq_b. }
-        tertium_non_datur (y = b) as [EQ|NEQB].
-        { subst. exists a. now rewrite ReordCommon.mapper_eq_a. }
-        exists y. rewrite ReordCommon.mapper_neq; ins. }
-      { apply ReordCommon.mapper_init_actid. apply SIM_ACTS.(rsrw_ninit_a G_t a b).
-        apply SIM_ACTS.(rsrw_ninit_b G_t a b). }
-      { apply ReordCommon.mapped_G_t_immsb_helper; ins.
-        all: try now apply SIM_ACTS.
-        apply STEP. }
-      { apply ReordCommon.mapped_G_t_sb_helper; ins.
-        all: try now apply SIM_ACTS.
-        apply STEP. }
-      (* FIXME: uses auto gen names *)
-      { admit. (* TODO: lemma *) }
-       admit. }
-    { rewrite (WCore.wf_cc_ctrl_empty (WCore.start_wf STEP)).
-      now rewrite collect_rel_empty. }
-    admit. (* TODO *) }
+    { admit. }
+    { admit. }
+    apply cfg_upd_lab_wf_props with (e := a) (l := l) (X := {|
+      WCore.sc := mapper ↑ sc;
+      WCore.G := exec_mapped G_t mapper (lab_t' ∘ mapper);
+      WCore.GC := exec_mapped G_t' mapper (lab_t' ∘ mapper);
+      WCore.cmt := mapper ↑₁ ∅;
+    |}); ins.
+    { apply SIM_ACTS. }
+    { unfold compose. now rewrite ReordCommon.mapper_eq_a. }
+    { unfolder. intro F. desf.
+      apply (wf_rfE (WCore.wf_gc (WCore.start_wf STEP))) in F.
+      ins. unfolder in F. desf.
+      apply NINB'.
+      rewrite ReordCommon.mapper_inj with (a := a) (b := b)
+                                          (x := b) (y := y').
+      all: ins.
+      now rewrite ReordCommon.mapper_eq_b. }
+    { unfolder. intro F. desf.
+      apply (wf_rfE (WCore.wf_gc (WCore.start_wf STEP))) in F.
+      ins. unfolder in F. desf.
+      apply NINB'.
+      rewrite ReordCommon.mapper_inj with (a := a) (b := b)
+                                          (x := b) (y := x').
+      all: ins.
+      now rewrite ReordCommon.mapper_eq_b. }
+    apply cfg_mapped_wf_props with (X := {|
+      WCore.sc := sc;
+      WCore.G := G_t;
+      WCore.GC := G_t';
+      WCore.cmt := ∅;
+    |}); ins.
+    all: try now apply STEP.
+    { apply ReordCommon.mapper_inj. eapply rsrw_a_neq_b; eauto. }
+    { admit. }
+    { apply ReordCommon.mapper_init_actid. apply SIM_ACTS.(rsrw_ninit_a G_t a b).
+      apply SIM_ACTS.(rsrw_ninit_b G_t a b). }
+    { apply ReordCommon.mapped_G_t_immsb_helper; ins.
+      all: try now apply SIM_ACTS.
+      apply STEP. }
+    { apply ReordCommon.mapped_G_t_sb_helper; ins.
+      all: try now apply SIM_ACTS.
+      apply STEP. }
+    (* FIXME: uses auto gen names *)
+    { admit. (* TODO: lemma *) }
+    admit. }
   { replace ∅ with (mapper ↑₁ ∅) by now rewrite set_collect_empty.
     replace e with (mapper e) by now rewrite ReordCommon.mapper_neq.
     destruct STEP. red in add_event. desf. ins.
@@ -942,16 +937,15 @@ Proof using.
     { admit. }
     { unfolder. ins. desf. }
     { unfolder. eauto. }
-    { apply cfg_upd_lab_wf_props with (X := {|
-        WCore.sc := mapper ↑ sc;
-        WCore.G := exec_mapped _ _ _;
-        WCore.GC := exec_mapped _ _ _;
-        WCore.cmt := mapper ↑₁ ∅;
-      |}); ins.
-      all: admit. }
-    { rewrite (WCore.wf_cc_ctrl_empty start_wf).
-      now rewrite collect_rel_empty. }
-    admit. (* TODO *) }
+    { admit. }
+    { admit. }
+    apply cfg_upd_lab_wf_props with (X := {|
+      WCore.sc := mapper ↑ sc;
+      WCore.G := exec_mapped _ _ _;
+      WCore.GC := exec_mapped _ _ _;
+      WCore.cmt := mapper ↑₁ ∅;
+    |}); ins.
+    all: admit. }
   admit.
 Admitted.
 
@@ -1154,39 +1148,39 @@ Proof using.
     { admit. (* Inferrable from hyps *) }
     { basic_solver. }
     { basic_solver. }
-    { apply cfg_upd_lab_wf_props with (X := {|
-        WCore.sc := mapper ↑ sc;
-        WCore.G := exec_mapped _ _ _;
-        WCore.GC := exec_mapped _ _ _;
-        WCore.cmt := mapper ↑₁ ∅;
-      |}); ins.
-      { apply SIM_ACTS. }
-      { unfold compose. now rewrite ReordCommon.mapper_eq_a. }
-      { admit. (* True because b is not in E_t *) }
-      { admit. (* True because b is not in E_t *) }
-      apply cfg_mapped_wf_props with (X := {|
-        WCore.sc := sc;
-        WCore.G := G_t';
-        WCore.GC := G_t';
-        WCore.cmt := ∅;
-      |}); ins.
-      { apply ReordCommon.mapper_inj. eapply rsrw_a_neq_b; eauto. }
-      { apply ReordCommon.mapper_surj. eapply rsrw_a_neq_b; eauto. }
-      { admit. (* TODO: easy *) }
-      { apply ReordCommon.mapper_init_actid.
-        all: apply SIM_ACTS. }
-      { apply ReordCommon.mapped_G_t_immsb_helper.
-        all: admit. }
-      { apply ReordCommon.mapped_G_t_sb_helper.
-        all: admit. }
-      { admit. (* TODO *) }
-      { admit. (* WFness noise *) }
-      { apply start_wf. }
-      { apply start_wf. }
-      { apply start_wf. }
-      apply WF_NEW. }
-    { admit. (* Easy *) }
-    admit. (* Looks easy too *) }
+    { admit. }
+    { admit. }
+    apply cfg_upd_lab_wf_props with (X := {|
+      WCore.sc := mapper ↑ sc;
+      WCore.G := exec_mapped _ _ _;
+      WCore.GC := exec_mapped _ _ _;
+      WCore.cmt := mapper ↑₁ ∅;
+    |}); ins.
+    { apply SIM_ACTS. }
+    { unfold compose. now rewrite ReordCommon.mapper_eq_a. }
+    { admit. (* True because b is not in E_t *) }
+    { admit. (* True because b is not in E_t *) }
+    apply cfg_mapped_wf_props with (X := {|
+      WCore.sc := sc;
+      WCore.G := G_t';
+      WCore.GC := G_t';
+      WCore.cmt := ∅;
+    |}); ins.
+    { apply ReordCommon.mapper_inj. eapply rsrw_a_neq_b; eauto. }
+    { apply ReordCommon.mapper_surj. eapply rsrw_a_neq_b; eauto. }
+    { admit. (* TODO: easy *) }
+    { apply ReordCommon.mapper_init_actid.
+      all: apply SIM_ACTS. }
+    { apply ReordCommon.mapped_G_t_immsb_helper.
+      all: admit. }
+    { apply ReordCommon.mapped_G_t_sb_helper.
+      all: admit. }
+    { admit. (* TODO *) }
+    { admit. (* WFness noise *) }
+    { apply start_wf. }
+    { apply start_wf. }
+    { apply start_wf. }
+    apply WF_NEW. }
   admit. (* IS_cons *)
 Admitted.
 
