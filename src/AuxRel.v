@@ -251,4 +251,10 @@ Proof using.
   unfolder in *; ins; desf; intro; desf; basic_solver 11.
 Qed.
 
+Lemma srf_in_sb_rf :
+  srf ⊆ (sb ∪ rf)⁺.
+Proof using.
+  admit.
+Admitted.
+
 End AuxRel.
