@@ -444,15 +444,7 @@ Proof using.
   (* actual proof *)
   constructor; ins.
   { replace ∅ with (mapper ↑₁ ∅) by now rewrite set_collect_empty.
-    apply ReordCommon.mapped_G_t_cfg with (X := {|
-        WCore.sc := sc;
-        WCore.G := G_t;
-        WCore.GC := G_t';
-        WCore.cmt := ∅;
-    |}); ins.
-    all: try now apply SIM_ACTS.
-    all: try now apply STEP.
-    eapply rsrw_tid_a_tid_b; eauto. }
+    admit. }
   { destruct STEP. red in add_event. desf.
     exists (option_map mapper r), (option_map mapper w),
            (mapper ↑₁ W1), (mapper ↑₁ W2).
@@ -479,15 +471,7 @@ Proof using.
       apply PROPS. }
     { admit. (* TODO: traces *) }
     replace ∅ with (mapper ↑₁ ∅) by now rewrite set_collect_empty.
-    apply ReordCommon.mapped_G_t_cfg with (X := {|
-      WCore.sc := sc;
-      WCore.G := G_t';
-      WCore.GC := G_t';
-      WCore.cmt := ∅;
-    |}); ins.
-    all: try now apply SIM_ACTS.
-    all: try now apply add_event.
-    eapply rsrw_tid_a_tid_b; eauto. }
+    admit. }
   admit. (* TODO: research *)
 Admitted.
 
@@ -589,14 +573,7 @@ Proof using.
     |}); ins.
     { apply SIM_ACTS. }
     { unfold compose. now rewrite ReordCommon.mapper_eq_a. }
-    apply ReordCommon.mapped_G_t_cfg with (X := {|
-        WCore.sc := sc;
-        WCore.G := G_t;
-        WCore.GC := G_t';
-        WCore.cmt := ∅;
-    |}); ins.
-    all: try now apply SIM_ACTS.
-    eapply rsrw_tid_a_tid_b; eauto. }
+    admit. }
   { exists (option_map mapper r), (option_map mapper w),
            (mapper ↑₁ W1), (mapper ↑₁ W2).
     splits.
@@ -654,15 +631,7 @@ Proof using.
     |}); ins.
     { apply SIM_ACTS. }
     { unfold compose. now rewrite ReordCommon.mapper_eq_a. }
-    apply ReordCommon.mapped_G_t_cfg with (X := {|
-        WCore.sc := sc;
-        WCore.G := G_t';
-        WCore.GC := G_t';
-        WCore.cmt := ∅;
-    |}); ins.
-    all: try now apply SIM_ACTS.
-    all: try now apply add_event.
-    eapply rsrw_tid_a_tid_b; eauto. }
+    admit. }
   admit. (* TODO: Is_cons *)
 Admitted.
 
