@@ -14,6 +14,9 @@ Open Scope program_scope.
 
 Set Implicit Arguments.
 
+Definition surj_dom {A B} (s : B -> Prop) (f : A -> B) :=
+  forall y, exists x, y = f x.
+
 Definition edges_to {A} (e : A) := (fun _ _ => True) ⨾ ⦗eq e⦘.
 Hint Unfold edges_to : unfolderDb.
 

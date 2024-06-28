@@ -176,7 +176,7 @@ Proof using.
 Qed.
 
 Lemma exec_mapped_W (f : actid -> actid) lab'
-    (FSURJ : forall y, exists x, y = f x)
+    (FSURJ : surj_dom ⊤₁ f)
     (HLAB : lab = lab' ∘ f) :
   is_w lab' ≡₁ f ↑₁ W.
 Proof using.
@@ -187,7 +187,7 @@ Proof using.
 Qed.
 
 Lemma exec_mapped_R (f : actid -> actid) lab'
-    (FSURJ : forall y, exists x, y = f x)
+    (FSURJ : surj_dom ⊤₁ f)
     (HLAB : lab = lab' ∘ f) :
   is_r lab' ≡₁ f ↑₁ R.
 Proof using.
@@ -198,7 +198,7 @@ Proof using.
 Qed.
 
 Lemma exec_mapped_F (f : actid -> actid) lab'
-    (FSURJ : forall y, exists x, y = f x)
+    (FSURJ : surj_dom ⊤₁ f)
     (HLAB : lab = lab' ∘ f) :
   is_f lab' ≡₁ f ↑₁ F.
 Proof using.
@@ -209,7 +209,7 @@ Proof using.
 Qed.
 
 Lemma exec_mapped_R_ex (f : actid -> actid) lab'
-    (FSURJ : forall y, exists x, y = f x)
+    (FSURJ : surj_dom ⊤₁ f)
     (HLAB : lab = lab' ∘ f) :
   @R_ex _ lab' ≡₁ f ↑₁ R_ex.
 Proof using.
@@ -220,7 +220,7 @@ Proof using.
 Qed.
 
 Lemma exec_mapped_is_sc (f : actid -> actid) lab'
-    (FSURJ : forall y, exists x, y = f x)
+    (FSURJ : surj_dom ⊤₁ f)
     (HLAB : lab = lab' ∘ f) :
   is_sc lab' ≡₁ f ↑₁ (is_sc lab).
 Proof using.
@@ -243,7 +243,7 @@ Proof using.
 Qed.
 
 Lemma exec_mapped_same_loc (f : actid -> actid) lab'
-    (FSURJ : forall y, exists x, y = f x)
+    (FSURJ : surj_dom ⊤₁ f)
     (HLAB : lab = lab' ∘ f) :
   @same_loc _ lab' ≡ f ↑ same_loc.
 Proof using.
@@ -343,7 +343,7 @@ Qed.
 
 Lemma exec_mapped_wf f lab'
     (FINJ : inj_dom ⊤₁ f)
-    (FSURJ : forall y, exists x, y = f x)
+    (FSURJ : surj_dom ⊤₁ f)
     (HLAB : lab = lab' ∘ f)
     (PRESRVE_RMW : f ↑ rmw ⊆ immediate (@sb (exec_mapped f lab')))
     (PRESEVE_DATA : f ↑ data ⊆ (@sb (exec_mapped f lab')))

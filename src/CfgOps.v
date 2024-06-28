@@ -130,9 +130,9 @@ Lemma cfg_add_event_nctrl_wf_props e delta_rf
     (DELTA_RF_WFD : delta_rf ≡ ⦗WC⦘ ⨾ delta_rf ⨾ ⦗RC⦘)
     (DELTA_RF : delta_rf ⊆ same_locC)
     (DELTA_RF_CODOM : codom_rel delta_rf e)
-    (WF : WCore.wf_props X)
     (NCTRL : ctrlC ≡ ∅₂)
-    (RMW_SAVED : rmwC ⊆ immediate (@sb (exec_add_read_event_nctrl GC e))) :
+    (RMW_SAVED : rmwC ⊆ immediate (@sb (exec_add_read_event_nctrl GC e)))
+    (WF : WCore.wf_props X) :
   WCore.wf_props (cfg_add_read_event_nctrl e delta_rf).
 Proof using.
   assert (HINC : ~cmt e).
@@ -232,7 +232,7 @@ Qed.
 
 Lemma cfg_mapped_wf_props f lab'
     (FINJ : inj_dom ⊤₁ f)
-    (FSURJ : forall y, exists x, y = f x)
+    (FSURJ : surj_dom ⊤₁ f)
     (HLAB : labC = lab' ∘ f)
     (FMAPINIT : forall l, f (InitEvent l) = InitEvent l)
     (PRESRVE_RMW : f ↑ rmwC ⊆ immediate (@sb (exec_mapped GC f lab')))
@@ -301,7 +301,7 @@ Qed.
 
 Lemma cfg_mapped_wf f lab'
     (FINJ : inj_dom ⊤₁ f)
-    (FSURJ : forall y, exists x, y = f x)
+    (FSURJ : surj_dom ⊤₁ f)
     (HLAB : labC = lab' ∘ f)
     (PRESRVE_RMW : f ↑ rmwC ⊆ immediate (@sb (exec_mapped GC f lab')))
     (PRESERVE_RMW_DEP : f ↑ rmw_depC ⊆ (@sb (exec_mapped GC f lab')))

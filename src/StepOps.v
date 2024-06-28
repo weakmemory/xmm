@@ -87,7 +87,7 @@ Qed.
 
 Lemma cfg_mapped_add_step_props f lab_new e r w W1 W2
     (F_INJ : inj_dom ⊤₁ f)
-    (F_SURJ : forall y : actid, exists x : actid, y = f x)
+    (F_SURJ : surj_dom ⊤₁ f)
     (HLAB : labC = lab_new ∘ f)
     (STEP : WCore.cfg_add_event_props X X' e r w W1 W2) :
   WCore.cfg_add_event_props
