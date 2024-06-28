@@ -152,10 +152,13 @@ Definition rsrw_G_s_iff :=
   exec_upd_lab
     (exec_mapped G_t mapper (lab_t ∘ mapper))
   a (lab_s a).
+Definition rsrw_G_s_niff_srf :=
+  let srf := srf (exec_add_read_event_nctrl rsrw_G_s_iff a) in
+    srf ⨾ ⦗eq a⦘.
 Definition rsrw_G_s_niff :=
   exec_add_rf
     (exec_add_read_event_nctrl rsrw_G_s_iff a)
-    (srf_s ⨾ ⦗eq a⦘).
+    rsrw_G_s_niff_srf.
 
 Lemma rsrw_struct_iff
     (SAME : E_t a <-> E_t b) :
