@@ -390,10 +390,9 @@ Proof using SIMREL.
   all: apply SIMREL.
 Qed.
 
-Lemma srf_eq G
-    (INA : acts_set G a) :
+Lemma srf_eq :
   exists sw,
-    (srf G) ⨾ ⦗eq a⦘ = singl_rel sw a.
+    rsrw_G_s_niff_srf G_s a = singl_rel sw a.
 Proof using.
   admit.
 Admitted.
@@ -543,7 +542,7 @@ Proof using SIMREL.
       apply STRUCT. }
     { unfold G_s'. desf.
       { desf. rewrite G_s_niff at 1; ins; eauto.
-        destruct srf_eq as (sw & SRFEQ); eauto.
+        destruct srf_eq as (sw & SRFEQ).
         replace e with (mapper e) by now rewrite ReordCommon.mapper_neq.
         rewrite rsrw_X_s'_niff_eq, rsrw_X_s_niff_eq; ins.
         unfold rsrw_X_s_niff, rsrw_X_s'_niff. rewrite SRFEQ.
@@ -583,8 +582,7 @@ Proof using SIMREL.
     apply SIMREL. }
   assert (CASE2KILLER : ~~(E_t' a /\ ~E_t' b)).
   { admit. }
-  destruct srf_eq as (sw & SRFEQ); eauto.
-  { admit. }
+  destruct srf_eq as (sw & SRFEQ).
   (* Actual proof *)
   exists G_s', (mapper ↑ sc), (rsrw_G_s_niff G_s G_t a b).
   unfold NW. rewrite G_s_iff at 1; ins.
