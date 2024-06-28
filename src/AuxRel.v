@@ -49,23 +49,22 @@ Definition rpo :=
   sb ∩ same_loc ∪
   ⦗is_acq⦘ ⨾ sb ⨾ ⦗is_rel⦘ ∪
   ⦗R ∩₁ is_rlx⦘ ⨾ sb ⨾ ⦗F ∩₁ is_acq⦘ ∪
-  ⦗is_acq⦘ ⨾ sb ⨾ ⦗R ∪₁ W⦘ ∪
-  ⦗R ∪₁ W⦘ ⨾ sb ⨾ ⦗is_rel⦘ ∪
+  ⦗is_acq⦘ ⨾ sb ∪
+  sb ⨾ ⦗is_rel⦘ ∪
   ⦗F ∩₁ is_rel⦘ ⨾ sb ⨾ ⦗W ∩₁ is_rlx⦘.
 Definition rhb := (rpo ∪ sw)⁺.
-Definition vf := ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf^? ⨾ hb^? ⨾ psc^? ⨾ hb^?.
+Definition vf := ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf^? ⨾ hb^?.
 Definition srf := (vf ∩ same_loc) ⨾ ⦗R⦘ \ (co ⨾ vf).
 
 Lemma thrdle_sb_closed thrdle
-    (INIT_MIN: wmin_elt thrdle tid_init)
-    (INIT_LEAST: least_elt thrdle tid_init) :
+    (INIT_LEAST : least_elt thrdle tid_init)
+    (INIT_MIN : wmin_elt thrdle tid_init) :
   sb^? ⨾ tid ↓ thrdle ⨾ sb^? ⊆ tid ↓ thrdle.
 Proof.
   rewrite crE, !seq_union_l, !seq_union_r, !seq_id_l, !seq_id_r, !unionA.
   apply inclusion_union_l; try done.
   arewrite (tid ↓ thrdle ⨾ sb ⊆ tid ↓ thrdle).
-  { unfold map_rel.
-    intros x y [z [TID SB]].
+  { unfolder. intros x y (z & TID & SB).
     apply sb_tid_init in SB.
     destruct SB as [EQ|INIT]; try by rewrite <- EQ.
     apply is_init_tid in INIT; rewrite INIT in *.
@@ -101,6 +100,8 @@ Lemma wf_vfE
     (WF : Wf G) :
   vf ≡ ⦗E⦘ ⨾ vf ⨾ ⦗E⦘.
 Proof using.
+  split; [| basic_solver].
+  unfold vf. hahn_frame.
   admit.
 Admitted.
 
@@ -113,8 +114,10 @@ Lemma wf_srfE
     (WF : Wf G) :
   srf ≡ ⦗E⦘ ⨾ srf ⨾ ⦗E⦘.
 Proof using.
-  admit.
-Admitted.
+  split; [| basic_solver]. unfold srf.
+  rewrite wf_vfE at 1 by auto.
+  unfolder. ins. desf. splits; eauto.
+Qed.
 
 Lemma wf_srfD : srf ≡ ⦗W⦘ ⨾ srf ⨾ ⦗R⦘.
 Proof using.
@@ -147,7 +150,6 @@ Proof using.
   rewrite WF.(wf_rfD), WF.(wf_rfE).
   unfold vf; unfolder; ins; desf.
   splits; eauto.
-  do 3 (exists y; splits; eauto).
 Qed.
 
 Lemma wf_srff (WF : Wf G) : functional srf⁻¹.
