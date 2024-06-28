@@ -148,6 +148,15 @@ Proof using RSRW_ACTIDS.
   now rewrite ReordCommon.mapper_eq_b in NEQ.
 Qed.
 
+Definition rsrw_G_s_iff :=
+  exec_upd_lab
+    (exec_mapped G_t mapper (lab_t ∘ mapper))
+  a (lab_s a).
+Definition rsrw_G_s_niff :=
+  exec_add_rf
+    (exec_add_read_event_nctrl rsrw_G_s_iff a)
+    (srf_s ⨾ ⦗eq a⦘).
+
 Lemma rsrw_struct_same_lab1
     (INA : E_t a)
     (INB : E_t b)
@@ -328,7 +337,7 @@ Qed.
 
 End Basic.
 
-Section ExecutionSteps.
+Section SimrelExec.
 
 Variable G_t G_t' G_s : execution.
 Variable traces traces' : thread_id -> trace label -> Prop.
@@ -439,15 +448,7 @@ Proof using.
   (* actual proof *)
   constructor; ins.
   { replace ∅ with (mapper ↑₁ ∅) by now rewrite set_collect_empty.
-    apply ReordCommon.mapped_G_t_cfg with (X := {|
-        WCore.sc := sc;
-        WCore.G := G_t;
-        WCore.GC := G_t';
-        WCore.cmt := ∅;
-    |}); ins.
-    all: try now apply SIM_ACTS.
-    all: try now apply STEP.
-    eapply rsrw_tid_a_tid_b; eauto. }
+    admit. }
   { destruct STEP. red in add_event. desf.
     exists (option_map mapper r), (option_map mapper w),
            (mapper ↑₁ W1), (mapper ↑₁ W2).
@@ -474,15 +475,7 @@ Proof using.
       apply PROPS. }
     { admit. (* TODO: traces *) }
     replace ∅ with (mapper ↑₁ ∅) by now rewrite set_collect_empty.
-    apply ReordCommon.mapped_G_t_cfg with (X := {|
-      WCore.sc := sc;
-      WCore.G := G_t';
-      WCore.GC := G_t';
-      WCore.cmt := ∅;
-    |}); ins.
-    all: try now apply SIM_ACTS.
-    all: try now apply add_event.
-    eapply rsrw_tid_a_tid_b; eauto. }
+    admit. }
   admit. (* TODO: research *)
 Admitted.
 
@@ -584,14 +577,7 @@ Proof using.
     |}); ins.
     { apply SIM_ACTS. }
     { unfold compose. now rewrite ReordCommon.mapper_eq_a. }
-    apply ReordCommon.mapped_G_t_cfg with (X := {|
-        WCore.sc := sc;
-        WCore.G := G_t;
-        WCore.GC := G_t';
-        WCore.cmt := ∅;
-    |}); ins.
-    all: try now apply SIM_ACTS.
-    eapply rsrw_tid_a_tid_b; eauto. }
+    admit. }
   { exists (option_map mapper r), (option_map mapper w),
            (mapper ↑₁ W1), (mapper ↑₁ W2).
     splits.
@@ -649,15 +635,7 @@ Proof using.
     |}); ins.
     { apply SIM_ACTS. }
     { unfold compose. now rewrite ReordCommon.mapper_eq_a. }
-    apply ReordCommon.mapped_G_t_cfg with (X := {|
-        WCore.sc := sc;
-        WCore.G := G_t';
-        WCore.GC := G_t';
-        WCore.cmt := ∅;
-    |}); ins.
-    all: try now apply SIM_ACTS.
-    all: try now apply add_event.
-    eapply rsrw_tid_a_tid_b; eauto. }
+    admit. }
   admit. (* TODO: Is_cons *)
 Admitted.
 
@@ -1262,6 +1240,65 @@ Proof using SWAPPED_TRACES.
   admit.
 Admitted.
 
+End SimrelExec.
+
+Section SimrelReexec.
+
+Variable G_t G_t' G_s : execution.
+Variable traces traces' : thread_id -> trace label -> Prop.
+Variable a b : actid.
+
+Notation "'lab_t'" := (lab G_t).
+Notation "'val_t'" := (val lab_t).
+Notation "'E_t'" := (acts_set G_t).
+Notation "'sb_t'" := (sb G_t).
+Notation "'rf_t'" := (rf G_t).
+Notation "'co_t'" := (co G_t).
+Notation "'rmw_t'" := (rmw G_t).
+Notation "'rpo_t'" := (rpo G_t).
+Notation "'rmw_dep_t'" := (rmw_dep G_t).
+Notation "'data_t'" := (data G_t).
+Notation "'ctrl_t'" := (ctrl G_t).
+Notation "'addr_t'" := (addr G_t).
+Notation "'W_t'" := (is_w lab_t).
+Notation "'R_t'" := (is_r lab_t).
+
+Notation "'lab_t''" := (lab G_t').
+Notation "'val_t''" := (val lab_t').
+Notation "'E_t''" := (acts_set G_t').
+Notation "'sb_t''" := (sb G_t').
+Notation "'rf_t''" := (rf G_t').
+Notation "'co_t''" := (co G_t').
+Notation "'rmw_t''" := (rmw G_t').
+Notation "'rpo_t''" := (rpo G_t').
+Notation "'rmw_dep_t''" := (rmw_dep G_t').
+Notation "'data_t''" := (data G_t').
+Notation "'ctrl_t''" := (ctrl G_t').
+Notation "'addr_t''" := (addr G_t').
+Notation "'W_t''" := (is_w lab_t').
+Notation "'R_t''" := (is_r lab_t').
+
+Notation "'lab_s'" := (lab G_s).
+Notation "'val_s'" := (val lab_s).
+Notation "'E_s'" := (acts_set G_s).
+Notation "'loc_s'" := (loc lab_s).
+Notation "'sb_s'" := (sb G_s).
+Notation "'rf_s'" := (rf G_s).
+Notation "'co_s'" := (co G_s).
+Notation "'rmw_s'" := (rmw G_s).
+Notation "'rpo_s'" := (rpo G_s).
+Notation "'rmw_dep_s'" := (rmw_dep G_s).
+Notation "'data_s'" := (data G_s).
+Notation "'ctrl_s'" := (ctrl G_s).
+Notation "'addr_s'" := (addr G_s).
+Notation "'W_s'" := (is_w lab_s).
+Notation "'R_s'" := (is_r lab_s).
+Notation "'srf_s'" := (srf G_s).
+
+Notation "'mapper'" := (ReordCommon.mapper a b).
+
+Hypothesis SWAPPED_TRACES : ReordCommon.traces_swapped traces traces' a b.
+
 Lemma simrel_reexec sc dtrmt cmt
     (CONS : WCore.is_cons G_t sc)
     (CONS' : WCore.is_cons G_s (mapper ↑ sc))
@@ -1273,6 +1310,63 @@ Lemma simrel_reexec sc dtrmt cmt
 Proof using SWAPPED_TRACES.
   admit.
 Admitted.
+
+End SimrelReexec.
+
+Section SimrelMisc.
+
+Variable G_t G_t' G_s : execution.
+Variable traces traces' : thread_id -> trace label -> Prop.
+Variable a b : actid.
+
+Notation "'lab_t'" := (lab G_t).
+Notation "'val_t'" := (val lab_t).
+Notation "'E_t'" := (acts_set G_t).
+Notation "'sb_t'" := (sb G_t).
+Notation "'rf_t'" := (rf G_t).
+Notation "'co_t'" := (co G_t).
+Notation "'rmw_t'" := (rmw G_t).
+Notation "'rpo_t'" := (rpo G_t).
+Notation "'rmw_dep_t'" := (rmw_dep G_t).
+Notation "'data_t'" := (data G_t).
+Notation "'ctrl_t'" := (ctrl G_t).
+Notation "'addr_t'" := (addr G_t).
+Notation "'W_t'" := (is_w lab_t).
+Notation "'R_t'" := (is_r lab_t).
+
+Notation "'lab_t''" := (lab G_t').
+Notation "'val_t''" := (val lab_t').
+Notation "'E_t''" := (acts_set G_t').
+Notation "'sb_t''" := (sb G_t').
+Notation "'rf_t''" := (rf G_t').
+Notation "'co_t''" := (co G_t').
+Notation "'rmw_t''" := (rmw G_t').
+Notation "'rpo_t''" := (rpo G_t').
+Notation "'rmw_dep_t''" := (rmw_dep G_t').
+Notation "'data_t''" := (data G_t').
+Notation "'ctrl_t''" := (ctrl G_t').
+Notation "'addr_t''" := (addr G_t').
+Notation "'W_t''" := (is_w lab_t').
+Notation "'R_t''" := (is_r lab_t').
+
+Notation "'lab_s'" := (lab G_s).
+Notation "'val_s'" := (val lab_s).
+Notation "'E_s'" := (acts_set G_s).
+Notation "'loc_s'" := (loc lab_s).
+Notation "'sb_s'" := (sb G_s).
+Notation "'rf_s'" := (rf G_s).
+Notation "'co_s'" := (co G_s).
+Notation "'rmw_s'" := (rmw G_s).
+Notation "'rpo_s'" := (rpo G_s).
+Notation "'rmw_dep_s'" := (rmw_dep G_s).
+Notation "'data_s'" := (data G_s).
+Notation "'ctrl_s'" := (ctrl G_s).
+Notation "'addr_s'" := (addr G_s).
+Notation "'W_s'" := (is_w lab_s).
+Notation "'R_s'" := (is_r lab_s).
+Notation "'srf_s'" := (srf G_s).
+
+Notation "'mapper'" := (ReordCommon.mapper a b).
 
 Lemma simrel_implies_cons sc
     (CONS : WCore.is_cons G_t sc)
@@ -1292,7 +1386,7 @@ Proof using.
   admit.
 Admitted.
 
-End ExecutionSteps.
+End SimrelMisc.
 
 (* Lemma sim_rel_step : about any step *)
 

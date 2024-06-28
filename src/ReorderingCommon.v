@@ -164,6 +164,15 @@ Proof using.
   apply mapper_self_inv; ins.
 Qed.
 
+Lemma mapper_mapper_compose' {A} (f : actid -> A)
+    (NEQ : a <> b) :
+  f ∘ mapper ∘ mapper = f.
+Proof using.
+  now rewrite Combinators.compose_assoc,
+              mapper_mapper_compose,
+              Combinators.compose_id_right.
+Qed.
+
 Lemma mapper_surj (NEQ : a <> b) :
   surj_dom ⊤₁ mapper.
 Proof using.
@@ -180,9 +189,9 @@ Proof using.
   now rewrite XHEQ, YHEQ, HEQ.
 Qed.
 
-Lemma mapper_acts
-    (SAME : E_t a <-> E_t b) :
-  mapper ↑₁ E_t ≡₁ E_t.
+Lemma mapper_acts_iff (s : actid -> Prop)
+    (SAME : s a <-> s b) :
+  mapper ↑₁ s ≡₁ s.
 Proof using.
   unfolder; split; ins; desf.
   { tertium_non_datur (y = a) as [HEQA|NEQA];
@@ -191,6 +200,17 @@ Proof using.
   tertium_non_datur (x = a) as [HEQA|NEQA];
   tertium_non_datur (x = b) as [HEQB|NEQB]; subst.
   all: eauto using mapper_eq_a, mapper_eq_b, mapper_neq.
+Qed.
+
+Lemma mapper_acts_niff (s : actid -> Prop)
+    (INA : s a)
+    (NINB : ~s b) :
+  mapper ↑₁ s ∪₁ eq a ≡₁ s ∪₁ eq b.
+Proof using.
+  rewrite <- mapper_eq_b.
+  rewrite <- set_collect_eq with (f := mapper) (a := b).
+  rewrite <- set_collect_union, mapper_acts_iff; ins.
+  unfolder; split; ins; desf; eauto.
 Qed.
 
 Lemma mapper_init_actid l
@@ -233,6 +253,24 @@ Proof using.
   destruct x as [l | t i]; ins.
   exists (InitEvent l).
   now rewrite mapper_init_actid.
+Qed.
+
+Lemma mapper_tid' x
+    (EQ_TID : tid a = tid b) :
+  tid (mapper x) = tid x.
+Proof using.
+  change (tid (mapper x)) with ((tid ∘ mapper) x).
+  now rewrite mapper_tid.
+Qed.
+
+Lemma mapper_thrdle r thrdle
+    (TIDEQ : tid a = tid b)
+    (SUB : r ⊆ tid ↓ thrdle) :
+  mapper ↑ r ⊆ tid ↓ thrdle.
+Proof using.
+  unfolder. ins. desf.
+  rewrite !mapper_tid'; ins.
+  now apply SUB.
 Qed.
 
 Lemma mapped_G_t_sb_helper lab' r
@@ -385,146 +423,6 @@ Proof using.
   exfalso. apply IMM0 with y'; ins.
 Qed.
 
-Lemma mapped_exec_equiv
-    (SAME : E_t a <-> E_t b):
-  exec_equiv G_s (exec_mapped G_t mapper (lab_t ∘ mapper)).
-Proof using REORD.
-  constructor; ins; try apply REORD.
-  all: rewrite ?REORD.(gs_data), ?REORD.(gt_data),
-               ?REORD.(gs_addr), ?REORD.(gt_addr),
-               ?REORD.(gs_ctrl), ?REORD.(gt_ctrl).
-  all: try now (symmetry; apply collect_rel_empty).
-  { rewrite mapper_acts; [apply REORD | ins]. }
-  rewrite <- REORD.(events_lab), Combinators.compose_assoc,
-          mapper_mapper_compose, Combinators.compose_id_right; ins.
-  apply REORD.
-Qed.
-
-Lemma mapped_G_t_wf
-    (ANINIT : ~is_init a)
-    (BNINIT : ~is_init b)
-    (NRMWDEP : ~rmw_dep_t a b)
-    (IMM : immediate ext_sb a b)
-    (DATA : data_t ≡ ∅₂)
-    (ADDR : addr_t ≡ ∅₂)
-    (CTRL : ctrl_t ≡ ∅₂)
-    (WF : Wf G_t)
-    (SAME : E_t a <-> E_t b)
-    (NABRMW : ~rmw_t a b)
-    (NARMW : ~codom_rel rmw_t a)
-    (NBRMW : ~dom_rel rmw_t b)
-    (NEQ : a <> b)
-    (SAME_TID : tid a = tid b):
-  Wf (exec_mapped G_t mapper (lab_t ∘ mapper)).
-Proof using.
-  apply exec_mapped_wf; auto using mapper_inj.
-  { now apply mapper_surj. }
-  { now rewrite Combinators.compose_assoc, mapper_mapper_compose,
-            Combinators.compose_id_right. }
-  { apply mapped_G_t_immsb_helper; ins. apply WF. }
-  { rewrite DATA; basic_solver. }
-  { rewrite ADDR; basic_solver. }
-  { apply mapped_G_t_sb_helper; ins. apply WF. }
-  { ins. apply mapper_init_actid; ins. }
-  unfolder. intros x y XIN YIN XYEQ TIDEQ XINIT.
-  desf. rename y0 into x, y1 into y.
-  destruct (classic (x = a)) as [HEQXA|HEQXA],
-           (classic (y = b)) as [HEQYB|HEQYB],
-           (classic (y = a)) as [HEQYA|HEQYA],
-           (classic (x = b)) as [HEQXB|HEQXB].
-  all: try congruence.
-  all: subst; rewrite ?mapper_eq_a, ?mapper_eq_b in *.
-  all: rewrite ?mapper_neq in *; ins.
-  all: try now apply WF; eauto 11.
-  rewrite mapper_tid; ins.
-  unfolder. ins. desf. now apply WF.
-Qed.
-
-Lemma mapped_G_t_cont lab'
-    (ANINIT : ~is_init a)
-    (BNINIT : ~is_init b)
-    (SAME : E_t a <-> E_t b)
-    (NEQ : a <> b)
-    (CONT : contigious_actids G_t) :
-  contigious_actids (exec_mapped G_t mapper lab').
-Proof using.
-  admit.
-Admitted.
-
 End ReorderingDefs.
-
-Section MapperCfg.
-
-Variable X : WCore.t.
-Variable a b : actid.
-
-Notation "'mapper'" := (mapper a b).
-Notation "'GC'" := (WCore.GC X).
-Notation "'G'" := (WCore.G X).
-Notation "'cmt'" := (WCore.cmt X).
-Notation "'sc'" := (WCore.sc X).
-
-Notation "'labC'" := (lab GC).
-Notation "'EC'" := (acts_set GC).
-Notation "'sbC'" := (sb GC).
-Notation "'rfC'" := (rf GC).
-Notation "'coC'" := (co GC).
-Notation "'rmwC'" := (rmw GC).
-Notation "'dataC'" := (data GC).
-Notation "'ctrlC'" := (ctrl GC).
-Notation "'addrC'" := (addr GC).
-
-Notation "'lab'" := (lab G).
-Notation "'E'" := (acts_set G).
-Notation "'sb'" := (sb G).
-Notation "'rf'" := (rf G).
-Notation "'co'" := (co G).
-Notation "'rmw'" := (rmw G).
-Notation "'data'" := (data G).
-Notation "'ctrl'" := (ctrl G).
-Notation "'addr'" := (addr G).
-
-Lemma mapped_G_t_cfg
-    (ANINIT : ~is_init a)
-    (BNINIT : ~is_init b)
-    (SAME_TID : tid a = tid b)
-    (NRMWDEP : ~rmw_dep GC a b)
-    (IMM : immediate ext_sb a b)
-    (NEQ : a <> b)
-    (SAME : E a <-> E b)
-    (SAMEC : EC a <-> EC b)
-    (NABRMW : ~rmwC a b)
-    (NARMW : ~codom_rel rmwC a)
-    (NBRMW : ~dom_rel rmwC b)
-    (WF : WCore.wf X) :
-  WCore.wf (cfg_mapped X mapper (labC ∘ mapper)).
-Proof using.
-  apply cfg_mapped_wf; auto using mapper_inj.
-  { apply mapper_surj; ins. }
-  { now rewrite Combinators.compose_assoc, mapper_mapper_compose,
-                Combinators.compose_id_right. }
-  { apply mapped_G_t_immsb_helper; ins. apply WF. }
-  { apply mapped_G_t_sb_helper; ins. apply WF. }
-  { auto using mapper_init_actid. }
-  { unfolder. intros x y XIN YIN XYEQ TIDEQ XINIT.
-    desf. rename y0 into x, y1 into y.
-    destruct (classic (x = a)) as [HEQXA|HEQXA],
-            (classic (y = b)) as [HEQYB|HEQYB],
-            (classic (y = a)) as [HEQYA|HEQYA],
-            (classic (x = b)) as [HEQXB|HEQXB].
-    all: try congruence.
-    all: subst; rewrite ?mapper_eq_a, ?mapper_eq_b in *.
-    all: rewrite ?mapper_neq in *; ins.
-    all: try now apply WF; eauto 11. }
-  { rewrite mapper_tid; ins.
-    unfolder. ins. desf. now apply WF. }
-  { intros x HSET. unfolder in HSET.
-    desf. apply WF. unfolder; split; ins.
-    apply mapper_acts with (a := a) (b := b) in HSET0; ins.
-    unfolder in HSET0; desf. now rewrite mapper_self_inv. }
-  all: apply mapped_G_t_cont; ins; apply WF.
-Qed.
-
-End MapperCfg.
 
 End ReordCommon.
