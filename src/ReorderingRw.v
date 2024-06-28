@@ -563,7 +563,7 @@ Proof using SIMREL.
   admit.
 Admitted.
 
-Lemma simrel_exec_b_helper
+Lemma simrel_exec_b
     (CONS : WCore.is_cons G_t sc)
     (STEP : WCore.exec_inst G_t G_t' sc traces a) :
   exists G_s' sc' G_s'',
