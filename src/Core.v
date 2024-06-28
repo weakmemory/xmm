@@ -80,13 +80,13 @@ Variable G : execution.
 Variable sc : relation actid.
 Notation "'hb'" := (hb G).
 Notation "'fr'" := (fr G).
-Notation "'sb'" := (sb G).
+Notation "'co'" := (co G).
 Notation "'eco'" := (eco G).
 Notation "'rmw'" := (rmw G).
 
 Record is_cons : Prop := {
   cons_coherence : irreflexive (hb ⨾ eco^?);
-  cons_atomicity : rmw ∩ (fr ⨾ sb) ≡ ∅₂;
+  cons_atomicity : rmw ∩ (fr ⨾ co) ≡ ∅₂;
   cons_sc : acyclic sc;
 }.
 
