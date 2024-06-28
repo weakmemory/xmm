@@ -101,9 +101,10 @@ Lemma wf_vfE
   vf ≡ ⦗E⦘ ⨾ vf ⨾ ⦗E⦘.
 Proof using.
   split; [| basic_solver].
-  unfold vf. hahn_frame.
-  admit.
-Admitted.
+  unfold vf.
+  rewrite (wf_hbE WF), (wf_rfE WF).
+  basic_solver 12.
+Qed.
 
 Lemma vf_dom : dom_rel vf ⊆₁ W.
 Proof using.
