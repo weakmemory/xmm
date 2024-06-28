@@ -461,13 +461,14 @@ Lemma fr_sub (m : actid -> actid)
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
         (RF_MAP : rf_s ≡ (m ↑ rf_t) ∪ (srf_s ⨾ ⦗eq a⦘))
-        (MO_MAP : co_s ≡ m ↑ co_t)
+        (CO_MAP : co_s ≡ m ↑ co_t)
+        (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
     fr_s ⊆ m ↑ fr_t ∪ (srf_s ⨾ ⦗eq a⦘)⁻¹ ⨾ co_s.
 Proof using.
     unfold fr. rewrite RF_MAP. rewrite transp_union.
-    rewrite seq_union_l. rewrite MO_MAP. rewrite transp_seq, seqA.
+    rewrite seq_union_l. rewrite CO_MAP. rewrite transp_seq, seqA.
     rewrite <- collect_rel_transp. 
     assert (EQ : m ↑ (rf_t⁻¹ ⨾ co_t) ≡ m ↑ rf_t⁻¹ ⨾ m ↑ co_t).
     { eapply collect_rel_seq. assert (IN1 : codom_rel rf_t⁻¹ ⊆₁ E_t).
@@ -488,7 +489,8 @@ Lemma eco_sub (m : actid -> actid)
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
         (RF_MAP : rf_s ≡ (m ↑ rf_t) ∪ (srf_s ⨾ ⦗eq a⦘))
-        (MO_MAP : co_s ≡ m ↑ co_t)
+        (CO_MAP : co_s ≡ m ↑ co_t)
+        (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
     eco_s ⊆ m ↑ eco_t ∪ srf_s ⨾ ⦗eq a⦘ ∪ co_s ⨾ (srf_s ⨾ ⦗eq a⦘) ∪ 
@@ -497,7 +499,7 @@ Proof using.
     unfold eco. repeat rewrite collect_rel_union.
     repeat apply inclusion_union_l. rewrite RF_MAP.
     apply inclusion_union_l. 1, 2 : basic_solver 21.
-    { rewrite MO_MAP. case_refl _.
+    { rewrite CO_MAP. case_refl _.
         { basic_solver 21. }
         rewrite RF_MAP. rewrite seq_union_r.
         apply inclusion_union_l. 2 : basic_solver 21.
@@ -515,7 +517,7 @@ Proof using.
             { apply collect_rel_mori; eauto. basic_solver. }
           apply IN in H. basic_solver. }
     case_refl _. 
-    { unfold fr. rewrite MO_MAP. rewrite RF_MAP. rewrite transp_union. 
+    { unfold fr. rewrite CO_MAP. rewrite RF_MAP. rewrite transp_union. 
       rewrite seq_union_l. apply inclusion_union_l.
       { rewrite <- collect_rel_transp. assert (EQ : m ↑ rf_t⁻¹ ⨾ m ↑ co_t ≡ m ↑ (rf_t⁻¹ ⨾ co_t)).
         { assert (IN1 : codom_rel rf_t⁻¹ ⊆₁ E_t).
@@ -527,7 +529,7 @@ Proof using.
           erewrite collect_rel_seq; eauto. rewrite IN1, IN2. basic_solver. }
         rewrite EQ. basic_solver 21. }
       basic_solver 12. }
-    unfold fr. rewrite MO_MAP. rewrite RF_MAP.
+    unfold fr. rewrite CO_MAP. rewrite RF_MAP.
     rewrite transp_union. rewrite seq_union_l. 
     rewrite seq_union_l. apply inclusion_union_l. 2 : basic_solver 21.
     rewrite seq_union_r. apply inclusion_union_l. 2 : basic_solver 21.
@@ -560,7 +562,8 @@ Lemma acts_set_helper (m : actid -> actid)
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
         (RF_MAP : rf_s ≡ (m ↑ rf_t) ∪ (srf_s ⨾ ⦗eq a⦘))
-        (MO_MAP : co_s ≡ m ↑ co_t)
+        (CO_MAP : co_s ≡ m ↑ co_t)
+        (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
     E_s \₁ eq a ≡₁ m ↑₁ E_t.
@@ -578,7 +581,8 @@ Lemma rhb_sub (m : actid -> actid)
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
         (RF_MAP : rf_s ≡ (m ↑ rf_t) ∪ (srf_s ⨾ ⦗eq a⦘))
-        (MO_MAP : co_s ≡ m ↑ co_t)
+        (CO_MAP : co_s ≡ m ↑ co_t)
+        (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
     rhb_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rhb_t.
@@ -631,7 +635,8 @@ Lemma rhb_codom (m : actid -> actid)
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
         (RF_MAP : rf_s ≡ (m ↑ rf_t) ∪ (srf_s ⨾ ⦗eq a⦘))
-        (MO_MAP : co_s ≡ m ↑ co_t)
+        (CO_MAP : co_s ≡ m ↑ co_t)
+        (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
     codom_rel(⦗eq a⦘ ⨾ rhb_s) ≡₁ ∅.
@@ -658,22 +663,6 @@ Proof using.
     rewrite EMP1, EMP3; basic_solver.
 Qed.
 
-Lemma rmw_same (m : actid -> actid)
-        (INJ : inj_dom E_t m)
-        (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
-        (IS_R : is_r lab_s a)
-        (NIN : set_disjoint (m ↑₁ E_t) (eq a))
-        (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
-        (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
-        (RF_MAP : rf_s ≡ (m ↑ rf_t) ∪ (srf_s ⨾ ⦗eq a⦘))
-        (MO_MAP : co_s ≡ m ↑ co_t)
-        (WF_t : Wf G_t)
-        (WF_s : Wf G_s) :
-    rmw_s ≡ m ↑ rmw_t.
-Proof using.
-    admit. 
-Admitted.
-
 Lemma read_extent (m : actid -> actid)
         (INJ : inj_dom ⊤₁ m)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
@@ -682,7 +671,8 @@ Lemma read_extent (m : actid -> actid)
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
         (RF_MAP : rf_s ≡ (m ↑ rf_t) ∪ (srf_s ⨾ ⦗eq a⦘))
-        (MO_MAP : co_s ≡ m ↑ co_t)
+        (CO_MAP : co_s ≡ m ↑ co_t)
+        (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
         (CONS : WCore.is_cons G_t sc_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
@@ -799,10 +789,10 @@ Proof using.
       { rewrite <- rf_rhb_sub_vf; basic_solver. }
     rewrite IN. arewrite_id ⦗eq a⦘. rels. unfold srf. basic_solver 21. }
     { assert (SUB : E_t ⊆₁ ⊤₁). { basic_solver. }
-      split; try basic_solver. rewrite rmw_same; eauto. 
+      split; try basic_solver. rewrite RMW_MAP; eauto. 
       rewrite fr_sub; eauto. rewrite seq_union_l. rewrite inter_union_r.
       apply inclusion_union_l.
-      { rewrite MO_MAP. assert (IN2 : dom_rel co_t ⊆₁ E_t).
+      { rewrite CO_MAP. assert (IN2 : dom_rel co_t ⊆₁ E_t).
         { induction 1. apply wf_coE in H; eauto.
           destruct H. destruct H. apply H. }
         assert (IN3 : codom_rel fr_t ⊆₁ E_t).
