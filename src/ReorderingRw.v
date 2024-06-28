@@ -153,7 +153,7 @@ Definition rsrw_G_s_iff :=
     (exec_mapped G_t mapper (lab_t ∘ mapper))
   a (lab_s a).
 Definition rsrw_G_s_niff_srf :=
-  let srf := srf (exec_add_read_event_nctrl rsrw_G_s_iff a) in
+  let srf := srf (exec_add_read_event_nctrl G_s a) in
     srf ⨾ ⦗eq a⦘.
 Definition rsrw_G_s_niff :=
   exec_add_rf
@@ -390,10 +390,10 @@ Proof using SIMREL.
   all: apply SIMREL.
 Qed.
 
-Lemma srf_eq
-    (INA : E_t a) :
+Lemma srf_eq G
+    (INA : acts_set G a) :
   exists sw,
-    srf_s ⨾ ⦗eq a⦘ = singl_rel sw a.
+    (srf G) ⨾ ⦗eq a⦘ = singl_rel sw a.
 Proof using.
   admit.
 Admitted.
@@ -415,12 +415,12 @@ Definition rsrw_X_s_iff := cfg_upd_lab
   (cfg_mapped X_t mapper (lab_t ∘ mapper))
   a (lab_s a).
 Definition rsrw_X_s_niff := cfg_add_read_event_nctrl
-  rsrw_X_s_iff a (srf_s ⨾ ⦗eq a⦘).
+  rsrw_X_s_iff a (rsrw_G_s_niff_srf G_s a).
 Definition rsrw_X_s'_iff := cfg_upd_lab
   (cfg_mapped X_t' mapper (lab_t ∘ mapper))
   a (lab_s a).
 Definition rsrw_X_s'_niff := cfg_add_read_event_nctrl
-  rsrw_X_s'_iff a (srf_s ⨾ ⦗eq a⦘).
+  rsrw_X_s'_iff a (rsrw_G_s_niff_srf G_s a).
 
 Lemma G_t_labs
     (WF : WCore.wf X_t) :
