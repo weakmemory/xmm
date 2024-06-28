@@ -592,7 +592,9 @@ Proof using SIMREL.
   { admit. (* TODO: step1 start wf *) }
   { exists None, (Some sw), ∅, ∅.
     splits.
-    { admit. (* TODO: STRUCT *) }
+    { constructor; ins.
+      { intro F. apply ReordCommon.mapper_acts_iff in F; ins. }
+      apply SIMREL. }
     { admit. (* TODO: cfg_add_event_nctrl_as_add_step *) }
     { admit. (* TODO: traces *) }
     admit. (* TODO: result wf *) }
