@@ -198,7 +198,7 @@ Proof using RSRW_ACTIDS.
   split; [intro STRUCT | intro EQUIV].
   { constructor; ins.
     all: try now apply STRUCT.
-    admit. }
+    all: admit. }
   constructor; ins.
   all: try now apply EQUIV.
   all: try now (exfalso; desf; eauto).
