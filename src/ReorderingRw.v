@@ -525,43 +525,12 @@ Proof using SIMREL.
   { admit. (* TODO: simrel actids *) }
   { admit. (* TODO: simrel struct *) }
   { admit. (* TODO: simrel start wf *) }
-  { exists (option_map mapper r), (option_map mapper w),
-           (mapper ↑₁ W1), (mapper ↑₁ W2).
-    splits.
-    { constructor; ins.
-      { unfold G_s'. desf; ins.
-        { desf. rewrite G_s_niff; ins; eauto.
-          rewrite !ReordCommon.mapper_acts_niff; eauto.
-          rewrite (WCore.caes_e_new STRUCT); ins.
-          basic_solver. }
-        rewrite G_s_iff; ins; eauto.
-        rewrite !ReordCommon.mapper_acts_iff; eauto.
-        now rewrite (WCore.caes_e_new STRUCT). }
-      { rewrite rsrw_G_s_in_E with (a := a) (b := b); eauto.
-        apply STRUCT. }
-      apply STRUCT. }
-    { unfold G_s'. desf.
-      { desf. rewrite G_s_niff at 1; ins; eauto.
-        destruct srf_eq as (sw & SRFEQ).
-        replace e with (mapper e) by now rewrite ReordCommon.mapper_neq.
-        rewrite rsrw_X_s'_niff_eq, rsrw_X_s_niff_eq; ins.
-        unfold rsrw_X_s_niff, rsrw_X_s'_niff. rewrite SRFEQ.
-        apply cfg_add_event_nctrl_add_step_props.
-        { ins. admit. }
-        apply cfg_upd_lab_add_step_props.
-        { ins. admit. }
-        eapply cfg_mapped_add_step_props; ins.
-        all: admit. }
-      desf. rewrite G_s_iff at 1; ins; eauto.
-      replace e with (mapper e) by now rewrite ReordCommon.mapper_neq.
-      rewrite rsrw_X_s'_iff_eq, rsrw_X_s_iff_eq; ins.
-      unfold rsrw_X_s_iff, rsrw_X_s'_iff.
-      apply cfg_upd_lab_add_step_props.
-      { ins. admit. }
-      eapply cfg_mapped_add_step_props; ins.
-      all: admit. }
+  { replace e with (mapper e) by now rewrite ReordCommon.mapper_neq.
+    apply sub_to_full_exec_single.
+    { admit. (* TODO: event *) }
+    { admit. (* TODO: wf start *) }
     { admit. (* TODO: traces *) }
-    admit. (* TODO: end wf *) }
+    admit. (* TODO: rf edge-wfness *) }
   admit.
 Admitted.
 
@@ -582,7 +551,39 @@ Proof using SIMREL.
     apply SIMREL. }
   assert (CASE2KILLER : ~~(E_t' a /\ ~E_t' b)).
   { admit. }
-  destruct srf_eq as (sw & SRFEQ).
+  assert (INTERNALSTARTWF : WCore.wf
+    {|
+      WCore.sc := mapper ↑ sc;
+      WCore.G := rsrw_G_s_iff G_s G_t a b;
+      WCore.GC := rsrw_G_s_niff G_s G_t a b;
+      WCore.cmt := ∅
+    |}).
+  { admit. }
+  assert (INTERNALSTEP : WCore.cfg_add_event traces'
+    {|
+      WCore.sc := mapper ↑ sc;
+      WCore.G := rsrw_G_s_iff G_s G_t a b;
+      WCore.GC := rsrw_G_s_niff G_s G_t a b;
+      WCore.cmt := ∅
+    |}
+    {|
+      WCore.sc := mapper ↑ sc;
+      WCore.G := rsrw_G_s_niff G_s G_t a b;
+      WCore.GC := rsrw_G_s_niff G_s G_t a b;
+      WCore.cmt := ∅
+    |} a).
+  { apply sub_to_full_exec_single; ins.
+    { admit. (* TODO: event *) }
+    { admit. (* TODO: traces *) }
+    admit. (* srf stuff *) }
+  assert (INTERNALWF : WCore.wf
+    {|
+      WCore.sc := mapper ↑ sc;
+      WCore.G := rsrw_G_s_niff G_s G_t a b;
+      WCore.GC := rsrw_G_s_niff G_s G_t' a b;
+      WCore.cmt := ∅
+    |}).
+  { admit. }
   (* Actual proof *)
   exists G_s', (mapper ↑ sc), (rsrw_G_s_niff G_s G_t a b).
   unfold NW. rewrite G_s_iff at 1; ins.
@@ -590,39 +591,11 @@ Proof using SIMREL.
   splits; constructor; ins.
   { admit. (* TODO: simrel actids *) }
   { admit. (* TODO: simrel struct *) }
-  { admit. (* TODO: step1 start wf *) }
-  { exists None, (Some sw), ∅, ∅.
-    splits.
-    { constructor; ins.
-      { intro F. apply ReordCommon.mapper_acts_iff in F; ins. }
-      apply SIMREL. }
-    { admit. (* TODO: cfg_add_event_nctrl_as_add_step *) }
-    { admit. (* TODO: traces *) }
-    admit. (* TODO: result wf *) }
   { admit. (* TODO: intermediate cons *) }
-  { admit. (* TODO: wf of finish *) }
-  { desf.
-    exists (option_map mapper r), (option_map mapper w),
-           (mapper ↑₁ W1), (mapper ↑₁ W2).
-    splits.
-    { constructor; ins.
-      { rewrite (WCore.caes_e_new STRUCT), set_collect_union. ins.
-        rewrite set_collect_eq, ReordCommon.mapper_eq_a.
-        basic_solver 12. }
-      { admit. (* TODO: easy *) }
-      apply SIMREL. }
-    { rewrite rsrw_X_s'_niff_eq, rsrw_X_s_niff_eq; ins.
-      replace b with (mapper a) at 1 by now rewrite ReordCommon.mapper_eq_a.
-      unfold rsrw_X_s_niff, rsrw_X_s'_niff.
-      rewrite SRFEQ.
-      apply cfg_add_event_nctrl_add_step_props.
-      { ins. admit. }
-      apply cfg_upd_lab_add_step_props.
-      { ins. admit. }
-      eapply cfg_mapped_add_step_props; ins.
-      all: admit. }
+  { desf. apply sub_to_full_exec_single; ins.
+    { admit. (* TODO: event *) }
     { admit. (* TODO: traces *) }
-    admit. (* TODO WF *) }
+    admit. (* rf stuff *) }
   admit. (* TODO: cons of finish *)
 Admitted.
 
