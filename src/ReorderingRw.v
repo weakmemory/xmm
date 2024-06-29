@@ -619,6 +619,65 @@ Lemma simrel_exec_a w
     << SIM : reord_simrel_rw G_s' G_t' a b >> /\
     << STEP : WCore.reexec G_s G_s' sc' traces' dtrmt' cmt' >>.
 Proof using SIMREL.
+  (* Preamble *)
+  destruct STEP as [STARTWF ADD]. red in ADD. desf.
+  assert (INB' : E_t' b).
+  { apply (WCore.caes_e_new STRUCT). basic_solver. }
+  assert (INA' : E_t' a).
+  { apply ext_sb_dense with (e2 := b); eauto.
+    all: try now apply SIMREL.
+    apply WF_NEW. }
+  assert (INA : E_t a).
+  { apply (WCore.caes_e_new STRUCT) in INA'. ins.
+    destruct INA' as [INE | EQ]; ins.
+    exfalso. symmetry in EQ.
+    eapply rsrw_a_neq_b; eauto.
+    apply SIMREL. }
+  assert (NINB : ~ E_t b).
+  { apply STRUCT. }
+  assert (REXECBEGWF : WCore.wf
+    {|
+      WCore.sc := mapper ↑ sc;
+      WCore.G :=
+        WCore.reexec_start G_s G_s'
+          (E_s \₁ (eq a ∪₁ eq b));
+      WCore.GC := G_s';
+      WCore.cmt := E_s' \₁ eq a
+    |}
+  ).
+  { admit. }
+  assert (UNCMT : WCore.stable_uncmt_reads_gen G_s'
+      (E_s' \₁ eq a)
+      (fun _ y => y = tid a)
+  ).
+  { admit. }
+  assert (ESEQ : E_s' ≡₁ E_s ∪₁ eq a).
+  { unfold G_s'; desf; [desf; exfalso; eauto |].
+    rewrite G_s_niff; ins.
+    rewrite ReordCommon.mapper_acts_niff,
+            ReordCommon.mapper_acts_iff; ins.
+    rewrite (WCore.caes_e_new STRUCT); ins.
+    basic_solver. }
+  (* Actual proof *)
+  exists G_s', (mapper ↑ sc),
+        (E_s \₁ (eq a ∪₁ eq b)),
+        (E_s' \₁ eq a).
+  splits; [| exists (@id actid), (fun x y => y = tid a)].
+  all: constructor; ins.
+  { admit. (* rsrw_actids *) }
+  { admit. (* rsrw_struct *) }
+  { admit. (* lab stuff *) }
+  { rewrite ESEQ. basic_solver. }
+  { basic_solver. }
+  { constructor; ins.
+    { rewrite ESEQ. basic_solver. }
+    { admit. (* same lab for cmt *) }
+    { admit. (* sb: sub *) }
+    admit. (* rf sub *) }
+  { eapply sub_to_full_exec_listless; eauto.
+    { admit. (* trace coh *) }
+    { admit. (* rf wf *) }
+    admit. (* internal rf *) }
   admit.
 Admitted.
 
