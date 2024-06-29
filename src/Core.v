@@ -384,7 +384,7 @@ Notation "'lab''" := (lab G').
 Notation "'lab'" := (lab G).
 Notation "'hb'" := (hb G).
 Notation "'rf''" := (rf G').
-Notation "'sb''" := (sb G).
+Notation "'sb''" := (sb G').
 Notation "'sb'" := (sb G).
 Notation "'rf'" := (rf G).
 
