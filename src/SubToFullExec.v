@@ -924,4 +924,99 @@ Proof using.
   apply sub_to_full_exec with l; ins.
 Qed.
 
+Lemma sub_to_full_exec_single_uninformative sc G G' cmt e
+    (ONE : (acts_set G' \₁ acts_set G) ≡₁ eq e)
+    (WF : WCore.wf (WCore.Build_t sc G G' cmt))
+    (COH : trace_coherent traces G')
+    (RF_EX : eq e ∩₁ is_r (lab G) ⊆₁ codom_rel (rf G')) :
+  (WCore.cfg_add_event_uninformative traces)＊
+    (WCore.Build_t sc G G' cmt)
+    (WCore.Build_t sc G' G' cmt).
+Proof using.
+  apply sub_to_full_exec with (l := [e]); ins.
+  constructor; ins.
+  all: rewrite ?ONE; ins.
+  { basic_solver. }
+  { rewrite restr_irrefl_eq; [basic_solver |].
+    apply sb_irr. }
+  rewrite restr_irrefl_eq; [basic_solver |].
+  apply irreflexive_inclusion with (r' := rf G'); [basic_solver |].
+  apply rf_irr, WF.
+Qed.
+
+Lemma events_after_steps X X'
+    (STEP : (WCore.cfg_add_event_uninformative traces)＊ X X') :
+  acts_set (WCore.G X) ⊆₁ acts_set (WCore.G X').
+Proof using.
+  induction STEP as [X X' STEP | X | X X'' X' STEP1 SUB1 STEP2 SUB2].
+  { do 2 (red in STEP; desf).
+    rewrite (WCore.caes_e_new STRUCT).
+    basic_solver. }
+  all: basic_solver.
+Qed.
+
+Lemma sub_to_full_exec_single sc G G' cmt e
+    (ONE : acts_set G' \₁ acts_set G ≡₁ eq e)
+    (WF : WCore.wf (WCore.Build_t sc G G' cmt))
+    (COH : trace_coherent traces G')
+    (RF_EX : eq e ∩₁ is_r (lab G) ⊆₁ codom_rel (rf G')) :
+  WCore.cfg_add_event traces
+    (WCore.Build_t sc G G' cmt)
+    (WCore.Build_t sc G' G' cmt)
+    e.
+Proof using.
+  (* Preamble *)
+  assert (STEPS : (WCore.cfg_add_event_uninformative traces)＊
+                    (WCore.Build_t sc G G' cmt)
+                    (WCore.Build_t sc G' G' cmt)).
+  { eapply sub_to_full_exec_single_uninformative; eauto. }
+  (* Actual proof *)
+  apply clos_rt_rt1n in STEPS.
+  inversion STEPS as [EQ | X' X'' STEP1 STEP2 EQ]; clear STEPS.
+  all: subst.
+  { rewrite set_minusK in ONE.
+    unfolder in ONE. desf. exfalso. eauto. }
+  destruct STEP1 as [e1 STEP1].
+  inversion STEP2 as [EQ | X'' X''' STEP21 STEP22 EQ]; clear STEP2.
+  all: subst.
+  { arewrite (e = e1); ins.
+    rewrite (WCore.cae_e_new STEP1) in ONE. ins.
+    rewrite set_minus_union_l, set_minusK,
+            set_minusE, set_inter_absorb_r,
+            set_union_empty_l, set_equiv_single_single in ONE.
+    all: ins.
+    apply set_subset_eq. red. apply (WCore.cae_e_notin STEP1). }
+  destruct STEP21 as [e2 STEP21].
+  (* We are going to infer falsity but first -- some useful props *)
+  assert (NEQ : e1 <> e2).
+  { intro F; subst.
+    apply (WCore.cae_e_notin STEP21).
+    apply (WCore.cae_e_new STEP1).
+    basic_solver. }
+  assert (E1NOTIN : ~acts_set G e1).
+  { apply (WCore.cae_e_notin STEP1). }
+  assert (E2NOTIN : ~acts_set G e2).
+  { intro F. apply (WCore.cae_e_notin STEP21).
+    apply (WCore.cae_e_new STEP1). ins.
+    unfolder. eauto. }
+  assert (ESUB : acts_set (WCore.G X'') ⊆₁ acts_set G').
+  { apply clos_rt1n_rt in STEP22.
+    now eapply events_after_steps with (X' := {|
+      WCore.sc := sc;
+      WCore.G := G';
+      WCore.GC := G';
+      WCore.cmt := cmt
+    |}). }
+  (* The proof *)
+  exfalso.
+  rewrite (WCore.cae_e_new STEP21), (WCore.cae_e_new STEP1) in ESUB.
+  ins. destruct ONE as [SUBE _].
+  rewrite <- ESUB, !set_minus_union_l, set_minusK,
+             set_union_empty_l in SUBE.
+  rewrite !set_minusE, !set_inter_absorb_r in SUBE.
+  { unfolder in SUBE. apply NEQ. transitivity e; eauto.
+    symmetry. apply SUBE. now left. }
+  all: basic_solver.
+Qed.
+
 End SubToFullExec.

@@ -65,17 +65,6 @@ Proof using.
   now rewrite EQ2, EQ1.
 Qed.
 
-Lemma events_after_steps traces X X'
-    (STEP : (WCore.cfg_add_event_uninformative traces)＊ X X') :
-  acts_set (WCore.G X) ⊆₁ acts_set (WCore.G X').
-Proof using.
-  induction STEP as [X X' STEP | X | X X'' X' STEP1 SUB1 STEP2 SUB2].
-  { do 2 (red in STEP; desf).
-    rewrite (WCore.caes_e_new STRUCT).
-    basic_solver. }
-  all: basic_solver.
-Qed.
-
 Lemma execution_after_steps traces X X'
     (STARTWF : WCore.wf X)
     (STEP : (WCore.cfg_add_event_uninformative traces)＊ X X') :
