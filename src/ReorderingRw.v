@@ -525,9 +525,15 @@ Proof using SIMREL.
   { admit. (* TODO: simrel actids *) }
   { admit. (* TODO: simrel struct *) }
   { admit. (* TODO: simrel start wf *) }
-  { replace e with (mapper e) by now rewrite ReordCommon.mapper_neq.
-    apply sub_to_full_exec_single.
-    { admit. (* TODO: event *) }
+  { apply sub_to_full_exec_single.
+    { rewrite rsrw_G_s_in_E; eauto.
+      apply STRUCT. }
+    { unfold G_s'.
+      desf; desf; [rewrite G_s_niff | rewrite G_s_iff]; eauto; ins.
+      all: rewrite (WCore.caes_e_new STRUCT), set_collect_union.
+      all: rewrite set_collect_eq, ReordCommon.mapper_neq.
+      all: ins.
+      basic_solver 11. }
     { admit. (* TODO: wf start *) }
     { admit. (* TODO: traces *) }
     admit. (* TODO: rf edge-wfness *) }
@@ -573,7 +579,7 @@ Proof using SIMREL.
       WCore.cmt := ∅
     |} a).
   { apply sub_to_full_exec_single; ins.
-    { admit. (* TODO: event *) }
+    { intro F. apply ReordCommon.mapper_acts_iff in F; ins. }
     { admit. (* TODO: traces *) }
     admit. (* srf stuff *) }
   assert (INTERNALWF : WCore.wf
@@ -593,7 +599,13 @@ Proof using SIMREL.
   { admit. (* TODO: simrel struct *) }
   { admit. (* TODO: intermediate cons *) }
   { desf. apply sub_to_full_exec_single; ins.
-    { admit. (* TODO: event *) }
+    { intros [INE | EQ].
+      { apply ReordCommon.mapper_acts_iff in INE; ins. }
+      eapply rsrw_a_neq_b; eauto. apply SIMREL. }
+    { rewrite ReordCommon.mapper_acts_niff,
+              ReordCommon.mapper_acts_iff.
+      all: ins.
+      rewrite (WCore.caes_e_new STRUCT). ins. }
     { admit. (* TODO: traces *) }
     admit. (* rf stuff *) }
   admit. (* TODO: cons of finish *)
