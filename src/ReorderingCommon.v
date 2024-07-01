@@ -173,9 +173,10 @@ Proof using.
               Combinators.compose_id_right.
 Qed.
 
-Lemma mapper_surj (NEQ : a <> b) y :
-  exists x, y = mapper x.
+Lemma mapper_surj (NEQ : a <> b) :
+  surj_dom ⊤₁ mapper.
 Proof using.
+  red. intros y.
   exists (mapper y). now rewrite mapper_self_inv.
 Qed.
 
