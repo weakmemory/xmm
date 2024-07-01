@@ -233,6 +233,58 @@ Proof using.
   rewrite ReordCommon.mapper_acts_iff; ins.
 Qed.
 
+Lemma G_t_niff_b_max
+    (CONT : contigious_actids G_t)
+    (INA : E_t a)
+    (NINB : ~E_t b) :
+  (fun x => ext_sb x b) ⊆₁ E_t ∩₁ same_tid b ∪₁ is_init.
+Proof using RSRW_ACTIDS.
+  assert (ANINIT : ~is_init a).
+  { apply RSRW_ACTIDS. }
+  assert (SMTID : tid a = tid b).
+  { apply rsrw_tid_a_tid_b. }
+  unfolder. intros x SB.
+  destruct (classic (x = a)) as [EQ|NEQ]; subst.
+  { left. split; ins. }
+  destruct (classic (is_init x)) as [INIT|NINIT]; eauto.
+  assert (SMTID' : tid x = tid a).
+  { rewrite SMTID. red in SB. desf. ins. desf. }
+  destruct (ext_sb_semi_total_r) with (x := b) (y := a) (z := x)
+                                 as [SB'|SB'].
+  all: eauto.
+  { destruct x as [xl | x_t x_n], a as [al | a_t a_n]; ins.
+    congruence. }
+  { apply RSRW_ACTIDS. }
+  { exfalso. eapply (rsrw_a_b_ord RSRW_ACTIDS); eauto. }
+  left. split; [| red; congruence].
+  apply ext_sb_dense with (e2 := a); ins.
+  rewrite SMTID'. apply RSRW_ACTIDS.
+Qed.
+
+Lemma G_s_cont
+    (STRUCT : reord_simrel_rw_struct)
+    (CONT : contigious_actids G_t) :
+  contigious_actids G_s.
+Proof using RSRW_ACTIDS.
+  destruct (classic (E_t a /\ ~E_t b)) as [NIFF|IFF].
+  { desf.
+    apply add_event_to_contigious with (G := G_t) (e := b); ins.
+    { apply RSRW_ACTIDS. }
+    { rewrite (rsrw_actids2 STRUCT); ins.
+      now rewrite ReordCommon.mapper_acts_niff. }
+    apply G_t_niff_b_max; ins. }
+  assert (IFF' : E_t a <-> E_t b).
+  { destruct (classic (E_t a)) as [INA|NINA],
+            (classic (E_t b)) as [INB|NINB]; ins.
+    { exfalso. eauto 11. }
+    exfalso. apply (rsrw_actids_t_ord RSRW_ACTIDS).
+    all: ins. }
+  unfold contigious_actids. ins.
+  destruct CONT with t as [N EQ]; ins.
+  exists N. rewrite (rsrw_actids1 STRUCT); ins.
+  rewrite ReordCommon.mapper_acts_iff; ins.
+Qed.
+
 End SimRel.
 
 Section ReordSimRelInstrs.
