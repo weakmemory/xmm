@@ -469,6 +469,12 @@ Proof using SIMREL.
   all: apply SIMREL.
 Qed.
 
+Lemma simrel_G_s' :
+  reord_simrel_rw_instrs_gen G_s' G_t' e2i_s e2i_t rmwi ai bi a b.
+Proof using SIMREL.
+  admit.
+Admitted.
+
 Lemma srf_eq :
   exists sw,
     rsrw_G_s_niff_srf G_s a = singl_rel sw a.
@@ -603,8 +609,7 @@ Proof using SIMREL.
   { ins. rewrite <- INAIFF, <- INBIFF. eauto. }
   (* Actual proof *)
   exists G_s', (mapper ↑ sc). split; constructor; ins.
-  { admit. (* TODO: simrel actids *) }
-  { admit. (* TODO: simrel struct *) }
+  all: try now apply simrel_G_s'.
   { admit. (* TODO: simrel start wf *) }
   { apply sub_to_full_exec_single.
     { rewrite rsrw_G_s_in_E with (a := a) (b := b) (G_t := G_t).
@@ -676,10 +681,10 @@ Proof using SIMREL.
   (* Actual proof *)
   exists G_s', (mapper ↑ sc), (rsrw_G_s_niff G_s G_t a b).
   unfold NW. rewrite G_s_iff at 1; ins.
-  unfold G_s'. desf.
+  unfold G_s'.
   splits; constructor; ins.
-  { admit. (* TODO: simrel actids *) }
-  { admit. (* TODO: simrel struct *) }
+  all: try now apply simrel_G_s'.
+  all: desf.
   { admit. (* TODO: intermediate cons *) }
   { desf. apply sub_to_full_exec_single; ins.
     { intros [INE | EQ].
@@ -747,8 +752,7 @@ Proof using SIMREL.
         (E_s' \₁ eq a).
   splits; [| exists (@id actid), (fun x y => y = tid a)].
   all: constructor; ins.
-  { admit. (* rsrw_actids *) }
-  { admit. (* rsrw_struct *) }
+  all: try now apply simrel_G_s'.
   { admit. (* lab stuff *) }
   { rewrite ESEQ. basic_solver. }
   { basic_solver. }
