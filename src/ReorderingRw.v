@@ -11,6 +11,7 @@ Require Import ExecOps.
 Require Import CfgOps.
 Require Import StepOps.
 Require Import Steps.
+Require Import Instructions.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -234,6 +235,29 @@ Qed.
 
 End SimRel.
 
+Section ReordSimRelInstrs.
+
+Variable G_s G_t : execution.
+Variable e2i_s e2i_t : actid -> I2Exec.intr_info.
+Variable rmwi : I2Exec.instr_id -> Prop.
+Variable ai bi : I2Exec.intr_info.
+
+Record reord_simrel_rw_instrs_gen a b : Prop := {
+  rwi_orig_simrel : reord_simrel_rw G_s G_t a b;
+  rwi_s_wf : I2Exec.E2InstrWf G_s e2i_s rmwi;
+  rwi_t_wf : I2Exec.E2InstrWf G_t e2i_t rmwi;
+  rwi_e2i_s_a : e2i_s a = ai;
+  rwi_e2i_s_b : e2i_s b = bi;
+  rwi_e2i_t_a : e2i_t a = ai;
+  rwi_e2i_t_b : e2i_t b = bi;
+  rwi_ai : ~rmwi (I2Exec.instr ai);
+  rwi_bi : ~rmwi (I2Exec.instr bi);
+}.
+
+Definition reord_simrel_rw_instrs := exists a b, reord_simrel_rw_instrs_gen a b.
+
+End ReordSimRelInstrs.
+
 Module ReordRwSimRelProps.
 
 Section Basic.
@@ -299,6 +323,9 @@ Variable G_t G_t' G_s : execution.
 Variable sc : relation actid.
 Variable traces traces' : thread_id -> trace label -> Prop.
 Variable a b : actid.
+Variable e2i_s e2i_t : actid -> I2Exec.intr_info.
+Variable rmwi : I2Exec.instr_id -> Prop.
+Variable ai bi : I2Exec.intr_info.
 
 Notation "'lab_t'" := (lab G_t).
 Notation "'val_t'" := (val lab_t).
@@ -350,7 +377,7 @@ Notation "'srf_s'" := (srf G_s).
 Notation "'mapper'" := (ReordCommon.mapper a b).
 
 Hypothesis SWAPPED_TRACES : ReordCommon.traces_swapped traces traces' a b.
-Hypothesis SIMREL : reord_simrel_rw G_s G_t a b.
+Hypothesis SIMREL : reord_simrel_rw_instrs_gen G_s G_t e2i_s e2i_t rmwi ai bi a b.
 
 Definition G_s' :=
   ifP E_t' a /\ ~E_t' b then rsrw_G_s_niff G_s G_t' a b
@@ -515,7 +542,9 @@ Proof using SIMREL.
     destruct (classic (E_t a)) as [INA|NINA],
              (classic (E_t b)) as [INB|NINB]; ins.
     { exfalso. eauto 11. }
-    exfalso. apply (rsrw_actids_t_ord (rsrw_actids SIMREL)).
+    exfalso. apply (rsrw_actids_t_ord
+      (rsrw_actids (rwi_orig_simrel SIMREL))
+    ).
     all: ins. }
   assert (IFFSHORTCUT' : forall (CASE2 : ~ (E_t' a /\ ~E_t' b)),
                         E_t' a <-> E_t' b).
@@ -526,7 +555,9 @@ Proof using SIMREL.
   { admit. (* TODO: simrel struct *) }
   { admit. (* TODO: simrel start wf *) }
   { apply sub_to_full_exec_single.
-    { rewrite rsrw_G_s_in_E; eauto.
+    { rewrite rsrw_G_s_in_E with (a := a) (b := b) (G_t := G_t).
+      all: try now apply SIMREL.
+      all: eauto.
       apply STRUCT. }
     { unfold G_s'.
       desf; desf; [rewrite G_s_niff | rewrite G_s_iff]; eauto; ins.
