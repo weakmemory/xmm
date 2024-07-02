@@ -375,6 +375,26 @@ Proof using RSRW_ACTIDS.
   rewrite ReordCommon.mapper_acts_iff; ins.
 Qed.
 
+Lemma rsrw_E_s_sub
+    (STRUCT : reord_simrel_rw_struct) :
+  E_s ⊆₁ mapper ↑₁ E_t ∪₁ eq a.
+Proof using RSRW_ACTIDS.
+  destruct (classic (E_t a /\ ~E_t b)) as [NIFF|IFF].
+  { desf. rewrite (rsrw_actids2 STRUCT); ins. }
+  rewrite (rsrw_actids1 STRUCT); [basic_solver 6|].
+  eapply rsrw_E_iff; eauto.
+Qed.
+
+Lemma rsrw_sub_E_s
+    (STRUCT : reord_simrel_rw_struct) :
+  mapper ↑₁ E_t ⊆₁ E_s.
+Proof using RSRW_ACTIDS.
+  destruct (classic (E_t a /\ ~E_t b)) as [NIFF|IFF].
+  { desf. rewrite (rsrw_actids2 STRUCT); ins. basic_solver. }
+  rewrite (rsrw_actids1 STRUCT); [basic_solver 6|].
+  eapply rsrw_E_iff; eauto.
+Qed.
+
 End SimRel.
 
 Section ReordSimRelInstrs.
@@ -494,15 +514,9 @@ Proof using.
     rewrite (rsrw_rf1 STRUCT); [basic_solver 6|].
     eapply rsrw_E_iff; eauto. }
   assert (E_S_SUB : E_s ⊆₁ eq a ∪₁ ReordCommon.mapper a b ↑₁ E_t).
-  { destruct (classic (E_t a /\ ~E_t b)) as [NIFF|IFF].
-    { desf. rewrite (rsrw_actids2 STRUCT); ins. basic_solver. }
-    rewrite (rsrw_actids1 STRUCT); [basic_solver 6|].
-    eapply rsrw_E_iff; eauto. }
+  { rewrite rsrw_E_s_sub; eauto. basic_solver. }
   assert (SUB_E_S : ReordCommon.mapper a b ↑₁ E_t ⊆₁ E_s).
-  { destruct (classic (E_t a /\ ~E_t b)) as [NIFF|IFF].
-    { desf. rewrite (rsrw_actids2 STRUCT); ins. basic_solver. }
-    rewrite (rsrw_actids1 STRUCT); [basic_solver 6|].
-    eapply rsrw_E_iff; eauto. }
+  { apply rsrw_sub_E_s; ins. }
   constructor.
   { intros x y (XINE & YINE & XYNEQ & TID & XNINIT).
     destruct x as [xl | xn xt]; ins.
@@ -907,6 +921,8 @@ Lemma exec_start_cfg_wf
       WCore.cmt := ∅
     |}.
 Proof using SIMREL.
+  assert (NEQ : a <> b).
+  { eapply rsrw_a_neq_b, SIMREL. }
   split; constructor; ins.
   { admit. (* TODO *) }
   { erewrite rsrw_ctrl, (WCore.wf_cc_ctrl_empty STARTWF),
@@ -922,8 +938,42 @@ Proof using SIMREL.
     apply STARTWF. }
   { eapply G_s_cont; try now apply simrel_G_s'.
     apply STARTWF. }
-  { admit. (* need lemmas *) }
-  { admit. (* easy *) }
+  { rewrite rsrw_E_s_sub with (G_s := G_s') (G_t := G_t'),
+            <- rsrw_sub_E_s with (G_s := G_s) (G_t := G_t).
+    all: try now apply SIMREL.
+    all: try now apply simrel_G_s'.
+    rewrite set_inter_union_l.
+    arewrite (eq a ∩₁ is_init ≡₁ ∅).
+    { split; [| basic_solver]. intros x (HEQ & INIT).
+      subst x. red.
+      eapply rsrw_ninit_a; try now apply SIMREL.
+      ins. }
+    rewrite set_union_empty_r.
+    rewrite <- ReordCommon.mapper_is_init
+          with (a := a) (b := b).
+    all: try now apply SIMREL.
+    rewrite <- set_collect_interE.
+    all: try now eapply inj_dom_mori, ReordCommon.mapper_inj; eauto.
+    apply set_collect_mori; ins. apply STARTWF. }
+  { rewrite rsrw_E_s_sub; try now apply simrel_G_s'.
+    rewrite set_inter_union_r.
+    arewrite (tid ↓₁ eq tid_init ∩₁ eq a ≡₁ ∅).
+    { split; [| basic_solver]. intros x (HEQ & INIT).
+      subst x. red.
+      eapply rsrw_a_tid; try now apply SIMREL.
+      ins. }
+    rewrite set_union_empty_r.
+    arewrite (tid ↓₁ eq tid_init ∩₁ mapper ↑₁ E_t' ⊆₁
+              mapper ↑₁ (tid ↓₁ eq tid_init ∩₁ E_t')).
+    { rewrite set_collect_interE; eauto using ReordCommon.mapper_inj.
+      apply set_subset_inter; ins. unfolder. intros x TID.
+      exists (mapper x).
+      split; [| rewrite ReordCommon.mapper_self_inv; ins].
+      change (tid (mapper x)) with ((tid ∘ mapper) x).
+      rewrite ReordCommon.mapper_tid; ins.
+      eapply rsrw_tid_a_tid_b, SIMREL. }
+    rewrite (WCore.wf_gc_acts STARTWF), ReordCommon.mapper_is_init.
+    all: ins; apply SIMREL. }
   { apply G_s_wf'; try now apply STARTWF.
     ins. intro F. apply NINIT.
     apply (WCore.wf_gc_acts STARTWF); ins.
