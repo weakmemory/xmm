@@ -979,7 +979,48 @@ Proof using SIMREL.
     apply (WCore.wf_gc_acts STARTWF); ins.
     unfolder. splits; ins. }
   { admit. (* TODO: remove sc? *) }
-  { admit. (* TODO *) }
+  { assert (STRUCT : reord_simrel_rw_struct G_s G_t a b).
+    { apply SIMREL. }
+    assert (STRUCT' : reord_simrel_rw_struct G_s' G_t' a b).
+    { apply simrel_G_s'. }
+    assert (SUB : sub_execution G_t' G_t ∅₂ ∅₂).
+    { apply STARTWF. }
+    constructor; ins.
+    { admit. }
+    { admit. }
+    { admit. }
+    { rewrite (rsrw_rmw STRUCT), (rsrw_rmw STRUCT'),
+              (sub_rmw SUB), !collect_rel_seq,
+              collect_rel_eqv.
+      all: try now eapply inj_dom_mori, ReordCommon.mapper_inj; eauto.
+      admit. }
+    { rewrite (rsrw_data STRUCT), (rsrw_data STRUCT'),
+              (sub_data SUB), !collect_rel_seq,
+              collect_rel_eqv.
+      all: try now eapply inj_dom_mori, ReordCommon.mapper_inj; eauto.
+      rewrite (WCore.wf_cc_data_empty STARTWF). basic_solver. }
+    { rewrite (rsrw_addr STRUCT), (rsrw_addr STRUCT'),
+              (sub_addr SUB), !collect_rel_seq,
+              collect_rel_eqv.
+      all: try now eapply inj_dom_mori, ReordCommon.mapper_inj; eauto.
+      rewrite (WCore.wf_cc_addr_empty STARTWF). basic_solver. }
+    { rewrite (rsrw_ctrl STRUCT), (rsrw_ctrl STRUCT'),
+              (sub_ctrl SUB), !collect_rel_seq,
+              collect_rel_eqv.
+      all: try now eapply inj_dom_mori, ReordCommon.mapper_inj; eauto.
+      rewrite (WCore.wf_cc_ctrl_empty STARTWF). basic_solver. }
+    { rewrite (rsrw_rmwdep STRUCT), (rsrw_rmwdep STRUCT'),
+              (sub_frmw SUB), !collect_rel_seq,
+              collect_rel_eqv.
+      all: try now eapply inj_dom_mori, ReordCommon.mapper_inj; eauto.
+      admit. }
+    { admit. }
+    { rewrite (rsrw_co STRUCT), (rsrw_co STRUCT'),
+              (sub_co SUB), !collect_rel_seq,
+              collect_rel_eqv.
+      all: try now eapply inj_dom_mori, ReordCommon.mapper_inj; eauto.
+      admit. }
+    basic_solver. }
   { basic_solver. }
   { basic_solver. }
   { admit. (* TODO *) }
@@ -1027,7 +1068,7 @@ Proof using SIMREL.
       WCore.GC := G_s';
       WCore.cmt := ∅
     |}).
-  { admit. }
+  { now apply exec_start_cfg_wf. }
   (* Actual proof *)
   exists G_s', (mapper ↑ sc). split; constructor; ins.
   all: try now apply simrel_G_s'.
