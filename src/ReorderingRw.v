@@ -891,6 +891,51 @@ Proof using.
   rewrite <- rsrw_X_s'_iff_eq; ins.
 Qed.
 
+Lemma exec_start_cfg_wf
+    (STARTWF : WCore.wf
+      {|
+        WCore.sc := sc;
+        WCore.G := G_t;
+        WCore.GC := G_t';
+        WCore.cmt := ∅
+      |}) :
+  WCore.wf
+    {|
+      WCore.sc := mapper ↑ sc;
+      WCore.G := G_s;
+      WCore.GC := G_s';
+      WCore.cmt := ∅
+    |}.
+Proof using SIMREL.
+  split; constructor; ins.
+  { admit. (* TODO *) }
+  { erewrite rsrw_ctrl, (WCore.wf_cc_ctrl_empty STARTWF),
+              collect_rel_empty; ins.
+    apply simrel_G_s'. }
+  { erewrite rsrw_addr, (WCore.wf_cc_addr_empty STARTWF),
+             collect_rel_empty; ins.
+    apply simrel_G_s'. }
+  { erewrite rsrw_data, (WCore.wf_cc_data_empty STARTWF),
+             collect_rel_empty; ins.
+    apply simrel_G_s'. }
+  { eapply G_s_cont; try now apply SIMREL.
+    apply STARTWF. }
+  { eapply G_s_cont; try now apply simrel_G_s'.
+    apply STARTWF. }
+  { admit. (* need lemmas *) }
+  { admit. (* easy *) }
+  { apply G_s_wf'; try now apply STARTWF.
+    ins. intro F. apply NINIT.
+    apply (WCore.wf_gc_acts STARTWF); ins.
+    unfolder. splits; ins. }
+  { admit. (* TODO: remove sc? *) }
+  { admit. (* TODO *) }
+  { basic_solver. }
+  { basic_solver. }
+  { admit. (* TODO *) }
+  basic_solver.
+Admitted.
+
 Lemma simrel_exec_not_a_not_b e
     (E_NOT_A : e <> a)
     (E_NOT_B : e <> b)
@@ -925,11 +970,18 @@ Proof using SIMREL.
   assert (IFFSHORTCUT' : forall (CASE2 : ~ (E_t' a /\ ~E_t' b)),
                         E_t' a <-> E_t' b).
   { ins. rewrite <- INAIFF, <- INBIFF. eauto. }
+  assert (BEGWF : WCore.wf
+    {|
+      WCore.sc := mapper ↑ sc;
+      WCore.G := G_s;
+      WCore.GC := G_s';
+      WCore.cmt := ∅
+    |}).
+  { admit. }
   (* Actual proof *)
   exists G_s', (mapper ↑ sc). split; constructor; ins.
   all: try now apply simrel_G_s'.
-  { admit. (* TODO: simrel start wf *) }
-  { apply sub_to_full_exec_single.
+  { apply sub_to_full_exec_single; ins.
     { rewrite rsrw_G_s_in_E with (a := a) (b := b) (G_t := G_t).
       all: try now apply SIMREL.
       all: eauto.
@@ -940,7 +992,6 @@ Proof using SIMREL.
       all: rewrite set_collect_eq, ReordCommon.mapper_neq.
       all: ins.
       basic_solver 11. }
-    { admit. (* TODO: wf start *) }
     { admit. (* TODO: traces *) }
     admit. (* TODO: rf edge-wfness *) }
   admit.
