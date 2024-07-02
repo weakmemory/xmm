@@ -784,38 +784,14 @@ Lemma G_s_wf'
     (NCTRL : ctrl G_t' ≡ ∅₂)
     (NDATA : data G_t' ≡ ∅₂)
     (NADDR : addr G_t' ≡ ∅₂)
+    (WF_TIDS : forall e (NINIT : ~ is_init e)
+                      (INE : E_t' e),
+                tid e <> tid_init)
     (WF : Wf G_t') :
   Wf G_s'.
 Proof using SIMREL.
-  assert (WFIFF : Wf (rsrw_G_s_iff G_s G_t' a b)).
-  { admit. }
-  unfold G_s'. desf.
-  desf. unfold rsrw_G_s_niff.
-  forward apply exec_add_event_wf_nctrl
-          with (e := a) (G := exec_mapped G_t' mapper (lab_t' ∘ mapper)).
-  all: try now apply SIMREL.
-  { ins. rewrite <- ReordCommon.mapper_eq_b with (a := a) (b := b) at 2.
-    unfolder. intros (x & INE & F).
-    apply ReordCommon.mapper_inj in F; ins.
-    all: congruence. }
-  { ins. unfold is_r, compose. rewrite ReordCommon.mapper_eq_a.
-    apply simrel_G_s'. }
-  { ins. now apply WF. }
-  { ins. unfold loc, compose in LOC. rewrite ReordCommon.mapper_eq_a in LOC.
-    unfolder. exists (InitEvent l). split.
-    { admit. }
-    rewrite ReordCommon.mapper_init_actid; ins.
-    all: apply SIMREL. }
-  { ins. now rewrite NCTRL, collect_rel_empty. }
-  { admit. }
-  { admit. }
-  intro WF_a.
-  apply exec_add_rf_wf; ins.
-  (* all: rewrite ?G_s_niff
-  { admit. }
-  { admit. }
-  { unfold rsrw_G_s_niff_srf. } *)
-Admitted.
+  eapply G_s_wf; eauto using simrel_G_s'.
+Qed.
 
 Lemma srf_eq :
   exists sw,
