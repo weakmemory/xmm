@@ -646,22 +646,55 @@ Notation "'R_s'" := (is_r lab_s).
 Notation "'mapper'" := (ReordCommon.mapper a b).
 
 Lemma sim_rel_init
-    (ACTIDS : reord_simrel_rw_actids G_s G_t a b)
-    (STRUCT : reord_simrel_rw_struct G_s G_t a b) :
+    (WF : Wf G_s)
+    (SIMREL : reord_simrel_rw G_s G_t a b) :
   reord_simrel_rw (WCore.init_exec G_s) (WCore.init_exec G_t) a b.
 Proof using.
-  admit.
-  (* constructor; constructor; ins.
-  all: try now (rewrite collect_rel_empty; ins).
-  all: try now (exfalso; apply ACTIDS.(rsrw_ninit_a G_t a b), INA).
-  all: try now apply ACTIDS.
+  assert (NEQ : a <> b) by eapply rsrw_a_neq_b, SIMREL.
+  assert (ANINI : ~is_init a) by apply SIMREL.
+  assert (BNINI : ~is_init b) by apply SIMREL.
+  assert (INJ : inj_dom ⊤₁ mapper) by now apply ReordCommon.mapper_inj.
+  assert (EEQ : E_s ∩₁ is_init ≡₁ mapper ↑₁ E_t ∩₁ is_init).
+  { apply SIMREL. }
+  (* NOTE: this bit exsits only because of the srf goal *)
+  assert (WFINI : Wf (WCore.init_exec G_s)).
+  { constructor.
+    { intros x y (XINE & _ & _ & _ & NINIT). exfalso.
+      apply NINIT, XINE. }
+    all: try now ins.
+    all: rewrite ?seq_false_l, ?seq_false_r; try now ins.
+    all: try now apply WF.
+    { intros ol. unfolder.
+      intros x (((XINE & XINIT) & XISW) & XLOC)
+             y (((YINE & YINIT) & YISW) & YLOC)
+             XYNEQ.
+      exfalso. apply XYNEQ.
+      destruct x as [xl | xt xn], y as [yl | yt yn]; ins.
+      unfold loc in *. rewrite (wf_init_lab WF) in XLOC, YLOC.
+      congruence. }
+    { intros l (x & (XINE & XINIT) & XLOC); ins.
+      destruct x as [xl | xt xn]; ins.
+      unfold loc in *. rewrite (wf_init_lab WF) in XLOC.
+      split; ins || congruence. }
+    ins. apply WF, EE. }
+  constructor; constructor; ins.
+  all: try now apply SIMREL.
   all: try now apply STRUCT.
-  { apply ACTIDS.(rsrw_ninit_b G_t a b), INB. }
-  all: rewrite STRUCT.(rsrw_init _ _ _ _).
-  all: rewrite set_collect_interE, ReordCommon.mapper_is_init; ins.
-  all: try now apply ACTIDS.
-  all: eapply ReordCommon.mapper_inj, rsrw_a_neq_b; eauto. *)
-Admitted.
+  all: try now (exfalso; apply ANINI, INA).
+  all: try now (exfalso; apply BNINI, INB).
+  { (* NOTE: the only bit that forces us to use Wf of G_s *)
+    arewrite (srf (WCore.init_exec G_s) ⨾ ⦗eq a⦘ ≡ ∅₂); [| basic_solver].
+    rewrite (wf_srfE _ WFINI). hahn_frame. (* NOTE: enable implcit args in AuxRel *)
+    enough (NIN : ~ acts_set (WCore.init_exec G_s) a).
+    { basic_solver. }
+    unfolder. intro F. ins. desf. }
+  { basic_solver. }
+  { now rewrite EEQ, set_collect_interE,
+                ReordCommon.mapper_is_init. }
+  { now rewrite EEQ, set_collect_interE,
+                ReordCommon.mapper_is_init. }
+  all: symmetry; apply collect_rel_empty.
+Qed.
 
 End Basic.
 
