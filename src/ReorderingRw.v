@@ -256,54 +256,28 @@ Definition rsrw_G_s_niff :=
     rsrw_G_s_niff_srf.
 
 Lemma rsrw_struct_iff
-    (SAME : E_t a <-> E_t b) :
-  reord_simrel_rw_struct <-> exec_equiv G_s rsrw_G_s_iff.
+    (SAME : E_t a <-> E_t b)
+    (STRUCT : reord_simrel_rw_struct) :
+  exec_equiv G_s rsrw_G_s_iff.
 Proof using RSRW_ACTIDS.
-  split; [intro STRUCT | intro EQUIV].
-  { constructor; ins.
-    all: try now apply STRUCT.
-    admit. }
-  assert (EQVLAB : lab_s = lab_t ∘ mapper).
-  { admit. }
   constructor; ins.
-  all: try now (exfalso; desf; eauto).
-  all: try now apply EQUIV.
-  { rewrite EQVLAB. unfold val, compose.
-    now rewrite ReordCommon.mapper_eq_a. }
-  { rewrite EQVLAB.
-    rewrite Combinators.compose_assoc, ReordCommon.mapper_mapper_compose,
-            Combinators.compose_id_right by apply rsrw_a_neq_b.
-    do 3 red. ins. desf. }
-  { rewrite EQVLAB.
-    change (val (lab_t ∘ mapper) ∘ mapper)
-      with (val (lab_t ∘ mapper ∘ mapper)).
-    now rewrite Combinators.compose_assoc, ReordCommon.mapper_mapper_compose,
-            Combinators.compose_id_right by apply rsrw_a_neq_b. }
-  now rewrite EQUIV.(exeeqv_acts _ _).
-Admitted.
+  all: try now apply STRUCT.
+  now apply rsrw_struct_same_lab.
+Qed.
 
 Lemma rsrw_struct_niff
     (INA : E_t a)
     (NOTINB : ~E_t b)
+    (STRUCT : reord_simrel_rw_struct)
     (* (U2V  : same_label_u2v (lab_s a) (lab_t b))
     (EQVLAB : lab_s = upd (lab_t ∘ mapper) a (lab_s a))  *)
     :
-  reord_simrel_rw_struct <-> exec_equiv G_s rsrw_G_s_niff.
+  exec_equiv G_s rsrw_G_s_niff.
 Proof using RSRW_ACTIDS.
-  split; [intro STRUCT | intro EQUIV].
-  { constructor; ins.
-    all: try now apply STRUCT.
-    all: admit. }
   constructor; ins.
-  all: try now apply EQUIV.
-  all: try now (exfalso; desf; eauto).
-  { admit. }
-  { admit. }
-  rewrite EQUIV.(exeeqv_acts _ _); ins.
-  rewrite set_inter_union_l.
-  arewrite (eq a ∩₁ is_init ≡₁ ∅); [| now rewrite set_union_empty_r].
-  split; [| basic_solver]. intros x (EQ & INIT). subst.
-  red. now apply RSRW_ACTIDS.(rsrw_ninit_a).
+  all: try now apply STRUCT.
+  { now apply rsrw_struct_same_lab. }
+  admit.
 Admitted.
 
 Lemma rsrw_G_s_in_E e
