@@ -1088,6 +1088,38 @@ Proof using SIMREL.
   admit.
 Admitted.
 
+Lemma simrel_exec_b_helper
+    (INA : ~E_t a)
+    (NINB : ~E_t b)
+    (ACTEQ : E_t' ≡₁ E_t ∪₁ eq a)
+    (CONS1 : WCore.is_cons
+              (rsrw_G_s_niff G_s G_t  a b)
+              (mapper ↑ sc))
+    (CONS2 : WCore.is_cons
+              (rsrw_G_s_niff G_s G_t' a b)
+              (mapper ↑ sc))
+    (STEPS : (WCore.cfg_add_event_uninformative traces')＊
+              (WCore.Build_t (mapper ↑ sc) G_s  G_s' ∅)
+              (WCore.Build_t (mapper ↑ sc) G_s' G_s' ∅)
+    ) :
+  << STEP1 : WCore.exec_inst
+              G_s
+              (rsrw_G_s_niff G_s G_t  a b)
+              (mapper ↑ sc)
+              traces'
+              a
+  >> /\
+  << STEP2 : WCore.exec_inst
+              (rsrw_G_s_niff G_s G_t  a b)
+              G_s'
+              (mapper ↑ sc)
+              traces'
+              b
+  >>.
+Proof using SIMREL.
+  admit.
+Admitted.
+
 Lemma simrel_exec_b
     (CONS : WCore.is_cons G_t sc)
     (STEP : WCore.exec_inst G_t G_t' sc traces a) :
@@ -1105,58 +1137,19 @@ Proof using SIMREL.
     apply SIMREL. }
   assert (CASE2KILLER : ~~(E_t' a /\ ~E_t' b)).
   { admit. }
-  assert (INTERNALSTARTWF : WCore.wf
-    {|
-      WCore.sc := mapper ↑ sc;
-      WCore.G := rsrw_G_s_iff G_s G_t a b;
-      WCore.GC := rsrw_G_s_niff G_s G_t a b;
-      WCore.cmt := ∅
-    |}).
-  { admit. }
-  assert (INTERNALSTEP : WCore.cfg_add_event traces'
-    {|
-      WCore.sc := mapper ↑ sc;
-      WCore.G := rsrw_G_s_iff G_s G_t a b;
-      WCore.GC := rsrw_G_s_niff G_s G_t a b;
-      WCore.cmt := ∅
-    |}
-    {|
-      WCore.sc := mapper ↑ sc;
-      WCore.G := rsrw_G_s_niff G_s G_t a b;
-      WCore.GC := rsrw_G_s_niff G_s G_t a b;
-      WCore.cmt := ∅
-    |} a).
-  { apply sub_to_full_exec_single; ins.
-    { intro F. apply ReordCommon.mapper_acts_iff in F; ins. }
-    { admit. (* TODO: traces *) }
-    admit. (* srf stuff *) }
-  assert (INTERNALWF : WCore.wf
-    {|
-      WCore.sc := mapper ↑ sc;
-      WCore.G := rsrw_G_s_niff G_s G_t a b;
-      WCore.GC := rsrw_G_s_niff G_s G_t' a b;
-      WCore.cmt := ∅
-    |}).
-  { admit. }
-  (* Actual proof *)
+  (* The proof *)
   exists G_s', (mapper ↑ sc), (rsrw_G_s_niff G_s G_t a b).
-  unfold NW. rewrite G_s_iff at 1; ins.
-  unfold G_s'.
-  splits; constructor; ins.
-  all: try now apply simrel_G_s'.
-  all: desf.
-  { admit. (* TODO: intermediate cons *) }
-  { desf. apply sub_to_full_exec_single; ins.
-    { intros [INE | EQ].
-      { apply ReordCommon.mapper_acts_iff in INE; ins. }
-      eapply rsrw_a_neq_b; eauto. apply SIMREL. }
-    { rewrite ReordCommon.mapper_acts_niff,
-              ReordCommon.mapper_acts_iff.
-      all: ins.
-      rewrite (WCore.caes_e_new STRUCT). ins. }
-    { admit. (* TODO: traces *) }
-    admit. (* rf stuff *) }
-  admit. (* TODO: cons of finish *)
+  split; [apply simrel_G_s' |].
+  apply simrel_exec_b_helper; ins.
+  { apply (WCore.caes_e_new STRUCT). }
+  { admit. (* intermediate graph cons *) }
+  { admit. (* resulting graph cons *) }
+  apply sub_to_full_exec
+   with (l := [a; b]).
+  { now apply exec_start_cfg_wf. }
+  { constructor; ins.
+    all: admit. (* all easy *) }
+  admit. (* traces *)
 Admitted.
 
 Lemma simrel_exec_a w
