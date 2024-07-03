@@ -1191,7 +1191,7 @@ Proof using SIMREL.
       (E_s' \₁ eq a)
       (fun _ y => y = tid a)
   ).
-  { admit. }
+  { admit. (* TODO: patch this re-exec cond first *) }
   assert (ESEQ : E_s' ≡₁ E_s ∪₁ eq a).
   { unfold G_s'; desf; [desf; exfalso; eauto |].
     rewrite G_s_niff; ins.
