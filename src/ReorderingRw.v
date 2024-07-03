@@ -268,17 +268,20 @@ Qed.
 Lemma rsrw_struct_niff
     (INA : E_t a)
     (NOTINB : ~E_t b)
-    (STRUCT : reord_simrel_rw_struct)
-    (* (U2V  : same_label_u2v (lab_s a) (lab_t b))
-    (EQVLAB : lab_s = upd (lab_t ∘ mapper) a (lab_s a))  *)
-    :
+    (STRUCT : reord_simrel_rw_struct) :
   exec_equiv G_s rsrw_G_s_niff.
 Proof using RSRW_ACTIDS.
   constructor; ins.
   all: try now apply STRUCT.
   { now apply rsrw_struct_same_lab. }
-  admit.
-Admitted.
+  rewrite (rsrw_rf2 STRUCT) by ins.
+  unfold rsrw_G_s_niff_srf.
+  enough (EQ : G_s = exec_add_read_event_nctrl G_s a).
+  { now rewrite EQ at 1. }
+  apply exeeqv_eq. constructor; ins.
+  enough (INA' : E_s a) by basic_solver.
+  apply (rsrw_actids2 STRUCT); ins. now right.
+Qed.
 
 Lemma rsrw_G_s_in_E e
     (SIMREL : reord_simrel_rw)
