@@ -54,7 +54,7 @@ Definition rpo :=
   ⦗F ∩₁ is_rel⦘ ⨾ sb ⨾ ⦗W ∩₁ is_rlx⦘.
 Definition rhb := (rpo ∪ sw)⁺.
 Definition vf := ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf^? ⨾ hb^?.
-Definition srf := (vf ∩ same_loc) ⨾ ⦗R⦘ \ (co ⨾ vf).
+Definition srf := ((vf ⨾ sb) ∩ same_loc) ⨾ ⦗R⦘ \ (co ⨾ vf).
 
 Lemma thrdle_sb_closed thrdle
     (INIT_LEAST : least_elt thrdle tid_init)
@@ -96,6 +96,12 @@ Proof using.
   all: unfold sb in REL; unfolder in REL; desf.
 Qed.
 
+Lemma wf_vfE_left : vf ≡ ⦗E⦘ ⨾ vf.
+Proof using.
+  split; [| basic_solver].
+  unfold vf. basic_solver 11.
+Qed.
+
 Lemma wf_vfE
     (WF : Wf G) :
   vf ≡ ⦗E⦘ ⨾ vf ⨾ ⦗E⦘.
@@ -106,27 +112,32 @@ Proof using.
   basic_solver 12.
 Qed.
 
-Lemma vf_dom : dom_rel vf ⊆₁ W.
+Lemma vf_d_left : vf ≡ ⦗W⦘ ⨾ vf.
 Proof using.
-  unfold vf. basic_solver.
+  unfold vf. basic_solver 11.
 Qed.
 
-Lemma wf_srfE
-    (WF : Wf G) :
-  srf ≡ ⦗E⦘ ⨾ srf ⨾ ⦗E⦘.
+Lemma vf_sb_in_vf :
+  vf ⨾ sb ⊆ vf.
 Proof using.
-  split; [| basic_solver]. unfold srf.
-  rewrite wf_vfE at 1 by auto.
-  unfolder. ins. desf. splits; eauto.
+  unfold vf. rewrite sb_in_hb.
+  hahn_frame. rewrite rewrite_trans_seq_cr_l.
+  all: eauto using hb_trans.
+  basic_solver.
+Qed.
+
+Lemma wf_srfE : srf ≡ ⦗E⦘ ⨾ srf ⨾ ⦗E⦘.
+Proof using.
+  split; [| basic_solver]. apply dom_helper_3.
+  unfold srf, sb. rewrite wf_vfE_left.
+  basic_solver.
 Qed.
 
 Lemma wf_srfD : srf ≡ ⦗W⦘ ⨾ srf ⨾ ⦗R⦘.
 Proof using.
-  split; [| basic_solver]. unfold srf.
-  intros x y SRF. unfolder in SRF. desf.
-  unfolder; ins; desf; splits; ins.
-  { apply vf_dom. now exists y. }
-  exists y; ins.
+  split; [| basic_solver]. apply dom_helper_3.
+  unfold srf. rewrite vf_d_left. hahn_frame.
+  basic_solver.
 Qed.
 
 Lemma wf_srf_loc : srf ⊆ same_loc.
@@ -153,20 +164,34 @@ Proof using.
   splits; eauto.
 Qed.
 
+Lemma srf_in_vf : srf ⊆ vf.
+Proof using.
+  rewrite <- vf_sb_in_vf. unfold srf.
+  basic_solver.
+Qed.
+
 Lemma wf_srff'
     (CO_TOT : forall ol,
       is_total (E ∩₁ W ∩₁ (fun x => loc x = ol)) co
     ) :
   functional srf⁻¹.
 Proof using.
-  unfolder; unfold srf. intros x y z (VF1 & CO1) (VF2 & CO2).
-  tertium_non_datur (y = z) as [EQ|NEQ]; ins; exfalso.
+  unfolder. intros x y z SRF1 SRF2.
+  destruct (classic (y = z)) as [EQ|NEQ]; ins.
   destruct CO_TOT with (a := y) (b := z)
                        (ol := loc x) as [CO|CO].
-  all: ins; unfolder in *; desf; splits; eauto.
-  all: try now (apply vf_dom; eexists; eauto).
-  { unfold vf in VF1. unfolder in VF1; desf. }
-  unfold vf in VF2. unfolder in VF2; desf.
+  all: ins; repeat split.
+  all: try now apply wf_srf_loc.
+  all: try now (apply wf_srfE in SRF1; unfolder in SRF1; desf).
+  all: try now (apply wf_srfE in SRF2; unfolder in SRF2; desf).
+  all: try now (apply wf_srfD in SRF1; unfolder in SRF1; desf).
+  all: try now (apply wf_srfD in SRF2; unfolder in SRF2; desf).
+  { exfalso. apply SRF1.
+    apply srf_in_vf in SRF2.
+    basic_solver. }
+  exfalso. apply SRF2.
+  apply srf_in_vf in SRF1.
+  basic_solver.
 Qed.
 
 Lemma wf_srff (WF : Wf G) : functional srf⁻¹.
@@ -250,12 +275,14 @@ Proof using.
   { unfolder in A; desf.
     hahn_rewrite WF.(wf_col) in A.
     unfold same_loc in *; desf; unfolder in *; congruence. }
-  exists b0; red; split.
+  exists b0; red. split.
+  all: try (apply seq_eqv_inter_lr; split).
+  { admit. }
   { unfold urr, same_loc.
     unfolder in A; desf; unfolder; ins; desf; splits; try basic_solver 21; congruence. }
   unfold max_elt in *.
   unfolder in *; ins; desf; intro; desf; basic_solver 11.
-Qed.
+Admitted.
 
 Lemma srf_in_sb_rf :
   srf ⊆ (sb ∪ rf)⁺.
@@ -305,6 +332,30 @@ Proof using.
   rewrite <- id_inter.
   arewrite (E ∩₁ W ∩₁ eq a ⊆₁ ∅); [| basic_solver].
   unfold is_r, is_w in *. unfolder. ins. desf.
+Qed.
+
+Lemma vf_to_nacq_nrf a
+    (IS_R : R a)
+    (NACHQ : mode_le (mod lab a) Orlx)
+    (NRF : rf ⨾ ⦗eq a⦘ ⊆ ∅₂) :
+  vf ⨾ ⦗eq a⦘ ⊆ vf ⨾ sb ⨾ ⦗eq a⦘.
+Proof using.
+  rewrite vf_to_nacq, NRF by ins.
+  basic_solver.
+Qed.
+
+(* Lemma srf_to_nacq_nrf a
+    (IS_R : R a)
+    (NACHQ : mode_le (mod lab a) Orlx)
+    (NRF : rf ⨾ ⦗eq a⦘ ⊆ ∅₂) : *)
+
+Lemma vf_to_nacq_with_srf a
+    (IS_R : R a)
+    (NACHQ : mode_le (mod lab a) Orlx)
+    (RFEQ : rf ⨾ ⦗eq a⦘ ≡ srf ⨾ ⦗eq a⦘) :
+  srf ⨾ ⦗eq a⦘ ⊆ vf ⨾ sb ⨾ ⦗eq a⦘.
+Proof using.
+  unfold srf. basic_solver 11.
 Qed.
 
 End AuxRel.
