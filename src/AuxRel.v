@@ -263,4 +263,48 @@ Proof using.
   admit.
 Admitted.
 
+Lemma sw_to_nacq a
+    (NACHQ : mode_le (mod lab a) Orlx) :
+  sw ⨾ ⦗eq a⦘ ⊆ ∅₂.
+Proof using.
+  unfold sw. hahn_frame.
+  rewrite <- id_inter.
+  arewrite (is_acq ∩₁ eq a ⊆₁ ∅); [| basic_solver].
+  unfold is_acq, mode_le, mod in *. unfolder.
+  ins. desf.
+Qed.
+
+Lemma hb_to_nacq a
+    (NACHQ : mode_le (mod lab a) Orlx) :
+  hb ⨾ ⦗eq a⦘ ⊆ hb^? ⨾ sb ⨾ ⦗eq a⦘.
+Proof using.
+  unfold hb at 1.
+  rewrite ct_end at 1.
+  rewrite seq_union_r, seq_union_l.
+  arewrite ((sb ∪ sw)＊ ⨾ sb ≡ hb^? ⨾ sb).
+  { unfold hb. basic_solver 11. }
+  seq_rewrite sw_to_nacq; ins.
+  basic_solver 11.
+Qed.
+
+Lemma vf_to_nacq a
+    (IS_R : R a)
+    (NACHQ : mode_le (mod lab a) Orlx) :
+  vf ⨾ ⦗eq a⦘ ⊆ vf ⨾ sb ⨾ ⦗eq a⦘ ∪ ⦗E ∩₁ W⦘ ⨾ rf ⨾ ⦗eq a⦘.
+Proof using.
+  unfold vf. rewrite !seqA.
+  arewrite (hb^? ⨾ ⦗eq a⦘ ≡ (hb ∪ eq) ⨾ ⦗eq a⦘).
+  { basic_solver. }
+  rewrite seq_union_l, hb_to_nacq by ins.
+  arewrite (eq ⨾ ⦗eq a⦘ ≡ ⦗eq a⦘) by basic_solver.
+  rewrite !seq_union_r. apply union_mori; ins.
+  seq_rewrite <- id_inter.
+  arewrite (rf^? ≡ rf ∪ eq) by basic_solver.
+  rewrite seq_union_l, seq_union_r.
+  arewrite (eq ⨾ ⦗eq a⦘ ≡ ⦗eq a⦘) by basic_solver.
+  rewrite <- id_inter.
+  arewrite (E ∩₁ W ∩₁ eq a ⊆₁ ∅); [| basic_solver].
+  unfold is_r, is_w in *. unfolder. ins. desf.
+Qed.
+
 End AuxRel.
