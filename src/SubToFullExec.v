@@ -287,6 +287,41 @@ Proof.
   apply NOTINE, (WCore.wf_g_init WF); ins.
 Qed.
 
+Lemma uncmt_rf_same_tid_sub_sb l
+    (WF : WCore.wf X)
+    (ENUM : enumd_diff l) :
+  restr_rel (E' \₁ E) (rf' ⨾ ⦗E' \₁ cmt⦘) ∩ same_tid ⊆ sb'.
+Proof using.
+  intros x y (RF & TID).
+  assert (XINIT : ~ is_init x).
+  { eapply diff_no_init; eauto. apply RF. }
+  assert (YINIT : ~ is_init y).
+  { eapply diff_no_init; eauto. apply RF. }
+  assert (XYNEQ : x <> y).
+  { intro F. subst. eapply rf_irr.
+    { apply WF. }
+    ins. unfolder in RF. desf.
+    eauto. }
+  unfold sb. unfolder. splits.
+  all: try now apply RF.
+  destruct x as [xl | xt xn],
+           y as [yl | yt yn]; ins.
+  split; ins.
+  red in TID. ins. subst.
+  destruct NPeano.Nat.lt_total with xn yn as [LT | [EQ | GT]].
+  all: eauto; try congruence.
+  assert (SB : restr_rel (E' \₁ E) sb'
+                (ThreadEvent yt yn) (ThreadEvent yt xn)).
+  { unfold sb. unfolder. ins; splits; ins.
+    all: apply RF. }
+  exfalso. eapply total_order_from_list_irreflexive.
+  { apply ENUM. }
+  eapply total_order_from_list_trans.
+  { apply ENUM. }
+  { apply ENUM in RF. eauto. }
+  now apply ENUM in SB.
+Qed.
+
 Lemma enumd_deltaG_prefix h t
     (WF : WCore.wf X)
     (ENUM : enumd_diff (h :: t)) :

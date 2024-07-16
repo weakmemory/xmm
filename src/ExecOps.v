@@ -256,12 +256,10 @@ Qed.
 Lemma exec_upd_lab_wf e l
     (ENINIT : ~is_init e)
     (U2V : same_label_u2v (lab e) l)
-    (NRFR : ~codom_rel rf e)
-    (NRFL : ~dom_rel rf e)
+    (VAL_WF : funeq (@val _ (upd lab e l)) rf)
     (WF : Wf G) :
   Wf (exec_upd_lab e l).
 Proof using.
-  unfolder in NRFR. unfolder in NRFL.
   assert (SAME_SB : @sb (exec_upd_lab e l) ≡ sb).
   { unfold sb; ins. }
   constructor; unfold exec_upd_lab; ins.
@@ -271,9 +269,6 @@ Proof using.
                ?exec_upd_lab_same_loc by exact U2V.
   all: try now apply WF.
   all: try now rewrite exec_upd_lab_loc in *; ins; apply WF.
-  { unfold funeq, val; intros a b RF.
-    rewrite !updo; try now apply WF.
-    all: intro F; subst; eauto. }
   rewrite updo; [now apply WF | destruct e; ins].
 Qed.
 
