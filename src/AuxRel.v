@@ -101,9 +101,10 @@ Lemma wf_vfE
   vf ≡ ⦗E⦘ ⨾ vf ⨾ ⦗E⦘.
 Proof using.
   split; [| basic_solver].
-  unfold vf. hahn_frame.
-  admit.
-Admitted.
+  unfold vf.
+  rewrite (wf_hbE WF), (wf_rfE WF).
+  basic_solver 12.
+Qed.
 
 Lemma vf_dom : dom_rel vf ⊆₁ W.
 Proof using.
@@ -152,16 +153,25 @@ Proof using.
   splits; eauto.
 Qed.
 
-Lemma wf_srff (WF : Wf G) : functional srf⁻¹.
+Lemma wf_srff'
+    (CO_TOT : forall ol,
+      is_total (E ∩₁ W ∩₁ (fun x => loc x = ol)) co
+    ) :
+  functional srf⁻¹.
 Proof using.
   unfolder; unfold srf. intros x y z (VF1 & CO1) (VF2 & CO2).
   tertium_non_datur (y = z) as [EQ|NEQ]; ins; exfalso.
-  destruct WF.(wf_co_total) with (a := y) (b := z)
-                                 (ol := loc x) as [CO|CO].
+  destruct CO_TOT with (a := y) (b := z)
+                       (ol := loc x) as [CO|CO].
   all: ins; unfolder in *; desf; splits; eauto.
   all: try now (apply vf_dom; eexists; eauto).
-  { apply wf_vfE in VF1; unfolder in VF1; desf. }
-  apply wf_vfE in VF2; unfolder in VF2; desf.
+  { unfold vf in VF1. unfolder in VF1; desf. }
+  unfold vf in VF2. unfolder in VF2; desf.
+Qed.
+
+Lemma wf_srff (WF : Wf G) : functional srf⁻¹.
+Proof using.
+  apply wf_srff', WF.
 Qed.
 
 Lemma srf_exists b
@@ -246,5 +256,11 @@ Proof using.
   unfold max_elt in *.
   unfolder in *; ins; desf; intro; desf; basic_solver 11.
 Qed.
+
+Lemma srf_in_sb_rf :
+  srf ⊆ (sb ∪ rf)⁺.
+Proof using.
+  admit.
+Admitted.
 
 End AuxRel.

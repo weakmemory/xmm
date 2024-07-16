@@ -835,7 +835,7 @@ Lemma sub_to_full_exec sc G G' cmt l
     (WCore.Build_t sc G' G' cmt).
 Proof using.
   assert (WF' : WCore.wf (WCore.Build_t sc G' G' cmt)).
-  { eapply sub_to_full_exec_end_wf; eauto. }
+  { eauto using sub_to_full_exec_end_wf. }
   generalize G WF ENUM.
   clear      G WF ENUM.
   induction l as [ | h t IHl]; ins.
@@ -867,163 +867,193 @@ Proof using.
     { eapply SubToFullExecInternal.diff_rf; unfolder; splits; ins; eauto. }
     apply total_order_from_list_cons in LT; desf.
     exfalso; eauto. }
-  intros x IN.
-  destruct IN as ((INX & NINX) & IS_R).
-  apply not_or_and in NINX. desf.
-  apply (SubToFullExecInternal.diff_rf_d ENUM).
-  unfolder; splits; ins.
+  rewrite set_minus_union_r.
+  rewrite <- (SubToFullExecInternal.diff_rf_d ENUM).
+  basic_solver.
 Qed.
 
-Lemma sub_to_full_exec_sort sc G G' cmt l tord
+Lemma enumd_diff_listless  sc G G' cmt thrdle
     (WF : WCore.wf {|
       WCore.sc := sc;
       WCore.G := G;
       WCore.GC := G';
       WCore.cmt := cmt
     |})
-    (OTOT : strict_total_order ⊤₁ tord)
-    (ORB : min_elt tord tid_init)
-    (ORDRF : restr_rel (acts_set G' \₁ acts_set G)
-              (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ⊆ tid ↓ tord^?)
-    (ENUM : SubToFullExecInternal.enumd_diff G G' cmt l) :
-  exists l',
-    << SORT : StronglySorted (tid ↓ tord ∪ ext_sb) l' >> /\
-    << ENUM : SubToFullExecInternal.enumd_diff G G' cmt l' >>.
+    (ACYC : acyclic thrdle)
+    (RFCO : acts_set G' ∩₁ is_r (lab G) ⊆₁ codom_rel (rf G'))
+    (INITLEAST : least_elt thrdle tid_init)
+    (MININIT : wmin_elt thrdle tid_init)
+    (ORDRF : (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ∩ compl_rel same_tid
+            ⊆ tid ↓ thrdle)
+    (ORDRFI :
+      restr_rel (acts_set G' \₁ acts_set G) (
+          (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘)
+      ) ∩ same_tid ⊆ sb G') :
+  exists l,
+    SubToFullExecInternal.enumd_diff G G' cmt l.
 Proof using.
+  assert (FIN : set_finite (acts_set G' \₁ acts_set G)).
+  { arewrite (acts_set G' \₁ acts_set G ⊆₁ acts_set G' \₁ is_init).
+    all: try now apply (WCore.wf_gc_fin_exec WF).
+    unfolder. intros x (INE' & NINE). split; ins.
+    intro INI. apply NINE, (WCore.wf_g_init WF); ins. }
+  assert (FULL_SUB : restr_rel (acts_set G' \₁ acts_set G)
+                               (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘)
+                     ⊆ tid ↓ thrdle⁺ ∪ sb G').
+  { arewrite (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘ ≡
+              (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ∩ ⊤₂).
+    { basic_solver. }
+    arewrite (⊤₂ ≡ compl_rel same_tid ∪ same_tid).
+    { split; [| basic_solver].
+      rewrite unionC. unfolder; eauto using classic. }
+    rewrite inter_union_r, restr_union, ORDRF,
+            !restr_inter, !inter_restr_absorb_r,
+            ORDRFI.
+    basic_solver. }
+  apply set_finiteE in FIN. destruct FIN as (l' & NODUP & EQ).
   destruct partial_order_included_in_total_order
-    with actid (tid ↓ tord ∪ ext_sb)
-    as (sord & SUB & TOT).
-  { unfolder; split.
-    { intros x HREL. desf.
-      { eapply OTOT. eauto. }
-      eapply ext_sb_irr. eauto. }
-    unfolder in OTOT.
-    intros x y z R1 R2. desf.
-    all: eauto using ext_sb_trans.
-    all: destruct x as [xl | xt xn],
-                  y as [yl | yt yn],
-                  z as [zl | zt zn]; ins.
-    all: eauto.
-    all: try now (exfalso; eapply ORB; eauto).
-    all: desf; eauto. }
-  assert (DIFF : acts_set G' \₁ acts_set G ≡₁
-            fun x => In x (isort sord l)).
-  { rewrite (SubToFullExecInternal.diff_elems ENUM).
-    unfolder. split; intros x HSET.
-    all: eapply in_isort_iff; eauto. }
-  assert (SORT : StronglySorted sord (isort sord l)).
-  { apply StronglySorted_isort, ENUM; ins. }
-  exists (isort sord l). split.
-  { apply StronglySorted_sub with sord.
-    all: eauto.
-    unfolder in OTOT. desf.
-    unfolder. splits.
-    { intros x HREL; desf; eauto.
-      eapply ext_sb_irr; eauto. }
-    { intros x y z R1 R2. desf; eauto using ext_sb_trans.
-      all: destruct x as [xl | xt xn],
-                    y as [yl | yt yn],
-                    z as [zl | zt zn]; ins.
-      all: eauto.
-      all: try now (exfalso; eapply ORB; eauto).
-      all: desf; eauto. }
-    intros x XIN y YIN NEQ.
-    apply DIFF in XIN, YIN.
-    assert (XINIT : ~is_init x).
-    { eapply SubToFullExecInternal.diff_no_init; eauto. }
-    assert (YINIT : ~is_init y).
-    { eapply SubToFullExecInternal.diff_no_init; eauto. }
-    destruct x as [xl | xt xn],
-             y as [yl | yt yn]; ins.
-    destruct (classic (xt = yt)) as [TEQ|TNEQ]; subst.
-    { destruct NPeano.Nat.lt_total with xn yn as [LT | [EQ | LT]]; eauto.
-      congruence. }
-    destruct OTOT0 with xt yt; eauto. }
-  constructor; ins.
-  { apply NoDup_StronglySorted with (r := sord).
+    with actid (tid ↓ thrdle⁺ ∪ sb G')
+    as (tord & SUB & TOT).
+  { red. split.
+    { apply irreflexive_union; split; [| apply sb_irr].
+      unfolder. ins. eapply ACYC; eauto. }
+    unfolder. intros x y z R1 R2. desf.
+    { left. eapply t_trans; eauto. }
+    { unfold sb, ext_sb in *. unfolder in R1.
+      all: ins; do 2 desf; eauto. }
+    { unfold sb, ext_sb in *. unfolder in R2.
+      all: ins; do 2 desf; eauto.
+      left. apply wmin_elt_t in MININIT.
+      ins. apply MININIT in R1. rewrite <- R1.
+      basic_solver. }
+    right. now apply sb_trans with y. }
+  exists (isort tord l'). constructor; ins.
+  { apply NoDup_StronglySorted with tord.
     { apply TOT. }
-    apply StronglySorted_isort, ENUM; ins. }
-  { intros x y (SB & DOM & CODOM).
-    apply DIFF in DOM, CODOM.
-    apply total_order_from_isort; ins.
-    { apply ENUM. }
-    unfolder; splits.
-    all: try now eapply in_isort_iff; eauto.
-    apply SUB. right.
-    red in SB. unfolder in SB. desf. }
-  { intros x y HREL.
-    apply total_order_from_isort; ins.
-    { apply ENUM. }
-    unfolder; splits.
-    { apply SUB.
-      destruct (classic (tid x = tid y)) as [TIDEQ|NTEQ].
-      { right. enough (SB : sb G' x y).
-        { unfold sb in SB. unfolder in SB. apply SB. }
-        eapply SubToFullExecInternal.uncmt_rf_same_tid_sub_sb.
-        all: eauto.
-        split; ins. }
-      apply ORDRF in HREL.
-      destruct HREL as [EQ|TORD]; ins.
-      now left. }
-    all: destruct HREL as (_ & DOM & CODOM).
-    all: try now eapply in_isort_iff, DIFF; eauto. }
-  apply ENUM.
+    apply StronglySorted_isort; ins. }
+  { rewrite EQ. unfolder; split.
+    all: intro; apply in_isort_iff. }
+  { rewrite total_order_from_isort, <- EQ, <- SUB; ins.
+    basic_solver. }
+  { rewrite total_order_from_isort, <- EQ, <- SUB; ins.
+    rewrite <- FULL_SUB. basic_solver. }
+  rewrite <- RFCO. basic_solver.
 Qed.
 
-Lemma sub_to_full_exec_sort_part sc G G' cmt l tord
-    (WF : WCore.wf {|
+Lemma sub_to_full_exec_listless sc G G' cmt thrdle
+    (WF : WCore.wf (WCore.Build_t sc G G' cmt))
+    (COH : trace_coherent traces G')
+    (STABLE : WCore.stable_uncmt_reads_gen G' cmt thrdle)
+    (RFCO : acts_set G' ∩₁ is_r (lab G) ⊆₁ codom_rel (rf G'))
+    (ORDRFI :
+      restr_rel (acts_set G' \₁ acts_set G) (
+          (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘)
+      ) ∩ same_tid ⊆ sb G') :
+  (WCore.cfg_add_event_uninformative traces)＊
+    (WCore.Build_t sc G G' cmt)
+    (WCore.Build_t sc G' G' cmt).
+Proof using.
+  destruct (enumd_diff_listless) with sc G G' cmt thrdle
+                                 as (l & ENUM).
+  all: ins; try now apply STABLE.
+  apply sub_to_full_exec with l; ins.
+Qed.
+
+Lemma sub_to_full_exec_single_uninformative sc G G' cmt e
+    (NOTIN : ~acts_set G e)
+    (ONE : acts_set G' ≡₁ acts_set G ∪₁ eq e)
+    (WF : WCore.wf (WCore.Build_t sc G G' cmt))
+    (COH : trace_coherent traces G')
+    (RF_EX : eq e ∩₁ is_r (lab G) ⊆₁ codom_rel (rf G')) :
+  (WCore.cfg_add_event_uninformative traces)＊
+    (WCore.Build_t sc G G' cmt)
+    (WCore.Build_t sc G' G' cmt).
+Proof using.
+  assert (DIFFEQ : acts_set G' \₁ acts_set G ≡₁ eq e).
+  { rewrite ONE, set_minus_union_l, set_minusK,
+            set_minusE, set_inter_absorb_r.
+    all: basic_solver. }
+  apply sub_to_full_exec with (l := [e]); ins.
+  constructor; ins.
+  all: rewrite ?DIFFEQ; ins.
+  { basic_solver. }
+  { rewrite restr_irrefl_eq; [basic_solver |].
+    apply sb_irr. }
+  rewrite restr_irrefl_eq; [basic_solver |].
+  apply irreflexive_inclusion with (r' := rf G'); [basic_solver |].
+  apply rf_irr, WF.
+Qed.
+
+Lemma events_after_steps X X'
+    (STEP : (WCore.cfg_add_event_uninformative traces)＊ X X') :
+  acts_set (WCore.G X) ⊆₁ acts_set (WCore.G X').
+Proof using.
+  induction STEP as [X X' STEP | X | X X'' X' STEP1 SUB1 STEP2 SUB2].
+  { do 2 (red in STEP; desf).
+    rewrite (WCore.caes_e_new STRUCT).
+    basic_solver. }
+  all: basic_solver.
+Qed.
+
+Lemma sub_to_full_exec_single sc G G' cmt e
+    (NOTIN : ~acts_set G e)
+    (ONE : acts_set G' ≡₁ acts_set G ∪₁ eq e)
+    (WF : WCore.wf (WCore.Build_t sc G G' cmt))
+    (COH : trace_coherent traces G')
+    (RF_EX : eq e ∩₁ is_r (lab G) ⊆₁ codom_rel (rf G')) :
+  WCore.cfg_add_event traces
+    (WCore.Build_t sc G G' cmt)
+    (WCore.Build_t sc G' G' cmt)
+    e.
+Proof using.
+  (* Preamble *)
+  assert (STEPS : (WCore.cfg_add_event_uninformative traces)＊
+                    (WCore.Build_t sc G G' cmt)
+                    (WCore.Build_t sc G' G' cmt)).
+  { eapply sub_to_full_exec_single_uninformative; eauto. }
+  (* Actual proof *)
+  apply clos_rt_rt1n in STEPS.
+  inversion STEPS as [EQ | X' X'' STEP1 STEP2 EQ]; clear STEPS.
+  all: subst.
+  { exfalso. apply NOTIN, ONE. basic_solver. }
+  destruct STEP1 as [e1 STEP1].
+  inversion STEP2 as [EQ | X'' X''' STEP21 STEP22 EQ]; clear STEP2.
+  all: subst.
+  { arewrite (e = e1); ins.
+    assert (NOTIN' : ~acts_set G e1).
+    { apply (WCore.cae_e_notin STEP1). }
+    rewrite (WCore.cae_e_new STEP1) in ONE. ins.
+    unfolder in ONE. destruct ONE as (ONE1 & ONE2).
+    destruct ONE1 with e1; eauto. exfalso; eauto. }
+  destruct STEP21 as [e2 STEP21].
+  (* We are going to infer falsity but first -- some useful props *)
+  assert (NEQ : e1 <> e2).
+  { intro F; subst.
+    apply (WCore.cae_e_notin STEP21).
+    apply (WCore.cae_e_new STEP1).
+    basic_solver. }
+  assert (E1NOTIN : ~acts_set G e1).
+  { apply (WCore.cae_e_notin STEP1). }
+  assert (E2NOTIN : ~acts_set G e2).
+  { intro F. apply (WCore.cae_e_notin STEP21).
+    apply (WCore.cae_e_new STEP1). ins.
+    unfolder. eauto. }
+  assert (ESUB : acts_set (WCore.G X'') ⊆₁ acts_set G').
+  { apply clos_rt1n_rt in STEP22.
+    now eapply events_after_steps with (X' := {|
       WCore.sc := sc;
-      WCore.G := G;
+      WCore.G := G';
       WCore.GC := G';
       WCore.cmt := cmt
-    |})
-    (OPA : strict_partial_order tord)
-    (ORB : min_elt tord tid_init)
-    (ORDRF : restr_rel (acts_set G' \₁ acts_set G)
-              (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ⊆ (tid ↓ tord^?))
-    (ENUM : SubToFullExecInternal.enumd_diff G G' cmt l) :
-  exists l',
-    << SORT : restr_rel (fun x => In x l) (tid ↓ tord ∪ sb G') ⊆ total_order_from_list l' >> /\
-    << ENUM : SubToFullExecInternal.enumd_diff G G' cmt l' >>.
-Proof using.
-  destruct partial_order_included_in_total_order
-    with thread_id tord
-    as (tord' & SUB & TOT).
-  { admit. }
-  set (tord'' := restr_rel (fun x => x <> tid_init) tord' ∪
-                 (fun x y => x = tid_init /\ y = tid_init)).
-  edestruct sub_to_full_exec_sort with (tord := tord'')
-                                    as (l' & SORT & ENUM').
-  all: eauto.
-  { admit. }
-  { admit. }
-  { admit. }
-  exists l'; split; ins. red.
-  rewrite total_order_from_sorted with (ord := tid ↓ tord'' ∪ ext_sb).
-  all: ins.
-  { subst tord''.
-    rewrite <- (SubToFullExecInternal.diff_elems ENUM'),
-            <- (SubToFullExecInternal.diff_elems ENUM).
-    unfolder. intros x y HREL.
-    assert (XINIT : ~is_init x).
-    { eapply SubToFullExecInternal.diff_no_init; eauto.
-      unfolder; desf. }
-    assert (YINIT : ~is_init y).
-    { eapply SubToFullExecInternal.diff_no_init; eauto.
-      unfolder; desf. }
-    assert (XINIT' : tid x <> tid_init).
-    { intro F. apply XINIT.
-      apply WF. ins. unfolder.
-      split; ins; desf. }
-    assert (YINIT' : tid y <> tid_init).
-    { intro F. apply YINIT.
-      apply WF. ins. unfolder.
-      split; ins; desf. }
-    desf; splits; ins; eauto.
-    { apply SUB in HREL. eauto. }
-    red in HREL. unfolder in HREL. desf.
-    eauto. }
-  admit.
-Admitted.
+    |}). }
+  (* The proof *)
+  exfalso.
+  rewrite (WCore.cae_e_new STEP21), (WCore.cae_e_new STEP1) in ESUB.
+  ins. destruct ONE as [SUBE _]. rewrite <- ESUB in SUBE.
+  apply NEQ. unfolder in SUBE.
+  destruct SUBE with e1; eauto; [exfalso; eauto |].
+  destruct SUBE with e2; eauto; [exfalso; eauto |].
+  congruence.
+Qed.
 
 End SubToFullExec.

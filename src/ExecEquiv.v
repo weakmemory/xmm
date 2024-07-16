@@ -7,6 +7,8 @@ From imm Require Import SubExecution.
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 
+Set Implicit Arguments.
+
 Section ExecEqv.
 
 Variable G G' : execution.

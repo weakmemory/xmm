@@ -20,142 +20,136 @@ Open Scope nat_scope.
 
 Module I2Exec.
 
-Section MainDefs.
+Definition instr_id : Set := nat.
 
-Record instruction_id : Set := {
-  instr_id : nat;
+Record intr_info : Set := {
+  instr : instr_id;
   tick : nat;
 }.
 
+Section MainDefs.
+
 Variable G : execution.
-Variable e2instr : actid -> instruction_id.
+Variable e2instr : actid -> intr_info.
+Variable rmw_instr : instr_id -> Prop.
 
-Definition rmw_end := codom_rel (rmw G).
+Notation "'E'" := (acts_set G).
+Notation "'lab'" := (lab G).
+Notation "'rmw'" := (rmw G).
+Notation "'sb'" := (sb G).
 
-Definition nrmw_ord := restr_rel (set_compl is_init) (sb G \ rmw G).
+Definition rmw_actids := (instr ∘ e2instr) ↓₁ rmw_instr.
+Definition instr_actids ins := E ∩₁ set_compl is_init ∩₁
+                                (instr ∘ e2instr) ↓₁ eq ins.
 
-Definition rmw_ord := restr_rel (set_compl is_init) (rmw G).
+Inductive lab_ty : Set :=
+| TyLoad : lab_ty
+| TyStore : lab_ty
+| TyFence : lab_ty.
 
-(* TODO: express via inclusion stuff *)
+Definition e_type e :=
+  match lab e with
+  | Aload _ _ _ _ => TyLoad
+  | Astore _ _ _ _ => TyStore
+  | Afence _ => TyFence
+  end.
+
+Definition same_instr x y : Prop :=
+  instr (e2instr x) = instr (e2instr y).
+
 Record E2InstrWf : Prop := {
-  e2instr_inj : inj_dom (acts_set G ∩₁ set_compl is_init) e2instr;
-  nrmwend_even_tick : forall instr,
-    tick ↑ restr_rel (fun x => instr_id x = instr) (e2instr ↑ nrmw_ord)
-      ⊆ (fun x y => y = 2 + x)⁺;
-  rmw_ticks : forall instr,
-    tick ↑ restr_rel (fun x => instr_id x = instr) (e2instr ↑ rmw_ord)
-      ⊆ (fun x y => y = 1 + x)⁺;
+  wf_rmw_instrs : dom_rel rmw ∪₁ codom_rel rmw ⊆₁ rmw_actids;
+  wf_instr_ty : funeq e_type
+    (restr_rel (E ∩₁ set_compl rmw_actids) same_instr);
+  wf_same_instr_tid : same_instr ⊆ same_tid;
+  wf_sb_ticks : forall ins,
+    restr_rel (instr_actids ins) (sb \ rmw)
+      ⊆ (tick ∘ e2instr) ↓ (fun x y => y = 2 + x)⁺;
+  wf_rmw_ticks : forall ins,
+    restr_rel (instr_actids ins) rmw
+      ⊆ (tick ∘ e2instr) ↓ (fun x y => y = 1 + x);
 }.
+
+Lemma rmw_actids_closed x y
+    (RMW : rmw_actids x)
+    (SAME : same_instr x y) :
+  rmw_actids y.
+Proof using.
+  unfold rmw_actids, same_instr, compose in *.
+  unfolder in *. now rewrite <- SAME.
+Qed.
+
+Lemma plus_2_t :
+  (fun x y => y = 2 + x)⁺ ≡ (fun x y => exists p, y = 2*(1 + p) + x).
+Proof using.
+  unfolder. split; intros x y HREL.
+  { induction HREL as [x y HEQ | x y z HREL1 [p1 IHR1] HREL2 [p2 IHR2]].
+    { exists 0; ins. }
+    exists (1 + p1 + p2). lia. }
+  destruct HREL as [p HEQ]. generalize x y HEQ. clear HEQ x y.
+  induction p as [| p IHP].
+  { ins. now apply t_step. }
+  intros x y HEQ. apply t_trans with (y - 2).
+  { apply IHP. lia. }
+  apply t_step. lia.
+Qed.
+
+Lemma plus_2_irr : irreflexive ((fun x y => y = 2 + x)⁺).
+Proof using.
+  rewrite plus_2_t. unfolder. ins. desf. lia.
+Qed.
+
+Lemma e2instr_inj
+    (WF : E2InstrWf) :
+  inj_dom (E ∩₁ set_compl is_init) e2instr.
+Proof using.
+  unfolder. intros x y (XINE & XNINIT) (YINE & YNINIT) EQ.
+  assert (INS : same_instr x y) by (red; congruence).
+  assert (TID : same_tid x y) by now apply WF.
+  set (ins := instr (e2instr x)).
+  destruct (classic (rmw x y)) as [XYRMW | NXYRMW].
+  { assert (XYRMW' : restr_rel (instr_actids ins) rmw x y).
+    { subst ins. unfold instr_actids. unfolder. splits; eauto. }
+    apply WF in XYRMW'. unfold compose in XYRMW'.
+    unfolder in XYRMW'. rewrite EQ in XYRMW'. lia. }
+  destruct (classic (rmw y x)) as [YXRMW | NYXRMW].
+  { assert (YXRMW' : restr_rel (instr_actids ins) rmw y x).
+    { subst ins. unfold instr_actids. unfolder. splits; eauto. }
+    apply WF in YXRMW'. unfold compose in YXRMW'.
+    unfolder in YXRMW'. rewrite EQ in YXRMW'. lia. }
+  assert (SB : sb x y \/ x = y \/ sb y x).
+  { unfold sb, ext_sb, is_init, same_tid in *. unfolder.
+    destruct x as [xl | xt xn], y as [yl | yt yn]; ins.
+    subst xt. rename yt into t.
+    assert (LT_CASES : xn < yn \/ xn = yn \/ yn < xn) by lia.
+    desf; eauto.
+    { left. do 2 (eexists; splits; eauto). ins. }
+    do 2 right. do 2 (eexists; splits; eauto). ins. }
+  desf; ins.
+  { assert (SB' : restr_rel (instr_actids ins) (sb \ rmw) x y).
+    { subst ins. unfold instr_actids. unfolder. splits; eauto. }
+    apply WF in SB'. unfold compose in SB'.
+    unfolder in SB'. rewrite EQ in SB'.
+    now apply plus_2_irr in SB'. }
+  assert (SB' : restr_rel (instr_actids ins) (sb \ rmw) y x).
+  { subst ins. unfold instr_actids. unfolder. splits; eauto. }
+  apply WF in SB'. unfold compose in SB'.
+  unfolder in SB'. rewrite EQ in SB'.
+  now apply plus_2_irr in SB'.
+Qed.
 
 End MainDefs.
 
-Section SanityCheck.
+Section SameProg.
 
-Variable G : execution.
-Variable e2prog : actid -> nat.
+Variable G G' : execution.
+Variable e2instr e2instr' : actid -> intr_info.
 
-Hypothesis WF : Wf G.
-Hypothesis WEAK_INJ : forall x y (EQ : e2prog x = e2prog y), tid x = tid y.
+Definition same_prog : Prop :=
+  forall e e'
+    (SAME_INSTR : instr (e2instr e) = instr (e2instr' e')),
+      e_type G = e_type G'.
 
-Definition ext_sb_ord := restr_rel (set_compl is_init) ext_sb.
-
-Lemma ninit_ext_sb_before_fin e :
-  set_finite (dom_rel (ext_sb_ord ⨾ ⦗eq e⦘)).
-Proof using.
-  destruct e as [el | et en].
-  { arewrite (ext_sb_ord ⨾ ⦗eq (InitEvent el)⦘ ≡ ∅₂).
-    { split; [| basic_solver].
-      unfold ext_sb_ord. unfolder. ins. desf. }
-    rewrite dom_empty. apply set_finite_empty. }
-  unfold ext_sb_ord. unfolder.
-  exists (map (ThreadEvent et) (List.seq 0 en)).
-  intros [xl | xt xn] (y & (SB & DOM & CODOM) & EQ).
-  all: subst; ins; desf.
-  apply in_map_iff. exists xn; split; eauto.
-  now apply in_seq0_iff.
-Qed.
-
-Lemma ninit_sb_before_fin e :
-  set_finite (dom_rel (nrmw_ord G ⨾ ⦗eq e⦘)).
-Proof using WF.
-  apply set_finite_mori with (x := dom_rel (ext_sb_ord ⨾ ⦗eq e⦘)).
-  all: try now apply ninit_ext_sb_before_fin.
-  red. unfold nrmw_ord, ext_sb_ord.
-  apply dom_rel_mori, seq_mori; ins.
-  apply restr_rel_mori; ins.
-  unfold sb. basic_solver.
-Qed.
-
-Lemma count_nrmw e :
-  { N : nat |
-    set_size (
-      dom_rel (nrmw_ord G ⨾ ⦗eq e⦘) ∩₁
-      fun x => e2prog x = e2prog e
-    ) = NOnum N }.
-Proof using WF.
-  apply ClassicalEpsilon.constructive_indefinite_description.
-  eapply set_size_finite, set_finite_mori,
-         ninit_sb_before_fin with (e := e).
-  red. basic_solver.
-Qed.
-
-Lemma count_nrmw_inj instr :
-  inj_dom
-    (set_compl is_init ∩₁ fun x => e2prog x = instr)
-    (fun e => proj1_sig (count_nrmw e)).
-Proof using WF WEAK_INJ.
-  unfolder. intros x y [XINIT XPROG] [YNINIT YPROG] EQ.
-  destruct (count_nrmw x) as [XN XSZ],
-           (count_nrmw y) as [YN YSZ]; ins.
-  rewrite XPROG in XSZ. rewrite YPROG in YSZ.
-  rewrite <- YPROG in XPROG. apply WEAK_INJ in XPROG.
-  clear YPROG. rename XPROG into TIDS.
-  subst YN. rename XN into N.
-  (* Should be true. We will see *)
-  admit.
-Admitted.
-
-Lemma check_rmw e :
-  { o : option actid | forall a,
-     << RMW : rmw G a e >> <-> << EQ : o = Some a >> }.
-Proof using WF.
-  apply ClassicalEpsilon.constructive_indefinite_description.
-  destruct (classic (codom_rel (rmw G) e)) as [CDOM|NCDOM].
-  { destruct CDOM as (y & RMW). exists (Some y). intros a.
-    split; intros HREL; desf.
-    { red. f_equal. eapply wf_rmwff; eauto. }
-    red in HREL. desf. }
-  exists None. intros a. split; intros HREL; desf.
-  red in HREL. exfalso. apply NCDOM. red; eauto.
-Qed.
-
-Definition nrmw_enum e : instruction_id :=
-  {|
-    instr_id := e2prog e;
-    tick := 2 * proj1_sig (count_nrmw e);
-  |}.
-
-Definition all_enum e : instruction_id :=
-  match proj1_sig (check_rmw e) with
-  | None => nrmw_enum e
-  | Some a => {|
-      instr_id := instr_id (nrmw_enum a);
-      tick := 1 + tick (nrmw_enum a);
-    |}
-  end.
-
-Lemma e2instr_correct : E2InstrWf G all_enum.
-Proof using WF.
-  constructor; ins.
-  { unfolder. intros x y (INX & XINIT) (INY & YINIY) EQ.
-    unfold all_enum in EQ.
-    destruct (check_rmw x) as [ox XIFF],
-             (check_rmw y) as [oy YIFF]; ins.
-    destruct ox as [ax |], oy as [ay |].
-    { admit. }
-    all: admit. }
-Admitted.
-
-End SanityCheck.
+End SameProg.
 
 End I2Exec.

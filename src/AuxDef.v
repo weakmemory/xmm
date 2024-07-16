@@ -533,33 +533,5 @@ Qed.
 Definition least_elt {A} (r : relation A) (a : A) : Prop :=
   forall x, r a x.
 
-Definition partial_order {A} (r : relation A) :=
-  << REFL : reflexive r >> /\
-  << TRANS : transitive r >> /\
-  << ANTISYMM : antisymmetric r >>.
-
-#[global]
-Hint Unfold partial_order : unfolderDb.
-
-Lemma partial_order_to_strict {A} (r : relation A)
-    (PART : partial_order r) :
-  strict_partial_order (r \ ⦗⊤₁⦘).
-Proof using.
-  unfolder in *. desf. split.
-  { ins; desf; eauto. }
-  intros x y z [R1 NEQ1] [R2 NEQ2]; split; eauto.
-  apply or_not_and. apply not_and_or in NEQ1, NEQ2.
-  desf. left; intro NEQ3. subst. eauto.
-Qed.
-
-Lemma partial_order_to_strict_inv {A} (r : relation A)
-    (PART : partial_order r) :
-  (r \ ⦗⊤₁⦘)^? ≡ r.
-Proof using.
-  unfolder in *. desf. split.
-  { ins; desf; eauto 11. }
-  intros x y HREL.
-  destruct (classic (x = y)) as [EQ|NEQ]; subst; eauto.
-  right; split; eauto.
-  apply or_not_and; eauto.
-Qed.
+Definition maxl_elt {A} (r : relation A) (a : A) : Prop :=
+  forall x, r x a.
