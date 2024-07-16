@@ -780,9 +780,6 @@ Notation "'srf_s'" := (srf G_s).
 
 Notation "'mapper'" := (ReordCommon.mapper a b).
 
-Hypothesis WF : Wf G_s.
-Hypothesis SIMREL : reord_simrel_rw G_s G_t a b.
-Hypothesis IS_CONS : WCore.is_cons G_t sc.
 Hypothesis SWAPPED_TRACES : ReordCommon.traces_swapped traces traces' a b.
 Hypothesis SIMREL : reord_simrel_rw_instrs_gen G_s G_t e2i_s e2i_t rmwi ai bi a b.
 
