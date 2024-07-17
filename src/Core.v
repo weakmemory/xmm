@@ -306,3 +306,5 @@ Definition reexec : Prop :=
   exists f thrdle dtrmt, reexec_gen f thrdle dtrmt.
 
 End ReexecStep.
+
+End WCore.
