@@ -1,6 +1,7 @@
 Require Import Lia Setoid Program.Basics.
 Require Import AuxDef AuxRel.
 Require Import ThreadTrace.
+Require Import ExecRestrEq.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -29,13 +30,18 @@ Set Implicit Arguments.
     <acts_set; threads_set; lab; rmw; data; addr; ctrl; rmw_dep; rf; co>
 .
 
-(* G' is exec_prefix of G *)
-Record exec_prefix G G' : Prop := {
-  pfx_sub : sub_execution G G' ∅₂ ∅₂;
-  pfx_cont1 : contigious_actids G;
-  pfx_cont2 : contigious_actids G';
-}.
+Section RfComplete.
 
+Variable G : execution.
+Notation "'E'" := (acts_set G).
+Notation "'lab'" := (lab G).
+Notation "'R'" := (is_r lab).
+Notation "'rf'" := (rf G).
+
+Definition rf_complete : Prop :=
+    E ∩₁ R ⊆₁ codom_rel rf.
+
+End RfComplete.
 
 Section Race.
 Variable G : execution.
@@ -62,10 +68,8 @@ End Race.
 Module WCore.
 
 Record t := {
-  sc : relation actid;
   G : execution;
-  GC : execution;
-  cmt : actid -> Prop;
+  sc : relation actid;
 }.
 
 Definition init_exec G : execution :=
@@ -92,19 +96,19 @@ Record is_cons : Prop := {
 
 End Consistency.
 
-Section CoreDefs.
+Section Wf.
 
-Variable X : t.
+Variable X XC : t.
+Variable cmt : actid -> Prop.
+
+Notation "'GC'" := (G XC).
 Notation "'G'" := (G X).
-Notation "'GC'" := (GC X).
-Notation "'sc'" := (sc X).
 Notation "'ctrlc'" := (ctrl GC).
 Notation "'datac'" := (data GC).
 Notation "'addrc'" := (addr GC).
 Notation "'ctrl'" := (ctrl G).
 Notation "'data'" := (data G).
 Notation "'addr'" := (addr G).
-Notation "'cmt'" := (cmt X).
 Notation "'lab'" := (lab G).
 Notation "'R'" := (is_r lab).
 Notation "'W'" := (is_w lab).
@@ -114,6 +118,7 @@ Notation "'sb'" := (sb G).
 Notation "'rf'" := (rf G).
 Notation "'EC'" := (acts_set GC).
 Notation "'E'" := (acts_set G).
+Notation "'sc'" := (sc X).
 
 (*
   Structural properties, that have not much
@@ -135,14 +140,11 @@ Record wf_struct : Prop := {
   the model to function.
 *)
 Record wf_props := {
-  wprop_wf_gc : Wf GC;
-  wprop_wf_scc : wf_sc GC sc;
-  wprop_g_sub_gc : sub_execution GC G ∅₂ ∅₂;
-  wprop_C_sub_EC : cmt ⊆₁ EC;
-  wprop_sub_sb : restr_rel (cmt ∩₁ E) sbc ⊆ sb;
-  wprop_sub_rf : restr_rel (cmt ∩₁ E) rfc ⊆ rf;
+  wprop_wf_g : Wf G;
+  wprop_wf_ereq : exec_restr_eq G GC cmt;
+  wprop_wf_rfc : rf_complete (restrict GC cmt);
   wprop_sub_rfD : E ∩₁ R ⊆₁ codom_rel rf ∪₁ cmt;
-  wprop_sub_rfW : cmt ∩₁ R ⊆₁ codom_rel (⦗cmt⦘ ⨾ rfc);
+  wfprop_wf_sc : wf_sc G sc;
 }.
 
 Definition wf : Prop :=
@@ -172,16 +174,6 @@ Proof using.
   apply WF.
 Qed.
 
-Lemma wf_gc (WF : wf) : Wf GC.
-Proof using.
-  apply WF.
-Qed.
-
-Lemma wf_scc (WF : wf) : wf_sc GC sc.
-Proof using.
-  apply WF.
-Qed.
-
 Lemma wf_g_init (WF : wf) : EC ∩₁ is_init ⊆₁ E.
 Proof using.
   apply WF.
@@ -192,32 +184,17 @@ Proof using.
   apply WF.
 Qed.
 
-Lemma wf_g_sub_gc (WF : wf) : sub_execution GC G ∅₂ ∅₂.
+Lemma wf_ereq (WF : wf) : exec_restr_eq G GC cmt.
 Proof using.
   apply WF.
 Qed.
 
-Lemma wf_C_sub_EC (WF : wf) : cmt ⊆₁ EC.
-Proof using.
-  apply WF.
-Qed.
-
-Lemma wf_sub_sb (WF : wf) : restr_rel (cmt ∩₁ E) sbc ⊆ sb.
-Proof using.
-  apply WF.
-Qed.
-
-Lemma wf_sub_rf (WF : wf) : restr_rel (cmt ∩₁ E) rfc ⊆ rf.
+Lemma wf_rfc (WF : wf) : rf_complete (restrict GC cmt).
 Proof using.
   apply WF.
 Qed.
 
 Lemma wf_sub_rfD (WF : wf) : E ∩₁ R ⊆₁ codom_rel rf ∪₁ cmt.
-Proof using.
-  apply WF.
-Qed.
-
-Lemma wf_sub_rfW (WF : wf) : cmt ∩₁ R ⊆₁ codom_rel (⦗cmt⦘ ⨾ rfc).
 Proof using.
   apply WF.
 Qed.
@@ -237,61 +214,48 @@ Proof using.
   apply WF.
 Qed.
 
-End CoreDefs.
+End Wf.
 
-Global Hint Resolve wf_gc : xmm.
-
-Section DeltaDefs.
-
-Variable GC : execution.
-Variable e : actid.
-
-Notation "'W'" := (is_w (lab GC)).
-Notation "'R'" := (is_r (lab GC)).
-Notation "'rfc'" := (rf GC).
-Notation "'W_ex'" := (W_ex GC).
-
-(* We do not need sb_delta as `sb` has an exact formula *)
-(* Definition sb_delta : relation actid :=
-  (E ∩₁ (fun x => tid x = tid e)) × eq e. *)
-
-Definition rf_delta_R (w : option actid) :=
-  match w with
-  | Some w => singl_rel w e ∩ W × R
-  | _ => ∅₂
-  end.
-
-Definition rf_delta_W E : relation actid :=
-  if W e then ⦗eq e⦘ ⨾ rfc ⨾ ⦗E⦘
-  else ∅₂.
-
-Definition co_delta (W1 W2 : actid -> Prop) : relation actid :=
-  if W e then eq e × W1 ∪ W2 × eq e
-  else ∅₂.
-
-Definition rmw_delta (r : option actid) : relation actid :=
-  (R ∩₁ eq_opt r) × (W ∩₁ eq e). (* FIXME: is_exclusive dropped *)
-
-End DeltaDefs.
-
-#[global]
-Hint Unfold rf_delta_R rf_delta_W co_delta rmw_delta : unfolderDb.
-
-Section CfgAddEventStep.
+Section AddEvent.
 
 Variable traces : thread_id -> trace label -> Prop.
-
+Variable sc sc' : relation actid.
 Variable X X' : t.
-Notation "'G''" := (G X').
-Notation "'GC''" := (GC X').
-Notation "'cmt''" := (cmt X').
-Notation "'E''" := (acts_set G').
-Notation "'lab''" := (lab G').
+Variable e : actid.
+Variable l : label.
 
+Notation "'G''" := (G X').
 Notation "'G'" := (G X).
-Notation "'GC'" := (GC X).
-Notation "'cmt'" := (cmt X).
+
+Notation "'E''" := (acts_set G').
+Notation "'threads_set''" := (threads_set G').
+Notation "'lab''" := (lab G').
+Notation "'sb''" := (sb G').
+Notation "'rf''" := (rf G').
+Notation "'co''" := (co G').
+Notation "'rmw''" := (rmw G').
+Notation "'data''" := (data G').
+Notation "'addr''" := (addr G').
+Notation "'ctrl''" := (ctrl G').
+Notation "'rmw_dep''" := (rmw_dep G').
+Notation "'W''" := (is_w lab').
+Notation "'R''" := (is_r lab').
+Notation "'same_loc''" := (same_loc lab').
+
 Notation "'E'" := (acts_set G).
+Notation "'threads_set'" := (threads_set G).
+Notation "'lab'" := (lab G).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'rmw'" := (rmw G).
+Notation "'data'" := (data G).
+Notation "'addr'" := (addr G).
+Notation "'ctrl'" := (ctrl G).
+Notation "'rmw_dep'" := (rmw_dep G).
+Notation "'W'" := (is_w lab).
+Notation "'R'" := (is_r lab).
+Notation "'same_loc'" := (same_loc lab).
 
 Definition new_event_correct e : Prop :=
   match thread_trace G (tid e) with
@@ -300,74 +264,88 @@ Definition new_event_correct e : Prop :=
     exists tr, traces (tid e) tr /\ trace_prefix (trace_fin (l ++ [lab' e])) tr
   end.
 
-Record cfg_add_event_struct e :=
-{ caes_e_new : E' ≡₁ E ∪₁ (eq e);
-  caes_e_notin : ~(E e);
-  caes_e_notinit : ~ is_init e;
-  caes_cmt_graph_same : GC' = GC;
-  caes_cmt_smae : cmt' ≡₁ cmt;
+Definition sb_delta : relation actid :=
+  (E ∩₁ (is_init ∪₁ same_tid e)) × eq e.
+
+Definition rf_delta_R w : relation actid :=
+  match w with
+  | Some w => singl_rel w e ∩ (E ∩₁ W) × R
+  | _ => ∅₂
+  end.
+
+Definition rf_delta_W R1 : relation actid :=
+  eq e × R1 ∩ W' × (E' ∩₁ R).
+
+Definition co_delta W1 W2 : relation actid :=
+  eq e × (E ∩₁ W1 ∩₁ same_loc e) ∪
+  (E ∩₁ W2 ∩₁ same_loc e) × eq e.
+
+Definition rmw_delta r : relation actid :=
+  match r with
+  | Some r => (R ∩₁ eq r) × (W ∩₁ eq e)
+  | _ => ∅₂
+  end.
+
+Record add_event_gen r R1 w W1 W2 : Prop := {
+  add_event_new : ~E e;
+  add_event_ninit : ~is_init e;
+  add_event_acts : E' ≡₁ E ∪₁ eq e;
+  add_event_threads : threads_set' ≡₁ threads_set;
+  add_event_lab : lab' = upd lab e l;
+  add_event_rf : rf' ≡ rf ∪ rf_delta_R w ∪ rf_delta_W R1;
+  add_event_co : co' ≡ co ∪ co_delta W1 W2;
+  add_event_rmw : rmw' ≡ rmw ∪ rmw_delta r;
+  add_event_data : data' ≡ data;
+  add_event_addr : addr' ≡ addr;
+  add_event_ctrl : ctrl' ≡ ctrl;
+  add_event_rmw_dep : rmw_dep' ≡ rmw_dep;
+  add_event_sb : sb' ≡ sb ∪ sb_delta;
+  add_event_trace : new_event_correct e;
 }.
 
-Record cfg_add_event_props e r w W1 W2 :=
-{ caep_rf_new : rf G' ≡ rf G ∪ rf_delta_R GC e w ∪ rf_delta_W GC e (cmt ∩₁ E);
-  caep_co_new : co G' ≡ co G ∪ co_delta GC e W1 W2;
-  caep_rmw_new : rmw G' ≡ rmw G ∪ rmw_delta GC e r;
-}.
+Definition add_event :=
+  exists r R1 w W1 W2, add_event_gen r R1 w W1 W2.
 
-Definition cfg_add_event e :=
-  exists r w W1 W2,
-    << STRUCT : cfg_add_event_struct e >> /\
-    << PROPS : cfg_add_event_props e r w W1 W2 >> /\
-    << TRACE : new_event_correct e >> /\
-    << WF_NEW : wf X' >>.
+End AddEvent.
 
-Definition cfg_add_event_uninformative := exists e, cfg_add_event e.
+#[global]
+Hint Unfold sb_delta rf_delta_R rf_delta_W co_delta rmw_delta : unfolderDb.
 
-Lemma cae_e_new e (STEP : cfg_add_event e) :
-  E' ≡₁ E ∪₁ (eq e).
-Proof using.
-  red in STEP. desf. apply STRUCT.
-Qed.
+Section GuidedStep.
 
-Lemma cae_e_notin e (STEP : cfg_add_event e) :
-  ~(E e).
-Proof using.
-  red in STEP. desf. apply STRUCT.
-Qed.
-
-Lemma cae_e_notinit e (STEP : cfg_add_event e) :
-  ~is_init e.
-Proof using.
-  red in STEP. desf. apply STRUCT.
-Qed.
-
-Lemma cae_wf e (STEP : cfg_add_event e) :
-  wf X'.
-Proof using.
-  red in STEP. desf.
-Qed.
-
-End CfgAddEventStep.
-
-Global Hint Unfold new_event_correct cfg_add_event
-                   cfg_add_event_uninformative : unfolderDb.
-
-Section ExecAdd.
-
-Variables G G' : execution.
-Variables sc : relation actid.
 Variable traces : thread_id -> trace label -> Prop.
+Variable cmt : actid -> Prop.
+Variable XC X1 X2 : t.
+Variable e : actid.
+Variable l : label.
 
-Record exec_inst e := {
-  start_wf : wf (Build_t sc G G' ∅);
-  add_event : cfg_add_event traces
-    (Build_t sc G G' ∅)
-    (Build_t sc G' G' ∅)
-    e;
-  next_cons : is_cons G' sc;
+Record guided_step_gen e : Prop := {
+  gsg_add_step : add_event traces X1 X2 e l;
+  gsg_wf : wf X2 XC cmt;
 }.
 
-End ExecAdd.
+Definition guided_step :=
+  exists e, guided_step_gen e.
+
+End GuidedStep.
+
+Global Hint Unfold new_event_correct guided_step : unfolderDb.
+
+Section ExecuteStep.
+
+Variable traces : thread_id -> trace label -> Prop.
+Variables X X' : t.
+
+Notation "'sc''" := (sc X').
+Notation "'G''" := (G X').
+
+Record exec_inst e l := {
+  exec_add_event : add_event traces X X' e l;
+  exec_rfc : rf_complete G';
+  exec_new_cons : is_cons G' sc';
+}.
+
+End ExecuteStep.
 
 Section ExecRexec.
 
