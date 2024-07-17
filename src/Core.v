@@ -1,7 +1,6 @@
 Require Import Lia Setoid Program.Basics.
 Require Import AuxDef AuxRel.
 Require Import ThreadTrace.
-Require Import ExecRestrEq.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -98,36 +97,61 @@ End Consistency.
 
 Section Wf.
 
-Variable X XC : t.
+Variable X X' : t.
 Variable cmt : actid -> Prop.
 
-Notation "'GC'" := (G XC).
+Notation "'G''" := (G X').
+Notation "'E''" := (acts_set G').
+Notation "'threads_set''" := (threads_set G').
+Notation "'lab''" := (lab G').
+Notation "'sb''" := (sb G').
+Notation "'rf''" := (rf G').
+Notation "'co''" := (co G').
+Notation "'rmw''" := (rmw G').
+Notation "'data''" := (data G').
+Notation "'addr''" := (addr G').
+Notation "'ctrl''" := (ctrl G').
+Notation "'rmw_dep''" := (rmw_dep G').
+
 Notation "'G'" := (G X).
-Notation "'ctrlc'" := (ctrl GC).
-Notation "'datac'" := (data GC).
-Notation "'addrc'" := (addr GC).
-Notation "'ctrl'" := (ctrl G).
-Notation "'data'" := (data G).
-Notation "'addr'" := (addr G).
+Notation "'E'" := (acts_set G).
+Notation "'threads_set'" := (threads_set G).
 Notation "'lab'" := (lab G).
-Notation "'R'" := (is_r lab).
-Notation "'W'" := (is_w lab).
-Notation "'sbc'" := (sb GC).
-Notation "'rfc'" := (rf GC).
 Notation "'sb'" := (sb G).
 Notation "'rf'" := (rf G).
-Notation "'EC'" := (acts_set GC).
-Notation "'E'" := (acts_set G).
+Notation "'co'" := (co G).
+Notation "'rmw'" := (rmw G).
+Notation "'data'" := (data G).
+Notation "'addr'" := (addr G).
+Notation "'ctrl'" := (ctrl G).
+Notation "'rmw_dep'" := (rmw_dep G).
+Notation "'R'" := (is_r lab).
 Notation "'sc'" := (sc X).
 
-(*
-  Actual propeties that are important for
-  the model to function.
-*)
+Record exec_restr_eq : Prop := {
+  ereq_acts : E ∩₁ cmt ≡₁ E' ∩₁ cmt;
+  ereq_threads : threads_set ≡₁ threads_set';
+  ereq_lab : eq_dom cmt lab lab';
+  ereq_rf : restr_rel cmt rf ≡ restr_rel cmt rf';
+  ereq_co : restr_rel cmt co ≡ restr_rel cmt co';
+  ereq_rmw : restr_rel cmt rmw ≡ restr_rel cmt rmw';
+  ereq_data : restr_rel cmt data ≡ restr_rel cmt data';
+  ereq_ctrl : restr_rel cmt ctrl ≡ restr_rel cmt ctrl';
+  ereq_rmw_dep : restr_rel cmt rmw_dep ≡ restr_rel cmt rmw_dep';
+}.
+
+Lemma ereq_sb
+    (EREQ : exec_restr_eq) :
+  restr_rel cmt sb ≡ restr_rel cmt sb'.
+Proof using.
+  unfold sb. rewrite <- !restr_relE, !restr_restr.
+  now rewrite (ereq_acts EREQ).
+Qed.
+
 Record wf := {
   wf_g : Wf G;
-  wf_ereq : exec_restr_eq G GC cmt;
-  wf_rfc : rf_complete (restrict GC cmt);
+  wf_ereq : exec_restr_eq;
+  wf_rfc : rf_complete (restrict G' cmt);
   wf_sub_rfD : E ∩₁ R ⊆₁ codom_rel rf ∪₁ cmt;
   wf_sc : wf_sc G sc;
 }.
