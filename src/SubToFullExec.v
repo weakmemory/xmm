@@ -23,14 +23,13 @@ Module SubToFullExecInternal.
 
 Section DeltaGraph.
 
-Variable G G' : execution.
-Variable sc :relation actid.
+Variable X X' : WCore.t.
 Variable cmt : actid -> Prop.
-Variable h : actid.
+Variable e : actid.
 
-Notation "'get_sb'" := (fun x => sb x).
-
+Notation "'G''" := (WCore.G X').
 Notation "'lab''" := (lab G').
+Notation "'threads_set''" := (threads_set G').
 Notation "'E''" := (acts_set G').
 Notation "'sb''" := (sb G').
 Notation "'rmw''" := (rmw G').
@@ -40,11 +39,14 @@ Notation "'ctrl''" := (ctrl G').
 Notation "'rmw_dep''" := (rmw_dep G').
 Notation "'rf''" := (rf G').
 Notation "'co''" := (co G').
-Notation "'W''" := (fun x => is_w lab' x).
-Notation "'R''" := (fun x => is_r lab' x).
-Notation "'F''" := (fun x => is_f lab' x).
+Notation "'W''" := (is_w lab').
+Notation "'R''" := (is_r lab').
+Notation "'F''" := (is_f lab').
+Notation "'sc''" := (WCore.sc X').
 
+Notation "'G'" := (WCore.G X).
 Notation "'lab'" := (lab G).
+Notation "'threads_set'" := (threads_set G).
 Notation "'E'" := (acts_set G).
 Notation "'sb'" := (sb G).
 Notation "'rmw'" := (rmw G).
@@ -54,41 +56,106 @@ Notation "'ctrl'" := (ctrl G).
 Notation "'rmw_dep'" := (rmw_dep G).
 Notation "'rf'" := (rf G).
 Notation "'co'" := (co G).
-Notation "'W'" := (fun x => is_w lab x).
-Notation "'R'" := (fun x => is_r lab x).
-Notation "'F'" := (fun x => is_r lab x).
+Notation "'W'" := (is_w lab).
+Notation "'R'" := (is_r lab).
+Notation "'F'" := (is_f lab).
+Notation "'sc'" := (WCore.sc X).
+
+Record prefix : Prop := {
+  prf_acts : E ⊆₁ E';
+  prf_threads : threads_set ≡₁ threads_set';
+  prf_lab : eq_dom E lab lab';
+  prf_rf : rf ≡ restr_rel E rf';
+  prf_co : co ≡ restr_rel E co';
+  prf_rmw : rmw ≡ restr_rel E rmw';
+  prf_data : data ≡ data';
+  prf_ctrl : ctrl ≡ ctrl';
+  prf_addr : addr ≡ addr';
+  prf_rmw_dep : rmw_dep ≡ rmw_dep';
+  prf_sc : sc ≡ restr_rel E sc';
+  prf_sb : sb' ⨾ ⦗E⦘ ⊆ sb
+}.
+
+Definition delta_E := E ∪₁ eq e.
 
 Definition delta_G := {|
-  acts_set := E ∪₁ eq h;
-  threads_set := threads_set G;
-  lab := lab;
-  rmw := rmw ∪ (⦗E⦘ ⨾ rmw' ⨾ ⦗eq h⦘);
-  data := ∅₂;
-  addr := ∅₂;
-  ctrl := ∅₂;
-  rmw_dep := ⦗E ∪₁ eq h⦘ ⨾ rmw_dep' ⨾ ⦗E ∪₁ eq h⦘;
-  rf := rf ∪ (⦗E⦘ ⨾ rf' ⨾ ⦗eq h⦘) ∪ (⦗eq h⦘ ⨾ rf' ⨾ ⦗E⦘);
-  co := co ∪ (⦗E⦘ ⨾ co' ⨾ ⦗eq h⦘) ∪ (⦗eq h⦘ ⨾ co' ⨾ ⦗E⦘);
+  acts_set := delta_E;
+  threads_set := threads_set;
+  lab := upd lab e (lab' e);
+  rf := restr_rel delta_E rf';
+  co := restr_rel delta_E co';
+  rmw := restr_rel delta_E rmw';
+  addr := addr';
+  data := data';
+  ctrl := ctrl';
+  rmw_dep := rmw_dep';
 |}.
 
-Notation "'X'" := ({|
-  WCore.G := G;
-  WCore.GC := G';
-  WCore.sc := sc;
-  WCore.cmt := cmt;
-|}).
-Notation "'X''" := ({|
+Definition delta_sc := restr_rel delta_E sc'.
+
+Definition delta_X := {|
   WCore.G := delta_G;
-  WCore.GC := G';
-  WCore.sc := sc;
-  WCore.cmt := cmt;
-|}).
-Notation "'X_fin'" := ({|
-  WCore.G := G';
-  WCore.GC := G';
-  WCore.sc := sc;
-  WCore.cmt := cmt;
-|}).
+  WCore.sc := delta_sc;
+|}.
+
+Lemma delta_add_event
+    (INE : E' e)
+    (NOTINE : ~ E e)
+    (NINIT : ~ is_init e)
+    (WF : Wf G')
+    (PFX : prefix)
+    (EMAX : ⦗eq e⦘ ⨾ sb' ⨾ ⦗E⦘ ⊆ ∅₂) :
+  WCore.add_event X delta_X e (lab' e).
+Proof using.
+  red.
+  assert (RMW : exists r,
+    eq_opt r × eq e ≡ rmw' ⨾ ⦗eq e⦘).
+  { admit. }
+  assert (RF : exists w,
+    eq_opt w × eq e ≡ ⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘).
+  { admit. }
+  desf.
+  exists r,
+         (codom_rel (⦗eq e⦘ ⨾ rf' ⨾ ⦗E⦘    )),
+         w,
+         (codom_rel (⦗eq e⦘ ⨾ co' ⨾ ⦗E⦘    )),
+         (dom_rel   (   ⦗E⦘ ⨾ co' ⨾ ⦗eq e⦘ )).
+  constructor; ins.
+  all: try now (symmetry; apply PFX).
+  all: unfold delta_E.
+  { rewrite restr_set_union, (prf_rf PFX).
+    rewrite restr_irrefl_eq by now apply rf_irr.
+    rewrite union_false_r.
+    repeat apply union_more; ins.
+    all: admit. }
+  { rewrite restr_set_union, (prf_co PFX).
+    rewrite restr_irrefl_eq by now apply co_irr.
+    rewrite union_false_r. rewrite unionA.
+    apply union_more; ins. rewrite unionC.
+    unfold WCore.co_delta. apply union_more.
+    all: admit. }
+  { rewrite restr_set_union, (prf_rmw PFX).
+    rewrite restr_irrefl_eq by now apply rmw_irr.
+    rewrite union_false_r. rewrite unionA.
+    apply union_more; ins.
+    arewrite (⦗eq e⦘ ⨾ rmw' ⨾ ⦗E⦘ ≡ ∅₂).
+    { admit. }
+    rewrite union_false_r. unfold WCore.rmw_delta.
+    admit. }
+  unfold delta_G, delta_E, sb at 1. ins.
+  rewrite <- restr_relE, restr_set_union, restr_relE.
+  change (⦗E⦘ ⨾ ext_sb ⨾ ⦗E⦘) with sb.
+  rewrite restr_irrefl_eq by now apply ext_sb_irr.
+  arewrite (⦗eq e⦘ ⨾ ext_sb ⨾ ⦗E⦘ ≡ ⦗eq e⦘ ⨾ sb' ⨾ ⦗E⦘).
+  { unfold sb. rewrite !seqA. seq_rewrite <- !id_inter.
+    rewrite set_inter_absorb_r, set_inter_absorb_l; ins.
+    { apply PFX. }
+    basic_solver. }
+  arewrite (⦗eq e⦘ ⨾ sb' ⨾ ⦗E⦘ ≡ ∅₂).
+  { split; [ins | basic_solver]. }
+  rewrite !union_false_r. apply union_more; ins.
+  unfold WCore.sb_delta. admit.
+Admitted.
 
 Lemma delta_G_sub
     (NOT_INIT : tid h <> tid_init)
