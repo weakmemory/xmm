@@ -324,6 +324,34 @@ Proof using.
   splits; ins. now apply PFX.
 Qed.
 
+Lemma delta_guided_add_step
+    (INE : E' e)
+    (NOTINE : ~ E e)
+    (NINIT : ~ is_init e)
+    (WF : Wf G')
+    (XWF : WCore.wf X X' cmt)
+    (PFX : prefix)
+    (EMAX : ⦗eq e⦘ ⨾ sb' ⨾ ⦗E⦘ ⊆ ∅₂)
+    (RF : R' ∩₁ eq e ⊆₁ codom_rel (⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘) ∪₁ cmt) :
+  WCore.guided_step_gen cmt X' X delta_X e (lab' e).
+Proof using.
+  constructor; ins.
+  { apply delta_add_event; ins. }
+  constructor; ins.
+  { admit. }
+  { admit. }
+  { apply XWF. }
+  { unfold delta_E. rewrite set_inter_union_l.
+    apply set_subset_union_l; split.
+    { admit. }
+    rewrite set_interC with (s := eq e).
+    rewrite <- delta_lab_is_r; ins.
+    all: try now unfold delta_E; basic_solver.
+    rewrite RF, restr_set_union, !codom_union.
+    basic_solver 12. }
+  admit.
+Admitted.
+
 Lemma delta_G_sub
     (NOT_INIT : tid h <> tid_init)
     (WF : WCore.wf X)
