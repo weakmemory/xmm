@@ -190,14 +190,33 @@ Proof using.
     | None => ⦗E⦘ ⨾ rmw' ⨾ ⦗eq e⦘ ≡ ∅₂
     end
   ).
-  { admit. }
+  { destruct (classic (⦗E⦘ ⨾ rmw' ⨾ ⦗eq e⦘ ≡ ∅₂)) as [EMPTY|NEN].
+    { now exists None. }
+    assert (NEN' : ~dom_rel (⦗E⦘ ⨾ rmw' ⨾ ⦗eq e⦘) ≡₁ ∅).
+    { intros EMP. apply NEN. split; [| basic_solver].
+      intros x y HREL. eapply EMP with x. basic_solver. }
+    apply set_nonemptyE in NEN'. destruct NEN' as (r & HIN).
+    exists (Some r). split; [| unfolder in *; ins; desf].
+    unfolder. intros x y (HIN' & RMW & HEQ). subst y.
+    split; ins. eapply (wf_rmwff WF); eauto.
+    unfold transp. unfolder in HIN. desf. }
   assert (RF : exists w,
     match w with
     | Some w => ⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘ ≡ singl_rel w e
     | None => ⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘ ≡ ∅₂
     end
   ).
-  { admit. }
+  { destruct (classic (⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘ ≡ ∅₂)) as [EMPTY|NEN].
+    { now exists None. }
+    assert (NEN' : ~dom_rel (⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘) ≡₁ ∅).
+    { intros EMP. apply NEN. split; [| basic_solver].
+      intros x y HREL. eapply EMP with x. basic_solver. }
+    apply set_nonemptyE in NEN'. destruct NEN' as (r & HIN).
+    exists (Some r). split; [| unfolder in *; ins; desf].
+    unfolder. intros x y (HIN' & RF & HEQ). subst y.
+    split; ins. eapply (wf_rff WF); eauto.
+    unfold transp. unfolder in HIN. desf. }
+  (* The proof *)
   destruct RMW as (r & RMW), RF as (w & RF).
   exists r,
          (codom_rel (⦗eq e⦘ ⨾ rf' ⨾ ⦗E⦘    )),
@@ -303,7 +322,7 @@ Proof using.
   apply EMAX with (ThreadEvent et en) (ThreadEvent et xn).
   unfolder. splits; ins. unfold sb. unfolder.
   splits; ins. now apply PFX.
-Admitted.
+Qed.
 
 Lemma delta_G_sub
     (NOT_INIT : tid h <> tid_init)
