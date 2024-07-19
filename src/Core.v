@@ -202,8 +202,10 @@ Definition sb_delta : relation actid :=
   (E ∩₁ (is_init ∪₁ same_tid e)) × eq e.
 
 Definition rf_delta_R w : relation actid :=
-  eq_opt w × eq e ∩
-  (E ∩₁ W') × R'.
+  match w with
+  | Some w => singl_rel w e ∩ (E ∩₁ W') × R'
+  | None => ∅₂
+  end.
 
 Definition rf_delta_W R1 : relation actid :=
   eq e × R1 ∩ W' × R'.
@@ -213,8 +215,10 @@ Definition co_delta W1 W2 : relation actid :=
   W2 × eq e ∩ (E ∩₁ W' ∩₁ same_loc e) × W'.
 
 Definition rmw_delta r : relation actid :=
-  eq_opt r × eq e ∩
-  (E ∩₁ R') × W'.
+  match r with
+  | Some r => singl_rel r e ∩ (E ∩₁ R') × W'
+  | None => ∅₂
+  end.
 
 Record add_event_gen r R1 w W1 W2 : Prop := {
   add_event_new : ~E e;

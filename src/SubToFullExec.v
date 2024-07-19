@@ -77,11 +77,12 @@ Record prefix : Prop := {
 }.
 
 Definition delta_E := E ∪₁ eq e.
+Definition delta_lab := upd lab e (lab' e).
 
 Definition delta_G := {|
   acts_set := delta_E;
   threads_set := threads_set;
-  lab := upd lab e (lab' e);
+  lab := delta_lab;
   rf := restr_rel delta_E rf';
   co := restr_rel delta_E co';
   rmw := restr_rel delta_E rmw';
@@ -98,6 +99,67 @@ Definition delta_X := {|
   WCore.sc := delta_sc;
 |}.
 
+Lemma delta_eq_lab
+    (PFX : prefix)
+    (NOTINE : ~ E e) :
+  eq_dom delta_E delta_lab lab'.
+Proof using.
+  unfold delta_E, delta_lab.
+  apply eq_dom_union.
+  split; unfolder; intros x XIN.
+  { rewrite updo; [now apply PFX |].
+    congruence. }
+  subst x. now rewrite upds.
+Qed.
+
+Lemma delta_lab_is_r
+    (s : actid -> Prop)
+    (SUB : s ⊆₁ delta_E)
+    (PFX : prefix)
+    (NOTINE : ~ E e) :
+  is_r lab' ∩₁ s ≡₁ is_r delta_lab ∩₁ s.
+Proof using.
+  unfolder. split; intros x (LAB & IN).
+  all: split; ins.
+  all: unfold is_r.
+  { rewrite delta_eq_lab; ins.
+    basic_solver. }
+  rewrite <- delta_eq_lab; ins.
+  basic_solver.
+Qed.
+
+Lemma delta_lab_is_w
+    (s : actid -> Prop)
+    (SUB : s ⊆₁ delta_E)
+    (PFX : prefix)
+    (NOTINE : ~ E e) :
+  is_w lab' ∩₁ s ≡₁ is_w delta_lab ∩₁ s.
+Proof using.
+  unfolder. split; intros x (LAB & IN).
+  all: split; ins.
+  all: unfold is_w.
+  { rewrite delta_eq_lab; ins.
+    basic_solver. }
+  rewrite <- delta_eq_lab; ins.
+  basic_solver.
+Qed.
+
+Lemma delta_lab_is_f
+    (s : actid -> Prop)
+    (SUB : s ⊆₁ delta_E)
+    (PFX : prefix)
+    (NOTINE : ~ E e) :
+  is_f lab' ∩₁ s ≡₁ is_f delta_lab ∩₁ s.
+Proof using.
+  unfolder. split; intros x (LAB & IN).
+  all: split; ins.
+  all: unfold is_f.
+  { rewrite delta_eq_lab; ins.
+    basic_solver. }
+  rewrite <- delta_eq_lab; ins.
+  basic_solver.
+Qed.
+
 Lemma delta_add_event
     (INE : E' e)
     (NOTINE : ~ E e)
@@ -109,12 +171,20 @@ Lemma delta_add_event
 Proof using.
   red.
   assert (RMW : exists r,
-    eq_opt r × eq e ≡ rmw' ⨾ ⦗eq e⦘).
+    match r with
+    | Some r => ⦗E⦘ ⨾ rmw' ⨾ ⦗eq e⦘ ≡ singl_rel r e
+    | None => ⦗E⦘ ⨾ rmw' ⨾ ⦗eq e⦘ ≡ ∅₂
+    end
+  ).
   { admit. }
   assert (RF : exists w,
-    eq_opt w × eq e ≡ ⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘).
+    match w with
+    | Some w => ⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘ ≡ singl_rel w e
+    | None => ⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘ ≡ ∅₂
+    end
+  ).
   { admit. }
-  desf.
+  destruct RMW as (r & RMW), RF as (w & RF).
   exists r,
          (codom_rel (⦗eq e⦘ ⨾ rf' ⨾ ⦗E⦘    )),
          w,
@@ -127,13 +197,44 @@ Proof using.
     rewrite restr_irrefl_eq by now apply rf_irr.
     rewrite union_false_r.
     repeat apply union_more; ins.
-    all: admit. }
+    { unfold WCore.rf_delta_R.
+      destruct w as [w |]; ins.
+      rewrite <- RF.
+      rewrite (wf_rfD WF), !seqA.
+      seq_rewrite <- !id_inter.
+      rewrite set_interC with (s := E).
+      rewrite delta_lab_is_r, delta_lab_is_w.
+      all: ins; try (unfold delta_E; basic_solver). }
+    unfold WCore.rf_delta_W.
+    arewrite (eq e × codom_rel (⦗eq e⦘ ⨾ rf' ⨾ ⦗E⦘) ≡ ⦗eq e⦘ ⨾ rf' ⨾ ⦗E⦘).
+    { basic_solver 12. }
+    rewrite (wf_rfD WF), !seqA.
+    seq_rewrite <- !id_inter.
+    rewrite set_interC with (s := eq e).
+    rewrite delta_lab_is_r, delta_lab_is_w.
+    all: ins; try (unfold delta_E; basic_solver). }
   { rewrite restr_set_union, (prf_co PFX).
     rewrite restr_irrefl_eq by now apply co_irr.
     rewrite union_false_r. rewrite unionA.
     apply union_more; ins. rewrite unionC.
-    unfold WCore.co_delta. apply union_more.
-    all: admit. }
+    unfold WCore.co_delta.
+    arewrite (eq e × codom_rel (⦗eq e⦘ ⨾ co' ⨾ ⦗E⦘) ≡ ⦗eq e⦘ ⨾ co' ⨾ ⦗E⦘).
+    { basic_solver 12. }
+    arewrite (dom_rel (⦗E⦘ ⨾ co' ⨾ ⦗eq e⦘) × eq e  ≡ ⦗E⦘ ⨾ co' ⨾ ⦗eq e⦘).
+    { basic_solver 12. }
+    apply union_more.
+    { rewrite (wf_coD WF), !seqA.
+      seq_rewrite <- !id_inter.
+      rewrite set_interC with (s := E).
+      rewrite delta_lab_is_w.
+      all: ins; try (unfold delta_E; basic_solver).
+      admit. }
+    rewrite (wf_coD WF), !seqA.
+    seq_rewrite <- !id_inter.
+    rewrite set_interC with (s := E).
+    rewrite delta_lab_is_w.
+    all: ins; try (unfold delta_E; basic_solver).
+    admit. }
   { rewrite restr_set_union, (prf_rmw PFX).
     rewrite restr_irrefl_eq by now apply rmw_irr.
     rewrite union_false_r. rewrite unionA.
@@ -141,7 +242,13 @@ Proof using.
     arewrite (⦗eq e⦘ ⨾ rmw' ⨾ ⦗E⦘ ≡ ∅₂).
     { admit. }
     rewrite union_false_r. unfold WCore.rmw_delta.
-    admit. }
+    destruct r as [r |]; ins.
+    rewrite <- RMW.
+    rewrite (wf_rmwD WF), !seqA.
+    seq_rewrite <- !id_inter.
+    rewrite set_interC with (s := E).
+    rewrite delta_lab_is_r, delta_lab_is_w.
+    all: ins; try (unfold delta_E; basic_solver). }
   unfold delta_G, delta_E, sb at 1. ins.
   rewrite <- restr_relE, restr_set_union, restr_relE.
   change (⦗E⦘ ⨾ ext_sb ⨾ ⦗E⦘) with sb.
@@ -154,7 +261,9 @@ Proof using.
   arewrite (⦗eq e⦘ ⨾ sb' ⨾ ⦗E⦘ ≡ ∅₂).
   { split; [ins | basic_solver]. }
   rewrite !union_false_r. apply union_more; ins.
-  unfold WCore.sb_delta. admit.
+  unfold WCore.sb_delta. split.
+  { admit. }
+  admit.
 Admitted.
 
 Lemma delta_G_sub
