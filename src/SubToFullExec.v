@@ -160,6 +160,13 @@ Proof using.
   basic_solver.
 Qed.
 
+Lemma pfx_same_loc
+    (PFX : prefix) :
+  same_loc lab' e ∩₁ E ≡₁ same_loc lab e ∩₁ E.
+Proof using.
+  admit.
+Admitted.
+
 Lemma delta_add_event
     (INE : E' e)
     (NOTINE : ~ E e)
@@ -223,24 +230,33 @@ Proof using.
     arewrite (dom_rel (⦗E⦘ ⨾ co' ⨾ ⦗eq e⦘) × eq e  ≡ ⦗E⦘ ⨾ co' ⨾ ⦗eq e⦘).
     { basic_solver 12. }
     apply union_more.
-    { rewrite (wf_coD WF), !seqA.
+    { arewrite (⦗eq e⦘ ⨾ co' ≡ ⦗eq e⦘ ⨾ co' ⨾ ⦗same_loc lab' e⦘).
+      { split; [| basic_solver].
+        unfolder. intros e' y (EQ & CO); splits; ins.
+        subst e'. now apply (wf_col WF). }
+      rewrite (wf_coD WF), !seqA.
       seq_rewrite <- !id_inter.
-      rewrite set_interC with (s := E).
-      rewrite delta_lab_is_w.
-      all: ins; try (unfold delta_E; basic_solver).
-      admit. }
+      rewrite set_interC with (s := E),
+              set_interC with (s := eq e).
+      rewrite 2!delta_lab_is_w, pfx_same_loc.
+      all: ins; try (unfold delta_E; basic_solver). }
+    arewrite (co' ⨾ ⦗eq e⦘ ≡ ⦗same_loc lab' e⦘ ⨾ co' ⨾ ⦗eq e⦘).
+    { split; [| basic_solver].
+      unfolder. intros x e' (EQ & CO); splits; ins.
+      subst e'. symmetry. now apply (wf_col WF). }
     rewrite (wf_coD WF), !seqA.
     seq_rewrite <- !id_inter.
-    rewrite set_interC with (s := E).
-    rewrite delta_lab_is_w.
-    all: ins; try (unfold delta_E; basic_solver).
-    admit. }
+    rewrite set_interC with (s' := W'),
+            set_interC with (s := E).
+    rewrite 2!delta_lab_is_w, pfx_same_loc.
+    all: ins; try (unfold delta_E; basic_solver). }
   { rewrite restr_set_union, (prf_rmw PFX).
     rewrite restr_irrefl_eq by now apply rmw_irr.
     rewrite union_false_r. rewrite unionA.
     apply union_more; ins.
     arewrite (⦗eq e⦘ ⨾ rmw' ⨾ ⦗E⦘ ≡ ∅₂).
-    { admit. }
+    { split; [| basic_solver].
+      now rewrite (wf_rmwi WF), immediate_in. }
     rewrite union_false_r. unfold WCore.rmw_delta.
     destruct r as [r |]; ins.
     rewrite <- RMW.
@@ -262,8 +278,24 @@ Proof using.
   { split; [ins | basic_solver]. }
   rewrite !union_false_r. apply union_more; ins.
   unfold WCore.sb_delta. split.
-  { admit. }
-  admit.
+  { unfolder. unfold ext_sb, same_tid. ins.
+    do 2 desf; split; ins; eauto. }
+  unfolder. intros x y ((HINE & HTID) & HEQ).
+  subst y. splits; ins. unfold ext_sb.
+  destruct HTID as [INIT | SAME].
+  { destruct x, e; ins. }
+  destruct e as [el | et en]; ins.
+  destruct x as [xl | xt xn]; ins.
+  unfold same_tid in SAME. ins. subst xt.
+  split; ins.
+  assert (TRI : xn < en \/ xn = en \/ en < xn).
+  { lia. }
+  destruct TRI as [LT | [EQ | GT]]; ins.
+  { congruence. }
+  exfalso.
+  apply EMAX with (ThreadEvent et en) (ThreadEvent et xn).
+  unfolder. splits; ins. unfold sb. unfolder.
+  splits; ins. now apply PFX.
 Admitted.
 
 Lemma delta_G_sub
