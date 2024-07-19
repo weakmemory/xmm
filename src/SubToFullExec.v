@@ -161,11 +161,18 @@ Proof using.
 Qed.
 
 Lemma pfx_same_loc
-    (PFX : prefix) :
-  same_loc lab' e ∩₁ E ≡₁ same_loc lab e ∩₁ E.
+    (PFX : prefix)
+    (NOTINE : ~ E e) :
+  same_loc lab' e ∩₁ E ≡₁ same_loc delta_lab e ∩₁ E.
 Proof using.
-  admit.
-Admitted.
+  unfolder. split; intros x (LAB & IN).
+  all: split; ins.
+  all: unfold same_loc, loc.
+  { rewrite !delta_eq_lab; ins.
+    all: unfold delta_E; basic_solver. }
+  rewrite <- !delta_eq_lab; ins.
+  all: unfold delta_E; basic_solver.
+Qed.
 
 Lemma delta_add_event
     (INE : E' e)

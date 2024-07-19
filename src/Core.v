@@ -211,8 +211,8 @@ Definition rf_delta_W R1 : relation actid :=
   eq e × R1 ∩ W' × R'.
 
 Definition co_delta W1 W2 : relation actid :=
-  eq e × W1 ∩ W' × (E ∩₁ W' ∩₁ same_loc e) ∪
-  W2 × eq e ∩ (E ∩₁ W' ∩₁ same_loc e) × W'.
+  eq e × W1 ∩ W' × (E ∩₁ W' ∩₁ same_loc' e) ∪
+  W2 × eq e ∩ (E ∩₁ W' ∩₁ same_loc' e) × W'.
 
 Definition rmw_delta r : relation actid :=
   match r with
