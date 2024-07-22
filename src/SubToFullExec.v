@@ -21,11 +21,9 @@ Set Implicit Arguments.
 
 Module SubToFullExecInternal.
 
-Section DeltaGraph.
+Section Prefix.
 
 Variable X X' : WCore.t.
-Variable cmt : actid -> Prop.
-Variable e : actid.
 
 Notation "'G''" := (WCore.G X').
 Notation "'lab''" := (lab G').
@@ -76,6 +74,48 @@ Record prefix : Prop := {
   prf_sb : sb' ⨾ ⦗E⦘ ⊆ sb
 }.
 
+End Prefix.
+
+Section DeltaGraph.
+
+Variable X X' : WCore.t.
+Variable cmt : actid -> Prop.
+Variable e : actid.
+
+Notation "'G''" := (WCore.G X').
+Notation "'lab''" := (lab G').
+Notation "'threads_set''" := (threads_set G').
+Notation "'E''" := (acts_set G').
+Notation "'sb''" := (sb G').
+Notation "'rmw''" := (rmw G').
+Notation "'data''" := (data G').
+Notation "'addr''" := (addr G').
+Notation "'ctrl''" := (ctrl G').
+Notation "'rmw_dep''" := (rmw_dep G').
+Notation "'rf''" := (rf G').
+Notation "'co''" := (co G').
+Notation "'W''" := (is_w lab').
+Notation "'R''" := (is_r lab').
+Notation "'F''" := (is_f lab').
+Notation "'sc''" := (WCore.sc X').
+
+Notation "'G'" := (WCore.G X).
+Notation "'lab'" := (lab G).
+Notation "'threads_set'" := (threads_set G).
+Notation "'E'" := (acts_set G).
+Notation "'sb'" := (sb G).
+Notation "'rmw'" := (rmw G).
+Notation "'data'" := (data G).
+Notation "'addr'" := (addr G).
+Notation "'ctrl'" := (ctrl G).
+Notation "'rmw_dep'" := (rmw_dep G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'W'" := (is_w lab).
+Notation "'R'" := (is_r lab).
+Notation "'F'" := (is_f lab).
+Notation "'sc'" := (WCore.sc X).
+
 Definition delta_E := E ∪₁ eq e.
 Definition delta_lab := upd lab e (lab' e).
 
@@ -100,7 +140,7 @@ Definition delta_X := {|
 |}.
 
 Lemma delta_eq_lab
-    (PFX : prefix)
+    (PFX : prefix X X')
     (NOTINE : ~ E e) :
   eq_dom delta_E delta_lab lab'.
 Proof using.
@@ -115,7 +155,7 @@ Qed.
 Lemma delta_lab_is_r
     (s : actid -> Prop)
     (SUB : s ⊆₁ delta_E)
-    (PFX : prefix)
+    (PFX : prefix X X')
     (NOTINE : ~ E e) :
   is_r lab' ∩₁ s ≡₁ is_r delta_lab ∩₁ s.
 Proof using.
@@ -131,7 +171,7 @@ Qed.
 Lemma delta_lab_is_w
     (s : actid -> Prop)
     (SUB : s ⊆₁ delta_E)
-    (PFX : prefix)
+    (PFX : prefix X X')
     (NOTINE : ~ E e) :
   is_w lab' ∩₁ s ≡₁ is_w delta_lab ∩₁ s.
 Proof using.
@@ -147,7 +187,7 @@ Qed.
 Lemma delta_lab_is_f
     (s : actid -> Prop)
     (SUB : s ⊆₁ delta_E)
-    (PFX : prefix)
+    (PFX : prefix X X')
     (NOTINE : ~ E e) :
   is_f lab' ∩₁ s ≡₁ is_f delta_lab ∩₁ s.
 Proof using.
@@ -161,7 +201,7 @@ Proof using.
 Qed.
 
 Lemma pfx_same_loc
-    (PFX : prefix)
+    (PFX : prefix X X')
     (NOTINE : ~ E e) :
   same_loc lab' e ∩₁ E ≡₁ same_loc delta_lab e ∩₁ E.
 Proof using.
@@ -179,7 +219,7 @@ Lemma delta_add_event
     (NOTINE : ~ E e)
     (NINIT : ~ is_init e)
     (WF : Wf G')
-    (PFX : prefix)
+    (PFX : prefix X X')
     (EMAX : ⦗eq e⦘ ⨾ sb' ⨾ ⦗E⦘ ⊆ ∅₂) :
   WCore.add_event X delta_X e (lab' e).
 Proof using.
