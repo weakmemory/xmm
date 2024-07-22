@@ -364,14 +364,47 @@ Proof using.
   splits; ins. now apply PFX.
 Qed.
 
+Lemma delta_G_prefix
+    (INE : E' e)
+    (NOTINE : ~ E e)
+    (NINIT : ~ is_init e)
+    (EMAX : sb' ⨾ ⦗eq e⦘ ⊆ ⦗E⦘ ⨾ sb' ⨾ ⦗eq e⦘)
+    (PFX : prefix X X') :
+  prefix delta_X X'.
+Proof using.
+  assert (SUBE : E ∪₁ eq e ⊆₁ E').
+  { apply set_subset_union_l; split; [| basic_solver].
+    apply PFX. }
+  unfold delta_X, delta_G, delta_sc,
+         delta_E, delta_lab.
+  constructor; ins.
+  { apply PFX. }
+  { apply eq_dom_union.
+    unfolder; split; [| now ins; desf; rupd].
+    intros x XIN.
+    rupd; [now apply PFX | congruence]. }
+  rewrite id_union, seq_union_r at 1.
+  apply inclusion_union_l.
+  { rewrite (prf_sb PFX). unfold sb; ins.
+    basic_solver. }
+  rewrite EMAX.
+  unfold sb. ins. rewrite !seqA.
+  seq_rewrite <- !id_inter.
+  rewrite set_inter_absorb_r, set_inter_absorb_l.
+  { basic_solver. }
+  { basic_solver. }
+  apply set_subset_union_l in SUBE. desf.
+Qed.
+
 Lemma delta_guided_add_step
     (INE : E' e)
     (NOTINE : ~ E e)
     (NINIT : ~ is_init e)
     (WF : Wf G')
     (XWF : WCore.wf X X' cmt)
-    (PFX : prefix)
-    (EMAX : ⦗eq e⦘ ⨾ sb' ⨾ ⦗E⦘ ⊆ ∅₂)
+    (PFX : prefix X X')
+    (EMAX1 : ⦗eq e⦘ ⨾ sb' ⨾ ⦗E⦘ ⊆ ∅₂)
+    (EMAX2 : sb' ⨾ ⦗eq e⦘ ⊆ ⦗E⦘ ⨾ sb' ⨾ ⦗eq e⦘)
     (RF : R' ∩₁ eq e ⊆₁ codom_rel (⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘) ∪₁ cmt) :
   WCore.guided_step_gen cmt X' X delta_X e (lab' e).
 Proof using.
