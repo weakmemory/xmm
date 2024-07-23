@@ -200,18 +200,42 @@ Proof using.
   basic_solver.
 Qed.
 
-Lemma pfx_same_loc
+Lemma pfx_same_loc x
+    (s : actid -> Prop)
+    (SUB : s ⊆₁ delta_E)
     (PFX : prefix X X')
-    (NOTINE : ~ E e) :
-  same_loc lab' e ∩₁ E ≡₁ same_loc delta_lab e ∩₁ E.
+    (NOTINE : ~ E e)
+    (INE : delta_E x) :
+  same_loc lab' x ∩₁ s ≡₁ same_loc delta_lab x ∩₁ s.
 Proof using.
-  unfolder. split; intros x (LAB & IN).
+  unfolder. split; intros y (LAB & IN).
   all: split; ins.
   all: unfold same_loc, loc.
   { rewrite !delta_eq_lab; ins.
-    all: unfold delta_E; basic_solver. }
+    basic_solver. }
   rewrite <- !delta_eq_lab; ins.
-  all: unfold delta_E; basic_solver.
+  basic_solver.
+Qed.
+
+Lemma pfx_same_loc'
+    (PFX : prefix X X')
+    (NOTINE : ~ E e) :
+  restr_rel delta_E (same_loc lab') ≡
+    restr_rel delta_E (same_loc delta_lab).
+Proof using.
+  split; intros x y (LAB & DOM & CODOM).
+  { apply set_subset_single_l.
+    arewrite (restr_rel delta_E (same_loc delta_lab) x ≡₁
+              same_loc delta_lab x ∩₁ delta_E).
+    { basic_solver 12. }
+    rewrite <- pfx_same_loc; ins.
+    basic_solver 12. }
+  apply set_subset_single_l.
+  arewrite (restr_rel delta_E (same_loc lab') x ≡₁
+            same_loc lab' x ∩₁ delta_E).
+  { basic_solver 12. }
+  rewrite pfx_same_loc; ins.
+  basic_solver 12.
 Qed.
 
 Lemma delta_add_event
@@ -395,6 +419,77 @@ Proof using.
   { basic_solver. }
   apply set_subset_union_l in SUBE. desf.
 Qed.
+
+Lemma dealta_G_wf
+    (INE : E' e)
+    (NOTINE : ~ E e)
+    (NINIT : ~ is_init e)
+    (EMAX : sb' ⨾ ⦗eq e⦘ ⊆ ⦗E⦘ ⨾ sb' ⨾ ⦗eq e⦘)
+    (PFX : prefix X X')
+    (NDATA : data' ⊆ ∅₂)
+    (NADDR : addr' ⊆ ∅₂)
+    (NCTRL : ctrl' ⊆ ∅₂)
+    (NRMWDEP : rmw_dep' ⊆ ∅₂)
+    (WF : Wf G') :
+  Wf delta_G.
+Proof using.
+  assert (SUBE : delta_E ⊆₁ E').
+  { unfold delta_E. apply set_subset_union_l.
+    split; [apply PFX | basic_solver]. }
+  constructor.
+  { intros a b (INA & INB & NEQ & TID & ANINI).
+    ins. apply WF. splits; ins.
+    all: basic_solver. }
+  all: ins.
+  { rewrite NDATA. basic_solver. }
+  { split; rewrite NDATA at 1; basic_solver. }
+  { rewrite NADDR. basic_solver. }
+  { split; rewrite NADDR at 1; basic_solver. }
+  { rewrite NCTRL. basic_solver. }
+  { split; rewrite NCTRL at 1; basic_solver. }
+  { rewrite NCTRL at 1. basic_solver. }
+  { rewrite (wf_rmwD WF) at 1. rewrite !restr_relE, !seqA.
+    seq_rewrite <- !id_inter.
+    rewrite !set_interC with (s := delta_E).
+    rewrite delta_lab_is_r, delta_lab_is_w; ins. }
+  { transitivity (restr_rel delta_E (same_loc delta_lab)); [| basic_solver].
+    rewrite <- pfx_same_loc'; ins.
+    apply restr_rel_mori; ins. apply WF. }
+  { transitivity (restr_rel delta_E (immediate sb')).
+    { apply restr_rel_mori; ins. apply WF. }
+    admit. }
+  { rewrite !restr_relE, !seqA. seq_rewrite <- !id_inter.
+    now rewrite !set_interK. }
+  { rewrite (wf_rfD WF) at 1. rewrite !restr_relE, !seqA.
+    seq_rewrite <- !id_inter.
+    rewrite !set_interC with (s := delta_E).
+    rewrite delta_lab_is_r, delta_lab_is_w; ins. }
+  { transitivity (restr_rel delta_E (same_loc delta_lab)); [| basic_solver].
+    rewrite <- pfx_same_loc'; ins.
+    apply restr_rel_mori; ins. apply WF. }
+  { admit. }
+  { rewrite <- restr_transp. apply functional_restr.
+    apply WF. }
+  { rewrite !restr_relE, !seqA. seq_rewrite <- !id_inter.
+    now rewrite !set_interK. }
+  { rewrite (wf_coD WF) at 1. rewrite !restr_relE, !seqA.
+    seq_rewrite <- !id_inter.
+    rewrite !set_interC with (s := delta_E).
+    rewrite delta_lab_is_w; ins. }
+  { transitivity (restr_rel delta_E (same_loc delta_lab)); [| basic_solver].
+    rewrite <- pfx_same_loc'; ins.
+    apply restr_rel_mori; ins. apply WF. }
+  { apply transitive_restr, WF. }
+  { admit. }
+  { apply irreflexive_restr, WF. }
+  { admit. }
+  { admit. }
+  { rewrite NRMWDEP. basic_solver. }
+  { split; rewrite NRMWDEP at 1; basic_solver. }
+  apply (prf_threads PFX).
+  apply WF, SUBE, EE.
+Admitted.
+
 
 Lemma delta_guided_add_step
     (INE : E' e)
