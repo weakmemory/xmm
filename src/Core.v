@@ -185,7 +185,7 @@ Notation "'sc'" := (sc X).
 
 Record wf := {
   wf_g : Wf G;
-  wf_ereq : exec_restr_eq X X' cmt;
+  wf_ereq : exec_restr_eq X X' (E ∩₁ cmt);
   wf_rfc : rf_complete (restrict G' cmt);
   wf_sub_rfD : E ∩₁ R ⊆₁ codom_rel rf ∪₁ cmt;
   wf_sc : wf_sc G sc;
