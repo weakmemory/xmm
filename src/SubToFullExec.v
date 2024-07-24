@@ -60,6 +60,7 @@ Notation "'F'" := (is_f lab).
 Notation "'sc'" := (WCore.sc X).
 
 Record prefix : Prop := {
+  prf_init : E' ∩₁ is_init ⊆₁ E;
   prf_acts : E ⊆₁ E';
   prf_threads : threads_set ≡₁ threads_set';
   prf_lab : eq_dom (is_init ∪₁ E) lab lab';
@@ -408,6 +409,7 @@ Proof using.
   unfold delta_X, delta_G, delta_sc,
          delta_E, delta_lab.
   constructor; ins.
+  { rewrite <- (prf_init PFX). basic_solver. }
   { apply PFX. }
   { rewrite <- set_unionA. apply eq_dom_union.
     unfolder; split; [| now ins; desf; rupd].
@@ -488,7 +490,15 @@ Proof using.
   { apply transitive_restr, WF. }
   { admit. }
   { apply irreflexive_restr, WF. }
-  { admit. }
+  { match goal with
+    | [ HEE : exists b, _ /\ loc delta_lab b = Some _  |- _] =>
+        rename HEE into EE
+    | _ => fail "bruh"
+    end.
+    left. apply (prf_init PFX). split; ins.
+    apply WF. destruct EE as (b & BIN & BLOC).
+    exists b. split; [basic_solver |].
+    unfold loc. rewrite <- delta_eq_lab; ins. basic_solver. }
   { rewrite (prf_lab (delta_G_prefix INE NOTINE NINIT EMAX PFX)).
     { apply WF. }
     basic_solver. }
