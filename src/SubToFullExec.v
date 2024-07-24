@@ -489,7 +489,9 @@ Proof using.
   { admit. }
   { apply irreflexive_restr, WF. }
   { admit. }
-  { admit. }
+  { rewrite (prf_lab (delta_G_prefix INE NOTINE NINIT EMAX PFX)).
+    { apply WF. }
+    basic_solver. }
   { rewrite NRMWDEP. basic_solver. }
   { split; rewrite NRMWDEP at 1; basic_solver. }
   apply (prf_threads PFX).
