@@ -62,7 +62,7 @@ Notation "'sc'" := (WCore.sc X).
 Record prefix : Prop := {
   prf_acts : E ⊆₁ E';
   prf_threads : threads_set ≡₁ threads_set';
-  prf_lab : eq_dom E lab lab';
+  prf_lab : eq_dom (is_init ∪₁ E) lab lab';
   prf_rf : rf ≡ restr_rel E rf';
   prf_co : co ≡ restr_rel E co';
   prf_rmw : rmw ≡ restr_rel E rmw';
@@ -141,14 +141,15 @@ Definition delta_X := {|
 
 Lemma delta_eq_lab
     (PFX : prefix X X')
+    (NINIT : ~is_init e)
     (NOTINE : ~ E e) :
-  eq_dom delta_E delta_lab lab'.
+  eq_dom (is_init ∪₁ delta_E) delta_lab lab'.
 Proof using.
   unfold delta_E, delta_lab.
-  apply eq_dom_union.
+  rewrite <- set_unionA. apply eq_dom_union.
   split; unfolder; intros x XIN.
   { rewrite updo; [now apply PFX |].
-    congruence. }
+    desf; congruence. }
   subst x. now rewrite upds.
 Qed.
 
@@ -156,6 +157,7 @@ Lemma delta_lab_is_r
     (s : actid -> Prop)
     (SUB : s ⊆₁ delta_E)
     (PFX : prefix X X')
+    (NINIT : ~is_init e)
     (NOTINE : ~ E e) :
   is_r lab' ∩₁ s ≡₁ is_r delta_lab ∩₁ s.
 Proof using.
@@ -172,6 +174,7 @@ Lemma delta_lab_is_w
     (s : actid -> Prop)
     (SUB : s ⊆₁ delta_E)
     (PFX : prefix X X')
+    (NINIT : ~is_init e)
     (NOTINE : ~ E e) :
   is_w lab' ∩₁ s ≡₁ is_w delta_lab ∩₁ s.
 Proof using.
@@ -188,6 +191,7 @@ Lemma delta_lab_is_f
     (s : actid -> Prop)
     (SUB : s ⊆₁ delta_E)
     (PFX : prefix X X')
+    (NINIT : ~is_init e)
     (NOTINE : ~ E e) :
   is_f lab' ∩₁ s ≡₁ is_f delta_lab ∩₁ s.
 Proof using.
@@ -204,6 +208,7 @@ Lemma pfx_same_loc x
     (s : actid -> Prop)
     (SUB : s ⊆₁ delta_E)
     (PFX : prefix X X')
+    (NINIT : ~is_init e)
     (NOTINE : ~ E e)
     (INE : delta_E x) :
   same_loc lab' x ∩₁ s ≡₁ same_loc delta_lab x ∩₁ s.
@@ -212,13 +217,14 @@ Proof using.
   all: split; ins.
   all: unfold same_loc, loc.
   { rewrite !delta_eq_lab; ins.
-    basic_solver. }
+    all: basic_solver. }
   rewrite <- !delta_eq_lab; ins.
-  basic_solver.
+  all: basic_solver.
 Qed.
 
 Lemma pfx_same_loc'
     (PFX : prefix X X')
+    (NINIT : ~is_init e)
     (NOTINE : ~ E e) :
   restr_rel delta_E (same_loc lab') ≡
     restr_rel delta_E (same_loc delta_lab).
@@ -403,10 +409,10 @@ Proof using.
          delta_E, delta_lab.
   constructor; ins.
   { apply PFX. }
-  { apply eq_dom_union.
+  { rewrite <- set_unionA. apply eq_dom_union.
     unfolder; split; [| now ins; desf; rupd].
-    intros x XIN.
-    rupd; [now apply PFX | congruence]. }
+    intros x XIN. rupd; [| desf; congruence].
+    apply PFX. now unfolder. }
   rewrite id_union, seq_union_r at 1.
   apply inclusion_union_l.
   { rewrite (prf_sb PFX). unfold sb; ins.
