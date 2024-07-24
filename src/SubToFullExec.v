@@ -694,7 +694,16 @@ Proof using.
   { exists h, (lab' h).
     apply SubToFullExecInternal.delta_guided_add_step; ins.
     { sin_rewrite (prf_sb PFX). unfold sb. basic_solver. }
-    admit. }
+    destruct (classic (cmt h)) as [CMT|NCMT]; [basic_solver |].
+    intros h' (HIR & EQH). subst h'.
+    destruct (SubToFullExecInternal.diff_rf_d ENUM) with (x := h)
+          as (w & RF).
+    { basic_solver. }
+    left. exists w. unfolder; splits; ins.
+    destruct (classic (E w)) as [WINE|WNINE]; ins.
+    exfalso. eapply list_min_elt with (b := w); [apply ENUM |].
+    apply (SubToFullExecInternal.diff_rf ENUM). unfolder; splits; ins.
+    apply (wf_rfE WF) in RF. unfolder in RF. desf. }
   assert (NDELTA : forall x (NDELTA : ~delta_E h x), ~E x).
   { unfold SubToFullExecInternal.delta_E. unfolder.
     repeat intros; eauto. }
