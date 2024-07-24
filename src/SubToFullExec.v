@@ -4,6 +4,7 @@ Require Import ExecEquiv.
 Require Import ThreadTrace.
 Require Import Core.
 Require Import TraceSwap.
+Require Import AuxRel.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -756,7 +757,15 @@ Proof using.
       unfolder. ins. eapply STAB; eauto. }
     unfolder. intros x y z R1 R2. desf.
     { left. now apply sb_trans with y. }
-    all: admit. }
+    all: change (thrdle (tid x) (tid z))
+           with ((tid ↓ thrdle) x z).
+    { right. apply thrdle_sb_closed with (G := G').
+      all: try now apply STAB.
+      unfolder. eauto 11. }
+    { right. apply thrdle_sb_closed with (G := G').
+      all: try now apply STAB.
+      unfolder. eauto 11. }
+    right. unfolder. eapply STAB; eauto. }
   exists (isort tord l'). constructor; ins.
   { apply NoDup_StronglySorted with tord.
     { apply TOT. }
@@ -768,7 +777,7 @@ Proof using.
   { rewrite total_order_from_isort, <- EQ, <- SUB; ins.
     now rewrite (WCore.surg_uncmt STAB). }
   transitivity (E' ∩₁ R'); [basic_solver | apply RFCO].
-Admitted.
+Qed.
 
 Lemma sub_to_full_exec_listless
     (XWF : WCore.wf X X' cmt)

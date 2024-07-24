@@ -337,7 +337,9 @@ Definition X_start dtrmt :=
   Build_t (restrict G dtrmt) (restr_rel dtrmt sc).
 
 Record stable_uncmt_reads_gen thrdle : Prop :=
-  { surg_order : strict_partial_order thrdle;
+  { surg_init_least : least_elt thrdle tid_init;
+    surg_init_wmin : wmin_elt thrdle tid_init;
+    surg_order : strict_partial_order thrdle;
     surg_uncmt : rf' ⨾ ⦗E' \₁ cmt⦘ ⊆ sb' ∪ tid ↓ thrdle; }.
 
 Record commit_embedded f : Prop :=
