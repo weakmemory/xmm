@@ -525,21 +525,43 @@ Lemma delta_guided_add_step
     (RF : R' ∩₁ eq e ⊆₁ codom_rel (⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘) ∪₁ cmt) :
   WCore.guided_step_gen cmt X' X delta_X e (lab' e).
 Proof using.
+  assert (SUBE : delta_E ⊆₁ E').
+  { unfold delta_E.
+    apply set_subset_union_l.
+    split; [apply PFX |].
+    basic_solver. }
+  assert (SUBE' : E ⊆₁ delta_E).
+  { unfold delta_E. basic_solver. }
   constructor; ins.
   { apply delta_add_event; ins. }
   constructor; ins.
   { apply delta_G_wf; ins. }
-  { admit. }
+  { constructor; ins.
+    { basic_solver. }
+    { apply PFX. }
+    { eapply eq_dom_mori with (x := is_init ∪₁ delta_E).
+      all: eauto.
+      { unfold flip. basic_solver. }
+      apply delta_G_prefix; ins. }
+    all: rewrite restr_restr; basic_solver. }
   { apply XWF. }
   { unfold delta_E. rewrite set_inter_union_l.
     apply set_subset_union_l; split.
-    { admit. }
+    { rewrite set_interC with (s := E).
+      rewrite <- delta_lab_is_r; ins.
+      arewrite (R' ∩₁ E ⊆₁ R ∩₁ E).
+      { unfolder. unfold is_r.
+        intros x (XISR & XINE). split; ins.
+        rewrite (prf_lab PFX); ins. basic_solver. }
+      rewrite set_interC with (s' := E).
+      rewrite (WCore.wf_sub_rfD XWF), (prf_rf PFX).
+      basic_solver 7. }
     rewrite set_interC with (s := eq e).
     rewrite <- delta_lab_is_r; ins.
     all: try now unfold delta_E; basic_solver.
     rewrite RF, restr_set_union, !codom_union.
     basic_solver 12. }
-  admit.
+  admit. (* TODO *)
 Admitted.
 
 Lemma delta_G_sub
