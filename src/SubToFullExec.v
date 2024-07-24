@@ -19,8 +19,6 @@ From imm Require Import CombRelations.
 
 Set Implicit Arguments.
 
-Module SubToFullExecInternal.
-
 Section Prefix.
 
 Variable X X' : WCore.t.
@@ -76,6 +74,8 @@ Record prefix : Prop := {
 }.
 
 End Prefix.
+
+Module SubToFullExecInternal.
 
 Section DeltaGraph.
 
@@ -698,7 +698,7 @@ Notation "'delta_X'" := (SubToFullExecInternal.delta_X X X').
 Notation "'delta_E'" := (SubToFullExecInternal.delta_E X).
 
 Lemma sub_to_full_exec_end_wf l
-    (PFX : SubToFullExecInternal.prefix X X')
+    (PFX : prefix X X')
     (SCWF : imm_s.wf_sc G' sc')
     (WF : Wf G')
     (XWF : WCore.wf X X' cmt)
@@ -716,17 +716,16 @@ Proof using.
   arewrite (E ∩₁ R' ⊆₁ E ∩₁ R).
   { unfold is_r. unfolder.
     intros x (XIN & XISR). split; ins.
-    rewrite (SubToFullExecInternal.prf_lab PFX); ins.
+    rewrite (prf_lab PFX); ins.
     basic_solver. }
-  rewrite (WCore.wf_sub_rfD XWF),
-          (SubToFullExecInternal.prf_rf PFX).
+  rewrite (WCore.wf_sub_rfD XWF), (prf_rf PFX).
   basic_solver.
 Qed.
 
 Lemma sub_to_full_exec l
     (WF : Wf (WCore.G X'))
     (XWF : WCore.wf X X' cmt)
-    (PFX : SubToFullExecInternal.prefix X X')
+    (PFX : prefix X X')
     (SCWF : imm_s.wf_sc G' sc')
     (NDATA : data' ⊆ ∅₂)
     (NADDR : addr' ⊆ ∅₂)
@@ -817,7 +816,7 @@ Lemma sub_to_full_exec_listless
     (XWF : WCore.wf X X' cmt)
     (RFCO : rf_complete G')
     (FIN : set_finite (E' \₁ E))
-    (PFX : SubToFullExecInternal.prefix X X')
+    (PFX : prefix X X')
     (WF : Wf G')
     (SCWF : imm_s.wf_sc G' sc')
     (NDATA : data' ⊆ ∅₂)
