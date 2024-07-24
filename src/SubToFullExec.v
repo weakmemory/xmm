@@ -655,7 +655,46 @@ End SubToFullExecInternal.
 
 Section SubToFullExec.
 
-Lemma sub_to_full_exec_end_wf X X' cmt l
+Variable X X' : WCore.t.
+Variable cmt : actid -> Prop.
+Variable thrdle : relation thread_id.
+Variable e : actid.
+
+Notation "'G''" := (WCore.G X').
+Notation "'lab''" := (lab G').
+Notation "'threads_set''" := (threads_set G').
+Notation "'E''" := (acts_set G').
+Notation "'sb''" := (sb G').
+Notation "'rmw''" := (rmw G').
+Notation "'data''" := (data G').
+Notation "'addr''" := (addr G').
+Notation "'ctrl''" := (ctrl G').
+Notation "'rmw_dep''" := (rmw_dep G').
+Notation "'rf''" := (rf G').
+Notation "'co''" := (co G').
+Notation "'W''" := (is_w lab').
+Notation "'R''" := (is_r lab').
+Notation "'F''" := (is_f lab').
+Notation "'sc''" := (WCore.sc X').
+
+Notation "'G'" := (WCore.G X).
+Notation "'lab'" := (lab G).
+Notation "'threads_set'" := (threads_set G).
+Notation "'E'" := (acts_set G).
+Notation "'sb'" := (sb G).
+Notation "'rmw'" := (rmw G).
+Notation "'data'" := (data G).
+Notation "'addr'" := (addr G).
+Notation "'ctrl'" := (ctrl G).
+Notation "'rmw_dep'" := (rmw_dep G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'W'" := (is_w lab).
+Notation "'R'" := (is_r lab).
+Notation "'F'" := (is_f lab).
+Notation "'sc'" := (WCore.sc X).
+
+Lemma sub_to_full_exec_end_wf l
     (WF : WCore.wf X X' cmt)
     (ENUM : SubToFullExecInternal.enumd_diff X X' cmt l) :
   WCore.wf X' X' cmt.
@@ -698,20 +737,27 @@ Proof using.
   rewrite EQLAB. apply WF. *)
 Admitted.
 
-Lemma sub_to_full_exec X X' cmt l
-    (WF : WCore.wf X X' cmt)
+Lemma sub_to_full_exec l
+    (WF : Wf (WCore.G X'))
+    (XWF : WCore.wf X X' cmt)
+    (NDATA : data' ⊆ ∅₂)
+    (NADDR : addr' ⊆ ∅₂)
+    (NCTRL : ctrl' ⊆ ∅₂)
+    (NRMWDEP : rmw_dep' ⊆ ∅₂)
     (ENUM : SubToFullExecInternal.enumd_diff X X' cmt l) :
   (WCore.guided_step cmt X')＊ X X'.
 Proof using.
   assert (WF' : WCore.wf X' X' cmt).
   { eauto using sub_to_full_exec_end_wf. }
-  generalize X WF ENUM.
-  clear      X WF ENUM.
+  generalize X XWF ENUM.
+  clear      X XWF ENUM.
   induction l as [ | h t IHl]; ins.
-  { admit. }
+  { arewrite (X = X'); [| apply rt_refl].
+    admit. }
   set (delta_X := SubToFullExecInternal.delta_X X X' h).
   assert (STEP : WCore.guided_step cmt X' X delta_X).
-  { eapply SubToFullExecInternal.delta_guided_add_step.
+  { exists h, (lab' h).
+    apply SubToFullExecInternal.delta_guided_add_step; ins.
     all: admit. }
   eapply rt_trans; [apply rt_step; eauto | ].
   apply IHl; [red in STEP; desf; apply STEP |].
@@ -722,48 +768,6 @@ Proof using.
   { admit. }
   admit.
 Admitted.
-
-End SubToFullExec.
-
-Section SubToFullExecListles.
-
-Variable X X' : WCore.t.
-Variable cmt : actid -> Prop.
-Variable thrdle : relation thread_id.
-
-Notation "'G''" := (WCore.G X').
-Notation "'lab''" := (lab G').
-Notation "'threads_set''" := (threads_set G').
-Notation "'E''" := (acts_set G').
-Notation "'sb''" := (sb G').
-Notation "'rmw''" := (rmw G').
-Notation "'data''" := (data G').
-Notation "'addr''" := (addr G').
-Notation "'ctrl''" := (ctrl G').
-Notation "'rmw_dep''" := (rmw_dep G').
-Notation "'rf''" := (rf G').
-Notation "'co''" := (co G').
-Notation "'W''" := (is_w lab').
-Notation "'R''" := (is_r lab').
-Notation "'F''" := (is_f lab').
-Notation "'sc''" := (WCore.sc X').
-
-Notation "'G'" := (WCore.G X).
-Notation "'lab'" := (lab G).
-Notation "'threads_set'" := (threads_set G).
-Notation "'E'" := (acts_set G).
-Notation "'sb'" := (sb G).
-Notation "'rmw'" := (rmw G).
-Notation "'data'" := (data G).
-Notation "'addr'" := (addr G).
-Notation "'ctrl'" := (ctrl G).
-Notation "'rmw_dep'" := (rmw_dep G).
-Notation "'rf'" := (rf G).
-Notation "'co'" := (co G).
-Notation "'W'" := (is_w lab).
-Notation "'R'" := (is_r lab).
-Notation "'F'" := (is_f lab).
-Notation "'sc'" := (WCore.sc X).
 
 Lemma enumd_diff_listless
     (WF : WCore.wf X X' cmt)
@@ -825,6 +829,6 @@ Lemma sub_to_full_exec_listless
 Proof using.
   destruct enumd_diff_listless as (l & ENUM); eauto.
   apply sub_to_full_exec with l; ins.
-Qed.
+Admitted.
 
-End SubToFullExecListles.
+End SubToFullExec.
