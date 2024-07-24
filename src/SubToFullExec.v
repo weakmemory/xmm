@@ -677,18 +677,31 @@ Proof using.
   induction l as [ | h t IHl]; ins.
   { arewrite (X = X'); [| apply rt_refl].
     admit. }
+  assert (HINE : E' h) by (apply ENUM; ins; eauto).
+  assert (NINE : ~E h) by (apply ENUM; ins; eauto).
+  assert (HNINIT : ~is_init h).
+  { apply (SubToFullExecInternal.diff_no_init PFX ENUM).
+    basic_solver. }
+  assert (HMAX : sb' ⨾ ⦗eq h⦘ ⊆ ⦗E⦘ ⨾ sb' ⨾ ⦗eq h⦘).
+  { arewrite (sb' ⨾ ⦗eq h⦘ ⊆ ⦗E ∪₁ set_compl E⦘ ⨾ sb' ⨾ ⦗eq h⦘) at 1.
+    { rewrite set_compl_union_id. basic_solver. }
+    rewrite id_union, seq_union_l. apply inclusion_union_l; ins.
+    arewrite (⦗set_compl E⦘ ⨾ sb' ⨾ ⦗eq h⦘ ⊆ ∅₂); [| basic_solver].
+    intros x y HREL. eapply list_min_elt with (b := x); [apply ENUM |].
+    apply (SubToFullExecInternal.diff_sb ENUM).
+    unfold sb in *. unfolder. unfolder in HREL. desf. }
   assert (STEP : WCore.guided_step cmt X' X (delta_X h)).
   { exists h, (lab' h).
     apply SubToFullExecInternal.delta_guided_add_step; ins.
-    all: admit. }
+    { sin_rewrite (prf_sb PFX). unfold sb. basic_solver. }
+    admit. }
   assert (NDELTA : forall x (NDELTA : ~delta_E h x), ~E x).
   { unfold SubToFullExecInternal.delta_E. unfolder.
     repeat intros; eauto. }
   eapply rt_trans; [apply rt_step; eauto |].
   apply IHl.
   { red in STEP; desf; apply STEP. }
-  { apply SubToFullExecInternal.delta_G_prefix; ins.
-    all: admit. }
+  { apply SubToFullExecInternal.delta_G_prefix; ins. }
   constructor; ins.
   { eapply nodup_consD, ENUM. }
   { arewrite ((fun x => In x t) ≡₁ (fun x => In x (h :: t)) \₁ eq h).
