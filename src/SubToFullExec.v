@@ -428,7 +428,7 @@ Proof using.
   apply set_subset_union_l in SUBE. desf.
 Qed.
 
-Lemma dealta_G_wf
+Lemma delta_G_wf
     (INE : E' e)
     (NOTINE : ~ E e)
     (NINIT : ~ is_init e)
@@ -518,13 +518,17 @@ Lemma delta_guided_add_step
     (PFX : prefix X X')
     (EMAX1 : ⦗eq e⦘ ⨾ sb' ⨾ ⦗E⦘ ⊆ ∅₂)
     (EMAX2 : sb' ⨾ ⦗eq e⦘ ⊆ ⦗E⦘ ⨾ sb' ⨾ ⦗eq e⦘)
+    (NDATA : data' ⊆ ∅₂)
+    (NADDR : addr' ⊆ ∅₂)
+    (NCTRL : ctrl' ⊆ ∅₂)
+    (NRMWDEP : rmw_dep' ⊆ ∅₂)
     (RF : R' ∩₁ eq e ⊆₁ codom_rel (⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘) ∪₁ cmt) :
   WCore.guided_step_gen cmt X' X delta_X e (lab' e).
 Proof using.
   constructor; ins.
   { apply delta_add_event; ins. }
   constructor; ins.
-  { admit. }
+  { apply delta_G_wf; ins. }
   { admit. }
   { apply XWF. }
   { unfold delta_E. rewrite set_inter_union_l.
