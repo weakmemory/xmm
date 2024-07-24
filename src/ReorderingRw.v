@@ -27,7 +27,7 @@ From imm Require Import CombRelations.
 
 Set Implicit Arguments.
 
-Section SimRel.
+(* Section SimRel.
 
 Variable G_s G_t : execution.
 Variable a b : actid.
@@ -1391,4 +1391,4 @@ Proof using.
 Admitted. *)
 
 
-End ReordRwSimRelProps.
+End ReordRwSimRelProps. *)

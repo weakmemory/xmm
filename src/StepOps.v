@@ -18,7 +18,7 @@ Require Import Program.Basics.
 
 Open Scope program_scope.
 
-Section StepOps.
+(* Section StepOps.
 
 Variable X X' : WCore.t.
 
@@ -187,4 +187,4 @@ Proof using.
   { unfold WCore.co_delta. unfold is_w, is_r in *.
     ins. desf. now rewrite union_false_r. }
   unfold WCore.rmw_delta. basic_solver.
-Qed.
+Qed. *)

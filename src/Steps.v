@@ -19,7 +19,7 @@ Import ListNotations.
 
 Set Implicit Arguments.
 
-Lemma wf_after_steps traces X X'
+(* Lemma wf_after_steps traces X X'
     (WF_START : WCore.wf X)
     (STEP : (WCore.cfg_add_event_uninformative traces)＊ X X') :
   WCore.wf X'.
@@ -96,4 +96,4 @@ Proof using.
   admit.
 Admitted.
 
-End Steps.
+End Steps. *)

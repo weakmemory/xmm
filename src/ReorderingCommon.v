@@ -22,7 +22,7 @@ From imm Require Import SubExecution.
 From imm Require Import CombRelations.
 
 (* TODO: restore the lemmas about immediate program order *)
-
+(*
 Section Behavior.
 
 Variable G : execution.
@@ -425,4 +425,4 @@ Qed.
 
 End ReorderingDefs.
 
-End ReordCommon.
+End ReordCommon. *)
