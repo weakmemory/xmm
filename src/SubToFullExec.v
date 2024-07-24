@@ -594,7 +594,7 @@ Record enumd_diff (l : list actid) : Prop := {
   diff_elems : E' \₁ E ≡₁ fun x => In x l;
   diff_sb : restr_rel (E' \₁ E) sb' ⊆ total_order_from_list l;
   diff_rf : restr_rel (E' \₁ E) (rf' ⨾ ⦗E' \₁ cmt⦘) ⊆ total_order_from_list l;
-  diff_rf_d : (E' \₁ E) ∩₁ R ⊆₁ codom_rel rf';
+  diff_rf_d : (E' \₁ E) ∩₁ R' ⊆₁ codom_rel rf';
 }.
 
 Lemma enumd_elems_inter l
@@ -694,52 +694,40 @@ Notation "'R'" := (is_r lab).
 Notation "'F'" := (is_f lab).
 Notation "'sc'" := (WCore.sc X).
 
+Notation "'delta_X'" := (SubToFullExecInternal.delta_X X X').
+Notation "'delta_E'" := (SubToFullExecInternal.delta_E X).
+
 Lemma sub_to_full_exec_end_wf l
-    (WF : WCore.wf X X' cmt)
+    (PFX : SubToFullExecInternal.prefix X X')
+    (SCWF : imm_s.wf_sc G' sc')
+    (WF : Wf G')
+    (XWF : WCore.wf X X' cmt)
     (ENUM : SubToFullExecInternal.enumd_diff X X' cmt l) :
   WCore.wf X' X' cmt.
 Proof using.
-  admit.
-  (* assert (SUB : sub_execution G' G ∅₂ ∅₂).
-  { apply WF. }
-  assert (EQLAB : lab G' = lab G).
-  { symmetry. apply SUB. }
-  assert (WF_G' : Wf G').
-  { apply WF. }
-  split.
-  { constructor; ins.
-    all: try now apply WF.
-    basic_solver. }
   constructor; ins.
-  all: try now apply WF.
-  { constructor; ins.
-    all: try now apply WF_G'.
-    { now apply wf_rmwE. }
-    { now apply wf_dataE. }
-    { now apply wf_addrE. }
-    { now apply wf_ctrlE. }
-    { now apply wf_rmw_depE. }
+  { apply XWF. }
+  arewrite (E' ≡₁ E' \₁ E ∪₁ E).
+  { apply set_union_minus, PFX. }
+  rewrite set_inter_union_l. apply set_subset_union_l.
+  split.
+  { rewrite (SubToFullExecInternal.diff_rf_d ENUM).
     basic_solver. }
-  { basic_solver. }
-  { basic_solver. }
-  { intros x (INE' & IS_R).
-    destruct (classic (acts_set G x)) as [INE|NINE].
-    { apply set_subset_single_l.
-      transitivity (codom_rel (rf G) ∪₁ cmt).
-      { apply set_subset_eq, WF. split; ins.
-        now rewrite <- EQLAB. }
-      rewrite (sub_rf SUB). basic_solver. }
-    destruct (classic (cmt x)) as [CMT|NCMT].
-    { now right. }
-    left. apply (SubToFullExecInternal.diff_rf_d ENUM).
-    unfolder; splits; ins.
-    now rewrite <- EQLAB. }
-  rewrite EQLAB. apply WF. *)
-Admitted.
+  arewrite (E ∩₁ R' ⊆₁ E ∩₁ R).
+  { unfold is_r. unfolder.
+    intros x (XIN & XISR). split; ins.
+    rewrite (SubToFullExecInternal.prf_lab PFX); ins.
+    basic_solver. }
+  rewrite (WCore.wf_sub_rfD XWF),
+          (SubToFullExecInternal.prf_rf PFX).
+  basic_solver.
+Qed.
 
 Lemma sub_to_full_exec l
     (WF : Wf (WCore.G X'))
     (XWF : WCore.wf X X' cmt)
+    (PFX : SubToFullExecInternal.prefix X X')
+    (SCWF : imm_s.wf_sc G' sc')
     (NDATA : data' ⊆ ∅₂)
     (NADDR : addr' ⊆ ∅₂)
     (NCTRL : ctrl' ⊆ ∅₂)
@@ -748,25 +736,50 @@ Lemma sub_to_full_exec l
   (WCore.guided_step cmt X')＊ X X'.
 Proof using.
   assert (WF' : WCore.wf X' X' cmt).
-  { eauto using sub_to_full_exec_end_wf. }
-  generalize X XWF ENUM.
-  clear      X XWF ENUM.
+  { apply sub_to_full_exec_end_wf with l; ins. }
+  generalize X XWF PFX ENUM.
+  clear      X XWF PFX ENUM.
   induction l as [ | h t IHl]; ins.
   { arewrite (X = X'); [| apply rt_refl].
     admit. }
-  set (delta_X := SubToFullExecInternal.delta_X X X' h).
-  assert (STEP : WCore.guided_step cmt X' X delta_X).
+  assert (STEP : WCore.guided_step cmt X' X (delta_X h)).
   { exists h, (lab' h).
     apply SubToFullExecInternal.delta_guided_add_step; ins.
     all: admit. }
-  eapply rt_trans; [apply rt_step; eauto | ].
-  apply IHl; [red in STEP; desf; apply STEP |].
+  assert (NDELTA : forall x (NDELTA : ~delta_E h x), ~E x).
+  { unfold SubToFullExecInternal.delta_E. unfolder.
+    repeat intros; eauto. }
+  eapply rt_trans; [apply rt_step; eauto |].
+  apply IHl.
+  { red in STEP; desf; apply STEP. }
+  { apply SubToFullExecInternal.delta_G_prefix; ins.
+    all: admit. }
   constructor; ins.
   { eapply nodup_consD, ENUM. }
-  { admit. }
-  { admit. }
-  { admit. }
-  admit.
+  { arewrite ((fun x => In x t) ≡₁ (fun x => In x (h :: t)) \₁ eq h).
+    { split; [| basic_solver].
+      unfolder; ins. split; eauto.
+      apply nodup_not_in with (t := t); ins.
+      apply ENUM. }
+    unfold SubToFullExecInternal.delta_E.
+    now rewrite <- (SubToFullExecInternal.diff_elems ENUM),
+            set_minus_minus_l. }
+  { unfold SubToFullExecInternal.delta_E.
+    rewrite set_minus_union_r. intros x y SB.
+    assert (LT : total_order_from_list (h :: t) x y).
+    { eapply SubToFullExecInternal.diff_sb; eauto.
+      red. splits; apply SB. }
+    apply total_order_from_list_cons in LT; desf.
+    unfolder in SB. desf. }
+  { unfold SubToFullExecInternal.delta_E.
+    rewrite set_minus_union_r. intros x y RF.
+    assert (LT : total_order_from_list (h :: t) x y).
+    { eapply SubToFullExecInternal.diff_rf; eauto.
+      red. splits; apply RF. }
+    apply total_order_from_list_cons in LT; desf.
+    unfolder in RF. desf. }
+  rewrite <- (SubToFullExecInternal.diff_rf_d ENUM).
+  basic_solver.
 Admitted.
 
 Lemma enumd_diff_listless
@@ -777,36 +790,16 @@ Lemma enumd_diff_listless
   exists l,
     SubToFullExecInternal.enumd_diff X X' cmt l.
 Proof using.
-  (* assert (FULL_SUB : restr_rel (E' \₁ E)
-                               (rf' ⨾ ⦗E' \₁ cmt⦘)
-                     ⊆ tid ↓ thrdle⁺ ∪ sb').
-  { arewrite (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘ ≡
-              (rf G' ⨾ ⦗acts_set G' \₁ cmt⦘) ∩ ⊤₂).
-    { basic_solver. }
-    arewrite (⊤₂ ≡ compl_rel same_tid ∪ same_tid).
-    { split; [| basic_solver].
-      rewrite unionC. unfolder; eauto using classic. }
-    rewrite inter_union_r, restr_union, ORDRF,
-            !restr_inter, !inter_restr_absorb_r,
-            ORDRFI.
-    basic_solver. }
   apply set_finiteE in FIN. destruct FIN as (l' & NODUP & EQ).
   destruct partial_order_included_in_total_order
-    with actid (tid ↓ thrdle⁺ ∪ sb G')
+    with actid (sb' ∪ tid ↓ thrdle)
     as (tord & SUB & TOT).
   { red. split.
-    { apply irreflexive_union; split; [| apply sb_irr].
-      unfolder. ins. eapply ACYC; eauto. }
+    { apply irreflexive_union; split; [apply sb_irr |].
+      unfolder. ins. eapply STAB; eauto. }
     unfolder. intros x y z R1 R2. desf.
-    { left. eapply t_trans; eauto. }
-    { unfold sb, ext_sb in *. unfolder in R1.
-      all: ins; do 2 desf; eauto. }
-    { unfold sb, ext_sb in *. unfolder in R2.
-      all: ins; do 2 desf; eauto.
-      left. apply wmin_elt_t in MININIT.
-      ins. apply MININIT in R1. rewrite <- R1.
-      basic_solver. }
-    right. now apply sb_trans with y. }
+    { left. now apply sb_trans with y. }
+    all: admit. }
   exists (isort tord l'). constructor; ins.
   { apply NoDup_StronglySorted with tord.
     { apply TOT. }
@@ -816,19 +809,26 @@ Proof using.
   { rewrite total_order_from_isort, <- EQ, <- SUB; ins.
     basic_solver. }
   { rewrite total_order_from_isort, <- EQ, <- SUB; ins.
-    rewrite <- FULL_SUB. basic_solver. }
-  rewrite <- RFCO. basic_solver. *)
+    now rewrite (WCore.surg_uncmt STAB). }
+  transitivity (E' ∩₁ R'); [basic_solver | apply RFCO].
 Admitted.
 
 Lemma sub_to_full_exec_listless
-    (WF : WCore.wf X X' cmt)
+    (XWF : WCore.wf X X' cmt)
     (RFCO : rf_complete G')
     (FIN : set_finite (E' \₁ E))
+    (PFX : SubToFullExecInternal.prefix X X')
+    (WF : Wf G')
+    (SCWF : imm_s.wf_sc G' sc')
+    (NDATA : data' ⊆ ∅₂)
+    (NADDR : addr' ⊆ ∅₂)
+    (NCTRL : ctrl' ⊆ ∅₂)
+    (NRMWDEP : rmw_dep' ⊆ ∅₂)
     (STAB : WCore.stable_uncmt_reads_gen X' cmt thrdle) :
   (WCore.guided_step cmt X')＊ X X'.
 Proof using.
   destruct enumd_diff_listless as (l & ENUM); eauto.
   apply sub_to_full_exec with l; ins.
-Admitted.
+Qed.
 
 End SubToFullExec.
