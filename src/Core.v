@@ -95,6 +95,61 @@ Record is_cons : Prop := {
 
 End Consistency.
 
+Section RestrEq.
+
+Variable X X' : t.
+Variable s : actid -> Prop.
+
+Notation "'G''" := (G X').
+Notation "'E''" := (acts_set G').
+Notation "'threads_set''" := (threads_set G').
+Notation "'lab''" := (lab G').
+Notation "'sb''" := (sb G').
+Notation "'rf''" := (rf G').
+Notation "'co''" := (co G').
+Notation "'rmw''" := (rmw G').
+Notation "'data''" := (data G').
+Notation "'addr''" := (addr G').
+Notation "'ctrl''" := (ctrl G').
+Notation "'rmw_dep''" := (rmw_dep G').
+
+Notation "'G'" := (G X).
+Notation "'E'" := (acts_set G).
+Notation "'threads_set'" := (threads_set G).
+Notation "'lab'" := (lab G).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'rmw'" := (rmw G).
+Notation "'data'" := (data G).
+Notation "'addr'" := (addr G).
+Notation "'ctrl'" := (ctrl G).
+Notation "'rmw_dep'" := (rmw_dep G).
+Notation "'R'" := (is_r lab).
+Notation "'sc'" := (sc X).
+
+Record exec_restr_eq : Prop := {
+  ereq_acts : E ∩₁ s ≡₁ E' ∩₁ s;
+  ereq_threads : threads_set ≡₁ threads_set';
+  ereq_lab : eq_dom s lab lab';
+  ereq_rf : restr_rel s rf ≡ restr_rel s rf';
+  ereq_co : restr_rel s co ≡ restr_rel s co';
+  ereq_rmw : restr_rel s rmw ≡ restr_rel s rmw';
+  ereq_data : restr_rel s data ≡ restr_rel s data';
+  ereq_ctrl : restr_rel s ctrl ≡ restr_rel s ctrl';
+  ereq_rmw_dep : restr_rel s rmw_dep ≡ restr_rel s rmw_dep';
+}.
+
+Lemma ereq_sb
+    (EREQ : exec_restr_eq) :
+  restr_rel s sb ≡ restr_rel s sb'.
+Proof using.
+  unfold sb. rewrite <- !restr_relE, !restr_restr.
+  now rewrite (ereq_acts EREQ).
+Qed.
+
+End RestrEq.
+
 Section Wf.
 
 Variable X X' : t.
@@ -128,29 +183,9 @@ Notation "'rmw_dep'" := (rmw_dep G).
 Notation "'R'" := (is_r lab).
 Notation "'sc'" := (sc X).
 
-Record exec_restr_eq : Prop := {
-  ereq_acts : E ∩₁ cmt ≡₁ E' ∩₁ cmt;
-  ereq_threads : threads_set ≡₁ threads_set';
-  ereq_lab : eq_dom cmt lab lab';
-  ereq_rf : restr_rel cmt rf ≡ restr_rel cmt rf';
-  ereq_co : restr_rel cmt co ≡ restr_rel cmt co';
-  ereq_rmw : restr_rel cmt rmw ≡ restr_rel cmt rmw';
-  ereq_data : restr_rel cmt data ≡ restr_rel cmt data';
-  ereq_ctrl : restr_rel cmt ctrl ≡ restr_rel cmt ctrl';
-  ereq_rmw_dep : restr_rel cmt rmw_dep ≡ restr_rel cmt rmw_dep';
-}.
-
-Lemma ereq_sb
-    (EREQ : exec_restr_eq) :
-  restr_rel cmt sb ≡ restr_rel cmt sb'.
-Proof using.
-  unfold sb. rewrite <- !restr_relE, !restr_restr.
-  now rewrite (ereq_acts EREQ).
-Qed.
-
 Record wf := {
   wf_g : Wf G;
-  wf_ereq : exec_restr_eq;
+  wf_ereq : exec_restr_eq X X' cmt;
   wf_rfc : rf_complete (restrict G' cmt);
   wf_sub_rfD : E ∩₁ R ⊆₁ codom_rel rf ∪₁ cmt;
   wf_sc : wf_sc G sc;
