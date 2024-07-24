@@ -441,71 +441,7 @@ Lemma delta_G_wf
     (WF : Wf G') :
   Wf delta_G.
 Proof using.
-  assert (SUBE : delta_E ⊆₁ E').
-  { unfold delta_E. apply set_subset_union_l.
-    split; [apply PFX | basic_solver]. }
-  constructor.
-  { intros a b (INA & INB & NEQ & TID & ANINI).
-    ins. apply WF. splits; ins.
-    all: basic_solver. }
-  all: ins.
-  { rewrite NDATA. basic_solver. }
-  { split; rewrite NDATA at 1; basic_solver. }
-  { rewrite NADDR. basic_solver. }
-  { split; rewrite NADDR at 1; basic_solver. }
-  { rewrite NCTRL. basic_solver. }
-  { split; rewrite NCTRL at 1; basic_solver. }
-  { rewrite NCTRL at 1. basic_solver. }
-  { rewrite (wf_rmwD WF) at 1. rewrite !restr_relE, !seqA.
-    seq_rewrite <- !id_inter.
-    rewrite !set_interC with (s := delta_E).
-    rewrite delta_lab_is_r, delta_lab_is_w; ins. }
-  { transitivity (restr_rel delta_E (same_loc delta_lab)); [| basic_solver].
-    rewrite <- pfx_same_loc'; ins.
-    apply restr_rel_mori; ins. apply WF. }
-  { transitivity (restr_rel delta_E (immediate sb')).
-    { apply restr_rel_mori; ins. apply WF. }
-    admit. }
-  { rewrite !restr_relE, !seqA. seq_rewrite <- !id_inter.
-    now rewrite !set_interK. }
-  { rewrite (wf_rfD WF) at 1. rewrite !restr_relE, !seqA.
-    seq_rewrite <- !id_inter.
-    rewrite !set_interC with (s := delta_E).
-    rewrite delta_lab_is_r, delta_lab_is_w; ins. }
-  { transitivity (restr_rel delta_E (same_loc delta_lab)); [| basic_solver].
-    rewrite <- pfx_same_loc'; ins.
-    apply restr_rel_mori; ins. apply WF. }
-  { admit. }
-  { rewrite <- restr_transp. apply functional_restr.
-    apply WF. }
-  { rewrite !restr_relE, !seqA. seq_rewrite <- !id_inter.
-    now rewrite !set_interK. }
-  { rewrite (wf_coD WF) at 1. rewrite !restr_relE, !seqA.
-    seq_rewrite <- !id_inter.
-    rewrite !set_interC with (s := delta_E).
-    rewrite delta_lab_is_w; ins. }
-  { transitivity (restr_rel delta_E (same_loc delta_lab)); [| basic_solver].
-    rewrite <- pfx_same_loc'; ins.
-    apply restr_rel_mori; ins. apply WF. }
-  { apply transitive_restr, WF. }
-  { admit. }
-  { apply irreflexive_restr, WF. }
-  { match goal with
-    | [ HEE : exists b, _ /\ loc delta_lab b = Some _  |- _] =>
-        rename HEE into EE
-    | _ => fail "bruh"
-    end.
-    left. apply (prf_init PFX). split; ins.
-    apply WF. destruct EE as (b & BIN & BLOC).
-    exists b. split; [basic_solver |].
-    unfold loc. rewrite <- delta_eq_lab; ins. basic_solver. }
-  { rewrite (prf_lab (delta_G_prefix INE NOTINE NINIT EMAX PFX)).
-    { apply WF. }
-    basic_solver. }
-  { rewrite NRMWDEP. basic_solver. }
-  { split; rewrite NRMWDEP at 1; basic_solver. }
-  apply (prf_threads PFX).
-  apply WF, SUBE, EE.
+  admit.
 Admitted.
 
 
