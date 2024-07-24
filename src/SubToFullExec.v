@@ -767,26 +767,12 @@ Notation "'sc'" := (WCore.sc X).
 
 Lemma enumd_diff_listless
     (WF : WCore.wf X X' cmt)
-    (ACYC : acyclic thrdle)
-    (RFCO : E' ∩₁ R ⊆₁ codom_rel rf')
-    (INITLEAST : least_elt thrdle tid_init)
-    (MININIT : wmin_elt thrdle tid_init)
-    (ORDRF : (rf' ⨾ ⦗E' \₁ cmt⦘) ∩ compl_rel same_tid
-            ⊆ tid ↓ thrdle)
-    (ORDRFI :
-      restr_rel (E' \₁E) (
-          (rf' ⨾ ⦗E' \₁ cmt⦘)
-      ) ∩ same_tid ⊆ sb') :
+    (RFCO : rf_complete G')
+    (FIN : set_finite (E' \₁ E))
+    (STAB : WCore.stable_uncmt_reads_gen X' cmt thrdle) :
   exists l,
     SubToFullExecInternal.enumd_diff X X' cmt l.
 Proof using.
-  assert (FIN : set_finite (E' \₁ E)).
-  { admit.
-    (* arewrite (acts_set G' \₁ acts_set G ⊆₁ acts_set G' \₁ is_init).
-    all: try now apply (WCore.wf_gc_fin_exec WF).
-    unfolder. intros x (INE' & NINE). split; ins.
-    intro INI. apply NINE, (WCore.wf_g_init WF); ins.  *)
-    }
   (* assert (FULL_SUB : restr_rel (E' \₁ E)
                                (rf' ⨾ ⦗E' \₁ cmt⦘)
                      ⊆ tid ↓ thrdle⁺ ∪ sb').
@@ -832,18 +818,13 @@ Admitted.
 
 Lemma sub_to_full_exec_listless
     (WF : WCore.wf X X' cmt)
-    (STABLE : WCore.stable_uncmt_reads_gen X' cmt thrdle)
-    (RFCO : E' ∩₁ R ⊆₁ codom_rel rf')
-    (ORDRFI :
-      restr_rel (E' \₁ E) (
-          (rf' ⨾ ⦗E' \₁ cmt⦘)
-      ) ∩ same_tid ⊆ sb') :
+    (RFCO : rf_complete G')
+    (FIN : set_finite (E' \₁ E))
+    (STAB : WCore.stable_uncmt_reads_gen X' cmt thrdle) :
   (WCore.guided_step cmt X')＊ X X'.
 Proof using.
-  (* destruct (enumd_diff_listless) with sc G G' cmt thrdle
-                                 as (l & ENUM).
-  all: ins; try now apply STABLE.
-  apply sub_to_full_exec with l; ins. *)
-Admitted.
+  destruct enumd_diff_listless as (l & ENUM); eauto.
+  apply sub_to_full_exec with l; ins.
+Qed.
 
 End SubToFullExecListles.
