@@ -63,6 +63,7 @@ Record prefix : Prop := {
   prf_acts : E ⊆₁ E';
   prf_threads : threads_set ≡₁ threads_set';
   prf_lab : eq_dom (is_init ∪₁ E) lab lab';
+  prf_lab_extra : eq_dom (set_compl E') lab lab';
   prf_rf : rf ≡ restr_rel E rf';
   prf_co : co ≡ restr_rel E co';
   prf_rmw : rmw ≡ restr_rel E rmw';
@@ -73,6 +74,42 @@ Record prefix : Prop := {
   prf_sc : sc ≡ restr_rel E sc';
   prf_sb : sb' ⨾ ⦗E⦘ ⊆ sb
 }.
+
+Lemma prefix_full_G
+    (WF : Wf G')
+    (PFX : prefix)
+    (FULL : E ≡₁ E') :
+  G = G'.
+Proof using.
+  apply exeeqv_eq. constructor; ins.
+  { apply PFX. }
+  { apply eq_dom_full_eq. rewrite set_full_split with (S := E').
+    apply eq_dom_union. split; [| apply PFX].
+    rewrite <- FULL. eapply eq_dom_mori, PFX.
+    all: ins.
+    unfold flip. basic_solver. }
+  { symmetry. rewrite (prf_rmw PFX), FULL, restr_relE.
+    apply (wf_rmwE WF). }
+  { apply (prf_data PFX). }
+  { apply (prf_addr PFX). }
+  { apply (prf_ctrl PFX). }
+  { apply (prf_rmw_dep PFX). }
+  { symmetry. rewrite (prf_rf PFX), FULL, restr_relE.
+    apply (wf_rfE WF). }
+  symmetry. rewrite (prf_co PFX), FULL, restr_relE.
+  apply (wf_coE WF).
+Qed.
+
+Lemma prefix_full_sc
+    (WF : imm_s.wf_sc G' sc')
+    (PFX : prefix)
+    (FULL : E ≡₁ E') :
+  sc = sc'.
+Proof using.
+  apply rel_extensionality.
+  rewrite (prf_sc PFX), restr_relE, FULL.
+  symmetry. apply WF.
+Qed.
 
 End Prefix.
 
@@ -416,6 +453,8 @@ Proof using.
     unfolder; split; [| now ins; desf; rupd].
     intros x XIN. rupd; [| desf; congruence].
     apply PFX. now unfolder. }
+  { unfolder. intros x XIN. rupd; [| congruence].
+    now apply (prf_lab_extra PFX). }
   rewrite id_union, seq_union_r at 1.
   apply inclusion_union_l.
   { rewrite (prf_sb PFX). unfold sb; ins.
@@ -562,30 +601,6 @@ Proof.
   apply NOTINE, (prf_init PFX). basic_solver.
 Qed.
 
-Lemma enum_diff_done
-    (WF : Wf G')
-    (PFX : prefix X X')
-    (DONE : enumd_diff []) :
-  G = G'.
-Proof using.
-  assert (EQE : E ≡₁ E').
-  { split; [apply PFX |].
-    apply set_subsetE, DONE. }
-  apply exeeqv_eq. constructor; ins.
-  { apply PFX. }
-  { admit. (* TODO *) }
-  { symmetry. rewrite (prf_rmw PFX), EQE, restr_relE.
-    apply (wf_rmwE WF). }
-  { apply (prf_data PFX). }
-  { apply (prf_addr PFX). }
-  { apply (prf_ctrl PFX). }
-  { apply (prf_rmw_dep PFX). }
-  { symmetry. rewrite (prf_rf PFX), EQE, restr_relE.
-    apply (wf_rfE WF). }
-  symmetry. rewrite (prf_co PFX), EQE, restr_relE.
-  apply (wf_coE WF).
-Admitted.
-
 End EnumeratedDifference.
 
 End SubToFullExecInternal.
@@ -676,8 +691,16 @@ Proof using.
   generalize X XWF PFX ENUM.
   clear      X XWF PFX ENUM.
   induction l as [ | h t IHl]; ins.
-  { arewrite (X = X'); [| apply rt_refl].
-    admit. }
+  { assert (FULL : E ≡₁ E').
+    { rewrite set_union_minus with (s := E') (s' := E)
+           by apply PFX.
+      rewrite (SubToFullExecInternal.diff_elems ENUM).
+      basic_solver. }
+    arewrite (X = X'); [| apply rt_refl].
+    arewrite (X = {| WCore.G := G; WCore.sc := sc; |}); [destruct X; ins |].
+    arewrite (X' = {| WCore.G := G'; WCore.sc := sc'; |}); [destruct X'; ins |].
+    rewrite prefix_full_G with (X' := X'); ins.
+    rewrite prefix_full_sc with (X' := X'); ins. }
   assert (HINE : E' h) by (apply ENUM; ins; eauto).
   assert (NINE : ~E h) by (apply ENUM; ins; eauto).
   assert (HNINIT : ~is_init h).
@@ -738,7 +761,7 @@ Proof using.
     unfolder in RF. desf. }
   rewrite <- (SubToFullExecInternal.diff_rf_d ENUM).
   basic_solver.
-Admitted.
+Qed.
 
 Lemma enumd_diff_listless
     (WF : WCore.wf X X' cmt)
