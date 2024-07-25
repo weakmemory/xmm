@@ -559,7 +559,7 @@ Lemma diff_no_init l
 Proof.
   unfolder. intros x [INE' NOTINE] INIT.
   apply NOTINE, (prf_init PFX). basic_solver.
-Qed.
+Q.ed
 
 Lemma enum_diff_done
     (WF : Wf G')

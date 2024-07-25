@@ -75,8 +75,7 @@ Definition cfg_mapped f lab' : WCore.t := {|
 Lemma cfg_upd_lab_wf_props e l
     (ENINIT : ~is_init e)
     (U2V : same_label_u2v (labC e) l)
-    (NRFR : ~codom_rel rfC e)
-    (NRFL : ~dom_rel rfC e)
+    (VAL_WF : funeq (@val _ (upd labC e l)) rfC)
     (WF : WCore.wf_props X) :
   WCore.wf_props (cfg_upd_lab e l).
 Proof using.
@@ -102,8 +101,7 @@ Qed.
 Lemma cfg_upd_lab_wf e l
     (ENINIT : ~is_init e)
     (U2V : same_label_u2v (labC e) l)
-    (NRFR : ~codom_rel rfC e)
-    (NRFL : ~dom_rel rfC e)
+    (VAL_WF : funeq (@val _ (upd labC e l)) rfC)
     (WF : WCore.wf X) :
   WCore.wf (cfg_upd_lab e l).
 Proof using.

@@ -127,11 +127,33 @@ Proof using RSRW_ACTIDS.
   unfold is_w, is_r in *. desf.
 Qed.
 
+Lemma rsrw_mapper_inj : inj_dom ⊤₁ mapper.
+Proof using RSRW_ACTIDS.
+  eauto using ReordCommon.mapper_inj, rsrw_a_neq_b.
+Qed.
+
+Lemma rsrw_mapper_surj : surj_dom ⊤₁ mapper.
+Proof using RSRW_ACTIDS.
+  eauto using ReordCommon.mapper_surj, rsrw_a_neq_b.
+Qed.
+
 Lemma rsrw_tid_a_tid_b : tid a = tid b.
 Proof using RSRW_ACTIDS.
   destruct RSRW_ACTIDS. unfolder in rsrw_a_b_ord0.
   unfold ext_sb, is_init in *. desf.
   ins. desf.
+Qed.
+
+Lemma rsrw_lab_a_eq_lab_b (BIN : E_t b) :
+  lab_s a = lab_t b.
+Proof using RSRW_ACTIDS.
+  transitivity ((lab_t ∘ mapper) a).
+  { apply same_label_u2v_val.
+    all: unfold compose, val; ins.
+    all: rewrite ReordCommon.mapper_eq_a.
+    all: now apply RSRW_ACTIDS. }
+  unfold compose.
+  now rewrite ReordCommon.mapper_eq_a.
 Qed.
 
 Lemma rsrw_struct_same_lab
@@ -141,10 +163,11 @@ Proof using RSRW_ACTIDS.
   apply functional_extensionality. intro x.
   tertium_non_datur (x = a) as [HEQ|NEQ]; subst; rupd; ins.
   apply same_label_u2v_val.
-  { rewrite <- Combinators.compose_id_right with (f := lab_s),
-            <- ReordCommon.mapper_mapper_compose with (a := a) (b := b),
-            <- Combinators.compose_assoc; auto using rsrw_a_neq_b.
-    apply same_lab_u2v_compose; ins. apply STRUCT. }
+  { rewrite <- ReordCommon.mapper_mapper_compose'
+      with (a := a) (b := b) (f := lab_s).
+    all: auto using rsrw_a_neq_b.
+    apply same_lab_u2v_compose; ins.
+    apply STRUCT. }
   unfold val, compose.
   destruct ReordCommon.mapper_surj with (y := x) (a := a) (b := b)
           as [y HEQ].
