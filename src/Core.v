@@ -199,6 +199,7 @@ Variable sc sc' : relation actid.
 Variable X X' : t.
 Variable e : actid.
 Variable l : label.
+Variable cmt : actid -> Prop.
 
 Notation "'G''" := (G X').
 Notation "'G'" := (G X).
@@ -301,6 +302,79 @@ Record add_event_gen r R1 w W1 W2 : Prop := {
 
 Definition add_event :=
   exists r R1 w W1 W2, add_event_gen r R1 w W1 W2.
+
+Lemma add_event_wf r R1 w W1 W2
+  (ADD : add_event_gen r R1 w W1 W2)
+  (WF : Wf (WCore.G X)) :
+  Wf (WCore.G X').
+Proof using.
+  destruct WF. destruct ADD.
+  constructor; ins. 
+  { admit. }
+  { rewrite add_event_data0. rewrite add_event_sb0.
+    basic_solver. }
+  { rewrite add_event_data0. 
+    rewrite wf_dataD. do 2 rewrite seqA. 
+    rewrite -> seq_eqv. rewrite <- seqA with (r1 := ⦗fun a : actid => R' a⦘).
+    rewrite -> seq_eqv. rewrite add_event_lab0. (* q *) admit. }
+  { rewrite add_event_addr0. rewrite add_event_sb0.
+    basic_solver. }
+  { (* q *) admit. }
+  { rewrite add_event_ctrl0. rewrite add_event_sb0.
+    basic_solver. }
+  { (* q *) admit. }
+  { rewrite add_event_ctrl0. rewrite add_event_sb0.
+    rewrite seq_union_r. apply inclusion_union_l; eauto.
+    (* TODO : add emptyset *) admit. }
+  { (* q *) admit. }
+  { rewrite add_event_rmw0. (* is same_loc -- subset (same as q) *) admit. }
+  { rewrite add_event_rmw0. rewrite add_event_sb0.
+    apply inclusion_union_l.
+    (* { rewrite imm_union. } *)
+    { admit. }
+    admit. }
+  { rewrite add_event_rf0. admit. }
+  { rewrite add_event_rf0. (* q *) admit. }
+  { rewrite add_event_rf0. apply inclusion_union_l.
+    apply inclusion_union_l.
+    { rewrite wf_rfl. admit. }
+    { admit. }
+    admit. (* ??? *) }
+  { rewrite add_event_lab0. rewrite add_event_rf0.
+    apply funeq_union. apply funeq_union.
+    all : admit. }
+  { rewrite add_event_rf0. do 2 rewrite transp_union.
+    apply functional_union. apply functional_union.
+    { apply wf_rff. }
+    all : admit. }
+  { rewrite add_event_co0. rewrite add_event_acts0.
+    split; [| basic_solver]. apply inclusion_union_l.
+    { rewrite wf_coE. basic_solver. }
+    unfold co_delta. basic_solver 8. }
+  { rewrite add_event_co0. split; [| basic_solver].
+    apply inclusion_union_l.
+    { rewrite wf_coD. (* q *) admit. }
+    admit. }
+  { rewrite add_event_co0. apply inclusion_union_l.
+    { rewrite wf_col. admit. }
+    admit. }
+  { rewrite add_event_co0. admit. (* ??? *) }
+  { admit. }
+  { rewrite add_event_co0. apply irreflexive_union; split.
+    { apply co_irr. }
+    admit. }
+  { admit. }
+  { admit. }
+  { rewrite add_event_rmw_dep0. rewrite add_event_sb0.
+    basic_solver. }
+  { rewrite add_event_rmw_dep0. rewrite wf_rmw_depD.
+    admit. (* q *) }
+  apply add_event_threads0. destruct classic with (e0 = e).
+  { admit. (* ??? *) }
+  assert (E e0) as EE0.
+  { apply add_event_acts0 in EE. destruct EE; basic_solver 8. }
+  apply wf_threads; eauto.
+Admitted.
 
 End AddEvent.
 
