@@ -233,6 +233,17 @@ Proof using.
   intro F. apply INJ in F; ins.
 Qed.
 
+Lemma set_collect_diff (A B : Type) (f : A -> B) s s'
+    (INJ : inj_dom ⊤₁ f) :
+  f ↑₁ (s \₁ s') ≡₁ f ↑₁ s \₁ f ↑₁ s'.
+Proof using.
+  unfolder. split; intros x HSET; desf.
+  { split; eauto. intro F.
+    destruct F as (y' & HSET2 & FHEQ).
+    apply INJ in FHEQ; ins. subst. eauto. }
+  exists y; splits; eauto.
+Qed.
+
 Lemma set_collect_interE (A B : Type) (f : A -> B) s s'
     (INJ : inj_dom ⊤₁ f) :
   f ↑₁ (s ∩₁ s') ≡₁ f ↑₁ s ∩₁ f ↑₁ s'.
@@ -254,7 +265,7 @@ Qed.
 Lemma conjugate_sub {A} r (f : A -> option A)
     (m m' : A -> A)
     (MINJ : inj_dom ⊤₁ m)
-    (MSURJ : forall y, exists x, y = m x)
+    (MSURJ : surj_dom ⊤₁ m)
     (INV : m' ∘ m = id) :
   Some ↓ ((option_map m ∘ f ∘ m') ↑ (m ↑ r)) ⊆
     m ↑ (Some ↓ (f ↑ r)).
@@ -356,6 +367,34 @@ Proof using.
   unfolder in IMM. desc.
   destruct (TOTAL x X y Y NEQ).
   all: auto || exfalso; eauto.
+Qed.
+
+Lemma nsame_loc_nrmw G x y
+    (WF : Wf G)
+    (NLOC : ~same_loc (lab G) x y) :
+  ~rmw G x y.
+Proof using.
+  intro F. now apply (wf_rmwl WF) in F.
+Qed.
+
+Lemma rsrw_a_b_nrmw_dep G x y
+    (IS_W : is_w (lab G) x)
+    (WF : Wf G) :
+  ~rmw_dep G x y.
+Proof using.
+  intro F. apply (wf_rmw_depD WF) in F.
+  unfolder in F. destruct F as (IS_R & _ & _ ).
+  unfold is_r, is_w in *. desf.
+Qed.
+
+Lemma w_nrmwdep G y
+    (IS_W : is_w (lab G) y)
+    (WF : Wf G) :
+  ~codom_rel (rmw_dep G) y.
+Proof using.
+  intros [x F]. apply (wf_rmw_depD WF) in F.
+  unfolder in F. destruct F as (_ & _ & IS_R).
+  unfold R_ex, is_w in *. desf.
 Qed.
 
 Lemma new_event_plus e G G'

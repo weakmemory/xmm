@@ -13,6 +13,8 @@ Section ExecEqv.
 
 Variable G G' : execution.
 
+Set Implicit Arguments.
+
 Record exec_equiv : Prop := {
   exeeqv_acts : acts_set G ≡₁ acts_set G';
   exeeqv_threads : threads_set G ≡₁ threads_set G';
