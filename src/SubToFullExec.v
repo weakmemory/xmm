@@ -300,9 +300,8 @@ Proof using.
   assert (RMW : exists r,
     ⦗E⦘ ⨾ rmw' ⨾ ⦗eq e⦘ ≡ eq_opt r × eq e
   ).
-  { admit. }
-  (* { destruct (classic (⦗E⦘ ⨾ rmw' ⨾ ⦗eq e⦘ ≡ ∅₂)) as [EMPTY|NEN].
-    { now exists None. }
+  { destruct (classic (⦗E⦘ ⨾ rmw' ⨾ ⦗eq e⦘ ≡ ∅₂)) as [EMPTY|NEN].
+    { exists None. rewrite EMPTY. basic_solver. }
     assert (NEN' : ~dom_rel (⦗E⦘ ⨾ rmw' ⨾ ⦗eq e⦘) ≡₁ ∅).
     { intros EMP. apply NEN. split; [| basic_solver].
       intros x y HREL. eapply EMP with x. basic_solver. }
@@ -310,13 +309,12 @@ Proof using.
     exists (Some r). split; [| unfolder in *; ins; desf].
     unfolder. intros x y (HIN' & RMW & HEQ). subst y.
     split; ins. eapply (wf_rmwff WF); eauto.
-    unfold transp. unfolder in HIN. desf. } *)
+    unfold transp. unfolder in HIN. desf. }
   assert (RF : exists w,
     ⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘ ≡ eq_opt w × eq e
   ).
-  { admit. }
-  (* { destruct (classic (⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘ ≡ ∅₂)) as [EMPTY|NEN].
-    { now exists None. }
+  { destruct (classic (⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘ ≡ ∅₂)) as [EMPTY|NEN].
+    { exists None. rewrite EMPTY. basic_solver. }
     assert (NEN' : ~dom_rel (⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘) ≡₁ ∅).
     { intros EMP. apply NEN. split; [| basic_solver].
       intros x y HREL. eapply EMP with x. basic_solver. }
@@ -324,7 +322,7 @@ Proof using.
     exists (Some r). split; [| unfolder in *; ins; desf].
     unfolder. intros x y (HIN' & RF & HEQ). subst y.
     split; ins. eapply (wf_rff WF); eauto.
-    unfold transp. unfolder in HIN. desf. } *)
+    unfold transp. unfolder in HIN. desf. }
   (* The proof *)
   destruct RMW as (r & RMW), RF as (w & RF).
   exists r,
