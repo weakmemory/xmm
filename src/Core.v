@@ -247,7 +247,7 @@ Definition co_delta W1 W2 : relation actid :=
   (eq e ∩₁ W') × W1 ∪ W2 × (eq e ∩₁ W').
 
 Definition rmw_delta r : relation actid :=
-  eq_opt r × (eq e ∩₁ R').
+  eq_opt r × (eq e ∩₁ W').
 
 Definition right_after_e r :=
   match r with
