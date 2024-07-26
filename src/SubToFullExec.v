@@ -368,21 +368,14 @@ Proof using.
     basic_solver 12. }
   { rewrite restr_set_union, (prf_co PFX).
     rewrite restr_irrefl_eq by now apply co_irr.
-    rewrite union_false_r. rewrite unionA.
-    apply union_more; ins. rewrite unionC.
-    unfold WCore.co_delta.
+    rewrite union_false_r. unfold WCore.co_delta.
     rewrite set_interC, <- delta_lab_is_w; ins.
-    rewrite set_interC with (s := W') at 2.
     rewrite cross_inter_r, cross_inter_l.
-    arewrite (eq e × codom_rel (⦗eq e⦘ ⨾ co' ⨾ ⦗E⦘) ≡ ⦗eq e⦘ ⨾ co' ⨾ ⦗E⦘).
-    { basic_solver 12. }
-    arewrite (dom_rel (⦗E⦘ ⨾ co' ⨾ ⦗eq e⦘) × eq e  ≡ ⦗E⦘ ⨾ co' ⨾ ⦗eq e⦘).
-    { basic_solver 12. }
-    rewrite (wf_coD WF), !seqA. basic_solver 12. }
+    rewrite (wf_coD WF), !seqA. seq_rewrite <- !id_inter.
+    basic_solver 12. }
   { rewrite restr_set_union, (prf_rmw PFX).
     rewrite restr_irrefl_eq by now apply rmw_irr.
     rewrite union_false_r. rewrite unionA.
-    apply union_more; ins.
     arewrite (⦗eq e⦘ ⨾ rmw' ⨾ ⦗E⦘ ≡ ∅₂).
     { split; [| basic_solver].
       now rewrite (wf_rmwi WF), immediate_in. }
