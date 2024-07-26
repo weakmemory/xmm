@@ -366,7 +366,6 @@ Proof using.
     rewrite <- pfx_same_loc; ins; [| basic_solver].
     rewrite (wf_rmwl WF). basic_solver 12. }
   { admit. }
-  { admit. }
   { transitivity (is_w delta_lab ∩₁ codom_rel (⦗eq e⦘ ⨾ co' ⨾ ⦗E⦘));
               [| basic_solver].
     rewrite <- delta_lab_is_w; ins; [| unfold delta_E; basic_solver].
