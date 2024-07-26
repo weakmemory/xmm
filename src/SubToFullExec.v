@@ -261,6 +261,24 @@ Proof using.
   all: basic_solver.
 Qed.
 
+Lemma pfx_same_val x
+    (s : actid -> Prop)
+    (SUB : s ⊆₁ delta_E)
+    (PFX : prefix X X')
+    (NINIT : ~is_init e)
+    (NOTINE : ~ E e)
+    (INE : delta_E x) :
+  s ∩₁ same_val lab' x ≡₁ s ∩₁ same_val delta_lab x.
+Proof using.
+  unfolder. split; intros y (LAB & IN).
+  all: split; ins.
+  all: unfold same_val, val.
+  { rewrite !delta_eq_lab; ins.
+    all: basic_solver. }
+  rewrite <- !delta_eq_lab; ins.
+  all: basic_solver.
+Qed.
+
 Lemma pfx_same_loc'
     (PFX : prefix X X')
     (NINIT : ~is_init e)
@@ -345,7 +363,13 @@ Proof using.
     transitivity (E ∩₁ same_loc delta_lab e); [| basic_solver].
     rewrite <- pfx_same_loc; ins; [| basic_solver].
     rewrite (wf_rfl WF). basic_solver 12. }
-  { admit. }
+  { arewrite (eq_opt w ⊆₁ dom_rel (⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘)).
+    { rewrite RF. basic_solver. }
+    transitivity (E ∩₁ same_val delta_lab e); [| basic_solver].
+    rewrite <- pfx_same_val; ins; [| basic_solver].
+    unfold same_val. unfolder.
+    intros x (e' & EEINE & RF' & EQ). subst e'.
+    split; ins. symmetry; now apply (wf_rfv WF). }
   { arewrite (eq_opt r ⊆₁ dom_rel (⦗E⦘ ⨾ rmw' ⨾ ⦗eq e⦘)).
     { rewrite RMW. basic_solver. }
     transitivity (E ∩₁ is_r delta_lab); [| basic_solver].
@@ -393,7 +417,12 @@ Proof using.
     arewrite (rf' ≡ rf' ∩ same_loc lab').
     { rewrite inter_absorb_r; ins. apply WF. }
     basic_solver 12. }
-  { admit. }
+  { transitivity (codom_rel (⦗eq e⦘ ⨾ rf' ⨾ ⦗E⦘) ∩₁ same_val delta_lab e);
+              [| basic_solver].
+    rewrite <- pfx_same_val; ins; try basic_solver.
+    arewrite (rf' ≡ rf' ∩ same_val lab').
+    { rewrite inter_absorb_r; ins. apply WF. }
+    basic_solver 12. }
   { apply transitive_restr, WF. }
   { rewrite <- restr_transp.
     apply functional_restr, WF. }
