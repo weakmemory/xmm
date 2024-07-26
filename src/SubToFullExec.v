@@ -334,13 +334,37 @@ Proof using.
          (dom_rel   (   ⦗E⦘ ⨾ co' ⨾ ⦗eq e⦘ )).
   constructor; ins.
   all: try now (symmetry; apply PFX).
+  { arewrite (eq_opt w ⊆₁ dom_rel (⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘)).
+    { rewrite RF. basic_solver. }
+    transitivity (is_w delta_lab ∩₁ E);
+              [| basic_solver].
+    rewrite <- delta_lab_is_w; ins.
+    rewrite (wf_rfD WF). basic_solver 12. }
+  { arewrite (eq_opt w ⊆₁ dom_rel (⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘)).
+    { rewrite RF. basic_solver. }
+    basic_solver. }
+  { arewrite (eq_opt w ⊆₁ dom_rel (⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘)).
+    { rewrite RF. basic_solver. }
+    transitivity (same_loc delta_lab e ∩₁ E);
+              [| basic_solver].
+    rewrite <- pfx_same_loc; ins; [| basic_solver].
+    rewrite (wf_rfl WF). basic_solver 12. }
   { admit. }
-  { admit. }
-  { admit. }
-  { admit. }
-  { admit. }
-  { admit. }
-  { admit. }
+  { arewrite (eq_opt r ⊆₁ dom_rel (⦗E⦘ ⨾ rmw' ⨾ ⦗eq e⦘)).
+    { rewrite RMW. basic_solver. }
+    transitivity (is_r delta_lab ∩₁ E);
+              [| basic_solver].
+    rewrite <- delta_lab_is_r; ins.
+    rewrite (wf_rmwD WF). basic_solver 12. }
+  { arewrite (eq_opt r ⊆₁ dom_rel (⦗E⦘ ⨾ rmw' ⨾ ⦗eq e⦘)).
+    { rewrite RMW. basic_solver. }
+    basic_solver. }
+  { arewrite (eq_opt r ⊆₁ dom_rel (⦗E⦘ ⨾ rmw' ⨾ ⦗eq e⦘)).
+    { rewrite RMW. basic_solver. }
+    transitivity (same_loc delta_lab e ∩₁ E);
+              [| basic_solver].
+    rewrite <- pfx_same_loc; ins; [| basic_solver].
+    rewrite (wf_rmwl WF). basic_solver 12. }
   { admit. }
   { admit. }
   { transitivity (is_w delta_lab ∩₁ codom_rel (⦗eq e⦘ ⨾ co' ⨾ ⦗E⦘));
