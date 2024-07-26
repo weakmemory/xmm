@@ -383,15 +383,13 @@ Proof using.
       rewrite (wf_rfD WF), seqA. basic_solver 12. }
     unfold WCore.rf_delta_W.
     rewrite set_interC, <- delta_lab_is_w; ins.
-    rewrite (wf_rfD WF), !seqA. seq_rewrite <- !id_inter.
-    basic_solver 12. }
+    rewrite (wf_rfD WF). basic_solver 12. }
   { rewrite restr_set_union, (prf_co PFX).
     rewrite restr_irrefl_eq by now apply co_irr.
     rewrite union_false_r. unfold WCore.co_delta.
     rewrite set_interC, <- delta_lab_is_w; ins.
     rewrite cross_inter_r, cross_inter_l.
-    rewrite (wf_coD WF), !seqA. seq_rewrite <- !id_inter.
-    basic_solver 12. }
+    rewrite (wf_coD WF). basic_solver 12. }
   { rewrite restr_set_union, (prf_rmw PFX).
     rewrite restr_irrefl_eq by now apply rmw_irr.
     rewrite union_false_r. rewrite unionA.
@@ -401,8 +399,7 @@ Proof using.
     rewrite union_false_r. unfold WCore.rmw_delta.
     rewrite set_interC, <- delta_lab_is_w; ins.
     rewrite set_interC, cross_inter_r, <- RMW.
-    rewrite (wf_rmwD WF), !seqA.
-    basic_solver 12. }
+    rewrite (wf_rmwD WF). basic_solver 12. }
   unfold delta_G, delta_E, sb at 1. ins.
   rewrite <- restr_relE, restr_set_union, restr_relE.
   change (⦗E⦘ ⨾ ext_sb ⨾ ⦗E⦘) with sb.
