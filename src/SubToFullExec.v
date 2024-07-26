@@ -388,9 +388,17 @@ Proof using.
     arewrite (co' ≡ co' ∩ same_loc lab').
     { rewrite inter_absorb_r; ins. apply WF. }
     basic_solver 12. }
-  { admit. }
-  { admit. }
-  { admit. }
+  { transitivity (is_r delta_lab ∩₁ codom_rel (⦗eq e⦘ ⨾ rf' ⨾ ⦗E⦘));
+              [| basic_solver].
+    rewrite <- delta_lab_is_r; ins; [| unfold delta_E; basic_solver].
+    rewrite (wf_rfD WF). basic_solver 12. }
+  { basic_solver 12. }
+  { transitivity (same_loc delta_lab e ∩₁ codom_rel (⦗eq e⦘ ⨾ rf' ⨾ ⦗E⦘));
+              [| basic_solver].
+    rewrite <- pfx_same_loc; ins; try basic_solver.
+    arewrite (rf' ≡ rf' ∩ same_loc lab').
+    { rewrite inter_absorb_r; ins. apply WF. }
+    basic_solver 12. }
   { admit. }
   { apply transitive_restr, WF. }
   { rewrite <- restr_transp.
