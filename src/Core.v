@@ -217,6 +217,7 @@ Notation "'rmw_dep''" := (rmw_dep G').
 Notation "'W''" := (is_w lab').
 Notation "'R''" := (is_r lab').
 Notation "'same_loc''" := (same_loc lab').
+Notation "'same_val''" := (same_val lab').
 
 Notation "'E'" := (acts_set G).
 Notation "'threads_set'" := (threads_set G).
@@ -237,27 +238,54 @@ Definition sb_delta : relation actid :=
   (E ∩₁ (is_init ∪₁ same_tid e)) × eq e.
 
 Definition rf_delta_R w : relation actid :=
-  match w with
-  | Some w => singl_rel w e ∩ (E ∩₁ W') × R'
-  | None => ∅₂
-  end.
+  eq_opt w × (eq e ∩₁ R').
 
 Definition rf_delta_W R1 : relation actid :=
-  eq e × R1 ∩ W' × R'.
+  (eq e ∩₁ W') × R1.
 
 Definition co_delta W1 W2 : relation actid :=
-  eq e × W1 ∩ W' × (E ∩₁ W' ∩₁ same_loc' e) ∪
-  W2 × eq e ∩ (E ∩₁ W' ∩₁ same_loc' e) × W'.
+  (eq e ∩₁ W') × W1 ∪ W2 × (eq e ∩₁ W').
 
 Definition rmw_delta r : relation actid :=
+  eq_opt r × (eq e ∩₁ R').
+
+Definition right_after_e r :=
   match r with
-  | Some r => singl_rel r e ∩ (E ∩₁ R') × W'
-  | None => ∅₂
+  | Some r => immediate sb' r e
+  | None => True
   end.
 
 Record add_event_gen r R1 w W1 W2 : Prop := {
   add_event_new : ~E e;
   add_event_ninit : ~is_init e;
+  (**)
+  add_event_wD : eq_opt w ⊆₁ W';
+  add_event_wE : eq_opt w ⊆₁ E;
+  add_event_wL : eq_opt w ⊆₁ same_loc' e;
+  add_event_wv : eq_opt w ⊆₁ same_val' e;
+  (**)
+  add_event_rD : eq_opt r ⊆₁ R';
+  add_event_rE : eq_opt r ⊆₁ E;
+  add_event_rL : eq_opt r ⊆₁ same_loc' e;
+  add_event_rV : eq_opt r ⊆₁ same_val' e;
+  add_event_ri : right_after_e r;
+  (**)
+  add_event_W1D : W1 ⊆₁ W';
+  add_event_W1E : W1 ⊆₁ E;
+  add_event_W1L : W1 ⊆₁ same_loc' e;
+  (**)
+  add_event_W2D : W2 ⊆₁ W';
+  add_event_W2E : W2 ⊆₁ E;
+  add_event_W2L : W2 ⊆₁ same_loc' e;
+  (**)
+  add_event_R1D : R1 ⊆₁ R';
+  add_event_R1E : R1 ⊆₁ E;
+  add_event_R1L : R1 ⊆₁ same_loc' e;
+  add_event_R1V : R1 ⊆₁ same_val' e;
+  (**)
+  add_event_co_tr : transitive co';
+  add_event_rff : functional (rf'⁻¹);
+  (*=================*)
   add_event_acts : E' ≡₁ E ∪₁ eq e;
   add_event_threads : threads_set' ≡₁ threads_set;
   add_event_lab : lab' = upd lab e l;
