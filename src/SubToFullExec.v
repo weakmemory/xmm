@@ -295,6 +295,8 @@ Proof using.
   red.
   assert (EINDE : eq e ⊆₁ delta_E).
   { unfold delta_E. basic_solver. }
+  assert (EINE : E ⊆₁ delta_E).
+  { unfold delta_E. basic_solver. }
   assert (RMW : exists r,
     ⦗E⦘ ⨾ rmw' ⨾ ⦗eq e⦘ ≡ eq_opt r × eq e
   ).
@@ -341,18 +343,35 @@ Proof using.
   { admit. }
   { admit. }
   { admit. }
+  { transitivity (is_w delta_lab ∩₁ codom_rel (⦗eq e⦘ ⨾ co' ⨾ ⦗E⦘));
+              [| basic_solver].
+    rewrite <- delta_lab_is_w; ins; [| unfold delta_E; basic_solver].
+    rewrite (wf_coD WF). basic_solver 12. }
+  { basic_solver 12. }
+  { transitivity (same_loc delta_lab e ∩₁ codom_rel (⦗eq e⦘ ⨾ co' ⨾ ⦗E⦘));
+              [| basic_solver].
+    rewrite <- pfx_same_loc; ins; try basic_solver.
+    arewrite (co' ≡ co' ∩ same_loc lab').
+    { rewrite inter_absorb_r; ins. apply WF. }
+    basic_solver 12. }
+  { transitivity (is_w delta_lab ∩₁ dom_rel (⦗E⦘ ⨾ co' ⨾ ⦗eq e⦘));
+              [| basic_solver].
+    rewrite <- delta_lab_is_w; ins; [| unfold delta_E; basic_solver].
+    rewrite (wf_coD WF). basic_solver 12. }
+  { basic_solver 12. }
+  { transitivity (same_loc delta_lab e ∩₁ dom_rel (⦗E⦘ ⨾ co' ⨾ ⦗eq e⦘));
+              [| basic_solver].
+    rewrite <- pfx_same_loc; ins; try basic_solver.
+    arewrite (co' ≡ co' ∩ same_loc lab').
+    { rewrite inter_absorb_r; ins. apply WF. }
+    basic_solver 12. }
   { admit. }
   { admit. }
   { admit. }
   { admit. }
-  { admit. }
-  { admit. }
-  { admit. }
-  { admit. }
-  { admit. }
-  { admit. }
-  { admit. }
-  { admit. }
+  { apply transitive_restr, WF. }
+  { rewrite <- restr_transp.
+    apply functional_restr, WF. }
   all: unfold delta_E.
   { rewrite restr_set_union, (prf_rf PFX).
     rewrite restr_irrefl_eq by now apply rf_irr.
