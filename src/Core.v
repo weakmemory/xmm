@@ -267,7 +267,6 @@ Record add_event_gen r R1 w W1 W2 : Prop := {
   add_event_rD : eq_opt r ⊆₁ R';
   add_event_rE : eq_opt r ⊆₁ E;
   add_event_rL : eq_opt r ⊆₁ same_loc' e;
-  add_event_rV : eq_opt r ⊆₁ same_val' e;
   add_event_ri : right_after_e r;
   (**)
   add_event_W1D : W1 ⊆₁ W';
