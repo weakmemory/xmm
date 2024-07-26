@@ -438,9 +438,22 @@ Proof using.
       basic_solver. }
     unfold rf_delta_W. rewrite (add_event_R1L ADD).
     basic_solver. }
-  { rewrite (add_event_lab ADD). rewrite (add_event_rf ADD).
-    apply funeq_union. apply funeq_union.
-    all : admit. }
+  { rewrite (add_event_rf ADD).
+    repeat apply funeq_union.
+    { rewrite (add_event_lab ADD).
+      unfolder. intros a b RF. unfold val.
+      rupd; try now apply WF.
+      all: apply (wf_rfE WF) in RF.
+      all: unfolder in RF; desf.
+      all: congruence. }
+    { unfold rf_delta_R. unfolder.
+      intros a b (EQA & EQB & BISR).
+      subst b. symmetry.
+      apply (add_event_wv ADD).
+      desf. }
+    unfold rf_delta_W. unfolder.
+    intros a b ((EQA & BISW) & EQB).
+    subst a. now apply (add_event_R1V ADD). }
   { rewrite (add_event_rf ADD). do 2 rewrite transp_union.
     apply functional_union. apply functional_union.
     { apply (wf_rff WF). }
