@@ -315,6 +315,9 @@ Proof using.
   { unfold delta_E. basic_solver. }
   assert (EINE : E ⊆₁ delta_E).
   { unfold delta_E. basic_solver. }
+  assert (DEINE : delta_E ⊆₁ E').
+  { unfold delta_E. apply set_subset_union_l.
+    split; [apply PFX | basic_solver]. }
   assert (RMW : exists r,
     ⦗E⦘ ⨾ rmw' ⨾ ⦗eq e⦘ ≡ eq_opt r × eq e
   ).
@@ -383,7 +386,22 @@ Proof using.
     transitivity (E ∩₁ same_loc delta_lab e); [| basic_solver].
     rewrite <- pfx_same_loc; ins; [| basic_solver].
     rewrite (wf_rmwl WF). basic_solver 12. }
-  { admit. }
+  { unfold WCore.right_after_e. destruct r as [r| ]; ins.
+    assert (IMM : immediate sb' r e).
+    { apply (wf_rmwi WF). unfolder in RMW.
+      now apply RMW. }
+    split.
+    { unfold sb. unfolder. unfold delta_G. ins.
+      unfold delta_E. splits.
+      { left. destruct RMW as [_ RMW].
+        unfolder in RMW. eapply RMW. eauto. }
+      { unfold sb in IMM. unfolder in IMM. apply IMM. }
+      now right. }
+    intros c L R. eapply IMM; unfold sb in *.
+    { unfolder in L. unfolder. ins.
+      splits; try basic_solver. }
+    unfolder in R. unfolder. ins.
+    splits; try basic_solver. }
   { transitivity (codom_rel (⦗eq e⦘ ⨾ co' ⨾ ⦗E⦘) ∩₁ is_w delta_lab);
               [| basic_solver].
     rewrite <- delta_lab_is_w; ins; [| unfold delta_E; basic_solver].
@@ -485,7 +503,7 @@ Proof using.
   apply EMAX with (ThreadEvent et en) (ThreadEvent et xn).
   unfolder. splits; ins. unfold sb. unfolder.
   splits; ins. now apply PFX.
-Admitted.
+Qed.
 
 Lemma delta_G_prefix
     (INE : E' e)
