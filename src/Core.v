@@ -374,8 +374,9 @@ Proof using.
     unfold rmw_delta. destruct r; [| basic_solver]. 
     rewrite !seqA. seq_rewrite !seq_eqv. rewrite !set_interC with (s' := E).
     basic_solver 8. } 
-  { rewrite (add_event_rmw ADD). rewrite (wf_rmwl WF).
-    apply inclusion_union_l. all : admit. (* ??? *)}
+  { rewrite (add_event_rmw ADD). rewrite (wf_rmwE WF), (wf_rmwl WF).
+    apply inclusion_union_l; eauto.
+    admit. (* ??? *)}
   { rewrite (add_event_rmw ADD). rewrite (add_event_sb ADD).
     apply inclusion_union_l.
     (* { rewrite imm_union with (r := sb) (r' := sb_delta). } *)
