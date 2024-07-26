@@ -259,6 +259,7 @@ Definition right_after_e r :=
 Record add_event_gen r R1 w W1 W2 : Prop := {
   add_event_new : ~E e;
   add_event_ninit : ~is_init e;
+  add_event_tid_e : tid e <> tid_init;
   (**)
   add_event_wD : eq_opt w ⊆₁ W';
   add_event_wE : eq_opt w ⊆₁ E;
@@ -310,7 +311,7 @@ Qed.
 
 Lemma add_event_wf r R1 w W1 W2
   (ADD : add_event_gen r R1 w W1 W2)
-  (WF : Wf (WCore.G X)) 
+  (WF : Wf (WCore.G X))
   (NCTRL : ctrl ≡ ∅₂) :
   Wf (WCore.G X').
 Proof using.
@@ -319,7 +320,7 @@ Proof using.
   assert (EISR : E ∩₁ R' ≡₁ E ∩₁ R).
   { unfold is_r. rewrite (add_event_lab ADD).
     unfolder; split; intros x (INE & LAB).
-    all: now rewrite updo in * by congruence. } 
+    all: now rewrite updo in * by congruence. }
   assert (EISW : E ∩₁ W' ≡₁ E ∩₁ W).
   { unfold is_w. rewrite (add_event_lab ADD).
     unfolder; split; intros x (INE & LAB).
@@ -338,8 +339,19 @@ Proof using.
     unfold same_loc in *. unfold loc in *.
     do 2 rewrite updo in * by congruence.
     eauto. }
-  constructor; ins. 
-  { admit. }
+  constructor.
+  { assert (ENINIT : ~is_init e) by apply ADD.
+    intros a b (INA & INB & NEQ & TIDS & NINIT).
+    apply ADD in INA, INB.
+    destruct INA as [INA | AEQE],
+             INB as [INB | BEQE].
+    all: subst; ins.
+    { now apply WF. }
+    { unfold is_init in *. desf. ins. congruence. }
+    destruct b as [bl | bt bn]; ins.
+    { exfalso. now apply (add_event_tid_e ADD). }
+    unfold is_init in *. desf. ins. congruence. }
+  all: ins.
   { rewrite (add_event_data ADD). rewrite (add_event_sb ADD).
     rewrite (data_in_sb WF). basic_solver. }
   { rewrite (add_event_data ADD), (wf_dataE WF).
@@ -369,13 +381,13 @@ Proof using.
     seq_rewrite !seq_eqv. rewrite !set_interC with (s' := E).
     rewrite seq_union_l. rewrite seq_union_r.
     apply inclusion_union_l.
-    { rewrite <- middle_seq. 
+    { rewrite <- middle_seq.
       seq_rewrite !seq_eqv. rewrite !set_interC with (s' := E).
       rewrite EISR, EISW. left. apply H. }
-    unfold rmw_delta. rewrite !seqA. seq_rewrite !seq_eqv. 
+    unfold rmw_delta. rewrite !seqA. seq_rewrite !seq_eqv.
     rewrite !set_interC with (s' := E).
     rewrite <- (add_event_rD ADD).
-    basic_solver 42. } 
+    basic_solver 42. }
   { rewrite (add_event_rmw ADD). rewrite (wf_rmwE WF), (wf_rmwl WF).
     apply inclusion_union_l; eauto.
     unfold rmw_delta. rewrite (add_event_rL ADD).
@@ -387,10 +399,10 @@ Proof using.
     admit. }
   { split; [| basic_solver].
     rewrite (add_event_rf ADD), (wf_rfE WF).
-    rewrite !seq_union_l. rewrite !seq_union_r. rewrite !seqA. 
+    rewrite !seq_union_l. rewrite !seq_union_r. rewrite !seqA.
     seq_rewrite !seq_eqv. rewrite !set_interC with (s' := E).
     rewrite EINTER. apply inclusion_union_l.
-    { apply inclusion_union_l. 
+    { apply inclusion_union_l.
       {  basic_solver 8. }
       assert (RFDIN1 : eq_opt w × (eq e ∩₁ (fun a : actid => R' a)) ⊆
                 ⦗E'⦘ ⨾ eq_opt w × (eq e ∩₁ (fun a : actid => R' a))).
@@ -407,19 +419,19 @@ Proof using.
     rewrite seq_union_l. rewrite seq_union_r.
     apply inclusion_union_l.
     { apply inclusion_union_l.
-      { rewrite seq_union_l. rewrite seq_union_r. rewrite <- middle_seq. 
+      { rewrite seq_union_l. rewrite seq_union_r. rewrite <- middle_seq.
         seq_rewrite !seq_eqv. rewrite !set_interC with (s' := E).
         rewrite EISR, EISW. do 2 left. apply H. }
-      unfold rf_delta_R. rewrite seq_union_l. 
-      rewrite !seqA. seq_rewrite !seq_eqv. 
-      rewrite !seq_union_r. assert (EOW : eq_opt w × (eq e ∩₁ (fun a : actid => R' a)) ≡ 
+      unfold rf_delta_R. rewrite seq_union_l.
+      rewrite !seqA. seq_rewrite !seq_eqv.
+      rewrite !seq_union_r. assert (EOW : eq_opt w × (eq e ∩₁ (fun a : actid => R' a)) ≡
                   ⦗fun a : actid => W' a⦘ ⨾ eq_opt w × (eq e ∩₁ (fun a : actid => R' a))).
       { split; [| basic_solver]. rewrite <- (add_event_wD ADD). basic_solver 21. }
       rewrite EOW. rewrite (wf_rfD WF) at 1. rewrite !seqA.
       basic_solver 21. }
     unfold rf_delta_W. rewrite <- (add_event_R1D ADD). basic_solver 21. }
   { rewrite (add_event_rf ADD). apply inclusion_union_l.
-    { apply inclusion_union_l. 
+    { apply inclusion_union_l.
       { rewrite (wf_rfE WF). rewrite (wf_rfl WF).
         apply SLE. }
       unfold rf_delta_R. rewrite (add_event_wL ADD).
@@ -448,7 +460,7 @@ Proof using.
     { rewrite (wf_coE WF).
       rewrite (wf_coD WF) at 1. rewrite !seqA.
       seq_rewrite !seq_eqv. rewrite !set_interC with (s' := E).
-      rewrite seq_union_l. rewrite seq_union_r. rewrite <- middle_seq. 
+      rewrite seq_union_l. rewrite seq_union_r. rewrite <- middle_seq.
       seq_rewrite !seq_eqv. rewrite !set_interC with (s' := E).
       rewrite EISW. left. apply H. }
     unfold co_delta. rewrite !seq_union_l. rewrite !seq_union_r.
@@ -470,7 +482,7 @@ Proof using.
     rewrite (wf_rmw_depE WF).
     rewrite (wf_rmw_depD WF) at 1. rewrite !seqA.
     seq_rewrite !seq_eqv. rewrite !set_interC with (s' := E).
-    rewrite <- !set_interA. rewrite EISR. 
+    rewrite <- !set_interA. rewrite EISR.
     rewrite !set_interC with (s' := (fun a : actid => R_ex lab a)).
     rewrite !set_interA. rewrite <- EISREX.
     basic_solver 8. }
