@@ -549,7 +549,30 @@ Proof using.
     apply ADD in INA, INB.
     destruct INA as [INA | AEQE],
             INB as [INB | BEQE].
-   admit. }
+    { assert (COBASE : co a b \/ co b a).
+      { assert (ANEQ : a <> e).
+        { intros EQ. subst. apply NIN; eauto. }
+        assert (ALAB : lab a = lab' a).
+        { rewrite (add_event_lab ADD). unfold upd; basic_solver. }
+        assert (BNEQ : b <> e).
+        { intros EQ. subst. apply NIN; eauto. }
+        assert (BLAB : lab b = lab' b).
+        { rewrite (add_event_lab ADD). unfold upd; basic_solver. }
+        eapply (wf_co_total WF); eauto.
+        all: split; eauto. 
+        { split; eauto. unfold is_w. unfold is_w in AISW.
+          rewrite ALAB. congruence. }
+        { split; eauto. unfold is_w. unfold is_w in BISW.
+          rewrite BLAB. congruence. }
+        subst. unfold loc in *. rewrite ALAB, BLAB; eauto. }
+      destruct COBASE. 
+      { left. apply (add_event_co ADD). basic_solver. }
+      right. apply (add_event_co ADD). basic_solver. }
+    { subst. left. apply (add_event_co ADD). 
+      unfold co_delta. do 2 right. admit. }
+    { subst. left. apply (add_event_co ADD). 
+      unfold co_delta. right. left. admit. }
+    subst; ins. }
   { rewrite (add_event_co ADD). apply irreflexive_union; split.
     { apply (co_irr WF). }
     unfold co_delta. apply irreflexive_union; split.
