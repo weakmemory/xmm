@@ -377,7 +377,8 @@ Proof using.
     ins. }
   { eapply is_total_more; [ | eauto |
       apply total_collect_rel, WF with (ol := ol) ].
-    rewrite !set_collect_interE by ins.
+    rewrite !set_collect_interE.
+    all: try now eapply inj_dom_mori; eauto; ins.
     repeat apply set_equiv_inter; ins.
     rewrite HLAB. unfolder.
     split; ins; desf; unfold loc, compose.
