@@ -245,21 +245,23 @@ Proof using.
 Qed.
 
 Lemma set_collect_interE (A B : Type) (f : A -> B) s s'
-    (INJ : inj_dom ⊤₁ f) :
+    (INJ : inj_dom (s ∪₁ s') f) :
   f ↑₁ (s ∩₁ s') ≡₁ f ↑₁ s ∩₁ f ↑₁ s'.
 Proof using.
   split; [apply set_collect_inter |].
   unfolder; intros x SET; desf.
   apply INJ in SET1; ins; desf.
-  exists y0; splits; ins.
+  { exists y0; splits; ins. }
+  all: basic_solver.
 Qed.
 
 Lemma collect_rel_restr {A B} (f : A -> B) s r
-    (FINJ : inj_dom ⊤₁ f) :
+    (FINJ : inj_dom (dom_rel r ∪₁ codom_rel r ∪₁ s) f) :
   restr_rel (f ↑₁ s) (f ↑ r) ≡ f ↑ (restr_rel s r).
 Proof using.
   rewrite !restr_relE, !collect_rel_seq, collect_rel_eqv; ins.
-  all: eapply inj_dom_mori; eauto; ins.
+  all: eapply inj_dom_mori; eauto.
+  all: unfold flip; basic_solver.
 Qed.
 
 Lemma conjugate_sub {A} r (f : A -> option A)
@@ -284,23 +286,24 @@ Proof using.
 Qed.
 
 Lemma map_rel_eqvE (A B : Type) (f : A -> B) d
-    (INJ : inj_dom ⊤₁ f) :
+    (INJ : inj_dom (f ↓₁ d) f) :
   ⦗f ↓₁ d⦘ ≡ f ↓ ⦗d⦘.
 Proof using.
   split; [apply map_rel_eqv |].
   unfolder; intros x y; desf.
-  splits; desf.
-  now apply INJ.
+  splits; desf. apply INJ; ins.
+  unfolder. congruence.
 Qed.
 
 Lemma collect_rel_interE (A B : Type) (f : A -> B) r r'
-    (INJ : inj_dom ⊤₁ f) :
+    (INJ : inj_dom (dom_rel r ∪₁ codom_rel r ∪₁ dom_rel r' ∪₁ codom_rel r') f) :
   f ↑ (r ∩ r') ≡ f ↑ r ∩ f ↑ r'.
 Proof using.
   split; [apply collect_rel_inter |].
   unfolder; intros x y REL; desf.
   apply INJ in REL1, REL2; ins; desf.
-  exists x'0, y'0; splits; ins.
+  { exists x'0, y'0; splits; ins. }
+  all: basic_solver 11.
 Qed.
 
 Lemma restr_irr A (x : A) s r
