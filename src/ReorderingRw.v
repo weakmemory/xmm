@@ -713,72 +713,142 @@ Proof using.
   |}).
 Admitted.
 
-Lemma simrel_exec_a w l
-    (RF : rf_t' w a_t)
+Lemma simrel_exec_a l
+    (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
+    (INB : E_t b_t)
     (STEP : WCore.exec_inst X_t X_t' a_t l) :
   exists mapper' X_s' cmt',
     << SIM : reord_simrel X_s' X_t' a_t b_t mapper' >> /\
     << STEP : WCore.reexec X_s X_s' cmt' >>.
-Proof using.
-  (* Preamble *)
-  (* destruct STEP as [STARTWF ADD]. red in ADD. desf.
-  assert (INB' : E_t' b).
-  { apply (WCore.caes_e_new STRUCT). basic_solver. }
-  assert (INA' : E_t' a).
-  { apply ext_sb_dense with (e2 := b); eauto.
-    all: try now apply SIMREL.
-    apply WF_NEW. }
-  assert (INA : E_t a).
-  { apply (WCore.caes_e_new STRUCT) in INA'. ins.
-    destruct INA' as [INE | EQ]; ins.
-    exfalso. symmetry in EQ.
-    eapply rsr_a_neq_b; eauto.
-    apply SIMREL. }
-  assert (NINB : ~ E_t b).
-  { apply STRUCT. }
-  assert (REXECBEGWF : WCore.wf
-    {|
-      WCore.sc := mapper ↑ sc;
-      WCore.G :=
-        WCore.reexec_start G_s G_s'
-          (E_s \₁ (eq a ∪₁ eq b));
-      WCore.GC := G_s';
-      WCore.cmt := E_s' \₁ eq a
-    |}
+Proof using CORR.
+  (* Setup vars *)
+  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
+  destruct STEP as [ADD RFC CONS].
+  destruct ADD as (r & R1 & w & W1 & W2 & ADD).
+  set (mapper' := upd mapper a_t a_s).
+  set (G_s' := {|
+    acts_set := E_s;
+    threads_set := threads_set G_s;
+    lab := upd lab_s a_s l;
+    rf := rf_s ⨾ ⦗E_s \₁ eq a_s⦘ ∪
+          mapper' ↑ (rf_t' ⨾ ⦗eq a_t ∩₁ R_t'⦘);
+    co := restr_rel (E_s \₁ eq a_s) co_s ∪
+          mapper' ↑ (⦗eq a_t ∩₁ W_t'⦘ ⨾ co_t') ∪
+          mapper' ↑ (co_t' ⨾ ⦗eq a_t ∩₁ W_t'⦘);
+    rmw := mapper' ↑ rmw_t';
+    rmw_dep := rmw_dep_s;
+    ctrl := ctrl_s;
+    data := data_s;
+    addr := addr_s;
+  |}).
+  set (X_s' := {|
+    WCore.sc := WCore.sc X_s;
+    WCore.G := G_s';
+  |}).
+  set (cmt' := E_s \₁ eq a_s).
+  set (dtrmt' := E_s \₁ eq a_s \₁ eq (mapper b_t)).
+  set (thrdle' := fun x y =>
+    << YNINIT : y <> tid_init >> /\
+    << XNOTA : x <> tid a_t >> /\
+    << XYVAL : x = tid_init \/ y = tid a_t >>
   ).
+  assert (NOTINA : ~E_t a_t).
+  { apply ADD. }
+  assert (MAPEQ : eq_dom E_t mapper' mapper).
+  { subst mapper'. unfolder. intros x XINE.
+    rupd. congruence. }
+  assert (MAPSUB : mapper' ↑₁ E_t ≡₁ mapper ↑₁ E_t).
+  { split; unfolder; intros x (y & YINE & HEQ).
+    { exists y; split; ins. rewrite <- MAPEQ; ins. }
+    exists y. split; ins. subst mapper'. rupd; ins.
+    congruence. }
+  assert (MAPER_E : mapper' ↑₁ eq a_t ≡₁ eq a_s).
+  { subst mapper'. rewrite set_collect_eq. now rupd. }
+  assert (MAPNEQ : forall x (IN : E_t x), mapper x <> a_s).
   { admit. }
-  assert (UNCMT : WCore.stable_uncmt_reads_gen G_s'
-      (E_s' \₁ eq a)
-      (fun _ y => y = tid a)
-  ).
-  { admit. (* TODO: patch this re-exec cond first *) }
-  assert (ESEQ : E_s' ≡₁ E_s ∪₁ eq a).
-  { unfold G_s'; desf; [desf; exfalso; eauto |].
-    rewrite G_s_niff; ins.
-    rewrite ReordCommon.mapper_acts_niff,
-            ReordCommon.mapper_acts_iff; ins.
-    rewrite (WCore.caes_e_new STRUCT); ins.
-    basic_solver. }
-  (* Actual proof *)
-  exists G_s', (mapper ↑ sc),
-        (E_s \₁ (eq a ∪₁ eq b)),
-        (E_s' \₁ eq a).
-  splits; [| exists (@id actid), (fun x y => y = tid a)].
-  all: constructor; ins.
-  all: try now apply simrel_G_s'.
-  { admit. (* lab stuff *) }
-  { rewrite ESEQ. basic_solver. }
-  { basic_solver. }
+  assert (AINS : E_s a_s).
+  { apply (rsr_acts SIMREL). unfold extra_a. desf.
+    { basic_solver. }
+    exfalso; eauto. }
+  assert (NOEXA : extra_a X_t' a_t b_t a_s ≡₁ ∅).
+  { unfold extra_a; desf. desf. exfalso. apply a.
+    apply ADD. basic_solver. }
+  assert (OLDEXA : extra_a X_t a_t b_t a_s ≡₁ eq a_s).
+  { unfold extra_a; desf. exfalso; eauto. }
+  (* The proof *)
+  exists mapper', X_s', cmt'.
+  split; red; ins.
+  { exists a_s. constructor; ins.
+    { rewrite (WCore.add_event_acts ADD). apply inj_dom_union.
+      { unfolder. intros x y XINE YINE. rewrite !MAPEQ; ins.
+        now apply SIMREL. }
+      { basic_solver. }
+      rewrite MAPSUB, MAPER_E. admit. }
+    { rewrite (WCore.add_event_acts ADD), set_collect_union,
+              MAPSUB, MAPER_E, (rsr_codom SIMREL).
+      basic_solver. }
+    { rewrite (WCore.add_event_acts ADD). apply eq_dom_union.
+      split; unfold compose; unfolder; intros x XINE.
+      { rewrite MAPEQ; ins. now apply SIMREL. }
+      subst x. unfold mapper'. rupd. admit. }
+    { unfold same_lab_u2v_dom. intros e HSET.
+      exfalso. unfolder in HSET. now apply NOEXA in HSET. }
+    { rewrite NOEXA, set_map_empty, set_minusE, set_compl_empty,
+              set_inter_full_r, (WCore.add_event_acts ADD),
+              (WCore.add_event_lab ADD).
+      apply eq_dom_union; split; subst mapper'.
+      { unfolder. intros x XIN.
+        unfold compose. rupd; try congruence; eauto.
+        rewrite <- (rsr_lab SIMREL); ins.
+        split; ins. unfolder. unfold extra_a; desf.
+        symmetry. eauto. }
+      unfolder. ins. desf. unfold compose. now rupd. }
+    { rewrite (WCore.add_event_acts ADD), NOEXA,
+              set_union_empty_r, set_collect_union,
+              MAPSUB, MAPER_E, (rsr_acts SIMREL).
+      now rewrite OLDEXA. }
+    { admit. }
+    { rewrite NOEXA, set_inter_empty_l,
+              (rsr_rf SIMREL), seq_union_l, OLDEXA.
+      arewrite (rf_t' ⨾ ⦗eq a_t ∩₁ R_t'⦘ ≡
+                WCore.rf_delta_R X_t' a_t w ⨾ ⦗eq a_t ∩₁ R_t'⦘).
+      { rewrite (WCore.add_event_rf ADD), !seq_union_l.
+        arewrite (rf_t ⨾ ⦗eq a_t ∩₁ R_t'⦘ ≡ ∅₂).
+        { rewrite (wf_rfE (rsr_Gt_wf CORR)). basic_solver. }
+        arewrite (WCore.rf_delta_W X_t' a_t R1 ⨾ ⦗eq a_t ∩₁ R_t'⦘ ≡ ∅₂).
+        all: try now rewrite union_false_r, union_false_l.
+        unfold WCore.rf_delta_W. split; [| basic_solver].
+        unfolder. unfold is_w, is_r. ins. desf. }
+      arewrite (srf_s ⨾ ⦗eq a_s ∩₁ R_s⦘ ⨾ ⦗E_s \₁ eq a_s⦘ ≡ ∅₂).
+      { basic_solver. }
+      arewrite (srf G_s' ⨾ ⦗∅⦘ ≡ ∅₂).
+      { basic_solver. }
+      arewrite (mapper ↑ rf_t ⨾ ⦗E_s \₁ eq a_s⦘ ≡ mapper ↑ rf_t).
+      { admit. }
+      arewrite (mapper' ↑ (WCore.rf_delta_R X_t' a_t w ⨾ ⦗eq a_t ∩₁ R_t'⦘)
+                ≡ mapper' ↑ (WCore.rf_delta_R X_t' a_t w)).
+      { admit. }
+      rewrite (WCore.add_event_rf ADD), !collect_rel_union.
+      arewrite (mapper' ↑ (WCore.rf_delta_W X_t' a_t R1) ≡ ∅₂).
+      { admit. }
+      arewrite (mapper' ↑ rf_t ≡ mapper ↑ rf_t).
+      { admit. }
+      now rewrite !union_false_r. }
+    admit. }
+  red. exists id, thrdle', dtrmt'.
+  constructor; ins.
+  { subst dtrmt' cmt'. basic_solver. }
+  { subst cmt'. basic_solver. }
   { constructor; ins.
-    { rewrite ESEQ. basic_solver. }
-    { admit. (* same lab for cmt *) }
-    { admit. (* sb: sub *) }
-    admit. (* rf sub *) }
-  { eapply sub_to_full_exec_listless; eauto.
-    { admit. (* trace coh *) }
-    { admit. (* rf wf *) }
-    admit. (* internal rf *) }
-  admit. *)
+    { admit. }
+    { unfolder. subst thrdle'. ins. desf. }
+    { admit. }
+    admit. }
+  { constructor; ins.
+    all: admit. }
+  { admit. (* TODO: wf *) }
+  { admit. (* TODO: cons *) }
+  admit. (* subtofull *)
 Admitted.
 
 Lemma simrel_reexec cmt
