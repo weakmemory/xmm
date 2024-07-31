@@ -526,15 +526,3 @@ Proof using.
   splits; auto.
   apply and_not_or; auto.
 Qed.
-
-Lemma seq_seq_inter A (a b c d : A -> Prop) r :
-  ⦗a⦘ ⨾ (⦗b⦘ ⨾ r ⨾ ⦗c⦘) ⨾ ⦗d⦘ ≡ ⦗a ∩₁ b⦘ ⨾ r ⨾ ⦗c ∩₁ d⦘.
-Proof using.
-  basic_solver.
-Qed.
-
-Definition least_elt {A} (r : relation A) (a : A) : Prop :=
-  forall x, r a x.
-
-Definition maxl_elt {A} (r : relation A) (a : A) : Prop :=
-  forall x, r x a.
