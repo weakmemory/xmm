@@ -81,18 +81,12 @@ Proof using.
     by rotate 1; apply CONS.
 Qed.
 
-Lemma srf_sub_vf :
-    srf ⊆ vf.
-Proof using.
-    unfold srf. basic_solver.
-Qed.
-
 Lemma srf_hb_irr
         (WF  : Wf G)
         (CONS : WCore.is_cons G sc) :
     irreflexive (srf ⨾ hb).
 Proof using.
-    rewrite srf_sub_vf; try apply vf_hb_irr; eauto.
+    rewrite srf_in_vf; try apply vf_hb_irr; eauto.
 Qed.
 
 Lemma rhb_in_hb :
