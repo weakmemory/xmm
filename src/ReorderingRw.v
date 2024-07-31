@@ -54,6 +54,7 @@ Notation "'F_t'" := (is_f lab_t).
 Notation "'G_s'" := (WCore.G X_s).
 Notation "'lab_s'" := (lab G_s).
 Notation "'val_s'" := (val lab_s).
+Notation "'loc_s'" := (loc lab_s).
 Notation "'E_s'" := (acts_set G_s).
 Notation "'loc_s'" := (loc lab_s).
 Notation "'sb_s'" := (sb G_s).
@@ -69,6 +70,8 @@ Notation "'W_s'" := (is_w lab_s).
 Notation "'R_s'" := (is_r lab_s).
 Notation "'F_s'" := (is_f lab_s).
 Notation "'b_s'" := (mapper b_t).
+Notation "'srf_s'" := (srf G_s).
+Notation "'Loc_s_' l" := (fun e => loc_s e = l) (at level 1).
 
 Record extra_a_pred x : Prop := {
   ebp_is_r : R_s x;
@@ -91,6 +94,9 @@ Record reord_simrel_gen a_s : Prop := {
     mapper ↑ (immediate sb_t \ singl_rel b_t a_t ∪ singl_rel a_t b_t ∩ E_t × E_t) ∪
     (mapper ↑₁ codom_rel (immediate sb_t ⨾ ⦗eq b_t⦘)) × (extra_a a_s) ∪
     (extra_a a_s) × eq b_s;
+  rsr_rf : rf_s ≡ mapper ↑ rf_t ∪ srf_s ⨾ ⦗extra_a a_s ∩₁ R_s⦘;
+  rsr_co : co_s ≡ mapper ↑ co_t ∪
+            (W_s ∩₁ E_s ∩₁ Loc_s_ (loc_s a_s)) × (W_s ∩₁ extra_a a_s);
 }.
 
 Record reord_correct_graphs : Prop := {
@@ -423,13 +429,15 @@ Proof using CORR.
   arewrite (singl_rel a_t b_t ∩ (E_t ∩₁ is_init) × (E_t ∩₁ is_init) ≡ ∅₂).
   { enough (~is_init a_t) by basic_solver 12.
     apply CORR. }
-  rewrite !union_false_r, minus_disjoint.
-  { unfold sb. ins. rewrite (rsr_init_acts CORR).
-    set (r := ⦗E_t ∩₁ is_init⦘ ⨾ ext_sb ⨾ ⦗E_t ∩₁ is_init⦘).
-    basic_solver 11. }
-  split; [| basic_solver].
-  unfold sb; unfolder. ins.
-  apply (rsr_at_ninit CORR); desf.
+  { rewrite !union_false_r, minus_disjoint.
+    { unfold sb. ins. rewrite (rsr_init_acts CORR).
+      set (r := ⦗E_t ∩₁ is_init⦘ ⨾ ext_sb ⨾ ⦗E_t ∩₁ is_init⦘).
+      basic_solver 11. }
+    split; [| basic_solver].
+    unfold sb; unfolder. ins.
+    apply (rsr_at_ninit CORR); desf. }
+  { rewrite EXA. basic_solver. }
+  rewrite EXA. basic_solver.
 Qed.
 
 Lemma rsrw_swap_mapper mapper'
@@ -550,6 +558,8 @@ Proof using.
       unfolder. ins. desf. unfold compose. now rupd. }
     { rewrite EQACTS, set_collect_union, MAPER_E, MAPSUB.
       rewrite (rsr_acts SIMREL), EXEQ. basic_solver 11. }
+    { admit. }
+    { admit. }
     admit. }
   (* Actual proof *)
   exists mapper', X_s'.
