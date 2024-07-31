@@ -308,7 +308,7 @@ End ReordSimRelInstrs.
 
 Module ReordRwSimRelProps.
 
-Section Basic.
+Section XmmSteps.
 
 
 Variable X_t X_t' X_s : WCore.t.
@@ -809,7 +809,7 @@ Proof using.
   admit.
 Admitted. *)
 
-End Basic.
+End XmmSteps.
 
 (* Lemma sim_rel_step : about any step *)
 
