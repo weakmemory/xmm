@@ -286,6 +286,17 @@ Record add_event_gen r R1 w W1 W2 : Prop := {
   (**)
   add_event_co_tr : transitive co';
   add_event_rff : functional (rf'⁻¹);
+  (**)
+  add_event_total : forall ol : option location,
+                    is_total
+                      (E' ∩₁ (fun a : actid => is_w lab' a)
+                      ∩₁ (fun x : actid => loc lab' x = ol)) 
+                      (co');
+  add_event_init : forall l : location,
+                    (exists b : actid, E' b /\ loc lab' b = Some l) ->
+                    E' (InitEvent l);
+  add_event_thrd : forall (e0 : actid), acts_set G' e0 -> 
+                    threads_set' (tid e0);
   (*=================*)
   add_event_acts : E' ≡₁ E ∪₁ eq e;
   add_event_threads : threads_set' ≡₁ threads_set;
@@ -342,7 +353,7 @@ Proof using.
   constructor.
   { assert (ENINIT : ~is_init e) by apply ADD.
     intros a b (INA & INB & NEQ & TIDS & NINIT).
-    apply ADD in INA, INB.
+    apply (add_event_acts ADD) in INA, INB.
     destruct INA as [INA | AEQE],
              INB as [INB | BEQE].
     all: subst; ins.
@@ -544,41 +555,13 @@ Proof using.
     unfold co_delta. rewrite (add_event_W1L ADD), (add_event_W2L ADD).
     basic_solver 21. }
   { apply (add_event_co_tr ADD); eauto. }
-  { unfold is_total. ins. destruct IWa as [[INA AISW] Aloc]. 
-    destruct IWb as [[INB BISW] Bloc].
-    apply ADD in INA, INB.
-    destruct INA as [INA | AEQE],
-            INB as [INB | BEQE].
-    { assert (COBASE : co a b \/ co b a).
-      { assert (ANEQ : a <> e).
-        { intros EQ. subst. apply NIN; eauto. }
-        assert (ALAB : lab a = lab' a).
-        { rewrite (add_event_lab ADD). unfold upd; basic_solver. }
-        assert (BNEQ : b <> e).
-        { intros EQ. subst. apply NIN; eauto. }
-        assert (BLAB : lab b = lab' b).
-        { rewrite (add_event_lab ADD). unfold upd; basic_solver. }
-        eapply (wf_co_total WF); eauto.
-        all: split; eauto. 
-        { split; eauto. unfold is_w. unfold is_w in AISW.
-          rewrite ALAB. congruence. }
-        { split; eauto. unfold is_w. unfold is_w in BISW.
-          rewrite BLAB. congruence. }
-        subst. unfold loc in *. rewrite ALAB, BLAB; eauto. }
-      destruct COBASE. 
-      { left. apply (add_event_co ADD). basic_solver. }
-      right. apply (add_event_co ADD). basic_solver. }
-    { subst. left. apply (add_event_co ADD). 
-      unfold co_delta. do 2 right. admit. }
-    { subst. left. apply (add_event_co ADD). 
-      unfold co_delta. right. left. admit. }
-    subst; ins. }
+  { apply (add_event_total ADD); eauto. }
   { rewrite (add_event_co ADD). apply irreflexive_union; split.
     { apply (co_irr WF). }
     unfold co_delta. apply irreflexive_union; split.
     { rewrite (add_event_W1E ADD). basic_solver. }
     rewrite (add_event_W2E ADD). basic_solver. }
-  { admit. }
+  { apply (add_event_init ADD); eauto. }
   { rewrite (add_event_lab ADD). destruct classic with ((InitEvent l0) = e).
     { destruct ADD. destruct H. ins. }
     unfold upd. destruct WF. destruct wf_init_lab with (l := l0).
@@ -593,13 +576,8 @@ Proof using.
     rewrite !set_interC with (s' := (fun a : actid => R_ex lab a)).
     rewrite !set_interA. rewrite <- EISREX.
     basic_solver 8. }
-  destruct classic with (e0 = e).
-  { subst. destruct ADD. destruct e as [el | et en]; ins.
-    admit. }
-  assert (E e0) as EE0.
-  { apply (add_event_acts ADD) in EE. destruct EE; basic_solver 8. }
-  apply wf_threads; eauto.
-Admitted.
+  apply (add_event_thrd ADD); eauto.
+Qed.
 
 End AddEvent.
 
