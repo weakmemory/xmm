@@ -713,16 +713,15 @@ Proof using.
   |}).
 Admitted.
 
-Lemma simrel_exec_a w
-    (RF : rf_t' w a)
-    (CONS : WCore.is_cons G_t sc)
-    (STEP : WCore.exec_inst G_t G_t' sc traces b) :
-  exists G_s' sc' dtrmt' cmt',
-    << SIM : reord_simrel_rw G_s' G_t' a b >> /\
-    << STEP : WCore.reexec G_s G_s' sc' traces' dtrmt' cmt' >>.
-Proof using SIMREL.
+Lemma simrel_exec_a w l
+    (RF : rf_t' w a_t)
+    (STEP : WCore.exec_inst X_t X_t' a_t l) :
+  exists mapper' X_s' cmt',
+    << SIM : reord_simrel X_s' X_t' a_t b_t mapper' >> /\
+    << STEP : WCore.reexec X_s X_s' cmt' >>.
+Proof using.
   (* Preamble *)
-  destruct STEP as [STARTWF ADD]. red in ADD. desf.
+  (* destruct STEP as [STARTWF ADD]. red in ADD. desf.
   assert (INB' : E_t' b).
   { apply (WCore.caes_e_new STRUCT). basic_solver. }
   assert (INA' : E_t' a).
@@ -779,156 +778,38 @@ Proof using SIMREL.
     { admit. (* trace coh *) }
     { admit. (* rf wf *) }
     admit. (* internal rf *) }
-  admit.
+  admit. *)
 Admitted.
 
-End SimrelExec.
-
-Section SimrelReexec.
-
-Variable G_t G_t' G_s : execution.
-Variable traces traces' : thread_id -> trace label -> Prop.
-Variable a b : actid.
-
-Notation "'lab_t'" := (lab G_t).
-Notation "'val_t'" := (val lab_t).
-Notation "'E_t'" := (acts_set G_t).
-Notation "'sb_t'" := (sb G_t).
-Notation "'rf_t'" := (rf G_t).
-Notation "'co_t'" := (co G_t).
-Notation "'rmw_t'" := (rmw G_t).
-Notation "'rpo_t'" := (rpo G_t).
-Notation "'rmw_dep_t'" := (rmw_dep G_t).
-Notation "'data_t'" := (data G_t).
-Notation "'ctrl_t'" := (ctrl G_t).
-Notation "'addr_t'" := (addr G_t).
-Notation "'W_t'" := (is_w lab_t).
-Notation "'R_t'" := (is_r lab_t).
-
-Notation "'lab_t''" := (lab G_t').
-Notation "'val_t''" := (val lab_t').
-Notation "'E_t''" := (acts_set G_t').
-Notation "'sb_t''" := (sb G_t').
-Notation "'rf_t''" := (rf G_t').
-Notation "'co_t''" := (co G_t').
-Notation "'rmw_t''" := (rmw G_t').
-Notation "'rpo_t''" := (rpo G_t').
-Notation "'rmw_dep_t''" := (rmw_dep G_t').
-Notation "'data_t''" := (data G_t').
-Notation "'ctrl_t''" := (ctrl G_t').
-Notation "'addr_t''" := (addr G_t').
-Notation "'W_t''" := (is_w lab_t').
-Notation "'R_t''" := (is_r lab_t').
-
-Notation "'lab_s'" := (lab G_s).
-Notation "'val_s'" := (val lab_s).
-Notation "'E_s'" := (acts_set G_s).
-Notation "'loc_s'" := (loc lab_s).
-Notation "'sb_s'" := (sb G_s).
-Notation "'rf_s'" := (rf G_s).
-Notation "'co_s'" := (co G_s).
-Notation "'rmw_s'" := (rmw G_s).
-Notation "'rpo_s'" := (rpo G_s).
-Notation "'rmw_dep_s'" := (rmw_dep G_s).
-Notation "'data_s'" := (data G_s).
-Notation "'ctrl_s'" := (ctrl G_s).
-Notation "'addr_s'" := (addr G_s).
-Notation "'W_s'" := (is_w lab_s).
-Notation "'R_s'" := (is_r lab_s).
-Notation "'srf_s'" := (srf G_s).
-
-Notation "'mapper'" := (ReordCommon.mapper a b).
-
-Hypothesis SWAPPED_TRACES : ReordCommon.traces_swapped traces traces' a b.
-
-Lemma simrel_reexec sc dtrmt cmt
-    (CONS : WCore.is_cons G_t sc)
-    (CONS' : WCore.is_cons G_s (mapper ↑ sc))
-    (SIM : reord_simrel_rw G_s G_t a b)
-    (STEP : WCore.reexec G_t G_t' sc traces dtrmt cmt) :
-  exists G_s' sc' dtrmt' cmt',
-    << SIM' : reord_simrel_rw G_s' G_t' a b >> /\
-    << STEP : WCore.reexec G_s G_s' sc' traces' dtrmt' cmt' >>.
-Proof using SWAPPED_TRACES.
-  admit.
-Admitted.
-
-End SimrelReexec.
-
-Section SimrelMisc.
-
-Variable G_t G_t' G_s : execution.
-Variable traces traces' : thread_id -> trace label -> Prop.
-Variable a b : actid.
-
-Notation "'lab_t'" := (lab G_t).
-Notation "'val_t'" := (val lab_t).
-Notation "'E_t'" := (acts_set G_t).
-Notation "'sb_t'" := (sb G_t).
-Notation "'rf_t'" := (rf G_t).
-Notation "'co_t'" := (co G_t).
-Notation "'rmw_t'" := (rmw G_t).
-Notation "'rpo_t'" := (rpo G_t).
-Notation "'rmw_dep_t'" := (rmw_dep G_t).
-Notation "'data_t'" := (data G_t).
-Notation "'ctrl_t'" := (ctrl G_t).
-Notation "'addr_t'" := (addr G_t).
-Notation "'W_t'" := (is_w lab_t).
-Notation "'R_t'" := (is_r lab_t).
-
-Notation "'lab_t''" := (lab G_t').
-Notation "'val_t''" := (val lab_t').
-Notation "'E_t''" := (acts_set G_t').
-Notation "'sb_t''" := (sb G_t').
-Notation "'rf_t''" := (rf G_t').
-Notation "'co_t''" := (co G_t').
-Notation "'rmw_t''" := (rmw G_t').
-Notation "'rpo_t''" := (rpo G_t').
-Notation "'rmw_dep_t''" := (rmw_dep G_t').
-Notation "'data_t''" := (data G_t').
-Notation "'ctrl_t''" := (ctrl G_t').
-Notation "'addr_t''" := (addr G_t').
-Notation "'W_t''" := (is_w lab_t').
-Notation "'R_t''" := (is_r lab_t').
-
-Notation "'lab_s'" := (lab G_s).
-Notation "'val_s'" := (val lab_s).
-Notation "'E_s'" := (acts_set G_s).
-Notation "'loc_s'" := (loc lab_s).
-Notation "'sb_s'" := (sb G_s).
-Notation "'rf_s'" := (rf G_s).
-Notation "'co_s'" := (co G_s).
-Notation "'rmw_s'" := (rmw G_s).
-Notation "'rpo_s'" := (rpo G_s).
-Notation "'rmw_dep_s'" := (rmw_dep G_s).
-Notation "'data_s'" := (data G_s).
-Notation "'ctrl_s'" := (ctrl G_s).
-Notation "'addr_s'" := (addr G_s).
-Notation "'W_s'" := (is_w lab_s).
-Notation "'R_s'" := (is_r lab_s).
-Notation "'srf_s'" := (srf G_s).
-
-Notation "'mapper'" := (ReordCommon.mapper a b).
-
-Lemma simrel_implies_cons sc
-    (CONS : WCore.is_cons G_t sc)
-    (SIM : reord_simrel_rw G_s G_t a b) :
-  WCore.is_cons G_s (mapper ↑ sc).
+Lemma simrel_reexec cmt
+    (SIM : reord_simrel X_s X_t a_t b_t mapper)
+    (STEP : WCore.reexec X_t X_t' cmt) :
+  exists mapper' X_s' cmt',
+    << SIM' : reord_simrel X_s' X_t' a_t b_t mapper' >> /\
+    << STEP : WCore.reexec X_s X_s' cmt' >>.
 Proof using.
   admit.
 Admitted.
 
-Lemma simrel_term sc
-    (CONS : WCore.is_cons G_t sc)
-    (SIM : reord_simrel_rw G_t G_s a b)
+Lemma simrel_implies_cons
+    (CONS : WCore.is_cons G_t (WCore.sc X_t))
+    (SIM : reord_simrel X_s X_t a_t b_t mapper) :
+  WCore.is_cons G_s (WCore.sc X_s).
+Proof using.
+  admit.
+Admitted.
+
+(* Lemma simrel_term
+    (CONS : WCore.is_cons G_t (WCore.sc X_t))
+    (SIM : reord_simrel G_t G_s a_t b_t mapper)
     (TERM : machine_terminated G_t traces) :
   << TERM' : machine_terminated G_s traces' >> /\
   << SIM' : ReordCommon.reord G_s G_t traces traces' a b >>.
 Proof using.
   admit.
-Admitted.
+Admitted. *)
 
-End SimrelMisc.
+End Basic.
 
 (* Lemma sim_rel_step : about any step *)
 
