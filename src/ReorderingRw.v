@@ -320,6 +320,8 @@ Notation "'G_s'" := (WCore.G X_s).
 
 Notation "'lab_t'" := (lab G_t).
 Notation "'val_t'" := (val lab_t).
+Notation "'loc_t'" := (loc lab_t).
+Notation "'same_loc_t'" := (same_loc lab_t).
 Notation "'E_t'" := (acts_set G_t).
 Notation "'sb_t'" := (sb G_t).
 Notation "'rf_t'" := (rf G_t).
@@ -335,6 +337,8 @@ Notation "'R_t'" := (is_r lab_t).
 
 Notation "'lab_t''" := (lab G_t').
 Notation "'val_t''" := (val lab_t').
+Notation "'loc_t''" := (loc lab_t').
+Notation "'same_loc_t''" := (same_loc lab_t').
 Notation "'E_t''" := (acts_set G_t').
 Notation "'sb_t''" := (sb G_t').
 Notation "'rf_t''" := (rf G_t').
@@ -350,6 +354,8 @@ Notation "'R_t''" := (is_r lab_t').
 
 Notation "'lab_s'" := (lab G_s).
 Notation "'val_s'" := (val lab_s).
+Notation "'loc_s'" := (loc lab_s).
+Notation "'same_loc_s'" := (same_loc lab_s).
 Notation "'E_s'" := (acts_set G_s).
 Notation "'loc_s'" := (loc lab_s).
 Notation "'sb_s'" := (sb G_s).
@@ -364,8 +370,28 @@ Notation "'addr_s'" := (addr G_s).
 Notation "'W_s'" := (is_w lab_s).
 Notation "'R_s'" := (is_r lab_s).
 Notation "'srf_s'" := (srf G_s).
+Notation "'Loc_s_' l" := (fun e => loc_s e = l) (at level 1).
 
 Hypothesis CORR : reord_correct_graphs X_s X_t a_t b_t.
+
+Definition lab_loc l :=
+  match l with
+  | Aload _ _ l _ | Astore _ _ l _ => Some l
+  | Afence _ => None
+  end.
+
+Definition lab_is_r l : actid -> Prop :=
+  match l with
+  | Aload _ _ _ _ => ⊤₁
+  | _ => ∅
+  end.
+
+Definition lab_is_w l : actid -> Prop :=
+  match l with
+  | Astore _ _ _ _ => ⊤₁
+  | _ => ∅
+  end.
+
 
 Lemma sim_rel_init :
   reord_simrel
@@ -608,68 +634,73 @@ Proof using.
   admit.
 Admitted.
 
-Lemma simrel_exec_b_helper
-    (INA : ~E_t a)
-    (NINB : ~E_t b)
-    (ACTEQ : E_t' ≡₁ E_t ∪₁ eq a)
-    (CONS1 : WCore.is_cons
-              (rsr_G_s_niff G_s G_t  a b)
-              (mapper ↑ sc))
-    (CONS2 : WCore.is_cons
-              (rsr_G_s_niff G_s G_t' a b)
-              (mapper ↑ sc))
-    (STEPS : (WCore.cfg_add_event_uninformative traces')＊
-              (WCore.Build_t (mapper ↑ sc) G_s  G_s' ∅)
-              (WCore.Build_t (mapper ↑ sc) G_s' G_s' ∅)
-    ) :
-  << STEP1 : WCore.exec_inst
-              G_s
-              (rsr_G_s_niff G_s G_t  a b)
-              (mapper ↑ sc)
-              traces'
-              a
-  >> /\
-  << STEP2 : WCore.exec_inst
-              (rsr_G_s_niff G_s G_t  a b)
-              G_s'
-              (mapper ↑ sc)
-              traces'
-              b
-  >>.
-Proof using SIMREL.
-  admit.
+Lemma simrel_exec_b_step_1
+    (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
+    (BNOTIN : ~E_t b_t) :
+  exists a_s l_a X_s'',
+    << STEP1 : WCore.exec_inst X_s  X_s'' a_s l_a >>.
+Proof using.
+  (* Generate new actid *)
+  assert (NEWE : exists a_s,
+  << NOTIN : ~E_s a_s >> /\
+  << TID : tid a_s = tid b_t >> /\
+  << SB : ⦗E_s ∪₁ eq a_s⦘ ⨾ ext_sb ⨾ ⦗E_s ∪₁ eq a_s⦘ ≡
+          sb_s ∪ WCore.sb_delta X_s a_s >>).
+  { admit. }
+  (* unfold hypotheses *)
+  red in SIMREL. destruct SIMREL as (a_s' & SIMREL).
+  destruct NEWE as (a_s & NOTIN & NEWTID & NEWSB).
+  red in NOTIN, NEWTID, NEWSB.
+  (* The proof *)
 Admitted.
 
-Lemma simrel_exec_b
-    (CONS : WCore.is_cons G_t sc)
-    (STEP : WCore.exec_inst G_t G_t' sc traces a) :
-  exists G_s' sc' G_s'',
-    << SIMREL : reord_simrel_rw G_s' G_t' a b >> /\
-    << STEP1 : WCore.exec_inst G_s   G_s'' sc' traces' a >> /\
-    << STEP2 : WCore.exec_inst G_s'' G_s'  sc' traces' b >>.
-Proof using SIMREL.
-  (* Preamble *)
-  destruct STEP as [STARTWF ADD]. red in ADD. desf.
-  destruct (classic (E_t a)) as [INA|NINA].
-  { exfalso. now apply (WCore.caes_e_notin STRUCT). }
-  destruct (classic (E_t b)) as [INB|NINB].
-  { exfalso. eapply rsr_actids_t_ord; eauto.
-    apply SIMREL. }
-  assert (CASE2KILLER : ~~(E_t' a /\ ~E_t' b)).
+Lemma simrel_exec_b l
+    (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
+    (STEP : WCore.exec_inst X_t X_t' b_t l) :
+  exists a_s l_a X_s'' mapper' X_s',
+    << SIMREL : reord_simrel X_s' X_t' a_t b_t mapper' >> /\
+    << STEP1 : WCore.exec_inst X_s  X_s'' a_s l_a >> /\
+    << STEP2 : WCore.exec_inst X_s'' X_s' (mapper' b_t) l >>.
+Proof using.
+  (* unfold hypotheses *)
+  destruct STEP as [ADD RFC CONS].
+  destruct ADD as (r & R1 & w & W1 & W2 & ADD).
+  (* Do step 1 *)
+  destruct (simrel_exec_b_step_1 SIMREL)
+        as (a_s & l_a & X_s'' & STEP1).
+  { apply ADD. }
+  exists a_s, l_a, X_s''.
+  (* Generate new actid *)
+  assert (NEWE : exists b_s,
+  << NOTIN : ~(E_s ∪₁ eq a_s) b_s >> /\
+  << TID : tid b_s = tid b_t >> /\
+  << SB : ⦗E_s ∪₁ eq b_s⦘ ⨾ ext_sb ⨾ ⦗E_s ∪₁ eq b_s⦘ ≡
+          sb_s ∪ WCore.sb_delta X_s b_s >>).
   { admit. }
-  (* The proof *)
-  exists G_s', (mapper ↑ sc), (rsr_G_s_niff G_s G_t a b).
-  split; [apply simrel_G_s' |].
-  apply simrel_exec_b_helper; ins.
-  { apply (WCore.caes_e_new STRUCT). }
-  { admit. (* intermediate graph cons *) }
-  { admit. (* resulting graph cons *) }
-  apply sub_to_full_exec
-   with (l := [a; b]).
-  { now apply exec_start_cfg_wf. }
-  { constructor; ins.
-    all: admit. (* all easy *) }
-  admit. (* traces *)
+  red in SIMREL. destruct SIMREL as (a_s' & SIMREL).
+  destruct NEWE as (b_s & NOTIN & NEWTID & NEWSB).
+  red in NOTIN, NEWTID, NEWSB.
+  set (mapper' := upd mapper b_t b_s).
+  set (G_s' := {|
+    acts_set := E_s ∪₁ eq a_s ∪₁ eq b_s;
+    threads_set := threads_set G_s;
+    lab := upd (upd lab_s a_s l_a) b_s l;
+    rf := rf_s ∪
+          mapper' ↑ (rf_t' ⨾ ⦗eq b_t ∩₁ R_t'⦘);
+    co := co_s ∪
+          mapper' ↑ (⦗eq b_t ∩₁ W_t'⦘ ⨾ co_t') ∪
+          mapper' ↑ (co_t' ⨾ ⦗eq b_t ∩₁ W_t'⦘) ∪
+          (W_s ∩₁ E_s ∩₁ Loc_s_ (lab_loc l_a)) × (eq a_s ∩₁ lab_is_w l_a);
+    rmw := mapper' ↑ rmw_t';
+    rmw_dep := rmw_dep_s;
+    ctrl := ctrl_s;
+    data := data_s;
+    addr := addr_s;
+  |}).
+  set (X_s' := {|
+    WCore.sc := WCore.sc X_s;
+    WCore.G := G_s';
+  |}).
 Admitted.
 
 Lemma simrel_exec_a w
