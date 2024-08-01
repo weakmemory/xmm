@@ -100,6 +100,7 @@ Record reord_simrel_gen a_s : Prop := {
 }.
 
 Record reord_correct_graphs : Prop := {
+  rsr_at_tid : tid a_t <> tid_init;
   rsr_at_ninit : ~is_init a_t;
   rsr_bt_ninit : ~is_init b_t;
   rsr_Gt_wf : Wf G_t;
@@ -749,8 +750,8 @@ Proof using CORR.
   set (dtrmt' := E_s \₁ eq a_s \₁ eq (mapper b_t)).
   set (thrdle' := fun x y =>
     << YNINIT : y <> tid_init >> /\
-    << XNOTA : x <> tid a_t >> /\
-    << XYVAL : x = tid_init \/ y = tid a_t >>
+    << XNOTA : x <> tid a_s >> /\
+    << XYVAL : x = tid_init \/ y = tid a_s >>
   ).
   assert (NOTINA : ~E_t a_t).
   { apply ADD. }
@@ -840,9 +841,23 @@ Proof using CORR.
   { subst dtrmt' cmt'. basic_solver. }
   { subst cmt'. basic_solver. }
   { constructor; ins.
-    { admit. }
+    { unfolder. subst thrdle'. ins.
+      splits; try red; eauto. intro FALSO.
+      apply (rsr_at_tid CORR). admit. }
     { unfolder. subst thrdle'. ins. desf. }
+    { constructor; unfolder; subst thrdle'.
+      { ins; desf. }
+      ins; desf. splits; ins; eauto. }
+    arewrite (E_s \₁ cmt' ≡₁ eq a_s).
+    { subst cmt'. rewrite set_minus_minus_r.
+      basic_solver. }
+    rewrite seq_union_l.
+    arewrite ((rf_s ⨾ ⦗E_s \₁ eq a_s⦘) ⨾ ⦗eq a_s⦘ ≡ ∅₂).
+    { basic_solver. }
+    rewrite union_false_l. unfolder. intros x y [_ EQ]. subst y.
+    destruct classic with (tid x = tid a_s) as [TID | NTID].
     { admit. }
+    right. subst thrdle'; ins; splits; eauto.
     admit. }
   { constructor; ins.
     all: admit. }
