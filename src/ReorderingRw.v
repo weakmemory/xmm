@@ -680,6 +680,84 @@ Proof using.
     WCore.sc := WCore.sc X_s;
     WCore.G := G_s';
   |}).
+  (* Asserts *)
+  assert (ENOTIN : ~E_t b_t) by apply ADD.
+  assert (EQACTS : E_t' ≡₁ E_t ∪₁ eq b_t) by apply ADD.
+  assert (MAPEQ : eq_dom E_t mapper' mapper).
+  { subst mapper'. unfolder. intros x XINE.
+    rupd. congruence. }
+  assert (ANOTB : a_s <> b_s).
+  { intro FALSO. apply NOTIN. basic_solver. }
+  assert (ANOTINS : ~E_s a_s).
+  { intro FALSO. destruct STEP1 as [ADD' _ _].
+    destruct ADD' as (r' & R1' & w' & W1' & W2' & ADD').
+    now apply (WCore.add_event_new ADD'). }
+  assert (MAPSUB : mapper' ↑₁ E_t ≡₁ mapper ↑₁ E_t).
+  { split; unfolder; intros x (y & YINE & HEQ).
+    { exists y; split; ins. rewrite <- MAPEQ; ins. }
+    exists y. split; ins. subst mapper'. rupd; ins.
+    congruence. }
+  assert (LABSUB : eq_dom E_t lab_t' lab_t).
+  { rewrite (WCore.add_event_lab ADD). unfolder.
+    intros x XINE. rupd. congruence. }
+  assert (MAPNEQ : forall x (IN : E_t x), mapper x <> b_s).
+  { intros x XINE F. apply NOTIN. left.
+    apply (rsr_codom SIMREL). basic_solver. }
+  assert (MAPNEQ' : forall x (IN : E_t x), mapper x <> a_s).
+  { intros x XINE F. apply ANOTINS.
+    apply (rsr_codom SIMREL). basic_solver. }
+  assert (ANOTIN : ~E_t a_t).
+  { admit. }
+  assert (ANOTIN' : ~E_t' a_t).
+  { intro FALSO. apply (WCore.add_event_acts ADD) in FALSO.
+    destruct FALSO as [INE|EQ]; eauto.
+    admit. (* TODO a_t <> b_t *) }
+  assert (MAPER_E : mapper' ↑₁ eq b_t ≡₁ eq b_s).
+  { subst mapper'. rewrite set_collect_eq. now rupd. }
+  assert (OLDEXA : extra_a X_t a_t b_t a_s' ≡₁ ∅).
+  { unfold extra_a; do 2 desf; exfalso; eauto. }
+  assert (NEWEXA : extra_a X_t' a_t b_t a_s ≡₁ eq a_s).
+  { unfold extra_a; do 2 desf; exfalso; eauto.
+    apply n; split; ins. apply (WCore.add_event_acts ADD).
+    basic_solver. }
+  (* The proof *)
+  exists mapper', X_s'.
+  splits; ins.
+  { exists a_s. constructor; ins.
+    { rewrite (WCore.add_event_acts ADD). apply inj_dom_union.
+      { unfolder. intros x y XINE YINE. rewrite !MAPEQ; ins.
+        now apply SIMREL. }
+      { basic_solver. }
+      rewrite MAPER_E, MAPSUB, (rsr_codom SIMREL), OLDEXA.
+      apply set_disjointE. split; [| basic_solver].
+      unfolder. ins. apply NOTIN. desf. basic_solver. }
+    { rewrite EQACTS, set_collect_union, MAPER_E, MAPSUB,
+              (rsr_codom SIMREL), NEWEXA, set_minus_union_l,
+              OLDEXA, set_minus_union_l, set_minusK.
+      rewrite !set_minus_disjoint; basic_solver. }
+    { rewrite EQACTS. apply eq_dom_union. split.
+      all: unfolder; unfold compose.
+      { intros x XIN. rewrite MAPEQ; ins. now apply SIMREL. }
+      now subst mapper'; ins; desf; rupd. }
+    { rewrite EQACTS, (WCore.add_event_lab ADD).
+      apply eq_dom_union; split; subst mapper'.
+      { unfolder. intros x XIN.
+        unfold compose. rupd; try congruence; eauto.
+        now rewrite <- (rsr_lab SIMREL) by basic_solver. }
+      unfolder. ins. desf. unfold compose. now rupd. }
+    { rewrite EQACTS, set_collect_union, MAPER_E, MAPSUB.
+      rewrite (rsr_acts SIMREL), NEWEXA, OLDEXA.
+      basic_solver 11. }
+    { admit. }
+    { admit. }
+    admit. }
+  constructor; ins.
+  { exists (option_map mapper' r), (mapper' ↑₁ R1),
+         (option_map mapper' w), (mapper' ↑₁ W1), (mapper' ↑₁ W2).
+    constructor; ins.
+    all: admit. }
+  { admit. (* rfcom *) }
+  admit. (* is_cons *)
 Admitted.
 
 Lemma simrel_exec_a l
