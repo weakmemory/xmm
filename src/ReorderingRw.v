@@ -432,6 +432,36 @@ Proof using.
   admit.
 Admitted.
 
+Lemma rsr_is_w_ext lab' s
+    (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
+    (EQLAB : eq_dom E_s lab' lab_s)
+    (SUB : s ⊆₁ E_t ∩₁ W_t) :
+  mapper ↑₁ s ⊆₁ is_w lab'.
+Proof using.
+  transitivity (mapper ↑₁ s ∩₁ E_s).
+  { rewrite set_inter_absorb_r; ins.
+    eapply rsr_sub_e; eauto.
+    rewrite SUB. basic_solver. }
+  rewrite rsr_is_w; eauto. unfolder.
+  intros x (IS_W & XINE). unfold is_w in *.
+  rewrite EQLAB; ins.
+Qed.
+
+Lemma rsr_is_r_ext lab' s
+    (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
+    (EQLAB : eq_dom E_s lab' lab_s)
+    (SUB : s ⊆₁ E_t ∩₁ R_t) :
+  mapper ↑₁ s ⊆₁ is_r lab'.
+Proof using.
+  transitivity (mapper ↑₁ s ∩₁ E_s).
+  { rewrite set_inter_absorb_r; ins.
+    eapply rsr_sub_e; eauto.
+    rewrite SUB. basic_solver. }
+  rewrite rsr_is_r; eauto. unfolder.
+  intros x (IS_R & XINE). unfold is_r in *.
+  rewrite EQLAB; ins.
+Qed.
+
 Lemma simrel_exec_not_a_not_b e l
     (E_NOT_A : e <> a_t)
     (E_NOT_B : e <> b_t)
@@ -612,36 +642,6 @@ Proof using.
   { admit. (* RFCOM *) }
   admit.
 Admitted.
-
-Lemma rsr_is_w_ext lab' s
-    (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
-    (EQLAB : eq_dom E_s lab' lab_s)
-    (SUB : s ⊆₁ E_t ∩₁ W_t) :
-  mapper ↑₁ s ⊆₁ is_w lab'.
-Proof using.
-  transitivity (mapper ↑₁ s ∩₁ E_s).
-  { rewrite set_inter_absorb_r; ins.
-    eapply rsr_sub_e; eauto.
-    rewrite SUB. basic_solver. }
-  rewrite rsr_is_w; eauto. unfolder.
-  intros x (IS_W & XINE). unfold is_w in *.
-  rewrite EQLAB; ins.
-Qed.
-
-Lemma rsr_is_r_ext lab' s
-    (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
-    (EQLAB : eq_dom E_s lab' lab_s)
-    (SUB : s ⊆₁ E_t ∩₁ R_t) :
-  mapper ↑₁ s ⊆₁ is_r lab'.
-Proof using.
-  transitivity (mapper ↑₁ s ∩₁ E_s).
-  { rewrite set_inter_absorb_r; ins.
-    eapply rsr_sub_e; eauto.
-    rewrite SUB. basic_solver. }
-  rewrite rsr_is_r; eauto. unfolder.
-  intros x (IS_R & XINE). unfold is_r in *.
-  rewrite EQLAB; ins.
-Qed.
 
 Lemma simrel_exec_b_step_1
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
