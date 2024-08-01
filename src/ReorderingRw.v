@@ -613,6 +613,36 @@ Proof using.
   admit.
 Admitted.
 
+Lemma rsr_is_w_ext lab' s
+    (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
+    (EQLAB : eq_dom E_s lab' lab_s)
+    (SUB : s ⊆₁ E_t ∩₁ W_t) :
+  mapper ↑₁ s ⊆₁ is_w lab'.
+Proof using.
+  transitivity (mapper ↑₁ s ∩₁ E_s).
+  { rewrite set_inter_absorb_r; ins.
+    eapply rsr_sub_e; eauto.
+    rewrite SUB. basic_solver. }
+  rewrite rsr_is_w; eauto. unfolder.
+  intros x (IS_W & XINE). unfold is_w in *.
+  rewrite EQLAB; ins.
+Qed.
+
+Lemma rsr_is_r_ext lab' s
+    (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
+    (EQLAB : eq_dom E_s lab' lab_s)
+    (SUB : s ⊆₁ E_t ∩₁ R_t) :
+  mapper ↑₁ s ⊆₁ is_r lab'.
+Proof using.
+  transitivity (mapper ↑₁ s ∩₁ E_s).
+  { rewrite set_inter_absorb_r; ins.
+    eapply rsr_sub_e; eauto.
+    rewrite SUB. basic_solver. }
+  rewrite rsr_is_r; eauto. unfolder.
+  intros x (IS_R & XINE). unfold is_r in *.
+  rewrite EQLAB; ins.
+Qed.
+
 Lemma simrel_exec_b_step_1
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
     (BNOTIN : ~E_t b_t) :
@@ -649,6 +679,8 @@ Proof using.
         as (a_s & l_a & X_s'' & STEP1).
   { apply ADD. }
   exists a_s, l_a, X_s''.
+  destruct STEP1 as [ADD' _ _].
+  destruct ADD' as (r' & R1' & w' & W1' & W2' & ADD').
   (* Generate new actid *)
   assert (NEWE : exists b_s,
   << NOTIN : ~(E_s ∪₁ eq a_s) b_s >> /\
@@ -689,9 +721,7 @@ Proof using.
   assert (ANOTB : a_s <> b_s).
   { intro FALSO. apply NOTIN. basic_solver. }
   assert (ANOTINS : ~E_s a_s).
-  { intro FALSO. destruct STEP1 as [ADD' _ _].
-    destruct ADD' as (r' & R1' & w' & W1' & W2' & ADD').
-    now apply (WCore.add_event_new ADD'). }
+  { intro FALSO. now apply (WCore.add_event_new ADD'). }
   assert (MAPSUB : mapper' ↑₁ E_t ≡₁ mapper ↑₁ E_t).
   { split; unfolder; intros x (y & YINE & HEQ).
     { exists y; split; ins. rewrite <- MAPEQ; ins. }
@@ -755,6 +785,7 @@ Proof using.
   { exists (option_map mapper' r), (mapper' ↑₁ R1),
          (option_map mapper' w), (mapper' ↑₁ W1), (mapper' ↑₁ W2).
     constructor; ins.
+    { admit. }
     all: admit. }
   { admit. (* rfcom *) }
   admit. (* is_cons *)
