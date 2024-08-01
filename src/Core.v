@@ -222,6 +222,8 @@ Notation "'same_val''" := (same_val lab').
 Notation "'E'" := (acts_set G).
 Notation "'threads_set'" := (threads_set G).
 Notation "'lab'" := (lab G).
+Notation "'loc'" := (loc lab).
+Notation "'val'" := (val lab).
 Notation "'sb'" := (sb G).
 Notation "'rf'" := (rf G).
 Notation "'co'" := (co G).
@@ -233,21 +235,47 @@ Notation "'rmw_dep'" := (rmw_dep G).
 Notation "'W'" := (is_w lab).
 Notation "'R'" := (is_r lab).
 Notation "'same_loc'" := (same_loc lab).
+Notation "'Loc_' l" := (fun e => loc e = l) (at level 1).
+Notation "'Val_' v" := (fun e => val e = v) (at level 1).
+
+Definition lab_val :=
+  match l with
+  | Aload _ _ _ v | Astore _ _ _ v => Some v
+  | Afence _ => None
+  end.
+
+Definition lab_loc :=
+  match l with
+  | Aload _ _ l _ | Astore _ _ l _ => Some l
+  | Afence _ => None
+  end.
+
+Definition lab_is_r : actid -> Prop :=
+  match l with
+  | Aload _ _ _ _ => ⊤₁
+  | _ => ∅
+  end.
+
+Definition lab_is_w : actid -> Prop :=
+  match l with
+  | Astore _ _ _ _ => ⊤₁
+  | _ => ∅
+  end.
 
 Definition sb_delta : relation actid :=
   (E ∩₁ (is_init ∪₁ same_tid e)) × eq e.
 
 Definition rf_delta_R w : relation actid :=
-  eq_opt w × (eq e ∩₁ R').
+  eq_opt w × (eq e ∩₁ lab_is_r).
 
 Definition rf_delta_W R1 : relation actid :=
-  (eq e ∩₁ W') × R1.
+  (eq e ∩₁ lab_is_w) × R1.
 
 Definition co_delta W1 W2 : relation actid :=
-  (eq e ∩₁ W') × W1 ∪ W2 × (eq e ∩₁ W').
+  (eq e ∩₁ lab_is_w) × W1 ∪ W2 × (eq e ∩₁ lab_is_w).
 
 Definition rmw_delta r : relation actid :=
-  eq_opt r × (eq e ∩₁ W').
+  eq_opt r × (eq e ∩₁ lab_is_w).
 
 Definition right_after_e r :=
   match r with
@@ -259,28 +287,28 @@ Record add_event_gen r R1 w W1 W2 : Prop := {
   add_event_new : ~E e;
   add_event_ninit : ~is_init e;
   (**)
-  add_event_wD : eq_opt w ⊆₁ W';
+  add_event_wD : eq_opt w ⊆₁ W;
   add_event_wE : eq_opt w ⊆₁ E;
-  add_event_wL : eq_opt w ⊆₁ same_loc' e;
-  add_event_wv : eq_opt w ⊆₁ same_val' e;
+  add_event_wL : eq_opt w ⊆₁ Loc_ lab_loc;
+  add_event_wv : eq_opt w ⊆₁ Val_ lab_val;
   (**)
-  add_event_rD : eq_opt r ⊆₁ R';
+  add_event_rD : eq_opt r ⊆₁ R;
   add_event_rE : eq_opt r ⊆₁ E;
-  add_event_rL : eq_opt r ⊆₁ same_loc' e;
+  add_event_rL : eq_opt r ⊆₁ Loc_ lab_loc;
   add_event_ri : right_after_e r;
   (**)
-  add_event_W1D : W1 ⊆₁ W';
+  add_event_W1D : W1 ⊆₁ W;
   add_event_W1E : W1 ⊆₁ E;
-  add_event_W1L : W1 ⊆₁ same_loc' e;
+  add_event_W1L : W1 ⊆₁ Loc_ lab_loc;
   (**)
-  add_event_W2D : W2 ⊆₁ W';
+  add_event_W2D : W2 ⊆₁ W;
   add_event_W2E : W2 ⊆₁ E;
-  add_event_W2L : W2 ⊆₁ same_loc' e;
+  add_event_W2L : W2 ⊆₁ Loc_ lab_loc;
   (**)
-  add_event_R1D : R1 ⊆₁ R';
+  add_event_R1D : R1 ⊆₁ R;
   add_event_R1E : R1 ⊆₁ E;
-  add_event_R1L : R1 ⊆₁ same_loc' e;
-  add_event_R1V : R1 ⊆₁ same_val' e;
+  add_event_R1L : R1 ⊆₁ Loc_ lab_loc;
+  add_event_R1V : R1 ⊆₁ Val_ lab_val;
   (**)
   add_event_co_tr : transitive co';
   add_event_rff : functional (rf'⁻¹);

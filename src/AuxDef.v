@@ -532,3 +532,47 @@ Definition least_elt {A} (r : relation A) (x : A) :=
 
 #[global]
 Hint Unfold least_elt : unfolderDb.
+
+Lemma eq_dom_is_r lab lab' (s : actid -> Prop)
+    (SUB : s ⊆₁ is_r lab)
+    (LABEQ : eq_dom s lab' lab) :
+  s ⊆₁ is_r lab'.
+Proof using.
+  unfolder. unfold is_r. intros x XIN.
+  rewrite LABEQ; ins. now apply SUB.
+Qed.
+
+Lemma eq_dom_is_w lab lab' (s : actid -> Prop)
+    (SUB : s ⊆₁ is_w lab)
+    (LABEQ : eq_dom s lab' lab) :
+  s ⊆₁ is_w lab'.
+Proof using.
+  unfolder. unfold is_w. intros x XIN.
+  rewrite LABEQ; ins. now apply SUB.
+Qed.
+
+Lemma eq_dom_loc lab lab' (s : actid -> Prop) l
+    (SUB : s ⊆₁ (fun e => loc lab e = l))
+    (LABEQ : eq_dom s lab' lab) :
+  s ⊆₁ (fun e => loc lab' e = l).
+Proof using.
+  unfolder. unfold loc. intros x XIN.
+  rewrite LABEQ; ins. now apply SUB.
+Qed.
+
+Lemma eq_dom_val lab lab' (s : actid -> Prop) v
+    (SUB : s ⊆₁ (fun e => val lab e = v))
+    (LABEQ : eq_dom s lab' lab) :
+  s ⊆₁ (fun e => val lab' e = v).
+Proof using.
+  unfolder. unfold val. intros x XIN.
+  rewrite LABEQ; ins. now apply SUB.
+Qed.
+
+Lemma wf_rfv' G
+    (WF : Wf G) :
+  rf G ⊆ same_val (lab G).
+Proof using.
+  unfolder. intros x y RF. unfold same_val.
+  now apply (wf_rfv WF).
+Qed.

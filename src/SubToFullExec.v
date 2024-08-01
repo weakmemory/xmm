@@ -178,129 +178,6 @@ Definition delta_X := {|
   WCore.sc := delta_sc;
 |}.
 
-Lemma delta_eq_lab
-    (PFX : prefix X X')
-    (NINIT : ~is_init e)
-    (NOTINE : ~ E e) :
-  eq_dom (is_init ∪₁ delta_E) delta_lab lab'.
-Proof using.
-  unfold delta_E, delta_lab.
-  rewrite <- set_unionA. apply eq_dom_union.
-  split; unfolder; intros x XIN.
-  { rewrite updo; [now apply PFX |].
-    desf; congruence. }
-  subst x. now rewrite upds.
-Qed.
-
-Lemma delta_lab_is_r
-    (s : actid -> Prop)
-    (SUB : s ⊆₁ delta_E)
-    (PFX : prefix X X')
-    (NINIT : ~is_init e)
-    (NOTINE : ~ E e) :
-  s ∩₁ is_r lab' ≡₁ s ∩₁ is_r delta_lab.
-Proof using.
-  unfolder. split; intros x (LAB & IN).
-  all: split; ins.
-  all: unfold is_r.
-  { rewrite delta_eq_lab; ins.
-    basic_solver. }
-  rewrite <- delta_eq_lab; ins.
-  basic_solver.
-Qed.
-
-Lemma delta_lab_is_w
-    (s : actid -> Prop)
-    (SUB : s ⊆₁ delta_E)
-    (PFX : prefix X X')
-    (NINIT : ~is_init e)
-    (NOTINE : ~ E e) :
-  s ∩₁ is_w lab' ≡₁ s ∩₁ is_w delta_lab.
-Proof using.
-  unfolder. split; intros x (LAB & IN).
-  all: split; ins.
-  all: unfold is_w.
-  { rewrite delta_eq_lab; ins.
-    basic_solver. }
-  rewrite <- delta_eq_lab; ins.
-  basic_solver.
-Qed.
-
-Lemma delta_lab_is_f
-    (s : actid -> Prop)
-    (SUB : s ⊆₁ delta_E)
-    (PFX : prefix X X')
-    (NINIT : ~is_init e)
-    (NOTINE : ~ E e) :
-  s ∩₁ is_f lab' ≡₁ s ∩₁ is_f delta_lab.
-Proof using.
-  unfolder. split; intros x (LAB & IN).
-  all: split; ins.
-  all: unfold is_f.
-  { rewrite delta_eq_lab; ins.
-    basic_solver. }
-  rewrite <- delta_eq_lab; ins.
-  basic_solver.
-Qed.
-
-Lemma pfx_same_loc x
-    (s : actid -> Prop)
-    (SUB : s ⊆₁ delta_E)
-    (PFX : prefix X X')
-    (NINIT : ~is_init e)
-    (NOTINE : ~ E e)
-    (INE : delta_E x) :
-  s ∩₁ same_loc lab' x ≡₁ s ∩₁ same_loc delta_lab x.
-Proof using.
-  unfolder. split; intros y (LAB & IN).
-  all: split; ins.
-  all: unfold same_loc, loc.
-  { rewrite !delta_eq_lab; ins.
-    all: basic_solver. }
-  rewrite <- !delta_eq_lab; ins.
-  all: basic_solver.
-Qed.
-
-Lemma pfx_same_val x
-    (s : actid -> Prop)
-    (SUB : s ⊆₁ delta_E)
-    (PFX : prefix X X')
-    (NINIT : ~is_init e)
-    (NOTINE : ~ E e)
-    (INE : delta_E x) :
-  s ∩₁ same_val lab' x ≡₁ s ∩₁ same_val delta_lab x.
-Proof using.
-  unfolder. split; intros y (LAB & IN).
-  all: split; ins.
-  all: unfold same_val, val.
-  { rewrite !delta_eq_lab; ins.
-    all: basic_solver. }
-  rewrite <- !delta_eq_lab; ins.
-  all: basic_solver.
-Qed.
-
-Lemma pfx_same_loc'
-    (PFX : prefix X X')
-    (NINIT : ~is_init e)
-    (NOTINE : ~ E e) :
-  restr_rel delta_E (same_loc lab') ≡
-    restr_rel delta_E (same_loc delta_lab).
-Proof using.
-  split; intros x y (LAB & DOM & CODOM).
-  { apply set_subset_single_l.
-    arewrite (restr_rel delta_E (same_loc delta_lab) x ≡₁
-              delta_E ∩₁ same_loc delta_lab x).
-    { basic_solver 12. }
-    rewrite <- pfx_same_loc; ins.
-    basic_solver 12. }
-  apply set_subset_single_l.
-  arewrite (restr_rel delta_E (same_loc lab') x ≡₁
-            delta_E ∩₁ same_loc lab' x).
-  { basic_solver 12. }
-  rewrite pfx_same_loc; ins.
-  basic_solver 12.
-Qed.
-
 Lemma delta_add_event
     (INE : E' e)
     (NOTINE : ~ E e)
@@ -344,8 +221,26 @@ Proof using.
     unfolder. intros x y (HIN' & RF & HEQ). subst y.
     split; ins. eapply (wf_rff WF); eauto.
     unfold transp. unfolder in HIN. desf. }
-  (* The proof *)
   destruct RMW as (r & RMW), RF as (w & RF).
+  assert (EQLAB : eq_dom E lab lab').
+  { eapply eq_dom_mori with (x := is_init ∪₁ E); eauto.
+    { unfold flip. basic_solver. }
+    apply PFX. }
+  assert (SWE : eq_opt w ⊆₁ E).
+  { arewrite (eq_opt w ⊆₁ dom_rel (⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘)).
+    { rewrite RF. basic_solver. }
+    basic_solver. }
+  assert (SRE : eq_opt r ⊆₁ E).
+  { arewrite (eq_opt r ⊆₁ dom_rel (⦗E⦘ ⨾ rmw' ⨾ ⦗eq e⦘)).
+    { rewrite RMW. basic_solver. }
+    basic_solver. }
+  assert (W1E : codom_rel (⦗eq e⦘ ⨾ co' ⨾ ⦗E⦘) ⊆₁ E).
+  { basic_solver. }
+  assert (W2E : dom_rel (⦗E⦘ ⨾ co' ⨾ ⦗eq e⦘) ⊆₁ E).
+  { basic_solver. }
+  assert (R1E : codom_rel (⦗eq e⦘ ⨾ rf' ⨾ ⦗E⦘) ⊆₁ E).
+  { basic_solver. }
+  (* The proof *)
   exists r,
          (codom_rel (⦗eq e⦘ ⨾ rf' ⨾ ⦗E⦘    )),
          w,
@@ -353,39 +248,31 @@ Proof using.
          (dom_rel   (   ⦗E⦘ ⨾ co' ⨾ ⦗eq e⦘ )).
   constructor; ins.
   all: try now (symmetry; apply PFX).
-  { arewrite (eq_opt w ⊆₁ dom_rel (⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘)).
-    { rewrite RF. basic_solver. }
-    transitivity (E ∩₁ is_w delta_lab); [| basic_solver].
-    rewrite <- delta_lab_is_w; ins.
-    rewrite (wf_rfD WF). basic_solver 12. }
-  { arewrite (eq_opt w ⊆₁ dom_rel (⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘)).
-    { rewrite RF. basic_solver. }
-    basic_solver. }
-  { arewrite (eq_opt w ⊆₁ dom_rel (⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘)).
-    { rewrite RF. basic_solver. }
-    transitivity (E ∩₁ same_loc delta_lab e); [| basic_solver].
-    rewrite <- pfx_same_loc; ins; [| basic_solver].
-    rewrite (wf_rfl WF). basic_solver 12. }
-  { arewrite (eq_opt w ⊆₁ dom_rel (⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘)).
-    { rewrite RF. basic_solver. }
-    transitivity (E ∩₁ same_val delta_lab e); [| basic_solver].
-    rewrite <- pfx_same_val; ins; [| basic_solver].
-    unfold same_val. unfolder.
-    intros x (e' & EEINE & RF' & EQ). subst e'.
-    split; ins. symmetry; now apply (wf_rfv WF). }
-  { arewrite (eq_opt r ⊆₁ dom_rel (⦗E⦘ ⨾ rmw' ⨾ ⦗eq e⦘)).
-    { rewrite RMW. basic_solver. }
-    transitivity (E ∩₁ is_r delta_lab); [| basic_solver].
-    rewrite <- delta_lab_is_r; ins.
-    rewrite (wf_rmwD WF). basic_solver 12. }
-  { arewrite (eq_opt r ⊆₁ dom_rel (⦗E⦘ ⨾ rmw' ⨾ ⦗eq e⦘)).
-    { rewrite RMW. basic_solver. }
-    basic_solver. }
-  { arewrite (eq_opt r ⊆₁ dom_rel (⦗E⦘ ⨾ rmw' ⨾ ⦗eq e⦘)).
-    { rewrite RMW. basic_solver. }
-    transitivity (E ∩₁ same_loc delta_lab e); [| basic_solver].
-    rewrite <- pfx_same_loc; ins; [| basic_solver].
-    rewrite (wf_rmwl WF). basic_solver 12. }
+  { apply eq_dom_is_w with (lab := lab').
+    { arewrite (eq_opt w ⊆₁ dom_rel (⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘)).
+      { rewrite RF. basic_solver. }
+      rewrite (wf_rfD WF). basic_solver. }
+    eapply eq_dom_mori with (x := E); eauto. }
+  { apply eq_dom_loc with (lab := lab').
+    { arewrite (eq_opt w ⊆₁ dom_rel (⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘)).
+      { rewrite RF. basic_solver. }
+      rewrite (wf_rfl WF). basic_solver. }
+    eapply eq_dom_mori with (x := E); eauto. }
+  { apply eq_dom_val with (lab := lab').
+    { arewrite (eq_opt w ⊆₁ dom_rel (⦗E⦘ ⨾ rf' ⨾ ⦗eq e⦘)).
+      { rewrite RF. basic_solver. }
+      rewrite (wf_rfv' WF). basic_solver. }
+    eapply eq_dom_mori with (x := E); eauto. }
+  { apply eq_dom_is_r with (lab := lab').
+    { arewrite (eq_opt r ⊆₁ dom_rel (⦗E⦘ ⨾ rmw' ⨾ ⦗eq e⦘)).
+      { rewrite RMW. basic_solver. }
+      rewrite (wf_rmwD WF). basic_solver. }
+    eapply eq_dom_mori with (x := E); eauto. }
+  { apply eq_dom_loc with (lab := lab').
+    { arewrite (eq_opt r ⊆₁ dom_rel (⦗E⦘ ⨾ rmw' ⨾ ⦗eq e⦘)).
+      { rewrite RMW. basic_solver. }
+      rewrite (wf_rmwl WF). basic_solver. }
+    eapply eq_dom_mori with (x := E); eauto. }
   { unfold WCore.right_after_e. destruct r as [r| ]; ins.
     assert (IMM : immediate sb' r e).
     { apply (wf_rmwi WF). unfolder in RMW.
@@ -402,45 +289,27 @@ Proof using.
       splits; try basic_solver. }
     unfolder in R. unfolder. ins.
     splits; try basic_solver. }
-  { transitivity (codom_rel (⦗eq e⦘ ⨾ co' ⨾ ⦗E⦘) ∩₁ is_w delta_lab);
-              [| basic_solver].
-    rewrite <- delta_lab_is_w; ins; [| unfold delta_E; basic_solver].
-    rewrite (wf_coD WF). basic_solver 12. }
-  { basic_solver 12. }
-  { transitivity (codom_rel (⦗eq e⦘ ⨾ co' ⨾ ⦗E⦘) ∩₁ same_loc delta_lab e);
-              [| basic_solver].
-    rewrite <- pfx_same_loc; ins; try basic_solver.
-    arewrite (co' ≡ co' ∩ same_loc lab').
-    { rewrite inter_absorb_r; ins. apply WF. }
-    basic_solver 12. }
-  { transitivity (dom_rel (⦗E⦘ ⨾ co' ⨾ ⦗eq e⦘) ∩₁ is_w delta_lab);
-              [| basic_solver].
-    rewrite <- delta_lab_is_w; ins; [| unfold delta_E; basic_solver].
-    rewrite (wf_coD WF). basic_solver 12. }
-  { basic_solver 12. }
-  { transitivity (dom_rel (⦗E⦘ ⨾ co' ⨾ ⦗eq e⦘) ∩₁ same_loc delta_lab e);
-              [| basic_solver].
-    rewrite <- pfx_same_loc; ins; try basic_solver.
-    arewrite (co' ≡ co' ∩ same_loc lab').
-    { rewrite inter_absorb_r; ins. apply WF. }
-    basic_solver 12. }
-  { transitivity (codom_rel (⦗eq e⦘ ⨾ rf' ⨾ ⦗E⦘) ∩₁ is_r delta_lab);
-              [| basic_solver].
-    rewrite <- delta_lab_is_r; ins; [| unfold delta_E; basic_solver].
-    rewrite (wf_rfD WF). basic_solver 12. }
-  { basic_solver 12. }
-  { transitivity (codom_rel (⦗eq e⦘ ⨾ rf' ⨾ ⦗E⦘) ∩₁ same_loc delta_lab e);
-              [| basic_solver].
-    rewrite <- pfx_same_loc; ins; try basic_solver.
-    arewrite (rf' ≡ rf' ∩ same_loc lab').
-    { rewrite inter_absorb_r; ins. apply WF. }
-    basic_solver 12. }
-  { transitivity (codom_rel (⦗eq e⦘ ⨾ rf' ⨾ ⦗E⦘) ∩₁ same_val delta_lab e);
-              [| basic_solver].
-    rewrite <- pfx_same_val; ins; try basic_solver.
-    arewrite (rf' ≡ rf' ∩ same_val lab').
-    { rewrite inter_absorb_r; ins. apply WF. }
-    basic_solver 12. }
+  { apply eq_dom_is_w with (lab := lab').
+    { rewrite (wf_coD WF). basic_solver. }
+    eapply eq_dom_mori with (x := E); eauto. }
+  { apply eq_dom_loc with (lab := lab').
+    { rewrite (wf_col WF). basic_solver. }
+    eapply eq_dom_mori with (x := E); eauto. }
+  { apply eq_dom_is_w with (lab := lab').
+    { rewrite (wf_coD WF). basic_solver. }
+    eapply eq_dom_mori with (x := E); eauto. }
+  { apply eq_dom_loc with (lab := lab').
+    { rewrite (wf_col WF). basic_solver. }
+    eapply eq_dom_mori with (x := E); eauto. }
+  { apply eq_dom_is_r with (lab := lab').
+    { rewrite (wf_rfD WF). basic_solver. }
+    eapply eq_dom_mori with (x := E); eauto. }
+  { apply eq_dom_loc with (lab := lab').
+    { rewrite (wf_rfl WF). basic_solver. }
+    eapply eq_dom_mori with (x := E); eauto. }
+  { apply eq_dom_val with (lab := lab').
+    { rewrite (wf_rfv' WF). basic_solver. }
+    eapply eq_dom_mori with (x := E); eauto. }
   { apply transitive_restr, WF. }
   { rewrite <- restr_transp.
     apply functional_restr, WF. }
@@ -448,20 +317,33 @@ Proof using.
   { rewrite restr_set_union, (prf_rf PFX).
     rewrite restr_irrefl_eq by now apply rf_irr.
     rewrite union_false_r.
+    unfold WCore.rf_delta_R, WCore.rf_delta_W.
+    arewrite (eq e ∩₁ WCore.lab_is_r (lab' e) ≡₁ eq e ∩₁ R').
+    { unfold WCore.lab_is_r, is_r. unfolder. split.
+      all: ins; desf. }
+    arewrite (eq e ∩₁ WCore.lab_is_w (lab' e) ≡₁ eq e ∩₁ W').
+    { unfold WCore.lab_is_w, is_w. unfolder. split.
+      all: ins; desf. }
     repeat apply union_more; ins.
-    { unfold WCore.rf_delta_R. rewrite cross_inter_r.
-      rewrite <- RF, !seqA. seq_rewrite <- !id_inter.
-      rewrite <- delta_lab_is_r, (wf_rfD WF), seqA; ins.
-      basic_solver 12. }
-    unfold WCore.rf_delta_W.
-    rewrite <- delta_lab_is_w, (wf_rfD WF); ins.
+    { rewrite cross_inter_r.
+      rewrite <- RF, (wf_rfD WF), !seqA. seq_rewrite <- !id_inter.
+      arewrite (R' ∩₁ (eq e ∩₁ R') ≡₁ R' ∩₁ eq e); ins.
+      basic_solver. }
+    rewrite cross_inter_l.
+    rewrite (wf_rfD WF), !seqA. seq_rewrite <- !id_inter.
     basic_solver 12. }
   { rewrite restr_set_union, (prf_co PFX).
     rewrite restr_irrefl_eq by now apply co_irr.
     rewrite union_false_r. unfold WCore.co_delta.
-    rewrite <- delta_lab_is_w, cross_inter_r,
-            cross_inter_l, (wf_coD WF); ins.
-    basic_solver 12. }
+    arewrite (eq e ∩₁ WCore.lab_is_w (lab' e) ≡₁ eq e ∩₁ W').
+    { unfold WCore.lab_is_w, is_w. unfolder. split.
+      all: ins; desf. }
+    rewrite cross_inter_r, cross_inter_l, unionA.
+    rewrite unionC with (r1 := ⦗E⦘ ⨾ co' ⨾ ⦗eq e⦘).
+    repeat apply union_more; ins.
+    all: rewrite (wf_coD WF), !seqA.
+    all: seq_rewrite <- !id_inter.
+    all: basic_solver 12. }
   { rewrite restr_set_union, (prf_rmw PFX).
     rewrite restr_irrefl_eq by now apply rmw_irr.
     rewrite union_false_r. rewrite unionA.
@@ -469,8 +351,13 @@ Proof using.
     { split; [| basic_solver].
       now rewrite (wf_rmwi WF), immediate_in. }
     rewrite union_false_r. unfold WCore.rmw_delta.
-    rewrite <- delta_lab_is_w, cross_inter_r, <- RMW,
-            (wf_rmwD WF); ins.
+    arewrite (eq e ∩₁ WCore.lab_is_w (lab' e) ≡₁ eq e ∩₁ W').
+    { unfold WCore.lab_is_w, is_w. unfolder. split.
+      all: ins; desf. }
+    repeat apply union_more; ins.
+    rewrite cross_inter_r, <- RMW,
+            (wf_rmwD WF), !seqA.
+    seq_rewrite <- !id_inter.
     basic_solver 12. }
   unfold delta_G, delta_E, sb at 1. ins.
   rewrite <- restr_relE, restr_set_union, restr_relE.
@@ -495,9 +382,9 @@ Proof using.
   destruct x as [xl | xt xn]; ins.
   unfold same_tid in SAME. ins. subst xt.
   split; ins.
-  assert (TRI : xn < en \/ xn = en \/ en < xn).
-  { lia. }
-  destruct TRI as [LT | [EQ | GT]]; ins.
+  destruct PeanoNat.Nat.lt_total
+        with xn en
+        as [LT | [EQ | GT]]; ins.
   { congruence. }
   exfalso.
   apply EMAX with (ThreadEvent et en) (ThreadEvent et xn).
@@ -580,6 +467,10 @@ Proof using.
     basic_solver. }
   assert (SUBE' : E ⊆₁ delta_E).
   { unfold delta_E. basic_solver. }
+  assert (EQLAB : eq_dom E lab lab').
+  { eapply eq_dom_mori with (x := is_init ∪₁ E); eauto.
+    { unfold flip. basic_solver. }
+    apply PFX. }
   constructor; ins.
   { apply delta_add_event; ins. }
   constructor; ins.
@@ -593,17 +484,21 @@ Proof using.
       apply delta_G_prefix; ins. }
     all: rewrite restr_restr; basic_solver. }
   { apply XWF. }
-  { unfold delta_E. rewrite set_inter_union_l.
+  { unfold delta_E.
+    arewrite ((E ∪₁ eq e) ∩₁ is_r delta_lab ≡₁
+              (E ∪₁ eq e) ∩₁ R').
+    { apply same_lab_u2v_dom_is_r with (s := E ∪₁ eq e).
+      unfold same_lab_u2v_dom, same_label_u2v. intros x XIN.
+      rewrite (prf_lab (delta_G_prefix INE NOTINE NINIT EMAX2 PFX)).
+      all: basic_solver. }
+    rewrite set_inter_union_l.
     apply set_subset_union_l; split.
-    { rewrite <- delta_lab_is_r; ins.
-      arewrite (E ∩₁ R' ⊆₁ E ∩₁ R).
-      { unfolder. unfold is_r.
-        intros x (XISR & XINE). split; ins.
-        rewrite (prf_lab PFX); ins. basic_solver. }
+    { arewrite (E ∩₁ R' ⊆₁ E ∩₁ R).
+      { apply set_subset_inter_r; split; [basic_solver |].
+        apply eq_dom_is_r with (lab := lab'); [basic_solver |].
+        eapply eq_dom_mori; eauto. unfold flip. basic_solver. }
       rewrite (WCore.wf_sub_rfD XWF), (prf_rf PFX).
       basic_solver 7. }
-    rewrite <- delta_lab_is_r; ins.
-    all: try now unfold delta_E; basic_solver.
     rewrite RF, restr_set_union, !codom_union.
     basic_solver 12. }
   admit. (* TODO *)
