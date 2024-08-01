@@ -1259,7 +1259,7 @@ Proof using CORR.
         rewrite <- (rsr_lab SIMREL); ins. }
       unfolder. ins. desf. unfold compose. now rupd. }
     { rewrite (WCore.add_event_acts ADD), NOEXA,
-              set_union_empty_r, set_collect:W_union,
+              set_union_empty_r, set_collect_union,
               MAPSUB, MAPER_E, (rsr_acts SIMREL).
       now rewrite OLDEXA. }
     { admit. }
