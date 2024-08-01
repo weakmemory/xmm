@@ -85,7 +85,7 @@ Definition extra_a (a_s : actid) :=
 
 Record reord_simrel_gen a_s : Prop := {
   rsr_inj : inj_dom E_t mapper;
-  rsr_codom : mapper ↑₁ E_t ⊆₁ E_s;
+  rsr_codom : mapper ↑₁ E_t ⊆₁ E_s \₁ extra_a a_s;
   rsr_tid : eq_dom E_t (tid ∘ mapper) tid;
   rsr_u2v : same_lab_u2v_dom (mapper ↓₁ extra_a a_s) (lab_s ∘ mapper) lab_t;
   rsr_lab : eq_dom (E_t \₁ mapper ↓₁ extra_a a_s) (lab_s ∘ mapper) lab_t;
@@ -418,7 +418,7 @@ Proof using CORR.
     apply (rsr_bt_ninit CORR), INB. }
   exists a_t.
   constructor; ins.
-  { rewrite (rsr_init_acts CORR). basic_solver. }
+  { rewrite (rsr_init_acts CORR), EXA. basic_solver. }
   { unfold same_lab_u2v_dom. unfolder.
     intros e IN. apply EXA in IN. destruct IN. }
   { rewrite EXA.
@@ -512,6 +512,8 @@ Proof using.
     { apply EQACTS. basic_solver. }
     { apply a, EQACTS. basic_solver. }
     apply EQACTS in a0. destruct a0; congruence. }
+  assert (EXIN : extra_a X_t a_t b_t a_s ⊆₁ E_s).
+  { rewrite (rsr_acts SIMREL). basic_solver. }
   set (G_s' := {|
     acts_set := E_s ∪₁ eq e';
     threads_set := threads_set G_s;
@@ -538,8 +540,8 @@ Proof using.
       { basic_solver. }
       rewrite MAPER_E, MAPSUB, (rsr_codom SIMREL). basic_solver. }
     { rewrite EQACTS, set_collect_union, MAPER_E, MAPSUB,
-              (rsr_codom SIMREL).
-      basic_solver. }
+              (rsr_codom SIMREL), <- EXEQ, set_minus_union_l.
+      apply set_union_mori; ins. rewrite EXIN. basic_solver. }
     { rewrite EQACTS. apply eq_dom_union. split.
       all: unfolder; unfold compose.
       { intros x XIN. rewrite MAPEQ; ins. now apply SIMREL. }
@@ -786,7 +788,7 @@ Proof using CORR.
       { basic_solver. }
       rewrite MAPSUB, MAPER_E. admit. }
     { rewrite (WCore.add_event_acts ADD), set_collect_union,
-              MAPSUB, MAPER_E, (rsr_codom SIMREL).
+              MAPSUB, MAPER_E, (rsr_codom SIMREL), NOEXA, OLDEXA.
       basic_solver. }
     { rewrite (WCore.add_event_acts ADD). apply eq_dom_union.
       split; unfold compose; unfolder; intros x XINE.
