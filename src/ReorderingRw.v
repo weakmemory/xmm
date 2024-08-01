@@ -1266,25 +1266,30 @@ Proof using CORR.
     { rewrite NOEXA, set_inter_empty_l,
               (rsr_rf SIMREL), seq_union_l, OLDEXA.
       arewrite (rf_t' ⨾ ⦗eq a_t ∩₁ R_t'⦘ ≡
-                WCore.rf_delta_R X_t' a_t w ⨾ ⦗eq a_t ∩₁ R_t'⦘).
+                WCore.rf_delta_R a_t l w ⨾ ⦗eq a_t ∩₁ R_t'⦘).
       { rewrite (WCore.add_event_rf ADD), !seq_union_l.
         arewrite (rf_t ⨾ ⦗eq a_t ∩₁ R_t'⦘ ≡ ∅₂).
         { rewrite (wf_rfE (rsr_Gt_wf CORR)). basic_solver. }
-        arewrite (WCore.rf_delta_W X_t' a_t R1 ⨾ ⦗eq a_t ∩₁ R_t'⦘ ≡ ∅₂).
+        arewrite (WCore.rf_delta_W a_t l R1 ⨾ ⦗eq a_t ∩₁ R_t'⦘ ≡ ∅₂).
         all: try now rewrite union_false_r, union_false_l.
-        unfold WCore.rf_delta_W. split; [| basic_solver].
-        unfolder. unfold is_w, is_r. ins. desf. }
+        unfold WCore.rf_delta_W.
+        arewrite (eq a_t ∩₁ WCore.lab_is_w l ≡₁ eq a_t ∩₁ W_t').
+        { unfold WCore.lab_is_w, is_w. rewrite (WCore.add_event_lab ADD).
+          unfolder. split; intros x (EQ & LAB).
+          all: subst x; rewrite upds in *; desf. }
+        split; [| basic_solver].
+        unfolder. unfold is_r, is_w. ins. desf. }
       arewrite (srf_s ⨾ ⦗eq a_s ∩₁ R_s⦘ ⨾ ⦗E_s \₁ eq a_s⦘ ≡ ∅₂).
       { basic_solver. }
       arewrite (srf G_s' ⨾ ⦗∅⦘ ≡ ∅₂).
       { basic_solver. }
       arewrite (mapper ↑ rf_t ⨾ ⦗E_s \₁ eq a_s⦘ ≡ mapper ↑ rf_t).
       { admit. }
-      arewrite (mapper' ↑ (WCore.rf_delta_R X_t' a_t w ⨾ ⦗eq a_t ∩₁ R_t'⦘)
-                ≡ mapper' ↑ (WCore.rf_delta_R X_t' a_t w)).
+      arewrite (mapper' ↑ (WCore.rf_delta_R a_t l w ⨾ ⦗eq a_t ∩₁ R_t'⦘)
+                ≡ mapper' ↑ (WCore.rf_delta_R a_t l w)).
       { admit. }
       rewrite (WCore.add_event_rf ADD), !collect_rel_union.
-      arewrite (mapper' ↑ (WCore.rf_delta_W X_t' a_t R1) ≡ ∅₂).
+      arewrite (mapper' ↑ (WCore.rf_delta_W a_t l R1) ≡ ∅₂).
       { admit. }
       arewrite (mapper' ↑ rf_t ≡ mapper ↑ rf_t).
       { admit. }
