@@ -529,3 +529,6 @@ Qed.
 
 Definition least_elt {A} (r : relation A) (x : A) :=
   forall (y : A) (NOTX : x <> y), r x y.
+
+#[global]
+Hint Unfold least_elt : unfolderDb.
