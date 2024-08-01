@@ -365,7 +365,7 @@ Definition X_start dtrmt :=
 
 Record stable_uncmt_reads_gen thrdle : Prop :=
   { surg_init_least : least_elt thrdle tid_init;
-    surg_init_wmin : wmin_elt thrdle tid_init;
+    surg_init_min : min_elt thrdle tid_init;
     surg_order : strict_partial_order thrdle;
     surg_uncmt : rf' ⨾ ⦗E' \₁ cmt⦘ ⊆ sb' ∪ tid ↓ thrdle; }.
 

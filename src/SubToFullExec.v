@@ -846,7 +846,7 @@ Proof using.
     as (tord & SUB & TOT).
   { red. split.
     { apply irreflexive_union; split; [apply sb_irr |].
-      unfolder. ins. eapply STAB; eauto. }
+      unfolder. ins. eapply (WCore.surg_order STAB); eauto. }
     unfolder. intros x y z R1 R2. desf.
     { left. now apply sb_trans with y. }
     all: change (thrdle (tid x) (tid z))

@@ -57,26 +57,27 @@ Definition vf := ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf^? ⨾ hb^?.
 Definition srf := ((vf ⨾ sb) ∩ same_loc) ⨾ ⦗R⦘ \ (co ⨾ vf).
 
 Lemma thrdle_sb_closed thrdle
-    (INIT_LEAST : least_elt thrdle tid_init)
-    (INIT_MIN : wmin_elt thrdle tid_init) :
+    (INIT_MIN : min_elt thrdle tid_init)
+    (INIT_LEAST : least_elt thrdle tid_init) :
   sb^? ⨾ tid ↓ thrdle ⨾ sb^? ⊆ tid ↓ thrdle.
 Proof.
   rewrite crE, !seq_union_l, !seq_union_r, !seq_id_l, !seq_id_r, !unionA.
   apply inclusion_union_l; try done.
   arewrite (tid ↓ thrdle ⨾ sb ⊆ tid ↓ thrdle).
   { unfolder. intros x y (z & TID & SB).
-    apply sb_tid_init in SB.
-    destruct SB as [EQ|INIT]; try by rewrite <- EQ.
-    apply is_init_tid in INIT; rewrite INIT in *.
-    apply INIT_MIN in TID; rewrite <- TID.
-    apply INIT_LEAST. }
+    unfold sb in SB; unfolder in SB.
+    destruct SB as (_ & SB & _).
+    destruct z as [zl | zt zn], y as [yl | yt yn]; ins.
+    { exfalso. now apply INIT_MIN with (tid x). }
+    desf. }
   arewrite (sb ⨾ tid ↓ thrdle ⊆ tid ↓ thrdle).
-  { unfold map_rel.
-    intros x y [z [SB TID]].
-    apply sb_tid_init in SB.
-    destruct SB as [EQ|INIT]; try by rewrite -> EQ.
-    apply is_init_tid in INIT; rewrite INIT in *.
-    apply INIT_LEAST. }
+  { unfolder. intros x y (z & SB & TID).
+    unfold sb in SB; unfolder in SB.
+    destruct SB as (_ & SB & _).
+    destruct z as [zl | zt zn], x as [xl | xt xn]; ins.
+    { apply INIT_LEAST. intro F.
+      apply INIT_MIN with zt. congruence. }
+    desf. }
   basic_solver.
 Qed.
 

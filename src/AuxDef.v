@@ -526,3 +526,6 @@ Proof using.
   splits; auto.
   apply and_not_or; auto.
 Qed.
+
+Definition least_elt {A} (r : relation A) (x : A) :=
+  forall (y : A) (NOTX : x <> y), r x y.
