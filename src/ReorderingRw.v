@@ -87,8 +87,7 @@ Record reord_simrel_gen a_s : Prop := {
   rsr_inj : inj_dom E_t mapper;
   rsr_codom : mapper ↑₁ E_t ⊆₁ E_s \₁ extra_a a_s;
   rsr_tid : eq_dom E_t (tid ∘ mapper) tid;
-  rsr_u2v : same_lab_u2v_dom (mapper ↓₁ extra_a a_s) (lab_s ∘ mapper) lab_t;
-  rsr_lab : eq_dom (E_t \₁ mapper ↓₁ extra_a a_s) (lab_s ∘ mapper) lab_t;
+  rsr_lab : eq_dom E_t (lab_s ∘ mapper) lab_t;
   rsr_acts : E_s ≡₁ mapper ↑₁ E_t ∪₁ extra_a a_s;
   rsr_sb_imm : immediate sb_s ≡
     mapper ↑ (immediate sb_t \ singl_rel b_t a_t ∪ singl_rel a_t b_t ∩ E_t × E_t) ∪
@@ -114,22 +113,6 @@ Record reord_correct_graphs : Prop := {
 
 Definition reord_simrel := exists a_s, reord_simrel_gen a_s.
 
-Lemma rsr_u2v_e
-    (SIMREL : reord_simrel) :
-  same_lab_u2v_dom E_t (lab_s ∘ mapper) lab_t.
-Proof using.
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
-  assert (EQ : E_t ≡₁ E_t \₁ mapper ↓₁ extra_a a_s ∪₁
-              E_t ∩₁ mapper ↓₁ extra_a a_s).
-  { split; [| basic_solver].
-    apply set_subsetE. basic_solver 11. }
-  unfold same_lab_u2v_dom. intros e INE.
-  apply EQ in INE. destruct INE as [INE | ISA].
-  { unfold same_label_u2v. rewrite (rsr_lab SIMREL); ins.
-    desf. }
-  apply SIMREL, ISA.
-Qed.
-
 Lemma rsr_sub_e s
     (SIMREL : reord_simrel)
     (SUB : s ⊆₁ E_t) :
@@ -145,14 +128,12 @@ Lemma rsr_is_w s
     (SUB : s ⊆₁ E_t ∩₁ W_t) :
   mapper ↑₁ s ⊆₁ W_s.
 Proof using.
-  transitivity (mapper ↑₁ (s ∩₁ W_t)).
-  { rewrite set_inter_absorb_r; ins.
-    rewrite SUB. basic_solver. }
-  unfolder. intros x (y & (INS & IS_W) & XEQ). subst x.
-  change (W_s (mapper y)) with (is_w (lab_s ∘ mapper) y).
-  apply same_lab_u2v_dom_is_w with (s := E_t) (lab2 := lab_t).
-  { apply rsr_u2v_e; ins. }
-  now apply SUB.
+  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
+  unfolder. intros x (y & YIN & XEQ).
+  subst x. unfold is_w.
+  change (lab_s (mapper y))
+    with ((lab_s ∘ mapper) y).
+  rewrite (rsr_lab SIMREL); now apply SUB.
 Qed.
 
 Lemma rsr_is_r s
@@ -160,14 +141,12 @@ Lemma rsr_is_r s
     (SUB : s ⊆₁ E_t ∩₁ R_t) :
   mapper ↑₁ s ⊆₁ R_s.
 Proof using.
-  transitivity (mapper ↑₁ (s ∩₁ R_t)).
-  { rewrite set_inter_absorb_r; ins.
-    rewrite SUB. basic_solver. }
-  unfolder. intros x (y & (INS & IS_R) & XEQ). subst x.
-  change (R_s (mapper y)) with (is_r (lab_s ∘ mapper) y).
-  apply same_lab_u2v_dom_is_r with (s := E_t) (lab2 := lab_t).
-  { apply rsr_u2v_e; ins. }
-  now apply SUB.
+  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
+  unfolder. intros x (y & YIN & XEQ).
+  subst x. unfold is_r.
+  change (lab_s (mapper y))
+    with ((lab_s ∘ mapper) y).
+  rewrite (rsr_lab SIMREL); now apply SUB.
 Qed.
 
 (* Lemma G_t_niff_b_max
@@ -419,18 +398,13 @@ Proof using CORR.
   exists a_t.
   constructor; ins.
   { rewrite (rsr_init_acts CORR), EXA. basic_solver. }
-  { unfold same_lab_u2v_dom. unfolder.
-    intros e IN. apply EXA in IN. destruct IN. }
-  { rewrite EXA.
-    rewrite set_map_empty, set_minusE, set_compl_empty,
-            set_inter_full_r, Combinators.compose_id_right.
-    apply CORR. }
+  { rewrite Combinators.compose_id_right. apply CORR. }
   { rewrite EXA. rewrite (rsr_init_acts CORR). basic_solver 11. }
-  rewrite EXA, !cross_false_r, !cross_false_l.
-  arewrite (singl_rel a_t b_t ∩ (E_t ∩₁ is_init) × (E_t ∩₁ is_init) ≡ ∅₂).
-  { enough (~is_init a_t) by basic_solver 12.
-    apply CORR. }
-  { rewrite !union_false_r, minus_disjoint.
+  { rewrite EXA, !cross_false_r, !cross_false_l.
+    arewrite (singl_rel a_t b_t ∩ (E_t ∩₁ is_init) × (E_t ∩₁ is_init) ≡ ∅₂).
+    { enough (~is_init a_t) by basic_solver 12.
+      apply CORR. }
+    rewrite !union_false_r, minus_disjoint.
     { unfold sb. ins. rewrite (rsr_init_acts CORR).
       set (r := ⦗E_t ∩₁ is_init⦘ ⨾ ext_sb ⨾ ⦗E_t ∩₁ is_init⦘).
       basic_solver 11. }
@@ -451,7 +425,6 @@ Proof using.
   { admit. }
   { rewrite set_collect_eq_dom with (g := mapper); ins.
     apply SIMREL. }
-  { admit. }
   { admit. }
   { admit. }
   { rewrite set_collect_eq_dom with (g := mapper); ins.
@@ -546,16 +519,9 @@ Proof using.
       all: unfolder; unfold compose.
       { intros x XIN. rewrite MAPEQ; ins. now apply SIMREL. }
       now subst mapper'; ins; desf; rupd. }
-    { admit. }
-    { rewrite EQACTS, <- EXEQ. rewrite (WCore.add_event_lab ADD).
-      assert (DISJ : set_disjoint (eq e) (mapper' ↓₁ extra_a X_t a_t b_t a_s)).
-      { unfold extra_a; desf. admit. }
-      rewrite set_minus_union_l, set_minus_disjoint with (s1 := eq e); ins.
-      arewrite (mapper' ↓₁ extra_a X_t a_t b_t a_s ≡₁
-                mapper ↓₁ extra_a X_t a_t b_t a_s).
-      { admit. }
+    { rewrite EQACTS, (WCore.add_event_lab ADD).
       apply eq_dom_union; split; subst mapper'.
-      { unfolder. intros x (XIN & NXIN).
+      { unfolder. intros x XIN.
         unfold compose. rupd; try congruence; eauto.
         now rewrite <- (rsr_lab SIMREL) by basic_solver. }
       unfolder. ins. desf. unfold compose. now rupd. }
@@ -794,17 +760,11 @@ Proof using CORR.
       split; unfold compose; unfolder; intros x XINE.
       { rewrite MAPEQ; ins. now apply SIMREL. }
       subst x. unfold mapper'. rupd. admit. }
-    { unfold same_lab_u2v_dom. intros e HSET.
-      exfalso. unfolder in HSET. now apply NOEXA in HSET. }
-    { rewrite NOEXA, set_map_empty, set_minusE, set_compl_empty,
-              set_inter_full_r, (WCore.add_event_acts ADD),
-              (WCore.add_event_lab ADD).
+    { rewrite (WCore.add_event_acts ADD), (WCore.add_event_lab ADD).
       apply eq_dom_union; split; subst mapper'.
       { unfolder. intros x XIN.
         unfold compose. rupd; try congruence; eauto.
-        rewrite <- (rsr_lab SIMREL); ins.
-        split; ins. unfolder. unfold extra_a; desf.
-        symmetry. eauto. }
+        rewrite <- (rsr_lab SIMREL); ins. }
       unfolder. ins. desf. unfold compose. now rupd. }
     { rewrite (WCore.add_event_acts ADD), NOEXA,
               set_union_empty_r, set_collect_union,
