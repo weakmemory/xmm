@@ -731,10 +731,6 @@ Proof using CORR.
     { exists y; split; ins. rewrite <- MAPEQ; ins. }
     exists y. split; ins. subst mapper'. rupd; ins.
     congruence. }
-  assert (MAPER_E : mapper' ↑₁ eq a_t ≡₁ eq a_s).
-  { subst mapper'. rewrite set_collect_eq. now rupd. }
-  assert (MAPNEQ : forall x (IN : E_t x), mapper x <> a_s).
-  { admit. }
   assert (AINS : E_s a_s).
   { apply (rsr_acts SIMREL). unfold extra_a. desf.
     { basic_solver. }
@@ -744,6 +740,15 @@ Proof using CORR.
     apply ADD. basic_solver. }
   assert (OLDEXA : extra_a X_t a_t b_t a_s ≡₁ eq a_s).
   { unfold extra_a; desf. exfalso; eauto. }
+  assert (MAPER_E : mapper' ↑₁ eq a_t ≡₁ eq a_s).
+  { subst mapper'. rewrite set_collect_eq. now rupd. }
+  assert (ANCODOM : ~ (mapper ↑₁ E_t) a_s).
+  { intro FALSO. apply (rsr_codom SIMREL) in FALSO.
+    now apply FALSO, OLDEXA. }
+  assert (MAPNEQ : forall x (IN : E_t x), mapper x <> a_s).
+  { intros x XIN EQ. apply (rsr_codom SIMREL) with (x := a_s).
+    { basic_solver. }
+    now apply OLDEXA. }
   (* The proof *)
   exists mapper', X_s', cmt'.
   split; red; ins.
@@ -752,7 +757,9 @@ Proof using CORR.
       { unfolder. intros x y XINE YINE. rewrite !MAPEQ; ins.
         now apply SIMREL. }
       { basic_solver. }
-      rewrite MAPSUB, MAPER_E. admit. }
+      rewrite MAPSUB, MAPER_E. apply set_disjointE.
+      split; [| basic_solver]. intros x (IN & EQ).
+      subst x. now apply ANCODOM. }
     { rewrite (WCore.add_event_acts ADD), set_collect_union,
               MAPSUB, MAPER_E, (rsr_codom SIMREL), NOEXA, OLDEXA.
       basic_solver. }
