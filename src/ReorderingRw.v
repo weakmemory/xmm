@@ -265,23 +265,6 @@ Record reord_simrel_rw_instrs_gen a b : Prop := {
 
 Definition reord_simrel_rw_instrs := exists a b, reord_simrel_rw_instrs_gen a b.
 
-Lemma mapped_sb_subrel a b r
-    (SIMREL : reord_simrel_rw_instrs_gen a b)
-    (SUBORIG : r ⊆ sb_t)
-    (RNOT : ~r a b) :
-  mapper ↑ r ⊆ ⦗mapper ↑₁ E_t⦘ ⨾ ext_sb ⨾ ⦗mapper ↑₁ E_t⦘.
-Proof using.
-  admit.
-Admitted.
-
-Lemma mapped_rmw_helper a b
-    (SIMREL : reord_simrel_rw_instrs_gen a b)
-    (WF : Wf G_t) :
-  mapper ↑ rmw_t ⊆ immediate (⦗mapper ↑₁ E_t⦘ ⨾ ext_sb ⨾ ⦗mapper ↑₁ E_t⦘).
-Proof using.
-  admit.
-Admitted.
-
 Lemma G_s_wf a b
     (NCTRL : ctrl G_t ≡ ∅₂)
     (NDATA : data G_t ≡ ∅₂)
