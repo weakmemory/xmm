@@ -423,4 +423,79 @@ Definition reexec : Prop :=
 
 End ReexecStep.
 
+Section AddEventProps.
+
+Variable sc sc' : relation actid.
+Variable X X' : t.
+Variable e : actid.
+Variable l : label.
+Variable r : option actid.
+Variable R1 : actid -> Prop.
+Variable w : option actid.
+Variable W1 W2 : actid -> Prop.
+
+Notation "'G''" := (G X').
+Notation "'G'" := (G X).
+
+Notation "'E''" := (acts_set G').
+Notation "'threads_set''" := (threads_set G').
+Notation "'lab''" := (lab G').
+Notation "'sb''" := (sb G').
+Notation "'rf''" := (rf G').
+Notation "'co''" := (co G').
+Notation "'rmw''" := (rmw G').
+Notation "'data''" := (data G').
+Notation "'addr''" := (addr G').
+Notation "'ctrl''" := (ctrl G').
+Notation "'rmw_dep''" := (rmw_dep G').
+Notation "'W''" := (is_w lab').
+Notation "'R''" := (is_r lab').
+Notation "'same_loc''" := (same_loc lab').
+Notation "'same_val''" := (same_val lab').
+
+Notation "'E'" := (acts_set G).
+Notation "'threads_set'" := (threads_set G).
+Notation "'lab'" := (lab G).
+Notation "'loc'" := (loc lab).
+Notation "'val'" := (val lab).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'rmw'" := (rmw G).
+Notation "'data'" := (data G).
+Notation "'addr'" := (addr G).
+Notation "'ctrl'" := (ctrl G).
+Notation "'rmw_dep'" := (rmw_dep G).
+Notation "'W'" := (is_w lab).
+Notation "'R'" := (is_r lab).
+Notation "'same_loc'" := (same_loc lab).
+Notation "'Loc_' l" := (fun e => loc e = l) (at level 1).
+Notation "'Val_' v" := (fun e => val e = v) (at level 1).
+
+Hypothesis ADD : add_event_gen X X' e l r R1 w W1 W2.
+
+Lemma add_event_to_rf_complete
+    (WF : Wf G)
+    (RFC : rf_complete G) :
+  rf_delta_W e l R1 ≡ ∅₂.
+Proof using ADD.
+  split; [| basic_solver]. unfold rf_delta_W.
+  unfolder. intros e' r' ((EQ & IS_W) & RF1). subst e'.
+  destruct RFC with r' as (w' & RF2).
+  { split.
+    { now apply (add_event_R1E ADD). }
+    now apply (add_event_R1D ADD). }
+  assert (INE : E w').
+  { apply (wf_rfE WF) in RF2. unfolder in RF2.
+    desf. }
+  assert (FALSEQ : e = w').
+  { apply (add_event_rff ADD) with r'; unfold transp.
+    all: hahn_rewrite (add_event_rf ADD).
+    all: unfold rf_delta_W.
+    all: basic_solver. }
+  apply (add_event_new ADD). congruence.
+Qed.
+
+End AddEventProps.
+
 End WCore.
