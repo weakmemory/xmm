@@ -837,7 +837,7 @@ Proof using.
     co := co_s ∪
           mapper' ↑ (⦗eq b_t ∩₁ W_t'⦘ ⨾ co_t') ∪
           mapper' ↑ (co_t' ⨾ ⦗eq b_t ∩₁ W_t'⦘) ∪
-          (W_s ∩₁ E_s ∩₁ Loc_s_ (lab_loc l_a)) × (eq a_s ∩₁ lab_is_w l_a);
+          (W_s ∩₁ E_s ∩₁ Loc_s_ (WCore.lab_loc l_a)) × (eq a_s ∩₁ WCore.lab_is_w l_a);
     rmw := mapper' ↑ rmw_t';
     rmw_dep := rmw_dep_s;
     ctrl := ctrl_s;
