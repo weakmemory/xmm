@@ -602,7 +602,16 @@ Proof using.
     arewrite ((co_t ∪ WCore.co_delta e l W1 W2) ⨾ ⦗eq e' ∩₁ W_t'⦘
                 ≡ W2 × (eq e ∩₁ WCore.lab_is_w l)).
     { admit. }
-    admit. }
+    rewrite set_minus_union_l, !set_inter_union_l, cross_union_l.
+    arewrite (eq e' \₁ extra_a X_t' a_t b_t a_s ≡₁ eq e').
+    { admit. }
+    arewrite ((E_s \₁ extra_a X_t' a_t b_t a_s) ∩₁ is_w lab_s' ∩₁ (fun e => loc lab_s' e = loc lab_s' a_s) ≡₁
+              (E_s \₁ extra_a X_t' a_t b_t a_s) ∩₁ W_s ∩₁ Loc_s_ (loc_s a_s)).
+    { admit. }
+    arewrite (extra_a X_t' a_t b_t a_s ∩₁ is_w lab_s' ≡₁ extra_a X_t' a_t b_t a_s ∩₁ W_s).
+    { admit. }
+    unfold WCore.co_delta. rewrite collect_rel_union.
+    basic_solver 12. }
   assert (OLDSIMREL : reord_simrel X_s X_t a_t b_t mapper).
   { exists a_s. ins. }
   (* Actual proof *)
