@@ -574,7 +574,25 @@ Proof using.
       rewrite simrel_exec_not_a_not_b_srf_same; ins.
       rewrite (rsr_rf SIMREL), (WCore.add_event_rf ADD),
               !collect_rel_union.
-      admit. }
+      arewrite (mapper' ↑ rf_t ≡ mapper ↑ rf_t).
+      { admit. }
+      rewrite (WCore.add_event_to_rf_complete ADD).
+      all: try now apply CORR.
+      rewrite collect_rel_empty, !union_false_r.
+      arewrite ((rf_t ∪ WCore.rf_delta_R e l w) ⨾ ⦗eq e' ∩₁ R_t'⦘
+                ≡ WCore.rf_delta_R e l w).
+      { admit. }
+      basic_solver 12. }
+    rewrite (rsr_co SIMREL), (WCore.add_event_co ADD),
+            EXEQ, collect_rel_union.
+    arewrite (mapper' ↑ co_t ≡ mapper ↑ co_t).
+    { admit. }
+    arewrite (⦗eq e' ∩₁ W_t'⦘ ⨾ (co_t ∪ WCore.co_delta e l W1 W2)
+                ≡ (eq e ∩₁ WCore.lab_is_w l) × W1).
+    { admit. }
+    arewrite ((co_t ∪ WCore.co_delta e l W1 W2) ⨾ ⦗eq e' ∩₁ W_t'⦘
+                ≡ W2 × (eq e ∩₁ WCore.lab_is_w l)).
+    { admit. }
     admit. }
   assert (OLDSIMREL : reord_simrel X_s X_t a_t b_t mapper).
   { exists a_s. ins. }
