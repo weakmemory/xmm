@@ -446,14 +446,18 @@ Qed.
 
 Definition mapper_anb' e e' := upd mapper e e'.
 
-Definition G_s_anb' e e' l := {|
+Definition lab_s_anb' e' l := upd lab_s e' l.
+
+Definition G_s_anb' e e' l a_s := {|
     acts_set := E_s ∪₁ eq e';
     threads_set := threads_set G_s;
     lab := upd lab_s e' l;
     rf := rf_s ∪ mapper_anb' e e' ↑ (rf_t' ⨾ ⦗eq e' ∩₁ R_t'⦘);
     co := co_s ∪
           mapper_anb' e e' ↑ (⦗eq e' ∩₁ W_t'⦘ ⨾ co_t') ∪
-          mapper_anb' e e' ↑ (co_t' ⨾ ⦗eq e' ∩₁ W_t'⦘);
+          mapper_anb' e e' ↑ (co_t' ⨾ ⦗eq e' ∩₁ W_t'⦘) ∪
+            (eq e' ∩₁ is_w (lab_s_anb' e' l) ∩₁ (fun e => loc (lab_s_anb' e' l) e = loc (lab_s_anb' e' l) a_s)) ×
+              (extra_a X_t' a_t b_t a_s ∩₁ is_w (lab_s_anb' e' l));
     rmw := mapper_anb' e e' ↑ rmw_t';
     rmw_dep := rmw_dep_s;
     ctrl := ctrl_s;
@@ -466,7 +470,7 @@ Lemma simrel_exec_not_a_not_b_srf_same e e' l a_s
     (TID : tid e' = tid e)
     (SB : ⦗E_s ∪₁ eq e'⦘ ⨾ ext_sb ⨾ ⦗E_s ∪₁ eq e'⦘ ≡
           sb_s ∪ WCore.sb_delta X_s e') :
-  srf (G_s_anb' e e' l)
+  srf (G_s_anb' e e' l a_s)
     ⨾ ⦗extra_a X_t' a_t b_t a_s
        ∩₁ is_r (upd lab_s e' l)⦘ ≡
   srf_s ⨾ ⦗extra_a X_t a_t b_t a_s ∩₁ R_s⦘.
@@ -528,14 +532,17 @@ Proof using.
     apply EQACTS in a0. destruct a0; congruence. }
   assert (EXIN : extra_a X_t a_t b_t a_s ⊆₁ E_s).
   { rewrite (rsr_acts SIMREL). basic_solver. }
+  set (lab_s' := upd lab_s e' l).
   set (G_s' := {|
     acts_set := E_s ∪₁ eq e';
     threads_set := threads_set G_s;
-    lab := upd lab_s e' l;
+    lab := lab_s';
     rf := rf_s ∪ mapper' ↑ (rf_t' ⨾ ⦗eq e' ∩₁ R_t'⦘);
     co := co_s ∪
           mapper' ↑ (⦗eq e' ∩₁ W_t'⦘ ⨾ co_t') ∪
-          mapper' ↑ (co_t' ⨾ ⦗eq e' ∩₁ W_t'⦘);
+          mapper' ↑ (co_t' ⨾ ⦗eq e' ∩₁ W_t'⦘) ∪
+            (eq e' ∩₁ is_w lab_s' ∩₁ (fun e => loc lab_s' e = loc lab_s' a_s)) ×
+              (extra_a X_t' a_t b_t a_s ∩₁ is_w lab_s');
     rmw := mapper' ↑ rmw_t';
     rmw_dep := rmw_dep_s;
     ctrl := ctrl_s;
@@ -561,7 +568,7 @@ Proof using.
       { intros x XIN. rewrite MAPEQ; ins. now apply SIMREL. }
       now subst mapper'; ins; desf; rupd. }
     { rewrite EQACTS, (WCore.add_event_lab ADD).
-      apply eq_dom_union; split; subst mapper'.
+      apply eq_dom_union; split; subst mapper' lab_s'.
       { unfolder. intros x XIN.
         unfold compose. rupd; try congruence; eauto.
         now rewrite <- (rsr_lab SIMREL) by basic_solver. }
@@ -570,8 +577,9 @@ Proof using.
       rewrite (rsr_acts SIMREL), EXEQ. basic_solver 11. }
     { admit. }
     { replace G_s'
-        with (G_s_anb' e e' l)
-        by (unfold G_s_anb', G_s', mapper', mapper_anb'; ins).
+        with (G_s_anb' e e' l a_s)
+        by (unfold G_s_anb', G_s', mapper', mapper_anb', lab_s', lab_s_anb'; ins).
+      subst lab_s'.
       rewrite simrel_exec_not_a_not_b_srf_same; ins.
       rewrite (rsr_rf SIMREL), (WCore.add_event_rf ADD),
               !collect_rel_union.
