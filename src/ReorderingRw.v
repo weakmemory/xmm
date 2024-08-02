@@ -488,7 +488,36 @@ Proof using.
       unfolder. ins. desf. unfold compose. now rupd. }
     { rewrite EQACTS, set_collect_union, MAPER_E, MAPSUB.
       rewrite (rsr_acts SIMREL), EXEQ. basic_solver 11. }
-    { admit. }
+    { assert (IMMSB_t : exists ep_t,
+        immediate sb_t' ≡ immediate sb_t ∪ singl_rel ep_t e).
+      { admit. }
+      assert (IMMSB_s : exists ep_s,
+        immediate (sb G_s') ≡ immediate sb_s ∪ singl_rel ep_s e').
+      { admit. }
+      destruct IMMSB_t as (ep_t & IMMSB_t), IMMSB_s as (ep_s & IMMSB_s).
+      rewrite IMMSB_t, IMMSB_s.
+      rewrite minus_union_l, seq_union_l, codom_union,
+              collect_rel_union, set_collect_union.
+      arewrite (singl_rel ep_t e ⨾ ⦗eq b_t⦘ ≡ ∅₂).
+      { basic_solver. }
+      rewrite codom_empty, set_collect_empty, set_union_empty_r.
+      arewrite (singl_rel ep_t e \ singl_rel b_t a_t ≡ singl_rel ep_t e).
+      { admit. }
+      arewrite (singl_rel ep_s e' ≡ mapper' ↑ singl_rel ep_t e).
+      { admit. }
+      rewrite !collect_rel_union, (rsr_sb_imm SIMREL).
+      arewrite (singl_rel a_t b_t ∩ E_t' × E_t' ≡ singl_rel a_t b_t ∩ E_t × E_t).
+      { admit. }
+      rewrite collect_rel_union, EXEQ.
+      arewrite (mapper' ↑ (immediate sb_t \ singl_rel b_t a_t) ≡ mapper ↑ (immediate sb_t \ singl_rel b_t a_t)).
+      { admit. }
+      arewrite (mapper' b_t = mapper b_t).
+      { unfold mapper'. now rupd. }
+      arewrite (mapper' ↑ (singl_rel a_t b_t ∩ E_t × E_t) ≡ mapper ↑ (singl_rel a_t b_t ∩ E_t × E_t)).
+      { admit. }
+      arewrite (mapper' ↑₁ codom_rel (immediate sb_t ⨾ ⦗eq b_t⦘) ≡₁ mapper ↑₁ codom_rel (immediate sb_t ⨾ ⦗eq b_t⦘)).
+      { admit. }
+      basic_solver 12. }
     { arewrite (srf G_s' ⨾ ⦗extra_a X_t' a_t b_t a_s ∩₁ is_r (upd lab_s e' l)⦘
                 ≡ srf G_s ⨾ ⦗extra_a X_t a_t b_t a_s ∩₁ R_s⦘).
       { admit. }
