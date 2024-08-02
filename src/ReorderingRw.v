@@ -792,6 +792,7 @@ Proof using.
     WCore.sc := WCore.sc X_s;
     WCore.G := G_s';
   |}).
+  set (extra_W2 := extra_a X_t' a_t b_t a_s ∩₁ W_s ∩₁ Loc_s_ (WCore.lab_loc l));
   (* Asserts *)
   assert (ENOTIN : ~E_t b_t) by apply ADD.
   assert (EQACTS : E_t' ≡₁ E_t ∪₁ eq b_t) by apply ADD.
@@ -880,7 +881,34 @@ Proof using.
       all: try now apply CORR.
       rewrite collect_rel_empty, !union_false_r.
       basic_solver 12. }
-    admit. }
+    arewrite (⦗eq b_t ∩₁ W_t'⦘ ⨾ co_t' ≡ (eq b_t ∩₁ WCore.lab_is_w l) × W1).
+    { admit. }
+    arewrite (co_t' ⨾ ⦗eq b_t ∩₁ W_t'⦘ ≡ W2 × (eq b_t ∩₁ WCore.lab_is_w l)).
+    { admit. }
+    rewrite NEWEXA.
+    arewrite ((E_s ∪₁ eq a_s ∪₁ eq b_s) \₁ eq a_s ≡₁ E_s ∪₁ eq b_s).
+    { admit. }
+    rewrite !set_inter_union_l, cross_union_l.
+    arewrite (eq a_s ∩₁ is_w (upd (upd lab_s a_s l_a) b_s l) ≡₁
+              eq a_s ∩₁ WCore.lab_is_w l_a).
+    { admit. }
+    arewrite (E_s ∩₁ is_w (upd (upd lab_s a_s l_a) b_s l) ∩₁ (fun e => loc (upd (upd lab_s a_s l_a) b_s l) e = loc (upd (upd lab_s a_s l_a) b_s l) a_s) ≡₁
+              E_s ∩₁ W_s ∩₁ Loc_s_ (WCore.lab_loc l_a)).
+    { admit. }
+    arewrite (
+      (eq b_s
+        ∩₁ is_w (upd (upd lab_s a_s l_a) b_s l)
+        ∩₁ (fun e => loc (upd (upd lab_s a_s l_a) b_s l) e = loc (upd (upd lab_s a_s l_a) b_s l) a_s)) ×
+      (eq a_s ∩₁ WCore.lab_is_w l_a) ≡
+        ∅₂).
+    { admit. }
+    rewrite (rsr_co SIMREL), (WCore.add_event_co ADD),
+            collect_rel_union, OLDEXA, set_inter_empty_l,
+            cross_false_r, !union_false_r.
+    arewrite (mapper' ↑ co_t ≡ mapper ↑ co_t).
+    { admit. }
+    unfold WCore.co_delta. rewrite collect_rel_union.
+    basic_solver 12. }
   { constructor; ins.
     now exists r', R1', w', W1', W2'. }
   constructor; ins.
@@ -1153,8 +1181,27 @@ Proof using.
     { now rewrite (WCore.add_event_threads ADD'). }
     { rewrite (WCore.add_event_lab ADD'). unfold mapper'.
       now rupd. }
-    { admit. }
-    { admit. }
+    { arewrite (WCore.rf_delta_R (mapper' b_t) l (option_map mapper' w) ≡
+                mapper' ↑ WCore.rf_delta_R b_t l w).
+      { admit. }
+      arewrite (WCore.rf_delta_W (mapper' b_t) l (mapper' ↑₁ R1) ≡
+                mapper' ↑ WCore.rf_delta_W b_t l R1).
+      { admit. }
+      arewrite (rf_t' ⨾ ⦗eq b_t ∩₁ R_t'⦘ ≡ WCore.rf_delta_R b_t l w).
+      { admit. }
+      rewrite (WCore.add_event_to_rf_complete ADD).
+      all: try now apply CORR.
+      rewrite collect_rel_empty, union_false_r.
+      admit. }
+    { arewrite (⦗eq b_t ∩₁ W_t'⦘ ⨾ co_t' ≡ (eq b_t ∩₁ WCore.lab_is_w l) × W1).
+      { admit. }
+      arewrite (co_t' ⨾ ⦗eq b_t ∩₁ W_t'⦘ ≡ W2 × (eq b_t ∩₁ WCore.lab_is_w l)).
+      { admit. }
+      arewrite (WCore.co_delta (mapper' b_t) l (mapper' ↑₁ W1) (mapper' ↑₁ W2) ≡
+                  mapper' ↑ (eq b_t ∩₁ WCore.lab_is_w l) × W1 ∪
+                  mapper' ↑ W2 × (eq b_t ∩₁ WCore.lab_is_w l)).
+      { admit. }
+      admit. }
     { admit. }
     { now rewrite (WCore.add_event_data ADD'). }
     { now rewrite (WCore.add_event_addr ADD'). }
