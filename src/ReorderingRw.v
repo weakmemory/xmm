@@ -756,7 +756,17 @@ Proof using.
     { admit. }
     { unfold mapper'. now rupd. }
     { unfold mapper'. now rupd. }
-    { admit. }
+    { arewrite (WCore.rf_delta_R (mapper' e) l (option_map mapper' w) ≡
+                mapper' ↑ WCore.rf_delta_R e l w).
+      { admit. }
+      arewrite (WCore.rf_delta_W (mapper' e) l (mapper' ↑₁ R1) ≡
+                mapper' ↑ WCore.rf_delta_W e l R1).
+      { admit. }
+      arewrite (rf_t' ⨾ ⦗eq e' ∩₁ R_t'⦘ ≡ WCore.rf_delta_R e l w).
+      { admit. }
+      rewrite (WCore.add_event_to_rf_complete ADD).
+      all: try now apply CORR.
+      now rewrite collect_rel_empty, union_false_r. }
     { admit. }
     { admit. }
     admit.  }
