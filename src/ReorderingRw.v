@@ -99,6 +99,7 @@ Record reord_simrel_gen a_s : Prop := {
   rsr_co : co_s ≡ mapper ↑ co_t ∪
             ((E_s \₁ extra_a a_s) ∩₁ W_s ∩₁ Loc_s_ (loc_s a_s)) ×
               (extra_a a_s ∩₁ W_s);
+  rsr_rmw : rmw_s ≡ mapper ↑ rmw_t;
 }.
 
 Record reord_correct_graphs : Prop := {
@@ -403,7 +404,8 @@ Proof using CORR.
     unfold sb; unfolder. ins.
     apply (rsr_at_ninit CORR); desf. }
   { rewrite EXA. basic_solver. }
-  rewrite EXA. basic_solver.
+  { rewrite EXA. basic_solver. }
+  basic_solver.
 Qed.
 
 Lemma simrel_exec_not_a_not_b e l
@@ -716,7 +718,13 @@ Proof using.
                   (eq e' ∩₁ WCore.lab_is_w l) × extra_W2).
       { admit. }
       basic_solver 12. }
-    { admit. }
+    { arewrite (WCore.rmw_delta (mapper' e) l (option_map mapper' r) ≡
+                mapper' ↑ WCore.rmw_delta e l r).
+      { admit. }
+      rewrite (WCore.add_event_rmw ADD), collect_rel_union.
+      arewrite (mapper' ↑ rmw_t ≡ mapper ↑ rmw_t).
+      { admit. }
+      now rewrite (rsr_rmw SIMREL). }
     unfold sb at 1. ins. rewrite NEWSB.
     unfold mapper'. now rupd. }
   { admit. (* RFCOM *) }
@@ -732,7 +740,8 @@ Lemma simrel_exec_b_step_1
             rf_s ∪ srf (WCore.G X_s'') ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘ >> /\
     << CO : co (WCore.G X_s'') ≡
             co_s ∪ (E_s ∩₁ W_s ∩₁ Loc_s_ (WCore.lab_loc l_a)) ×
-                (eq a_s ∩₁ WCore.lab_is_w l_a) >>.
+                (eq a_s ∩₁ WCore.lab_is_w l_a) >> /\
+    << RMW : rmw (WCore.G X_s'') ≡ rmw_s >>.
 Proof using.
   (* Generate new actid *)
   assert (NEWE : exists a_s,
@@ -761,7 +770,7 @@ Proof using.
   destruct ADD as (r & R1 & w & W1 & W2 & ADD).
   (* Do step 1 *)
   destruct (simrel_exec_b_step_1 SIMREL)
-        as (a_s & l_a & X_s'' & STEP1 & RF' & CO').
+        as (a_s & l_a & X_s'' & STEP1 & RF' & CO' & RMW').
   { apply ADD. }
   exists a_s, l_a, X_s''.
   destruct STEP1 as [ADD' RFC' CONS'].
@@ -775,7 +784,7 @@ Proof using.
   { admit. }
   red in SIMREL. destruct SIMREL as (a_s' & SIMREL).
   destruct NEWE as (b_s & NOTIN & NEWTID & NEWSB).
-  red in NOTIN, NEWTID, NEWSB, RF', CO'.
+  red in NOTIN, NEWTID, NEWSB, RF', CO', RMW'.
   set (mapper' := upd mapper b_t b_s).
   set (G_s' := {|
     acts_set := E_s ∪₁ eq a_s ∪₁ eq b_s;
@@ -1208,7 +1217,13 @@ Proof using.
                   mapper' ↑ W2 × (eq b_t ∩₁ WCore.lab_is_w l)).
       { admit. }
       rewrite CO'. basic_solver 12. }
-    { admit. }
+    { arewrite (WCore.rmw_delta (mapper' b_t) l (option_map mapper' r) ≡
+                mapper' ↑ WCore.rmw_delta b_t l r).
+      { admit. }
+      rewrite (WCore.add_event_rmw ADD), collect_rel_union.
+      arewrite (mapper' ↑ rmw_t ≡ mapper ↑ rmw_t).
+      { admit. }
+      now rewrite RMW', (rsr_rmw SIMREL). }
     { now rewrite (WCore.add_event_data ADD'). }
     { now rewrite (WCore.add_event_addr ADD'). }
     { now rewrite (WCore.add_event_ctrl ADD'). }
