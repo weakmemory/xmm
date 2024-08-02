@@ -443,6 +443,35 @@ Proof using CORR.
   rewrite EXA. basic_solver.
 Qed.
 
+Definition mapper_anb' e e' := upd mapper e e'.
+
+Definition G_s_anb' e e' l := {|
+    acts_set := E_s ∪₁ eq e';
+    threads_set := threads_set G_s;
+    lab := upd lab_s e' l;
+    rf := rf_s ∪ mapper_anb' e e' ↑ (rf_t' ⨾ ⦗eq e' ∩₁ R_t'⦘);
+    co := co_s ∪
+          mapper_anb' e e' ↑ (⦗eq e' ∩₁ W_t'⦘ ⨾ co_t') ∪
+          mapper_anb' e e' ↑ (co_t' ⨾ ⦗eq e' ∩₁ W_t'⦘);
+    rmw := mapper_anb' e e' ↑ rmw_t';
+    rmw_dep := rmw_dep_s;
+    ctrl := ctrl_s;
+    data := data_s;
+    addr := addr_s;
+  |}.
+
+Lemma simrel_exec_not_a_not_b_srf_same e e' l a_s
+    (NOTIN : ~E_s e')
+    (TID : tid e' = tid e)
+    (SB : ⦗E_s ∪₁ eq e'⦘ ⨾ ext_sb ⨾ ⦗E_s ∪₁ eq e'⦘ ≡
+          sb_s ∪ WCore.sb_delta X_s e') :
+  srf (G_s_anb' e e' l)
+    ⨾ ⦗extra_a X_t' a_t b_t a_s
+       ∩₁ is_r (upd lab_s e' l)⦘ ≡
+  srf_s ⨾ ⦗extra_a X_t a_t b_t a_s ∩₁ R_s⦘.
+Proof using.
+Admitted.
+
 Lemma simrel_exec_not_a_not_b e l
     (E_NOT_A : e <> a_t)
     (E_NOT_B : e <> b_t)
@@ -539,7 +568,13 @@ Proof using.
     { rewrite EQACTS, set_collect_union, MAPER_E, MAPSUB.
       rewrite (rsr_acts SIMREL), EXEQ. basic_solver 11. }
     { admit. }
-    { admit. }
+    { replace G_s'
+        with (G_s_anb' e e' l)
+        by (unfold G_s_anb', G_s', mapper', mapper_anb'; ins).
+      rewrite simrel_exec_not_a_not_b_srf_same; ins.
+      rewrite (rsr_rf SIMREL), (WCore.add_event_rf ADD),
+              !collect_rel_union.
+      admit. }
     admit. }
   assert (OLDSIMREL : reord_simrel X_s X_t a_t b_t mapper).
   { exists a_s. ins. }
