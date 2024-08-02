@@ -533,6 +533,7 @@ Proof using.
   assert (EXIN : extra_a X_t a_t b_t a_s ⊆₁ E_s).
   { rewrite (rsr_acts SIMREL). basic_solver. }
   set (lab_s' := upd lab_s e' l).
+  set (extra_W2 := extra_a X_t' a_t b_t a_s ∩₁ W_s ∩₁ Loc_s_ (WCore.lab_loc l));
   set (G_s' := {|
     acts_set := E_s ∪₁ eq e';
     threads_set := threads_set G_s;
@@ -619,7 +620,8 @@ Proof using.
   split; red; ins.
   constructor.
   { exists (option_map mapper' r), (mapper' ↑₁ R1),
-           (option_map mapper' w), (mapper' ↑₁ W1), (mapper' ↑₁ W2).
+           (option_map mapper' w), (mapper' ↑₁ W1),
+           (extra_W2 ∪₁ mapper' ↑₁ W2).
     constructor; ins.
     { subst mapper'. now rupd. }
     { admit. }
@@ -702,20 +704,26 @@ Proof using.
       { apply set_subset_inter_r. split; apply ADD. }
       eapply eq_dom_mori with (x := E_t); eauto.
       unfold flip. apply ADD. }
-    { rewrite set_collect_eq_dom with (g := mapper),
+    { apply set_subset_union_l; split.
+      { unfold extra_W2. basic_solver. }
+      rewrite set_collect_eq_dom with (g := mapper),
               rsr_is_w with (X_s := X_s) (X_t := X_t)
                             (a_t := a_t) (b_t := b_t).
       all: ins.
       { apply set_subset_inter_r. split; apply ADD. }
       eapply eq_dom_mori with (x := E_t); eauto.
       unfold flip. apply ADD. }
-    { rewrite set_collect_eq_dom with (g := mapper),
+    { apply set_subset_union_l; split.
+      { unfold extra_W2. rewrite <- EXEQ. basic_solver. }
+      rewrite set_collect_eq_dom with (g := mapper),
               rsr_sub_e with (X_s := X_s) (X_t := X_t)
                             (a_t := a_t) (b_t := b_t).
       all: ins; try now apply ADD.
       eapply eq_dom_mori with (x := E_t); eauto.
       unfold flip. apply ADD. }
-    { rewrite set_collect_eq_dom with (g := mapper),
+    { apply set_subset_union_l; split.
+      { unfold extra_W2. basic_solver. }
+      rewrite set_collect_eq_dom with (g := mapper),
               rsr_loc with (X_s := X_s) (X_t := X_t)
                            (a_t := a_t) (b_t := b_t)
                            (l := WCore.lab_loc l).
