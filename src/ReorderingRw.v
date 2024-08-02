@@ -726,7 +726,12 @@ Lemma simrel_exec_b_step_1
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
     (BNOTIN : ~E_t b_t) :
   exists a_s l_a X_s'',
-    << STEP1 : WCore.exec_inst X_s  X_s'' a_s l_a >>.
+    << STEP1 : WCore.exec_inst X_s  X_s'' a_s l_a >> /\
+    << RF : rf (WCore.G X_s'') ≡
+            rf_s ∪ srf (WCore.G X_s'') ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘ >> /\
+    << CO : co (WCore.G X_s'') ≡
+            co_s ∪ (E_s ∩₁ W_s ∩₁ Loc_s_ (WCore.lab_loc l_a)) ×
+                (eq a_s ∩₁ WCore.lab_is_w l_a) >>.
 Proof using.
   (* Generate new actid *)
   assert (NEWE : exists a_s,
@@ -755,7 +760,7 @@ Proof using.
   destruct ADD as (r & R1 & w & W1 & W2 & ADD).
   (* Do step 1 *)
   destruct (simrel_exec_b_step_1 SIMREL)
-        as (a_s & l_a & X_s'' & STEP1).
+        as (a_s & l_a & X_s'' & STEP1 & RF' & CO').
   { apply ADD. }
   exists a_s, l_a, X_s''.
   destruct STEP1 as [ADD' RFC' CONS'].
@@ -769,7 +774,7 @@ Proof using.
   { admit. }
   red in SIMREL. destruct SIMREL as (a_s' & SIMREL).
   destruct NEWE as (b_s & NOTIN & NEWTID & NEWSB).
-  red in NOTIN, NEWTID, NEWSB.
+  red in NOTIN, NEWTID, NEWSB, RF', CO'.
   set (mapper' := upd mapper b_t b_s).
   set (G_s' := {|
     acts_set := E_s ∪₁ eq a_s ∪₁ eq b_s;
@@ -1192,7 +1197,7 @@ Proof using.
       rewrite (WCore.add_event_to_rf_complete ADD).
       all: try now apply CORR.
       rewrite collect_rel_empty, union_false_r.
-      admit. }
+      rewrite RF'. basic_solver 12. }
     { arewrite (⦗eq b_t ∩₁ W_t'⦘ ⨾ co_t' ≡ (eq b_t ∩₁ WCore.lab_is_w l) × W1).
       { admit. }
       arewrite (co_t' ⨾ ⦗eq b_t ∩₁ W_t'⦘ ≡ W2 × (eq b_t ∩₁ WCore.lab_is_w l)).
@@ -1201,7 +1206,7 @@ Proof using.
                   mapper' ↑ (eq b_t ∩₁ WCore.lab_is_w l) × W1 ∪
                   mapper' ↑ W2 × (eq b_t ∩₁ WCore.lab_is_w l)).
       { admit. }
-      admit. }
+      rewrite CO'. basic_solver 12. }
     { admit. }
     { now rewrite (WCore.add_event_data ADD'). }
     { now rewrite (WCore.add_event_addr ADD'). }
