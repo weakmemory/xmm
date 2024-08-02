@@ -833,7 +833,8 @@ Proof using.
     threads_set := threads_set G_s;
     lab := upd (upd lab_s a_s l_a) b_s l;
     rf := rf_s ∪
-          mapper' ↑ (rf_t' ⨾ ⦗eq b_t ∩₁ R_t'⦘);
+          mapper' ↑ (rf_t' ⨾ ⦗eq b_t ∩₁ R_t'⦘) ∪
+          srf (WCore.G X_s'') ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘;
     co := co_s ∪
           mapper' ↑ (⦗eq b_t ∩₁ W_t'⦘ ⨾ co_t') ∪
           mapper' ↑ (co_t' ⨾ ⦗eq b_t ∩₁ W_t'⦘) ∪
@@ -920,7 +921,22 @@ Proof using.
       rewrite (rsr_acts SIMREL), NEWEXA, OLDEXA.
       basic_solver 11. }
     { admit. }
-    { admit. }
+    { arewrite (rf_t' ⨾ ⦗eq b_t ∩₁ R_t'⦘ ≡ WCore.rf_delta_R b_t l w).
+      { admit. }
+      rewrite NEWEXA.
+      arewrite (srf G_s' ⨾ ⦗
+          eq a_s ∩₁ is_r (upd (upd lab_s a_s l_a) b_s l)
+        ⦘ ≡ srf (WCore.G X_s'') ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘).
+      { admit. }
+      rewrite (rsr_rf SIMREL), (WCore.add_event_rf ADD),
+              !collect_rel_union.
+      arewrite (mapper' ↑ rf_t ≡ mapper ↑ rf_t).
+      { admit. }
+      rewrite OLDEXA.
+      rewrite (WCore.add_event_to_rf_complete ADD).
+      all: try now apply CORR.
+      rewrite collect_rel_empty, !union_false_r.
+      basic_solver 12. }
     admit. }
   { constructor; ins.
     now exists r', R1', w', W1', W2'. }
