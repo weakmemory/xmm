@@ -717,7 +717,8 @@ Proof using.
       { admit. }
       basic_solver 12. }
     { admit. }
-    admit.  }
+    unfold sb at 1. ins. rewrite NEWSB.
+    unfold mapper'. now rupd. }
   { admit. (* RFCOM *) }
   admit.
 Admitted.
@@ -769,8 +770,8 @@ Proof using.
   assert (NEWE : exists b_s,
   << NOTIN : ~(E_s ∪₁ eq a_s) b_s >> /\
   << TID : tid b_s = tid b_t >> /\
-  << SB : ⦗E_s ∪₁ eq b_s⦘ ⨾ ext_sb ⨾ ⦗E_s ∪₁ eq b_s⦘ ≡
-          sb_s ∪ WCore.sb_delta X_s b_s >>).
+  << SB : ⦗E_s ∪₁ eq a_s ∪₁ eq b_s⦘ ⨾ ext_sb ⨾ ⦗E_s ∪₁ eq a_s ∪₁ eq b_s⦘ ≡
+          sb (WCore.G X_s'') ∪ WCore.sb_delta X_s'' b_s >>).
   { admit. }
   red in SIMREL. destruct SIMREL as (a_s' & SIMREL).
   destruct NEWE as (b_s & NOTIN & NEWTID & NEWSB).
@@ -1212,7 +1213,8 @@ Proof using.
     { now rewrite (WCore.add_event_addr ADD'). }
     { now rewrite (WCore.add_event_ctrl ADD'). }
     { now rewrite (WCore.add_event_rmw_dep ADD'). }
-    admit. }
+    unfold sb at 1. ins. rewrite NEWSB.
+    unfold mapper'. now rupd. }
   { admit. (* rfcom *) }
   admit. (* is_cons *)
 Admitted.
