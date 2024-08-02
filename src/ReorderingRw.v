@@ -97,7 +97,8 @@ Record reord_simrel_gen a_s : Prop := {
     (extra_a a_s) × eq b_s;
   rsr_rf : rf_s ≡ mapper ↑ rf_t ∪ srf_s ⨾ ⦗extra_a a_s ∩₁ R_s⦘;
   rsr_co : co_s ≡ mapper ↑ co_t ∪
-            (W_s ∩₁ E_s ∩₁ Loc_s_ (loc_s a_s)) × (W_s ∩₁ extra_a a_s);
+            ((E_s \₁ extra_a a_s) ∩₁ W_s ∩₁ Loc_s_ (loc_s a_s)) ×
+              (extra_a a_s ∩₁ W_s);
 }.
 
 Record reord_correct_graphs : Prop := {
