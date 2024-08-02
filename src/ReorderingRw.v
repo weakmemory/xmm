@@ -443,53 +443,6 @@ Proof using CORR.
   rewrite EXA. basic_solver.
 Qed.
 
-Lemma rsrw_swap_mapper mapper'
-    (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
-    (MAPPER : eq_dom E_t mapper' mapper) :
-  reord_simrel X_s X_t a_t b_t mapper'.
-Proof using.
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
-  exists a_s. constructor; ins.
-  { admit. }
-  { rewrite set_collect_eq_dom with (g := mapper); ins.
-    apply SIMREL. }
-  { admit. }
-  { admit. }
-  { rewrite set_collect_eq_dom with (g := mapper); ins.
-    apply SIMREL. }
-  admit.
-Admitted.
-
-Lemma rsr_is_w_ext lab' s
-    (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
-    (EQLAB : eq_dom E_s lab' lab_s)
-    (SUB : s ⊆₁ E_t ∩₁ W_t) :
-  mapper ↑₁ s ⊆₁ is_w lab'.
-Proof using.
-  transitivity (mapper ↑₁ s ∩₁ E_s).
-  { rewrite set_inter_absorb_r; ins.
-    eapply rsr_sub_e; eauto.
-    rewrite SUB. basic_solver. }
-  rewrite rsr_is_w; eauto. unfolder.
-  intros x (IS_W & XINE). unfold is_w in *.
-  rewrite EQLAB; ins.
-Qed.
-
-Lemma rsr_is_r_ext lab' s
-    (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
-    (EQLAB : eq_dom E_s lab' lab_s)
-    (SUB : s ⊆₁ E_t ∩₁ R_t) :
-  mapper ↑₁ s ⊆₁ is_r lab'.
-Proof using.
-  transitivity (mapper ↑₁ s ∩₁ E_s).
-  { rewrite set_inter_absorb_r; ins.
-    eapply rsr_sub_e; eauto.
-    rewrite SUB. basic_solver. }
-  rewrite rsr_is_r; eauto. unfolder.
-  intros x (IS_R & XINE). unfold is_r in *.
-  rewrite EQLAB; ins.
-Qed.
-
 Lemma simrel_exec_not_a_not_b e l
     (E_NOT_A : e <> a_t)
     (E_NOT_B : e <> b_t)
