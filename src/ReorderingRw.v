@@ -762,7 +762,17 @@ Proof using.
       rewrite (WCore.add_event_to_rf_complete ADD).
       all: try now apply CORR.
       now rewrite collect_rel_empty, union_false_r. }
-    { admit. }
+    { arewrite (⦗eq e ∩₁ W_t'⦘ ⨾ co_t' ≡ (eq e ∩₁ WCore.lab_is_w l) × W1).
+      { admit. }
+      arewrite (co_t' ⨾ ⦗eq e ∩₁ W_t'⦘ ≡ W2 × (eq e ∩₁ WCore.lab_is_w l)).
+      { admit. }
+      arewrite (WCore.co_delta (mapper' e) l (mapper' ↑₁ W1)
+                (extra_W2 ∪₁ mapper' ↑₁ W2) ≡
+                  mapper' ↑ (eq e ∩₁ WCore.lab_is_w l) × W1 ∪
+                  mapper' ↑ W2 × (eq e ∩₁ WCore.lab_is_w l) ∪
+                  (eq e' ∩₁ WCore.lab_is_w l) × extra_W2).
+      { admit. }
+      basic_solver 12. }
     { admit. }
     admit.  }
   { admit. (* RFCOM *) }
