@@ -389,25 +389,6 @@ Notation "'Loc_s_' l" := (fun e => loc_s e = l) (at level 1).
 
 Hypothesis CORR : reord_correct_graphs X_s X_t a_t b_t.
 
-Definition lab_loc l :=
-  match l with
-  | Aload _ _ l _ | Astore _ _ l _ => Some l
-  | Afence _ => None
-  end.
-
-Definition lab_is_r l : actid -> Prop :=
-  match l with
-  | Aload _ _ _ _ => ⊤₁
-  | _ => ∅
-  end.
-
-Definition lab_is_w l : actid -> Prop :=
-  match l with
-  | Astore _ _ _ _ => ⊤₁
-  | _ => ∅
-  end.
-
-
 Lemma sim_rel_init :
   reord_simrel
     (WCore.Build_t (WCore.init_exec G_s) ∅₂)
@@ -448,16 +429,18 @@ Definition mapper_anb' e e' := upd mapper e e'.
 
 Definition lab_s_anb' e' l := upd lab_s e' l.
 
+Definition extra_W2_anb a_s l :=
+  extra_a X_t' a_t b_t a_s ∩₁ W_s ∩₁ Loc_s_ (WCore.lab_loc l).
+
 Definition G_s_anb' e e' l a_s := {|
     acts_set := E_s ∪₁ eq e';
     threads_set := threads_set G_s;
     lab := upd lab_s e' l;
-    rf := rf_s ∪ mapper_anb' e e' ↑ (rf_t' ⨾ ⦗eq e' ∩₁ R_t'⦘);
+    rf := rf_s ∪ mapper_anb' e e' ↑ (rf_t' ⨾ ⦗eq e ∩₁ R_t'⦘);
     co := co_s ∪
-          mapper_anb' e e' ↑ (⦗eq e' ∩₁ W_t'⦘ ⨾ co_t') ∪
-          mapper_anb' e e' ↑ (co_t' ⨾ ⦗eq e' ∩₁ W_t'⦘) ∪
-            (eq e' ∩₁ is_w (lab_s_anb' e' l) ∩₁ (fun e => loc (lab_s_anb' e' l) e = loc (lab_s_anb' e' l) a_s)) ×
-              (extra_a X_t' a_t b_t a_s ∩₁ is_w (lab_s_anb' e' l));
+          mapper_anb' e e' ↑ (⦗eq e ∩₁ W_t'⦘ ⨾ co_t') ∪
+          mapper_anb' e e' ↑ (co_t' ⨾ ⦗eq e ∩₁ W_t'⦘) ∪
+          (eq e' ∩₁ WCore.lab_is_w l) × extra_W2_anb a_s l;
     rmw := mapper_anb' e e' ↑ rmw_t';
     rmw_dep := rmw_dep_s;
     ctrl := ctrl_s;
@@ -538,12 +521,11 @@ Proof using.
     acts_set := E_s ∪₁ eq e';
     threads_set := threads_set G_s;
     lab := lab_s';
-    rf := rf_s ∪ mapper' ↑ (rf_t' ⨾ ⦗eq e' ∩₁ R_t'⦘);
+    rf := rf_s ∪ mapper' ↑ (rf_t' ⨾ ⦗eq e ∩₁ R_t'⦘);
     co := co_s ∪
-          mapper' ↑ (⦗eq e' ∩₁ W_t'⦘ ⨾ co_t') ∪
-          mapper' ↑ (co_t' ⨾ ⦗eq e' ∩₁ W_t'⦘) ∪
-            (eq e' ∩₁ is_w lab_s' ∩₁ (fun e => loc lab_s' e = loc lab_s' a_s)) ×
-              (extra_a X_t' a_t b_t a_s ∩₁ is_w lab_s');
+          mapper' ↑ (⦗eq e ∩₁ W_t'⦘ ⨾ co_t') ∪
+          mapper' ↑ (co_t' ⨾ ⦗eq e ∩₁ W_t'⦘) ∪
+          (eq e' ∩₁ WCore.lab_is_w l) × extra_W2;
     rmw := mapper' ↑ rmw_t';
     rmw_dep := rmw_dep_s;
     ctrl := ctrl_s;
@@ -582,6 +564,8 @@ Proof using.
         by (unfold G_s_anb', G_s', mapper', mapper_anb', lab_s', lab_s_anb'; ins).
       subst lab_s'.
       rewrite simrel_exec_not_a_not_b_srf_same; ins.
+      arewrite (rf_t' ⨾ ⦗eq e ∩₁ R_t'⦘ ≡ WCore.rf_delta_R e l w).
+      { admit. }
       rewrite (rsr_rf SIMREL), (WCore.add_event_rf ADD),
               !collect_rel_union.
       arewrite (mapper' ↑ rf_t ≡ mapper ↑ rf_t).
@@ -589,27 +573,30 @@ Proof using.
       rewrite (WCore.add_event_to_rf_complete ADD).
       all: try now apply CORR.
       rewrite collect_rel_empty, !union_false_r.
-      arewrite ((rf_t ∪ WCore.rf_delta_R e l w) ⨾ ⦗eq e' ∩₁ R_t'⦘
-                ≡ WCore.rf_delta_R e l w).
-      { admit. }
       basic_solver 12. }
-    rewrite (rsr_co SIMREL), (WCore.add_event_co ADD),
-            EXEQ, collect_rel_union.
-    arewrite (mapper' ↑ co_t ≡ mapper ↑ co_t).
+    arewrite (⦗eq e ∩₁ W_t'⦘ ⨾ co_t' ≡ (eq e ∩₁ WCore.lab_is_w l) × W1).
     { admit. }
-    arewrite (⦗eq e' ∩₁ W_t'⦘ ⨾ (co_t ∪ WCore.co_delta e l W1 W2)
-                ≡ (eq e ∩₁ WCore.lab_is_w l) × W1).
-    { admit. }
-    arewrite ((co_t ∪ WCore.co_delta e l W1 W2) ⨾ ⦗eq e' ∩₁ W_t'⦘
-                ≡ W2 × (eq e ∩₁ WCore.lab_is_w l)).
+    arewrite (co_t' ⨾ ⦗eq e ∩₁ W_t'⦘ ≡ W2 × (eq e ∩₁ WCore.lab_is_w l)).
     { admit. }
     rewrite set_minus_union_l, !set_inter_union_l, cross_union_l.
     arewrite (eq e' \₁ extra_a X_t' a_t b_t a_s ≡₁ eq e').
     { admit. }
+    arewrite (extra_a X_t' a_t b_t a_s ∩₁ is_w lab_s' ≡₁
+              extra_a X_t' a_t b_t a_s ∩₁ W_s).
+    { admit. }
     arewrite ((E_s \₁ extra_a X_t' a_t b_t a_s) ∩₁ is_w lab_s' ∩₁ (fun e => loc lab_s' e = loc lab_s' a_s) ≡₁
               (E_s \₁ extra_a X_t' a_t b_t a_s) ∩₁ W_s ∩₁ Loc_s_ (loc_s a_s)).
     { admit. }
-    arewrite (extra_a X_t' a_t b_t a_s ∩₁ is_w lab_s' ≡₁ extra_a X_t' a_t b_t a_s ∩₁ W_s).
+    arewrite (
+      (eq e'
+        ∩₁ is_w lab_s'
+        ∩₁ (fun e => loc lab_s' e = loc lab_s' a_s)) ×
+      (extra_a X_t' a_t b_t a_s ∩₁ W_s) ≡
+        (eq e' ∩₁ WCore.lab_is_w l) × extra_W2).
+    { admit. }
+    rewrite (rsr_co SIMREL), (WCore.add_event_co ADD),
+            EXEQ, collect_rel_union.
+    arewrite (mapper' ↑ co_t ≡ mapper ↑ co_t).
     { admit. }
     unfold WCore.co_delta. rewrite collect_rel_union.
     basic_solver 12. }
@@ -770,7 +757,7 @@ Proof using.
       arewrite (WCore.rf_delta_W (mapper' e) l (mapper' ↑₁ R1) ≡
                 mapper' ↑ WCore.rf_delta_W e l R1).
       { admit. }
-      arewrite (rf_t' ⨾ ⦗eq e' ∩₁ R_t'⦘ ≡ WCore.rf_delta_R e l w).
+      arewrite (rf_t' ⨾ ⦗eq e ∩₁ R_t'⦘ ≡ WCore.rf_delta_R e l w).
       { admit. }
       rewrite (WCore.add_event_to_rf_complete ADD).
       all: try now apply CORR.
