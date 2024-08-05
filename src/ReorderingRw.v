@@ -85,15 +85,18 @@ Definition extra_a (a_s : actid) :=
   ifP ~E_t a_t /\ E_t b_t then eq a_s
   else ∅.
 
+Definition swap_rel {T : Type} (r : relation T) A B :=
+  r \ A × B ∪ B × A.
+
 Record reord_simrel_gen a_s : Prop := {
   rsr_inj : inj_dom E_t mapper;
   rsr_codom : mapper ↑₁ E_t ⊆₁ E_s \₁ extra_a a_s;
   rsr_tid : eq_dom E_t (tid ∘ mapper) tid;
   rsr_lab : eq_dom E_t (lab_s ∘ mapper) lab_t;
   rsr_acts : E_s ≡₁ mapper ↑₁ E_t ∪₁ extra_a a_s;
-  rsr_sb_imm : immediate sb_s ≡
-    mapper ↑ (immediate sb_t \ singl_rel b_t a_t ∪ singl_rel a_t b_t ∩ E_t × E_t) ∪
-    (mapper ↑₁ codom_rel (immediate sb_t ⨾ ⦗eq b_t⦘)) × (extra_a a_s) ∪
+  rsr_sb : sb_s ≡
+    mapper ↑ swap_rel sb_t (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t) ∪
+    (mapper ↑₁ codom_rel (sb_t ⨾ ⦗eq b_t⦘)) × (extra_a a_s) ∪
     (extra_a a_s) × eq b_s;
   rsr_rf : rf_s ≡ mapper ↑ rf_t ∪ srf_s ⨾ ⦗extra_a a_s ∩₁ R_s⦘;
   rsr_co : co_s ≡ mapper ↑ co_t ∪
@@ -375,17 +378,18 @@ Proof using CORR.
   { rewrite (rsr_init_acts CORR), EXA. basic_solver. }
   { rewrite Combinators.compose_id_right. apply CORR. }
   { rewrite EXA. rewrite (rsr_init_acts CORR). basic_solver 11. }
-  { rewrite EXA, !cross_false_r, !cross_false_l.
-    arewrite (singl_rel a_t b_t ∩ (E_t ∩₁ is_init) × (E_t ∩₁ is_init) ≡ ∅₂).
-    { enough (~is_init a_t) by basic_solver 12.
-      apply CORR. }
-    rewrite !union_false_r, minus_disjoint.
-    { unfold sb. ins. rewrite (rsr_init_acts CORR).
-      set (r := ⦗E_t ∩₁ is_init⦘ ⨾ ext_sb ⨾ ⦗E_t ∩₁ is_init⦘).
-      basic_solver 11. }
-    split; [| basic_solver].
-    unfold sb; unfolder. ins.
-    apply (rsr_at_ninit CORR); desf. }
+  { rewrite EXA, !cross_false_r, !cross_false_l, !union_false_r.
+    unfold swap_rel.
+    arewrite (eq a_t ∩₁ (E_t ∩₁ is_init) ≡₁ ∅).
+    { split; [| basic_solver]. unfolder.
+      ins. desf. now apply (rsr_at_ninit CORR). }
+    arewrite (eq b_t ∩₁ (E_t ∩₁ is_init) ≡₁ ∅).
+    { split; [| basic_solver]. unfolder.
+      ins. desf. now apply (rsr_bt_ninit CORR). }
+    rewrite !cross_false_r, !union_false_r.
+    rewrite minus_disjoint; [| basic_solver].
+    unfold sb. ins. rewrite (rsr_init_acts CORR).
+    basic_solver 11. }
   { rewrite EXA. basic_solver. }
   { rewrite EXA. basic_solver. }
   basic_solver.
@@ -488,35 +492,46 @@ Proof using.
       unfolder. ins. desf. unfold compose. now rupd. }
     { rewrite EQACTS, set_collect_union, MAPER_E, MAPSUB.
       rewrite (rsr_acts SIMREL), EXEQ. basic_solver 11. }
-    { assert (IMMSB_t : exists ep_t,
-        immediate sb_t' ≡ immediate sb_t ∪ singl_rel ep_t e).
-      { admit. }
-      assert (IMMSB_s : exists ep_s,
-        immediate (sb G_s') ≡ immediate sb_s ∪ singl_rel ep_s e').
-      { admit. }
-      destruct IMMSB_t as (ep_t & IMMSB_t), IMMSB_s as (ep_s & IMMSB_s).
-      rewrite IMMSB_t, IMMSB_s.
-      rewrite minus_union_l, seq_union_l, codom_union,
-              collect_rel_union, set_collect_union.
-      arewrite (singl_rel ep_t e ⨾ ⦗eq b_t⦘ ≡ ∅₂).
-      { basic_solver. }
-      rewrite codom_empty, set_collect_empty, set_union_empty_r.
-      arewrite (singl_rel ep_t e \ singl_rel b_t a_t ≡ singl_rel ep_t e).
-      { admit. }
-      arewrite (singl_rel ep_s e' ≡ mapper' ↑ singl_rel ep_t e).
-      { admit. }
-      rewrite !collect_rel_union, (rsr_sb_imm SIMREL).
-      arewrite (singl_rel a_t b_t ∩ E_t' × E_t' ≡ singl_rel a_t b_t ∩ E_t × E_t).
-      { admit. }
-      rewrite collect_rel_union, EXEQ.
-      arewrite (mapper' ↑ (immediate sb_t \ singl_rel b_t a_t) ≡ mapper ↑ (immediate sb_t \ singl_rel b_t a_t)).
-      { admit. }
+    { unfold sb at 1. ins. rewrite NEWSB, <- EXEQ.
+      unfold swap_rel.
+      rewrite (WCore.add_event_sb ADD).
       arewrite (mapper' b_t = mapper b_t).
       { unfold mapper'. now rupd. }
-      arewrite (mapper' ↑ (singl_rel a_t b_t ∩ E_t × E_t) ≡ mapper ↑ (singl_rel a_t b_t ∩ E_t × E_t)).
+      arewrite (eq b_t ∩₁ E_t' ≡₁ eq b_t ∩₁ E_t).
       { admit. }
-      arewrite (mapper' ↑₁ codom_rel (immediate sb_t ⨾ ⦗eq b_t⦘) ≡₁ mapper ↑₁ codom_rel (immediate sb_t ⨾ ⦗eq b_t⦘)).
+      arewrite (eq a_t ∩₁ E_t' ≡₁ eq a_t ∩₁ E_t).
       { admit. }
+      arewrite ((sb_t ∪ WCore.sb_delta X_t e) ⨾ ⦗eq b_t⦘ ≡
+                sb_t ⨾ ⦗eq b_t⦘).
+      { admit. }
+      arewrite (mapper' ↑
+        ((sb_t ∪ WCore.sb_delta X_t e) \
+          (eq b_t ∩₁ E_t) × (eq a_t ∩₁ E_t)
+          ∪ (eq a_t ∩₁ E_t) × (eq b_t ∩₁ E_t)
+        ) ≡
+        mapper' ↑ WCore.sb_delta X_t e ∪
+        mapper' ↑
+        (sb_t \
+          (eq b_t ∩₁ E_t) × (eq a_t ∩₁ E_t)
+          ∪ (eq a_t ∩₁ E_t) × (eq b_t ∩₁ E_t)
+        )
+      ).
+      { admit. }
+      arewrite (mapper' ↑ WCore.sb_delta X_t e ≡
+                WCore.sb_delta X_s e').
+      { admit. }
+      arewrite (mapper' ↑
+          (sb_t \ (eq b_t ∩₁ E_t) × (eq a_t ∩₁ E_t)
+            ∪ (eq a_t ∩₁ E_t) × (eq b_t ∩₁ E_t)) ≡
+      mapper
+        ↑ (sb_t \ (eq b_t ∩₁ E_t) × (eq a_t ∩₁ E_t)
+        ∪ (eq a_t ∩₁ E_t) × (eq b_t ∩₁ E_t))
+      ).
+      { admit. }
+      arewrite (mapper' ↑₁ codom_rel (sb_t ⨾ ⦗eq b_t⦘) ≡₁
+                mapper ↑₁ codom_rel (sb_t ⨾ ⦗eq b_t⦘)).
+      { admit. }
+      rewrite (rsr_sb SIMREL). unfold swap_rel.
       basic_solver 12. }
     { arewrite (srf G_s' ⨾ ⦗extra_a X_t' a_t b_t a_s ∩₁ is_r (upd lab_s e' l)⦘
                 ≡ srf G_s ⨾ ⦗extra_a X_t a_t b_t a_s ∩₁ R_s⦘).
