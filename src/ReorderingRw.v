@@ -426,7 +426,7 @@ Proof using.
     apply EQACTS in a0. destruct a0; congruence. }
   assert (EXIN : extra_a X_t a_t b_t a_s ⊆₁ E_s).
   { rewrite (rsr_acts SIMREL). basic_solver. }
-  set (extra_W2 := extra_a X_t' a_t b_t a_s ∩₁ W_s ∩₁ Loc_s_ (WCore.lab_loc l));
+  set (extra_W1 := extra_a X_t' a_t b_t a_s ∩₁ W_s ∩₁ Loc_s_ (WCore.lab_loc l));
   set (G_s' := {|
     acts_set := E_s ∪₁ eq e';
     threads_set := threads_set G_s;
@@ -435,7 +435,7 @@ Proof using.
     co := co_s ∪
           mapper' ↑ (⦗eq e ∩₁ W_t'⦘ ⨾ co_t') ∪
           mapper' ↑ (co_t' ⨾ ⦗eq e ∩₁ W_t'⦘) ∪
-          (eq e' ∩₁ WCore.lab_is_w l) × extra_W2;
+          (eq e' ∩₁ WCore.lab_is_w l) × extra_W1;
     rmw := mapper' ↑ rmw_t';
     rmw_dep := rmw_dep_s;
     ctrl := ctrl_s;
@@ -547,7 +547,7 @@ Proof using.
         ∩₁ is_w (upd lab_s e' l)
         ∩₁ (fun e => loc (upd lab_s e' l) e = loc (upd lab_s e' l) a_s)) ×
       (extra_a X_t' a_t b_t a_s ∩₁ W_s) ≡
-        (eq e' ∩₁ WCore.lab_is_w l) × extra_W2).
+        (eq e' ∩₁ WCore.lab_is_w l) × extra_W1).
     { admit. }
     rewrite (rsr_co SIMREL), (WCore.add_event_co ADD),
             EXEQ, collect_rel_union.
@@ -563,8 +563,9 @@ Proof using.
   split; red; ins.
   constructor.
   { exists (option_map mapper' r), (mapper' ↑₁ R1),
-           (option_map mapper' w), (mapper' ↑₁ W1),
-           (extra_W2 ∪₁ mapper' ↑₁ W2).
+           (option_map mapper' w),
+           (extra_W1 ∪₁ mapper' ↑₁ W1),
+           (mapper' ↑₁ W2).
     constructor; ins.
     { subst mapper'. now rupd. }
     { admit. }
@@ -626,20 +627,26 @@ Proof using.
       eapply eq_dom_mori with (x := E_t); eauto.
       unfold flip. apply ADD. }
     { admit. }
-    { rewrite set_collect_eq_dom with (g := mapper),
+    { apply set_subset_union_l; split.
+      { unfold extra_W1. basic_solver. }
+      rewrite set_collect_eq_dom with (g := mapper),
               rsr_is_w with (X_s := X_s) (X_t := X_t)
                             (a_t := a_t) (b_t := b_t).
       all: ins.
       { apply set_subset_inter_r. split; apply ADD. }
       eapply eq_dom_mori with (x := E_t); eauto.
       unfold flip. apply ADD. }
-    { rewrite set_collect_eq_dom with (g := mapper),
+    { apply set_subset_union_l; split.
+      { unfold extra_W1. rewrite <- EXEQ. basic_solver. }
+      rewrite set_collect_eq_dom with (g := mapper),
               rsr_sub_e with (X_s := X_s) (X_t := X_t)
                             (a_t := a_t) (b_t := b_t).
       all: ins; try now apply ADD.
       eapply eq_dom_mori with (x := E_t); eauto.
       unfold flip. apply ADD. }
-    { rewrite set_collect_eq_dom with (g := mapper),
+    { apply set_subset_union_l; split.
+      { unfold extra_W1. basic_solver. }
+      rewrite set_collect_eq_dom with (g := mapper),
               rsr_loc with (X_s := X_s) (X_t := X_t)
                            (a_t := a_t) (b_t := b_t)
                            (l := WCore.lab_loc l).
@@ -647,26 +654,20 @@ Proof using.
       { apply set_subset_inter_r. split; apply ADD. }
       eapply eq_dom_mori with (x := E_t); eauto.
       unfold flip. apply ADD. }
-    { apply set_subset_union_l; split.
-      { unfold extra_W2. basic_solver. }
-      rewrite set_collect_eq_dom with (g := mapper),
+    { rewrite set_collect_eq_dom with (g := mapper),
               rsr_is_w with (X_s := X_s) (X_t := X_t)
                             (a_t := a_t) (b_t := b_t).
       all: ins.
       { apply set_subset_inter_r. split; apply ADD. }
       eapply eq_dom_mori with (x := E_t); eauto.
       unfold flip. apply ADD. }
-    { apply set_subset_union_l; split.
-      { unfold extra_W2. rewrite <- EXEQ. basic_solver. }
-      rewrite set_collect_eq_dom with (g := mapper),
+    { rewrite set_collect_eq_dom with (g := mapper),
               rsr_sub_e with (X_s := X_s) (X_t := X_t)
                             (a_t := a_t) (b_t := b_t).
       all: ins; try now apply ADD.
       eapply eq_dom_mori with (x := E_t); eauto.
       unfold flip. apply ADD. }
-    { apply set_subset_union_l; split.
-      { unfold extra_W2. basic_solver. }
-      rewrite set_collect_eq_dom with (g := mapper),
+    { rewrite set_collect_eq_dom with (g := mapper),
               rsr_loc with (X_s := X_s) (X_t := X_t)
                            (a_t := a_t) (b_t := b_t)
                            (l := WCore.lab_loc l).
@@ -724,11 +725,11 @@ Proof using.
       { rewrite (lab_is_wE ADD), id_inter, <- seqA,
                 (co_deltaE2 (rsr_Gt_wf CORR) ADD).
         basic_solver. }
-      arewrite (WCore.co_delta (mapper' e) l (mapper' ↑₁ W1)
-                (extra_W2 ∪₁ mapper' ↑₁ W2) ≡
+      arewrite (WCore.co_delta (mapper' e) l
+                (extra_W1 ∪₁ mapper' ↑₁ W1) (mapper' ↑₁ W2) ≡
                   mapper' ↑ (eq e ∩₁ WCore.lab_is_w l) × W1 ∪
                   mapper' ↑ W2 × (eq e ∩₁ WCore.lab_is_w l) ∪
-                  (eq e' ∩₁ WCore.lab_is_w l) × extra_W2).
+                  (eq e' ∩₁ WCore.lab_is_w l) × extra_W1).
       { admit. }
       basic_solver 12. }
     { arewrite (WCore.rmw_delta (mapper' e) l (option_map mapper' r) ≡
