@@ -519,7 +519,8 @@ Proof using.
       rewrite (rsr_rf SIMREL), (WCore.add_event_rf ADD),
               !collect_rel_union.
       arewrite (mapper' ↑ rf_t ≡ mapper ↑ rf_t).
-      { admit. }
+      { apply collect_rel_eq_dom' with (s := E_t); ins.
+        apply (wf_rfE (rsr_Gt_wf CORR)). }
       rewrite (add_event_to_rf_complete ADD).
       all: try now apply CORR.
       rewrite collect_rel_empty, !union_false_r.
@@ -551,7 +552,8 @@ Proof using.
     rewrite (rsr_co SIMREL), (WCore.add_event_co ADD),
             EXEQ, collect_rel_union.
     arewrite (mapper' ↑ co_t ≡ mapper ↑ co_t).
-    { admit. }
+    { apply collect_rel_eq_dom' with (s := E_t); ins.
+      apply (wf_coE (rsr_Gt_wf CORR)). }
     unfold WCore.co_delta. rewrite collect_rel_union.
     basic_solver 12. }
   assert (OLDSIMREL : reord_simrel X_s X_t a_t b_t mapper).
@@ -705,21 +707,23 @@ Proof using.
     { admit. }
     { unfold mapper'. now rupd. }
     { unfold mapper'. now rupd. }
-    { arewrite (WCore.rf_delta_R (mapper' e) l (option_map mapper' w) ≡
-                mapper' ↑ WCore.rf_delta_R e l w).
-      { admit. }
-      arewrite (WCore.rf_delta_W (mapper' e) l (mapper' ↑₁ R1) ≡
-                mapper' ↑ WCore.rf_delta_W e l R1).
-      { admit. }
+    { rewrite <- mapped_rf_delta_R,
+              <- mapped_rf_delta_W.
       arewrite (rf_t' ⨾ ⦗eq e ∩₁ R_t'⦘ ≡ WCore.rf_delta_R e l w).
-      { admit. }
+      { rewrite (lab_is_rE ADD), id_inter, <- seqA,
+                (rf_delta_RE (rsr_Gt_wf CORR) ADD).
+        basic_solver. }
       rewrite (add_event_to_rf_complete ADD).
       all: try now apply CORR.
       now rewrite collect_rel_empty, union_false_r. }
     { arewrite (⦗eq e ∩₁ W_t'⦘ ⨾ co_t' ≡ (eq e ∩₁ WCore.lab_is_w l) × W1).
-      { admit. }
+      { rewrite (lab_is_wE ADD), set_interC, id_inter,
+                seqA, (co_deltaE1 (rsr_Gt_wf CORR) ADD).
+        basic_solver. }
       arewrite (co_t' ⨾ ⦗eq e ∩₁ W_t'⦘ ≡ W2 × (eq e ∩₁ WCore.lab_is_w l)).
-      { admit. }
+      { rewrite (lab_is_wE ADD), id_inter, <- seqA,
+                (co_deltaE2 (rsr_Gt_wf CORR) ADD).
+        basic_solver. }
       arewrite (WCore.co_delta (mapper' e) l (mapper' ↑₁ W1)
                 (extra_W2 ∪₁ mapper' ↑₁ W2) ≡
                   mapper' ↑ (eq e ∩₁ WCore.lab_is_w l) × W1 ∪
