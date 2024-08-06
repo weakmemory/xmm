@@ -182,6 +182,22 @@ Proof using.
   rewrite (rsr_lab SIMREL); now apply SUB.
 Qed.
 
+Lemma swap_rel_union {T : Type} (r1 r2 : relation T) A B :
+  swap_rel (r1 ∪ r2) A B ≡
+    swap_rel r1 A B ∪ swap_rel r2 A B.
+Proof using.
+  unfold swap_rel. basic_solver 11.
+Qed.
+
+Lemma swap_rel_more {T : Type} (r1 r2 : relation T) A1 A2 B1 B2
+    (EQA : A1 ≡₁ A2)
+    (EQB : B1 ≡₁ B2)
+    (EQ : r1 ≡ r2) :
+  swap_rel r1 A1 B1 ≡ swap_rel r2 A2 B2.
+Proof using.
+  unfold swap_rel. now rewrite EQ, EQA, EQB.
+Qed.
+
 (* Lemma G_t_niff_b_max
     (CONT : contigious_actids G_t)
     (INA : E_t a)
@@ -415,6 +431,10 @@ Proof using.
   { split; intros INA.
     { apply ADD in INA. destruct INA; congruence. }
     apply ADD. basic_solver. }
+  assert (B_PRESERVED : E_t' b_t <-> E_t b_t).
+  { split; intros INB.
+    { apply ADD in INB. destruct INB; congruence. }
+    apply ADD. basic_solver. }
   assert (MAPER_E : mapper' ↑₁ eq e ≡₁ eq e').
   { subst mapper'. rewrite set_collect_eq. now rupd. }
   assert (EXEQ : extra_a X_t a_t b_t a_s ≡₁ extra_a X_t' a_t b_t a_s).
@@ -477,7 +497,17 @@ Proof using.
       arewrite (swap_rel sb_t' (eq b_t ∩₁ E_t') (eq a_t ∩₁ E_t') ≡
                 WCore.sb_delta X_t e ∪
                 swap_rel sb_t (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t)).
-      { admit. }
+      { rewrite swap_rel_more with (r1 := sb_t')
+                                   (r2 := sb_t ∪ WCore.sb_delta X_t e)
+                                   (A1 := eq b_t ∩₁ E_t')
+                                   (B1 := eq a_t ∩₁ E_t')
+                                   (A2 := eq b_t ∩₁ E_t)
+                                   (B2 := eq a_t ∩₁ E_t).
+        all: try now apply ADD.
+        { unfold swap_rel. rewrite minus_union_l.
+          rewrite minus_disjoint with (r := WCore.sb_delta X_t e).
+          all: basic_solver 7. }
+        all: basic_solver. }
       rewrite collect_rel_union.
       arewrite (mapper' ↑ WCore.sb_delta X_t e ≡
                 WCore.sb_delta X_s e').
