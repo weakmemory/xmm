@@ -245,4 +245,12 @@ Proof using.
   all: congruence.
 Qed.
 
+Lemma co_delta_union_W2 W1 W1' W2 :
+  WCore.co_delta e l (W1 ∪₁ W1') W2 ≡
+    WCore.co_delta e l W1 W2 ∪
+    (eq e ∩₁ WCore.lab_is_w l) × W1'.
+Proof using.
+  basic_solver 11.
+Qed.
+
 End DeltaOps.
