@@ -223,4 +223,26 @@ Proof using.
   apply (WCore.add_event_new ADD). congruence.
 Qed.
 
+Lemma lab_is_wE r R1 w W1 W2
+    (ADD : WCore.add_event_gen X X' e l r R1 w W1 W2) :
+  eq e ∩₁ W' ≡₁ eq e ∩₁ WCore.lab_is_w l.
+Proof using.
+  unfold is_w, WCore.lab_is_w.
+  rewrite (WCore.add_event_lab ADD).
+  unfolder. split.
+  all: ins; desf; rewrite upds in *.
+  all: congruence.
+Qed.
+
+Lemma lab_is_rE r R1 w W1 W2
+    (ADD : WCore.add_event_gen X X' e l r R1 w W1 W2) :
+  eq e ∩₁ R' ≡₁ eq e ∩₁ WCore.lab_is_r l.
+Proof using.
+  unfold is_r, WCore.lab_is_r.
+  rewrite (WCore.add_event_lab ADD).
+  unfolder. split.
+  all: ins; desf; rewrite upds in *.
+  all: congruence.
+Qed.
+
 End DeltaOps.
