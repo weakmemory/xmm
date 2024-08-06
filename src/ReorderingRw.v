@@ -96,7 +96,7 @@ Record reord_simrel_gen a_s : Prop := {
   rsr_acts : E_s ≡₁ mapper ↑₁ E_t ∪₁ extra_a a_s;
   rsr_sb : sb_s ≡
     mapper ↑ swap_rel sb_t (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t) ∪
-    (mapper ↑₁ codom_rel (sb_t ⨾ ⦗eq b_t⦘)) × (extra_a a_s) ∪
+    (mapper ↑₁ dom_rel (sb_t ⨾ ⦗eq b_t⦘)) × (extra_a a_s) ∪
     (extra_a a_s) × eq b_s;
   rsr_rf : rf_s ≡ mapper ↑ rf_t ∪ srf_s ⨾ ⦗extra_a a_s ∩₁ R_s⦘;
   rsr_co : co_s ≡ mapper ↑ co_t ∪
@@ -470,7 +470,8 @@ Proof using.
       rewrite (rsr_acts SIMREL), EXEQ. basic_solver 11. }
     { unfold sb at 1. ins. rewrite NEWSB, <- EXEQ.
       arewrite (sb_t' ⨾ ⦗eq b_t⦘ ≡ sb_t ⨾ ⦗eq b_t⦘).
-      { admit. }
+      { rewrite (WCore.add_event_sb ADD), seq_union_l.
+        basic_solver. }
       arewrite (mapper' b_t = mapper b_t).
       { unfold mapper'. now rupd. }
       arewrite (swap_rel sb_t' (eq b_t ∩₁ E_t') (eq a_t ∩₁ E_t') ≡
@@ -481,12 +482,15 @@ Proof using.
       arewrite (mapper' ↑ WCore.sb_delta X_t e ≡
                 WCore.sb_delta X_s e').
       { admit. }
-      arewrite (mapper' ↑₁ codom_rel (sb_t ⨾ ⦗eq b_t⦘) ≡₁
-                mapper ↑₁ codom_rel (sb_t ⨾ ⦗eq b_t⦘)).
-      { admit. }
+      arewrite (mapper' ↑₁ dom_rel (sb_t ⨾ ⦗eq b_t⦘) ≡₁
+                mapper ↑₁ dom_rel (sb_t ⨾ ⦗eq b_t⦘)).
+      { apply set_collect_eq_dom. eapply eq_dom_mori with (x := E_t).
+        all: eauto.
+        unfold sb, flip. basic_solver. }
       arewrite (mapper' ↑ swap_rel sb_t (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t) ≡
                 mapper ↑ swap_rel sb_t (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t)).
-      { admit. }
+      { apply collect_rel_eq_dom' with (s := E_t); ins.
+        unfold swap_rel, sb. basic_solver 11. }
       rewrite (rsr_sb SIMREL). basic_solver 12. }
     { arewrite (srf G_s' ⨾ ⦗extra_a X_t' a_t b_t a_s ∩₁ is_r (upd lab_s e' l)⦘
                 ≡ srf G_s ⨾ ⦗extra_a X_t a_t b_t a_s ∩₁ R_s⦘).
