@@ -215,12 +215,12 @@ End SimRel.
 
 Section ReordSimRelInstrs.
 
-Variable X_s X_t : WCore.t.
-
-Variable e2i_s e2i_t : actid -> I2Exec.intr_info.
+Variable X_t : WCore.t.
+Variable e2i_t : actid -> I2Exec.intr_info.
 Variable rmwi : I2Exec.instr_id -> Prop.
 Variable ai bi : I2Exec.intr_info.
 Variable mapper : actid -> actid.
+Variable a_t b_t : actid.
 
 Notation "'G_t'" := (WCore.G X_t).
 Notation "'lab_t'" := (lab G_t).
@@ -236,39 +236,15 @@ Notation "'data_t'" := (data G_t).
 Notation "'ctrl_t'" := (ctrl G_t).
 Notation "'addr_t'" := (addr G_t).
 
-Notation "'G_s'" := (WCore.G X_s).
-Notation "'lab_s'" := (lab G_s).
-Notation "'val_s'" := (val lab_s).
-Notation "'E_s'" := (acts_set G_s).
-Notation "'loc_s'" := (loc lab_s).
-Notation "'sb_s'" := (sb G_s).
-Notation "'rf_s'" := (rf G_s).
-Notation "'co_s'" := (co G_s).
-Notation "'rmw_s'" := (rmw G_s).
-Notation "'rpo_s'" := (rpo G_s).
-Notation "'rmw_dep_s'" := (rmw_dep G_s).
-Notation "'data_s'" := (data G_s).
-Notation "'ctrl_s'" := (ctrl G_s).
-Notation "'addr_s'" := (addr G_s).
-Notation "'W_s'" := (is_w lab_s).
-Notation "'R_s'" := (is_r lab_s).
-Notation "'srf_s'" := (srf G_s).
-
-Record reord_simrel_rw_instrs_gen a b : Prop := {
-  rwi_orig_simrel : reord_simrel X_s X_t a b mapper;
-  rwi_s_wf : I2Exec.E2InstrWf G_s e2i_s rmwi;
+Record program_coherent : Prop := {
   rwi_t_wf : I2Exec.E2InstrWf G_t e2i_t rmwi;
-  rwi_e2i_s_a : e2i_s a = ai;
-  rwi_e2i_s_b : e2i_s b = bi;
-  rwi_e2i_t_a : e2i_t a = ai;
-  rwi_e2i_t_b : e2i_t b = bi;
+  rwi_at : e2i_t ↑₁ (eq a_t ∩₁ E_t) ⊆₁ eq ai;
+  rwi_bt : e2i_t ↑₁ (eq b_t ∩₁ E_t) ⊆₁ eq bi;
   rwi_ai : ~rmwi (I2Exec.instr ai);
   rwi_bi : ~rmwi (I2Exec.instr bi);
 }.
 
-Definition reord_simrel_rw_instrs := exists a b, reord_simrel_rw_instrs_gen a b.
-
-Lemma G_s_wf a b
+(* Lemma G_s_wf a b
     (NCTRL : ctrl G_t ≡ ∅₂)
     (NDATA : data G_t ≡ ∅₂)
     (NADDR : addr G_t ≡ ∅₂)
@@ -279,7 +255,7 @@ Lemma G_s_wf a b
   Wf G_s.
 Proof using.
   admit.
-Admitted.
+Admitted. *)
 
 End ReordSimRelInstrs.
 
@@ -1420,27 +1396,14 @@ Proof using CORR.
 Admitted.
 
 Lemma simrel_reexec cmt a_t' b_t' e2i_t'
-    (NEWA : e2i_t' ai = a_t')
-    (NEWB : e2i_t' bi = b_t')
-    (SIM : reord_simrel_rw_instrs_gen
-            X_s X_t
-            e2i_s e2i_t
-            rmwi
-            ai bi
-            mapper
-            a_t b_t
-    )
+    (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
+    (PROG  : program_coherent X_t  e2i_t  rmwi ai bi a_t  b_t )
+    (PROG' : program_coherent X_t' e2i_t' rmwi ai bi a_t' b_t')
     (STEP : WCore.reexec X_t X_t' cmt) :
   exists mapper' X_s',
-    << SIM' : reord_simrel_rw_instrs_gen
-            X_s' X_t'
-            e2i_s e2i_t
-            rmwi
-            ai bi
-            mapper'
-            a_t' b_t' >> /\
+    << SIM : reord_simrel X_s' X_t' a_t' b_t' mapper' >> /\
     << STEP : WCore.reexec X_s X_s' (mapper' ↑₁ cmt) >>.
-Proof using.
+Proof using CORR.
   admit.
 Admitted.
 
