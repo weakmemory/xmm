@@ -730,14 +730,14 @@ Proof using.
                   mapper' ↑ (eq e ∩₁ WCore.lab_is_w l) × W1 ∪
                   mapper' ↑ W2 × (eq e ∩₁ WCore.lab_is_w l) ∪
                   (eq e' ∩₁ WCore.lab_is_w l) × extra_W1).
-      { admit. }
+      { rewrite co_delta_union_W1, <- mapped_co_delta.
+        unfold mapper'. rupd. basic_solver 11. }
       basic_solver 12. }
-    { arewrite (WCore.rmw_delta (mapper' e) l (option_map mapper' r) ≡
-                mapper' ↑ WCore.rmw_delta e l r).
-      { admit. }
-      rewrite (WCore.add_event_rmw ADD), collect_rel_union.
+    { rewrite <- mapped_rmw_delta, (WCore.add_event_rmw ADD),
+              collect_rel_union.
       arewrite (mapper' ↑ rmw_t ≡ mapper ↑ rmw_t).
-      { admit. }
+      { apply collect_rel_eq_dom' with (s := E_t); ins.
+        apply (wf_rmwE (rsr_Gt_wf CORR)). }
       now rewrite (rsr_rmw SIMREL). }
     unfold sb at 1. ins. rewrite NEWSB.
     unfold mapper'. now rupd. }
