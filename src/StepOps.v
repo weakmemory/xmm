@@ -199,4 +199,26 @@ Proof using.
   basic_solver 11.
 Qed.
 
+Lemma add_event_to_rf_complete r R1 w W1 W2
+    (ADD : WCore.add_event_gen X X' e l r R1 w W1 W2)
+    (WF : Wf G)
+    (RFC : rf_complete G) :
+  WCore.rf_delta_W e l R1 ≡ ∅₂.
+Proof using.
+  split; [| basic_solver]. unfold WCore.rf_delta_W.
+  unfolder. intros e' r' ((EQ & IS_W) & RF1). subst e'.
+  destruct RFC with r' as (w' & RF2).
+  { split.
+    { now apply (WCore.add_event_R1E ADD). }
+    now apply (WCore.add_event_R1D ADD). }
+  assert (INE : E w').
+  { apply (wf_rfE WF) in RF2. unfolder in RF2.
+    desf. }
+  assert (FALSEQ : e = w').
+  { apply (WCore.add_event_rff ADD) with r'; unfold transp.
+    all: hahn_rewrite (WCore.add_event_rf ADD).
+    all: basic_solver. }
+  apply (WCore.add_event_new ADD). congruence.
+Qed.
+
 End DeltaOps.
