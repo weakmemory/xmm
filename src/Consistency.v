@@ -8,9 +8,6 @@ Require Import ReorderingCommon.
 Require Import AuxRel.
 Require Import ExecEquiv.
 Require Import ExecOps.
-Require Import CfgOps.
-Require Import StepOps.
-Require Import Steps.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
