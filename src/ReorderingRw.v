@@ -513,7 +513,9 @@ Proof using.
                 ≡ srf G_s ⨾ ⦗extra_a X_t a_t b_t a_s ∩₁ R_s⦘).
       { admit. }
       arewrite (rf_t' ⨾ ⦗eq e ∩₁ R_t'⦘ ≡ WCore.rf_delta_R e l w).
-      { admit. }
+      { rewrite (lab_is_rE ADD), id_inter, <- seqA,
+                (rf_delta_RE (rsr_Gt_wf CORR) ADD).
+        basic_solver. }
       rewrite (rsr_rf SIMREL), (WCore.add_event_rf ADD),
               !collect_rel_union.
       arewrite (mapper' ↑ rf_t ≡ mapper ↑ rf_t).
@@ -523,9 +525,13 @@ Proof using.
       rewrite collect_rel_empty, !union_false_r.
       basic_solver 12. }
     arewrite (⦗eq e ∩₁ W_t'⦘ ⨾ co_t' ≡ (eq e ∩₁ WCore.lab_is_w l) × W1).
-    { admit. }
+    { rewrite (lab_is_wE ADD), set_interC, id_inter, seqA,
+              (co_deltaE1 (rsr_Gt_wf CORR) ADD).
+      basic_solver. }
     arewrite (co_t' ⨾ ⦗eq e ∩₁ W_t'⦘ ≡ W2 × (eq e ∩₁ WCore.lab_is_w l)).
-    { admit. }
+    { rewrite (lab_is_wE ADD), id_inter, <- seqA,
+              (co_deltaE2 (rsr_Gt_wf CORR) ADD).
+      basic_solver. }
     rewrite set_minus_union_l, !set_inter_union_l, cross_union_l.
     arewrite (eq e' \₁ extra_a X_t' a_t b_t a_s ≡₁ eq e').
     { admit. }
