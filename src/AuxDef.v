@@ -576,3 +576,24 @@ Proof using.
   unfolder. intros x y RF. unfold same_val.
   now apply (wf_rfv WF).
 Qed.
+
+Lemma collect_rel_eq_dom {A B : Type} (f g : A -> B) r
+    (EQ : eq_dom (dom_rel r ∪₁ codom_rel r) f g) :
+  f ↑ r ≡ g ↑ r.
+Proof using.
+  unfolder. split; intros x' y' (x & y & R & XEQ & YEQ).
+  all: subst x'; subst y'.
+  all: exists x, y; splits; ins.
+  all: rewrite EQ; ins.
+  all: basic_solver.
+Qed.
+
+Lemma collect_rel_eq_dom' {A B : Type} (f g : A -> B) r s
+    (EQ : eq_dom s f g)
+    (RESTR : r ≡ ⦗s⦘ ⨾ r ⨾ ⦗s⦘) :
+  f ↑ r ≡ g ↑ r.
+Proof using.
+  apply collect_rel_eq_dom.
+  eapply eq_dom_mori with (x := s); eauto.
+  unfold flip. rewrite RESTR. basic_solver.
+Qed.
