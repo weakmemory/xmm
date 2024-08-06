@@ -1419,12 +1419,27 @@ Proof using CORR.
   admit. (* subtofull *)
 Admitted.
 
-Lemma simrel_reexec cmt
-    (SIM : reord_simrel X_s X_t a_t b_t mapper)
+Lemma simrel_reexec cmt a_t' b_t' e2i_t'
+    (NEWA : e2i_t' ai = a_t')
+    (NEWB : e2i_t' bi = b_t')
+    (SIM : reord_simrel_rw_instrs_gen
+            X_s X_t
+            e2i_s e2i_t
+            rmwi
+            ai bi
+            mapper
+            a_t b_t
+    )
     (STEP : WCore.reexec X_t X_t' cmt) :
-  exists mapper' X_s' cmt',
-    << SIM' : reord_simrel X_s' X_t' a_t b_t mapper' >> /\
-    << STEP : WCore.reexec X_s X_s' cmt' >>.
+  exists mapper' X_s',
+    << SIM' : reord_simrel_rw_instrs_gen
+            X_s' X_t'
+            e2i_s e2i_t
+            rmwi
+            ai bi
+            mapper'
+            a_t' b_t' >> /\
+    << STEP : WCore.reexec X_s X_s' (mapper' ↑₁ cmt) >>.
 Proof using.
   admit.
 Admitted.
