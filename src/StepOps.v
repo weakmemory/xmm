@@ -14,6 +14,8 @@ Require Import Program.Basics.
 
 Open Scope program_scope.
 
+Set Implicit Arguments.
+
 Section DeltaOps.
 
 Variable X X' : WCore.t.

@@ -9,8 +9,8 @@ Require Import AuxRel.
 (* Require Import ExecEquiv.
 Require Import ExecOps.
 Require Import CfgOps.
-Require Import StepOps.
 Require Import Steps. *)
+Require Import StepOps.
 Require Import Instructions.
 
 From PromisingLib Require Import Language Basic.
@@ -518,7 +518,7 @@ Proof using.
               !collect_rel_union.
       arewrite (mapper' ↑ rf_t ≡ mapper ↑ rf_t).
       { admit. }
-      rewrite (WCore.add_event_to_rf_complete ADD).
+      rewrite (add_event_to_rf_complete ADD).
       all: try now apply CORR.
       rewrite collect_rel_empty, !union_false_r.
       basic_solver 12. }
@@ -707,7 +707,7 @@ Proof using.
       { admit. }
       arewrite (rf_t' ⨾ ⦗eq e ∩₁ R_t'⦘ ≡ WCore.rf_delta_R e l w).
       { admit. }
-      rewrite (WCore.add_event_to_rf_complete ADD).
+      rewrite (add_event_to_rf_complete ADD).
       all: try now apply CORR.
       now rewrite collect_rel_empty, union_false_r. }
     { arewrite (⦗eq e ∩₁ W_t'⦘ ⨾ co_t' ≡ (eq e ∩₁ WCore.lab_is_w l) × W1).
@@ -895,7 +895,7 @@ Proof using.
       arewrite (mapper' ↑ rf_t ≡ mapper ↑ rf_t).
       { admit. }
       rewrite OLDEXA.
-      rewrite (WCore.add_event_to_rf_complete ADD).
+      rewrite (add_event_to_rf_complete ADD).
       all: try now apply CORR.
       rewrite collect_rel_empty, !union_false_r.
       basic_solver 12. }
@@ -1207,7 +1207,7 @@ Proof using.
       { admit. }
       arewrite (rf_t' ⨾ ⦗eq b_t ∩₁ R_t'⦘ ≡ WCore.rf_delta_R b_t l w).
       { admit. }
-      rewrite (WCore.add_event_to_rf_complete ADD).
+      rewrite (add_event_to_rf_complete ADD).
       all: try now apply CORR.
       rewrite collect_rel_empty, union_false_r.
       rewrite RF'. basic_solver 12. }
