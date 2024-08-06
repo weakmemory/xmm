@@ -84,7 +84,7 @@ Proof using.
   unfold WCore.lab_is_r. basic_solver.
 Qed.
 
-Lemma mappedrf_delta_W R1 :
+Lemma mapped_rf_delta_W R1 :
   m ↑ WCore.rf_delta_W e l R1 ≡
     WCore.rf_delta_W (m e) l (m ↑₁ R1).
 Proof using.
