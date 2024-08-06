@@ -46,13 +46,11 @@ Notation "'Loc_' l" := (fun x => loc x = Some l) (at level 1).
 Definition ppo_alt := (sb ∩ same_loc ∪ bob)⁺.
 Definition hb_alt := (ppo_alt ∪ rf)⁺.
 Definition rpo :=
-  sb ∩ same_loc ∪
-  ⦗is_acq⦘ ⨾ sb ⨾ ⦗is_rel⦘ ∪
-  ⦗R ∩₁ is_rlx⦘ ⨾ sb ⨾ ⦗F ∩₁ is_acq⦘ ∪
+  (⦗R ∩₁ is_rlx⦘ ⨾ sb ⨾ ⦗F ∩₁ is_acq⦘ ∪
   ⦗is_acq⦘ ⨾ sb ∪
   sb ⨾ ⦗is_rel⦘ ∪
-  ⦗F ∩₁ is_rel⦘ ⨾ sb ⨾ ⦗W ∩₁ is_rlx⦘.
-Definition rhb := (rpo ∪ sw)⁺.
+  ⦗F ∩₁ is_rel⦘ ⨾ sb ⨾ ⦗W ∩₁ is_rlx⦘)⁺.
+Definition rhb := (sb ∩ same_loc ∪ rpo ∪ sw)⁺.
 Definition vf := ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf^? ⨾ hb^?.
 Definition srf := (vf ∩ same_loc) ⨾ ⦗R⦘ \ (co ⨾ vf).
 
@@ -82,7 +80,11 @@ Qed.
 
 Lemma rpo_in_sb : rpo ⊆ sb.
 Proof using.
-  unfold rpo. unfolder. ins. desf.
+  unfold rpo. assert (SBTR : sb ≡ sb⁺).
+  { assert (SBTR' : transitive sb) by apply sb_trans. 
+    split; [basic_solver |]. intros x y H. induction H; eauto. }
+  rewrite SBTR at 5. apply clos_trans_mori.
+  unfolder. ins. desf.
 Qed.
 
 Lemma wf_rpoE
@@ -135,14 +137,23 @@ Proof using.
   unfolder in SRF; desf.
 Qed.
 
+Lemma wf_same_locE 
+    (WF : Wf G) :
+  same_loc ≡ ⦗E⦘ ⨾ same_loc ⨾ ⦗E⦘.
+Proof using.
+  admit.
+Admitted. 
+
 Lemma wf_rhbE
     (WF : Wf G) :
   rhb ≡ ⦗E⦘ ⨾ rhb ⨾ ⦗E⦘.
 Proof using.
-  unfold rhb. rewrite wf_swE, wf_rpoE; auto.
-  rewrite <- seq_union_r, <- seq_union_l.
-  seq_rewrite <- ct_seq_eqv_l.
-  rewrite <- seqA.
+  unfold rhb. rewrite wf_swE, wf_rpoE, wf_sbE, wf_same_locE; auto.
+  assert (SB_SAMELOC : (⦗E⦘ ⨾ sb ⨾ ⦗E⦘) ∩ (⦗E⦘ ⨾ same_loc ⨾ ⦗E⦘) ≡ (⦗E⦘ ⨾ sb ∩ same_loc ⨾ ⦗E⦘)).
+  { basic_solver. }
+  rewrite SB_SAMELOC.
+  rewrite <- !seq_union_r, <- !seq_union_l.
+  seq_rewrite <- ct_seq_eqv_l. rewrite <- seqA.
   now seq_rewrite <- ct_seq_eqv_r.
 Qed.
 
