@@ -469,46 +469,25 @@ Proof using.
     { rewrite EQACTS, set_collect_union, MAPER_E, MAPSUB.
       rewrite (rsr_acts SIMREL), EXEQ. basic_solver 11. }
     { unfold sb at 1. ins. rewrite NEWSB, <- EXEQ.
-      unfold swap_rel.
-      rewrite (WCore.add_event_sb ADD).
+      arewrite (sb_t' ⨾ ⦗eq b_t⦘ ≡ sb_t ⨾ ⦗eq b_t⦘).
+      { admit. }
       arewrite (mapper' b_t = mapper b_t).
       { unfold mapper'. now rupd. }
-      arewrite (eq b_t ∩₁ E_t' ≡₁ eq b_t ∩₁ E_t).
+      arewrite (swap_rel sb_t' (eq b_t ∩₁ E_t') (eq a_t ∩₁ E_t') ≡
+                WCore.sb_delta X_t e ∪
+                swap_rel sb_t (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t)).
       { admit. }
-      arewrite (eq a_t ∩₁ E_t' ≡₁ eq a_t ∩₁ E_t).
-      { admit. }
-      arewrite ((sb_t ∪ WCore.sb_delta X_t e) ⨾ ⦗eq b_t⦘ ≡
-                sb_t ⨾ ⦗eq b_t⦘).
-      { admit. }
-      arewrite (mapper' ↑
-        ((sb_t ∪ WCore.sb_delta X_t e) \
-          (eq b_t ∩₁ E_t) × (eq a_t ∩₁ E_t)
-          ∪ (eq a_t ∩₁ E_t) × (eq b_t ∩₁ E_t)
-        ) ≡
-        mapper' ↑ WCore.sb_delta X_t e ∪
-        mapper' ↑
-        (sb_t \
-          (eq b_t ∩₁ E_t) × (eq a_t ∩₁ E_t)
-          ∪ (eq a_t ∩₁ E_t) × (eq b_t ∩₁ E_t)
-        )
-      ).
-      { admit. }
+      rewrite collect_rel_union.
       arewrite (mapper' ↑ WCore.sb_delta X_t e ≡
                 WCore.sb_delta X_s e').
-      { admit. }
-      arewrite (mapper' ↑
-          (sb_t \ (eq b_t ∩₁ E_t) × (eq a_t ∩₁ E_t)
-            ∪ (eq a_t ∩₁ E_t) × (eq b_t ∩₁ E_t)) ≡
-      mapper
-        ↑ (sb_t \ (eq b_t ∩₁ E_t) × (eq a_t ∩₁ E_t)
-        ∪ (eq a_t ∩₁ E_t) × (eq b_t ∩₁ E_t))
-      ).
       { admit. }
       arewrite (mapper' ↑₁ codom_rel (sb_t ⨾ ⦗eq b_t⦘) ≡₁
                 mapper ↑₁ codom_rel (sb_t ⨾ ⦗eq b_t⦘)).
       { admit. }
-      rewrite (rsr_sb SIMREL). unfold swap_rel.
-      basic_solver 12. }
+      arewrite (mapper' ↑ swap_rel sb_t (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t) ≡
+                mapper ↑ swap_rel sb_t (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t)).
+      { admit. }
+      rewrite (rsr_sb SIMREL). basic_solver 12. }
     { arewrite (srf G_s' ⨾ ⦗extra_a X_t' a_t b_t a_s ∩₁ is_r (upd lab_s e' l)⦘
                 ≡ srf G_s ⨾ ⦗extra_a X_t a_t b_t a_s ∩₁ R_s⦘).
       { admit. }
