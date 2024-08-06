@@ -563,7 +563,8 @@ Proof using.
     rewrite (add_event_W2E ADD). basic_solver. }
   { apply (add_event_init ADD); eauto. }
   { rewrite (add_event_lab ADD). destruct classic with ((InitEvent l0) = e).
-    { destruct ADD. destruct H. ins. }
+    { destruct ADD. rewrite H. rewrite upds. destruct add_event_ninit0.
+      unfold is_init. basic_solver. }
     unfold upd. destruct WF. destruct wf_init_lab with (l := l0).
     basic_solver. }
   { rewrite (add_event_rmw_dep ADD). rewrite (add_event_sb ADD).
