@@ -94,7 +94,7 @@ Proof using.
   unfold WCore.lab_is_w. basic_solver.
 Qed.
 
-Lemma co_delta W1 W2 :
+Lemma mapped_co_delta W1 W2 :
   m ↑ WCore.co_delta e l W1 W2 ≡
     WCore.co_delta (m e) l (m ↑₁ W1) (m ↑₁ W2).
 Proof using.
@@ -105,7 +105,7 @@ Proof using.
   all: basic_solver.
 Qed.
 
-Definition rmw_delta r :
+Definition mapped_rmw_delta r :
   m ↑ WCore.rmw_delta e l r ≡
     WCore.rmw_delta (m e) l (option_map m r).
 Proof using.
