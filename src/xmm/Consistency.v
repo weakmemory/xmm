@@ -82,7 +82,9 @@ Qed.
 Lemma rhb_in_hb :
     rhb ⊆ hb.
 Proof using.
-    unfold rhb; unfold hb. rewrite rpo_in_sb; basic_solver.
+    unfold rhb; unfold hb.
+    apply clos_trans_mori.
+    rewrite rpo_in_sb; basic_solver.
 Qed.
 
 Lemma seqA4 A (r r' r'' r''' : relation A) :
@@ -96,20 +98,89 @@ Lemma sb_trans_sw_in_rpo_sw :
 Proof using.
     assert (TRANS : transitive sb). apply sb_trans.
     assert (SB_TR : sb⁺ ≡ sb). apply ct_of_trans; eauto.
-    admit.
-Admitted.
+    rewrite SB_TR. unfold rpo. assert (RPO_SUB :
+    (⦗(fun a : actid => R a) ∩₁ (fun a : actid => is_rlx lab a)⦘
+      ⨾ sb ⨾ ⦗(fun a : actid => F a) ∩₁ (fun a : actid => is_acq lab a)⦘
+      ∪ ⦗fun a : actid => is_acq lab a⦘ ⨾ sb
+      ∪ sb ⨾ ⦗fun a : actid => is_rel lab a⦘
+      ∪ ⦗(fun a : actid => F a) ∩₁ (fun a : actid => is_rel lab a)⦘
+      ⨾ sb ⨾ ⦗(fun a : actid => W a) ∩₁ (fun a : actid => is_rlx lab a)⦘)
+    ⊆
+      (⦗(fun a : actid => R a) ∩₁ (fun a : actid => is_rlx lab a)⦘
+      ⨾ sb ⨾ ⦗(fun a : actid => F a) ∩₁ (fun a : actid => is_acq lab a)⦘
+      ∪ ⦗fun a : actid => is_acq lab a⦘ ⨾ sb
+      ∪ sb ⨾ ⦗fun a : actid => is_rel lab a⦘
+      ∪ ⦗(fun a : actid => F a) ∩₁ (fun a : actid => is_rel lab a)⦘
+      ⨾ sb ⨾ ⦗(fun a : actid => W a) ∩₁ (fun a : actid => is_rlx lab a)⦘)⁺).
+    { apply ct_step. }
+    rewrite <- RPO_SUB. intros x y H. apply seq_union_l; left.
+    apply seq_union_l; right. assert (REL_SW : sw ≡ (⦗fun a : actid => is_rel lab a⦘) ⨾ sw).
+    { unfold sw. unfold release. basic_solver 21. }
+    assert (SAME : sb ⨾ sw ≡
+                   sb ⨾ (⦗fun a : actid => is_rel lab a⦘) ⨾ sw).
+    { rewrite <- REL_SW; eauto. }
+    apply SAME in H. apply seqA in H. eauto.
+Qed.
 
 Lemma sw_sb_in_rpo :
     sw ⨾ sb ⊆ sw ⨾ rpo.
 Proof using.
-  admit.
-Admitted.
+    unfold rpo. assert (RPO_SUB :
+    (⦗(fun a : actid => R a) ∩₁ (fun a : actid => is_rlx lab a)⦘
+      ⨾ sb ⨾ ⦗(fun a : actid => F a) ∩₁ (fun a : actid => is_acq lab a)⦘
+      ∪ ⦗fun a : actid => is_acq lab a⦘ ⨾ sb
+      ∪ sb ⨾ ⦗fun a : actid => is_rel lab a⦘
+      ∪ ⦗(fun a : actid => F a) ∩₁ (fun a : actid => is_rel lab a)⦘
+      ⨾ sb ⨾ ⦗(fun a : actid => W a) ∩₁ (fun a : actid => is_rlx lab a)⦘)
+    ⊆
+      (⦗(fun a : actid => R a) ∩₁ (fun a : actid => is_rlx lab a)⦘
+      ⨾ sb ⨾ ⦗(fun a : actid => F a) ∩₁ (fun a : actid => is_acq lab a)⦘
+      ∪ ⦗fun a : actid => is_acq lab a⦘ ⨾ sb
+      ∪ sb ⨾ ⦗fun a : actid => is_rel lab a⦘
+      ∪ ⦗(fun a : actid => F a) ∩₁ (fun a : actid => is_rel lab a)⦘
+      ⨾ sb ⨾ ⦗(fun a : actid => W a) ∩₁ (fun a : actid => is_rlx lab a)⦘)⁺).
+    { apply ct_step. }
+    rewrite <- RPO_SUB.
+    intros x y H. apply seq_union_r. left.
+    apply seq_union_r. left. apply seq_union_r. right.
+    assert (REL_SW : sw ≡ sw ⨾ (⦗fun a : actid => is_acq lab a⦘)).
+    { unfold sw. basic_solver 21. }
+    assert (SAME : sw ⨾ sb ≡
+                   sw ⨾ (⦗fun a : actid => is_acq lab a⦘) ⨾ sb).
+    { rewrite <- seqA. rewrite <- REL_SW; eauto. }
+    apply SAME in H. vauto.
+Qed.
 
 Lemma sb_sw_trans_in_rpo_sw_trans :
     sb ⨾ sw⁺ ⊆ rpo ⨾ sw⁺.
 Proof using.
-  admit.
-Admitted.
+    unfold rpo. assert (RPO_SUB :
+    (⦗(fun a : actid => R a) ∩₁ (fun a : actid => is_rlx lab a)⦘
+      ⨾ sb ⨾ ⦗(fun a : actid => F a) ∩₁ (fun a : actid => is_acq lab a)⦘
+      ∪ ⦗fun a : actid => is_acq lab a⦘ ⨾ sb
+      ∪ sb ⨾ ⦗fun a : actid => is_rel lab a⦘
+      ∪ ⦗(fun a : actid => F a) ∩₁ (fun a : actid => is_rel lab a)⦘
+      ⨾ sb ⨾ ⦗(fun a : actid => W a) ∩₁ (fun a : actid => is_rlx lab a)⦘)
+    ⊆
+      (⦗(fun a : actid => R a) ∩₁ (fun a : actid => is_rlx lab a)⦘
+      ⨾ sb ⨾ ⦗(fun a : actid => F a) ∩₁ (fun a : actid => is_acq lab a)⦘
+      ∪ ⦗fun a : actid => is_acq lab a⦘ ⨾ sb
+      ∪ sb ⨾ ⦗fun a : actid => is_rel lab a⦘
+      ∪ ⦗(fun a : actid => F a) ∩₁ (fun a : actid => is_rel lab a)⦘
+      ⨾ sb ⨾ ⦗(fun a : actid => W a) ∩₁ (fun a : actid => is_rlx lab a)⦘)⁺).
+    { apply ct_step. }
+    rewrite <- RPO_SUB. intros x y H. apply seq_union_l; left.
+    apply seq_union_l; right. assert (REL_SW : sw ≡ (⦗fun a : actid => is_rel lab a⦘) ⨾ sw).
+    { unfold sw. unfold release. basic_solver 21. }
+    assert (SAME : sb ⨾ sw⁺ ≡
+                   sb ⨾ (⦗fun a : actid => is_rel lab a⦘ ⨾ sw)⁺).
+    { rewrite <- REL_SW; eauto. }
+    apply SAME in H. apply seqA.
+    assert (IN : sb ⨾ (⦗fun a : actid => is_rel lab a⦘ ⨾ sw)⁺ ⊆
+                 sb ⨾ ⦗fun a : actid => is_rel lab a⦘ ⨾ sw⁺).
+    { rewrite inclusion_ct_seq_eqv_l; vauto. }
+    apply IN in H. eauto.
+Qed.
 
 Lemma sb_sw_trans_trans :
     (sb ⨾ sw⁺)⁺ ⊆ (rpo ⨾ sw⁺)⁺.
@@ -122,16 +193,23 @@ Lemma sb_rpo_start x x0 y
         (SW : sw x0 y) :
     rpo x x0.
 Proof using.
-  admit.
-Admitted.
+    unfold rpo. left. left. right. destruct SW. destruct H.
+    unfold release in H. assert (REL : is_rel lab x0).
+    { destruct H. destruct H. destruct H. basic_solver. }
+    basic_solver.
+Qed.
 
 Lemma rpo_sb_end x x0 y
         (RPO : sw x x0)
         (SB : sb x0 y) :
     rpo x0 y.
 Proof using.
-  admit.
-Admitted.
+    unfold rpo. left. left. left. right. destruct RPO. destruct H.
+    assert (ACQ : is_acq lab x0).
+    { destruct H0. destruct H0. destruct H1. destruct H1.
+      destruct H2. basic_solver. }
+    basic_solver.
+Qed.
 
 Lemma ct_unit_left A (r : relation A) :
     r ⨾ r⁺ ⊆ r⁺.
@@ -243,6 +321,9 @@ Proof using.
             (r := sb) (r' := hb) (r'' := hb); try basic_solver.
             unfold hb. rewrite path_ut_last. basic_solver. }
     unfold hb, rhb. intros x y H. apply clos_trans_t1n in H.
+    assert (IN : sw＊ ⨾ (rpo ⨾ sw＊)⁺ ⊆ sw＊ ⨾ ((sb ∩ same_loc ∪ rpo) ⨾ sw＊)⁺).
+    { apply inclusion_seq_mon; [basic_solver |].
+      apply inclusion_t_t. apply inclusion_seq_mon; basic_solver. }
     induction H.
     { destruct H; try basic_solver. right. apply ct_step. basic_solver. }
     destruct H; destruct IHclos_trans_1n.
@@ -262,7 +343,8 @@ Proof using.
         destruct H5. destruct H5. assert (RPO : rpo x0 z).
         { apply rpo_sb_end with (x0 := x0) (x := x3); eauto. }
         right. apply ct_ct. unfold seq. exists x0. split.
-        { apply ct_unionE. right. unfold seq. exists x. split; vauto.
+        { apply ct_unionE. right.
+          apply IN. unfold seq. exists x. split; vauto.
           assert (EQ : (fun x4 y0 : actid =>
                 exists z0 : actid, rpo x4 z0 /\ sw＊ z0 y0)⁺ ≡ (rpo ⨾ sw＊)⁺).
           { unfold seq. basic_solver. }
@@ -272,7 +354,7 @@ Proof using.
           apply inclusion_t_rt. }
         apply ct_step. basic_solver. }
       destruct H3. apply sb_sw_trans_trans in H2. assert (H' := H2).
-      right. apply ct_unionE. right. unfold seq. exists x. split; vauto.
+      right. apply ct_unionE. right. apply IN. unfold seq. exists x. split; vauto.
       assert (EQ : (fun x4 y0 : actid =>
             exists z0 : actid, rpo x4 z0 /\ sw＊ z0 y0)⁺ ≡ (rpo ⨾ sw＊)⁺).
       { unfold seq. basic_solver. }
@@ -280,12 +362,11 @@ Proof using.
       apply inclusion_t_t with (r := rpo ⨾ sw⁺); basic_solver. }
     { assert (RPO : rpo y z).
       { apply rpo_sb_end with (x := x); eauto. }
-      right. apply ct_ct. unfold seq. exists y. split; vauto. }
+      right. apply ct_ct. unfold seq. exists y. split; vauto. apply ct_step; vauto. }
     right. apply ct_ct. unfold seq. exists y. split; auto.
     apply ct_step. basic_solver.
 Qed.
 
-(* TODO : try without hb_helper *)
 Lemma hb_locs :
     hb ∩ same_loc ≡ rhb ∩ same_loc.
 Proof using.
@@ -342,7 +423,9 @@ Lemma rmw_in_rpo
         (WF : Wf G) :
     rmw ⊆ rpo.
 Proof using.
-  admit.
+    (* seems to be incorrect in new
+      definitions -- check if it's needed*)
+    admit.
 Admitted.
 
 End HB.
@@ -377,7 +460,6 @@ Notation "'psc_s'" := (imm.psc G_s).
 Notation "'fr_s'" := (fr G_s).
 Notation "'sw_s'" := (sw G_s).
 
-
 Notation "'lab_t'" := (lab G_t).
 Notation "'val_t'" := (val lab_t).
 Notation "'E_t'" := (acts_set G_t).
@@ -401,6 +483,137 @@ Notation "'eco_t'" := (eco G_t).
 Notation "'psc_t'" := (imm.psc G_t).
 Notation "'fr_t'" := (fr G_t).
 Notation "'sw_t'" := (sw G_t).
+
+(*MONOTONICITY*)
+
+Lemma monoton_fr_sub (m : actid -> actid)
+        (INJ : inj_dom ⊤₁ m)
+        (E_MAP : E_s ≡₁ m ↑₁ E_t)
+        (RPO_MAP : rpo_s ⊆ m ↑ rpo_t)
+        (RF_MAP : rf_s ⊆ m ↑ rf_t)
+        (CO_MAP : co_s ⊆ m ↑ co_t)
+        (RMW_MAP : rmw_s ⊆ m ↑ rmw_t)
+        (HB_MAP : hb_s ⊆ m ↑ hb_t)
+        (CONS : WCore.is_cons G_t sc_t)
+        (WF_t : Wf G_t)
+        (WF_s : Wf G_s) :
+    fr_s ⊆ m ↑ fr_t.
+Proof using.
+    unfold fr. rewrite RF_MAP. rewrite CO_MAP.
+    rewrite <- collect_rel_transp.
+    rewrite collect_rel_seq; vauto.
+    assert (SUB : E_t ⊆₁ ⊤₁). { basic_solver. }
+    assert (IN1 : codom_rel rf_t⁻¹ ⊆₁ E_t).
+    { rewrite codom_transp. induction 1. apply wf_rfE in H; eauto.
+      destruct H. destruct H. apply H. }
+    assert (IN2 : dom_rel co_t ⊆₁ E_t).
+    { induction 1. apply wf_coE in H; eauto.
+      destruct H. destruct H. apply H. }
+    rewrite IN1, IN2. basic_solver.
+Qed.
+
+Lemma monoton_eco_sub (m : actid -> actid)
+        (INJ : inj_dom ⊤₁ m)
+        (E_MAP : E_s ≡₁ m ↑₁ E_t)
+        (RPO_MAP : rpo_s ⊆ m ↑ rpo_t)
+        (RF_MAP : rf_s ⊆ m ↑ rf_t)
+        (CO_MAP : co_s ⊆ m ↑ co_t)
+        (RMW_MAP : rmw_s ⊆ m ↑ rmw_t)
+        (HB_MAP : hb_s ⊆ m ↑ hb_t)
+        (CONS : WCore.is_cons G_t sc_t)
+        (WF_t : Wf G_t)
+        (WF_s : Wf G_s) :
+    eco_s ⊆ m ↑ eco_t.
+Proof using.
+    unfold eco. repeat rewrite collect_rel_union.
+    assert (SUB : E_t ⊆₁ ⊤₁). { basic_solver. }
+    repeat apply inclusion_union_l.
+    { rewrite RF_MAP; vauto. }
+    { rewrite CO_MAP, RF_MAP.
+      rewrite collect_rel_seq; vauto.
+      { case_refl _. all : basic_solver 22. }
+      assert (IN1 : dom_rel rf_t^? ⊆₁ E_t).
+      { induction 1. destruct H; vauto.
+        { admit. } apply wf_rfE in H; eauto.
+      destruct H. destruct H. destruct H; vauto. }
+      assert (IN2 : codom_rel co_t ⊆₁ E_t).
+      { induction 1. apply wf_coE in H; eauto.
+        destruct H. destruct H. destruct H0. destruct H0.
+        destruct H1; vauto. }
+      rewrite IN1, IN2. basic_solver. }
+    rewrite monoton_fr_sub, RF_MAP; eauto.
+    (* rewrite collect_rel_seq; vauto.  // doesn't work for 2nd
+    { case_refl _. all : basic_solver 22. }
+    assert (IN1 : dom_rel rf_t^? ⊆₁ E_t).
+    { induction 1. destruct H; vauto.
+      { admit. } apply wf_rfE in H; eauto.
+    destruct H. destruct H. destruct H; vauto. }
+    assert (IN2 : codom_rel fr_t ⊆₁ E_t).
+    { induction 1. apply wf_frE in H; eauto.
+      destruct H. destruct H. destruct H0. destruct H0.
+      destruct H1; vauto. }
+    rewrite IN1, IN2. basic_solver. *)
+    admit.
+Admitted.
+
+Lemma monoton_cons (m : actid -> actid)
+        (INJ : inj_dom ⊤₁ m)
+        (E_MAP : E_s ≡₁ m ↑₁ E_t)
+        (RPO_MAP : rpo_s ⊆ m ↑ rpo_t)
+        (RF_MAP : rf_s ⊆ m ↑ rf_t)
+        (CO_MAP : co_s ⊆ m ↑ co_t)
+        (RMW_MAP : rmw_s ⊆ m ↑ rmw_t)
+        (HB_MAP : hb_s ⊆ m ↑ hb_t)
+        (CONS : WCore.is_cons G_t sc_t)
+        (WF_t : Wf G_t)
+        (WF_s : Wf G_s) :
+    WCore.is_cons G_s sc_s.
+Proof using.
+  assert (SUB : E_t ⊆₁ ⊤₁). { basic_solver. }
+  constructor.
+  { case_refl _.
+    { assert(HBIRR : irreflexive hb_t).
+      { destruct CONS. apply hb_irr; eauto. }
+      assert (REST : (hb_t) ≡ restr_rel E_t (hb_t)).
+      { rewrite restr_relE. rewrite wf_hbE; eauto.
+        basic_solver 21. }
+      assert (IRR' : irreflexive (restr_rel E_t (hb_t))).
+      { rewrite <- REST. apply HBIRR. }
+      assert (IRR'' : irreflexive (m ↑ restr_rel E_t hb_t)).
+      { apply collect_rel_irr_inj; eauto. basic_solver. }
+      rewrite <- REST in IRR''. basic_solver. }
+    assert (IRR : irreflexive (m ↑ hb_t ⨾ m ↑ eco_t)).
+    { rewrite <- collect_rel_seq.
+      { assert (REST : (hb_t ⨾ eco_t) ≡ restr_rel E_t (hb_t ⨾ eco_t)).
+        { rewrite restr_relE. rewrite wf_hbE, wf_ecoE; eauto.
+          basic_solver 21. }
+        assert (IRR' : irreflexive (restr_rel E_t (hb_t ⨾ eco_t))).
+        { rewrite <- REST. destruct CONS. admit. }
+        assert (IRR'' : irreflexive (m ↑ restr_rel E_t (hb_t ⨾ eco_t))).
+        { apply collect_rel_irr_inj; eauto. basic_solver. }
+        rewrite <- REST in IRR''; vauto. }
+      assert (IN1 : codom_rel hb_t ⊆₁ E_t).
+      { rewrite wf_hbE; eauto. basic_solver. }
+      assert (IN2 : dom_rel eco_t ⊆₁ E_t).
+      { rewrite wf_ecoE; eauto. basic_solver. }
+      rewrite IN1, IN2. basic_solver. }
+    rewrite monoton_eco_sub; eauto.
+    rewrite HB_MAP; eauto. }
+  { split; [| basic_solver].
+    rewrite RMW_MAP, CO_MAP, monoton_fr_sub; eauto.
+    rewrite <- collect_rel_seq.
+    { rewrite <- collect_rel_interE; eauto.
+      destruct CONS. rewrite cons_atomicity.
+      basic_solver. }
+    assert (IN1 : codom_rel fr_t ⊆₁ E_t).
+    { rewrite wf_frE; eauto. basic_solver. }
+    assert (IN2 : dom_rel co_t ⊆₁ E_t).
+    { rewrite wf_coE; eauto. basic_solver. }
+    rewrite IN1, IN2. basic_solver. }
+  admit.
+Admitted.
+
+(*READ--EXTENSIBILITY*)
 
 Lemma fr_sub (m : actid -> actid)
         (INJ : inj_dom E_t m)
@@ -522,6 +735,24 @@ Proof using.
     apply set_minus_disjoint; eauto.
 Qed.
 
+Lemma sw_sub (m : actid -> actid)
+        (INJ : inj_dom E_t m)
+        (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
+        (IS_R : is_r lab_s a)
+        (NIN : set_disjoint (m ↑₁ E_t) (eq a))
+        (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
+        (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
+        (RF_MAP : rf_s ≡ (m ↑ rf_t) ∪ (srf_s ⨾ ⦗eq a⦘))
+        (CO_MAP : co_s ≡ m ↑ co_t)
+        (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
+        (WF_t : Wf G_t)
+        (WF_s : Wf G_s) :
+    sw_s ⊆ m ↑ sw_t.
+Proof using.
+    unfold sw. unfold release. unfold rs.
+    admit.
+Admitted.
+
 Lemma rhb_sub (m : actid -> actid)
         (INJ : inj_dom E_t m)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
@@ -534,7 +765,7 @@ Lemma rhb_sub (m : actid -> actid)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
-    rhb_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rhb_t.
+    rhb_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rhb_t ∪ rhb_s ⨾ ⦗eq a⦘.
 Proof using.
     unfold rhb. intros x y H. destruct H. destruct H.
     destruct H0. destruct H0. apply ct_unionE in H.
@@ -590,9 +821,9 @@ Lemma rhb_codom (m : actid -> actid)
         (WF_s : Wf G_s) :
     codom_rel(⦗eq a⦘ ⨾ rhb_s) ≡₁ ∅.
 Proof using.
-    unfold rhb. rewrite ct_begin. rewrite <- seqA. rewrite seq_union_r.
-    rewrite seq_union_l. rewrite codom_union.
-    assert (EMP1 : codom_rel ((⦗eq a⦘ ⨾ rpo_s) ⨾ (rpo_s ∪ sw_s)＊) ≡₁ ∅).
+    unfold rhb. rewrite ct_begin. rewrite <- seqA. rewrite !seq_union_r.
+    rewrite !seq_union_l. rewrite !codom_union.
+    assert (EMP1 : codom_rel ((⦗eq a⦘ ⨾ rpo_s) ⨾ (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s)＊) ≡₁ ∅).
     { apply empty_seq_codom; eauto. }
     assert (EMP2 : codom_rel (⦗eq a⦘ ⨾ sw_s) ≡₁ ∅).
     { rewrite wf_swD; eauto. assert (READ : ⦗eq a⦘ ≡ ⦗eq a⦘ ⨾ ⦗R_s⦘).
@@ -607,10 +838,14 @@ Proof using.
       rewrite <- seqA. rewrite <- seqA. apply empty_seq_codom.
       split; try basic_solver. rewrite READ. rewrite seqA.
       rewrite codom_seq. rewrite F. apply codom_empty. }
-    assert (EMP3 : codom_rel ((⦗eq a⦘ ⨾ sw_s) ⨾ (rpo_s ∪ sw_s)＊) ≡₁ ∅).
+    assert (EMP3 : codom_rel ((⦗eq a⦘ ⨾ sw_s) ⨾ (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s)＊) ≡₁ ∅).
     { apply empty_seq_codom; eauto. }
-    rewrite EMP1, EMP3; basic_solver.
-Qed.
+    assert (EMP4 : codom_rel (⦗eq a⦘ ⨾ sb_s ∩ same_loc_s) ≡₁ ∅).
+    { admit. (*???*) }
+    assert (EMP5 : codom_rel ((⦗eq a⦘ ⨾ sb_s ∩ same_loc_s) ⨾ (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s)＊) ≡₁ ∅).
+    { apply empty_seq_codom; eauto. }
+    rewrite EMP1, EMP3, EMP5. basic_solver.
+Admitted.
 
 Lemma read_extent (m : actid -> actid)
         (INJ : inj_dom ⊤₁ m)
@@ -633,22 +868,26 @@ Proof using.
         { rewrite hb_helper; eauto. rewrite irreflexive_union. split.
           { apply sb_irr; eauto. }
           intros x H. destruct classic with (P := (E_s \₁ eq a) x) as [EQ | EQ].
-          { assert (F : (rhb_s ⨾ ⦗E_s \₁ eq a⦘) x x <-> rhb_s x x).
-            { unfold seq. split; auto. ins. exists x. split; eauto.
-              destruct EQ. basic_solver. }
-            apply F in H. assert (F' : (m ↑ rhb_t) x x).
+          { assert (VERT : (rhb_s ⨾ ⦗E_s \₁ eq a⦘) x x).
+            { do 2 unfold seq. exists x; split; vauto. }
+            assert (VERT' : (m ↑ rhb_t ∪ rhb_s ⨾ ⦗eq a⦘) x x).
             { apply rhb_sub; eauto. basic_solver. }
-            assert (IRR : irreflexive rhb_t).
-            { apply irreflexive_inclusion with (r' := hb_t); eauto.
-              apply rhb_in_hb; eauto. destruct CONS. apply hb_irr; eauto. }
-            assert (REST : (rhb_t) ≡ restr_rel E_t (rhb_t)).
-            { rewrite restr_relE. rewrite wf_rhbE; eauto.
-              basic_solver 21. }
-            assert (IRR' : irreflexive (restr_rel E_t (rhb_t))).
-            { rewrite <- REST. apply IRR. }
-            assert (IRR'' : irreflexive (m ↑ restr_rel E_t rhb_t)).
-            { apply collect_rel_irr_inj; eauto. basic_solver. }
-            rewrite <- REST in IRR''. basic_solver. }
+            destruct VERT'.
+            { assert (IRR : irreflexive rhb_t).
+              { apply irreflexive_inclusion with (r' := hb_t); eauto.
+                apply rhb_in_hb; eauto. destruct CONS. apply hb_irr; eauto. }
+              assert (REST : (rhb_t) ≡ restr_rel E_t (rhb_t)).
+              { rewrite restr_relE. rewrite wf_rhbE; eauto.
+                basic_solver 21. }
+              assert (IRR' : irreflexive (restr_rel E_t (rhb_t))).
+              { rewrite <- REST. apply IRR. }
+              assert (IRR'' : irreflexive (m ↑ restr_rel E_t rhb_t)).
+              { apply collect_rel_irr_inj; eauto. basic_solver. }
+              rewrite <- REST in IRR''. basic_solver. }
+            unfold seq in VERT. destruct VERT. destruct H1. destruct H2.
+            destruct H0. destruct H0. destruct H4.
+            rewrite H4 in H5. rewrite H5 in EQ. destruct EQ.
+            destruct H7; vauto. }
           assert (EQA : eq a x).
           { assert (ALTNIN : ~ (m ↑₁ E_t) x).
             { intros NEG. apply acts_set_helper in NEG; eauto.
@@ -681,7 +920,9 @@ Proof using.
               destruct H. destruct H. apply H. }
             rewrite IN1, IN2. rewrite set_unionK. all : basic_solver. }
           rewrite H. apply irreflexive_inclusion with (r' := m ↑ rhb_t ⨾ m ↑ eco_t); eauto.
-          { rewrite <- rhb_sub; eauto. all : basic_solver. }
+          { rewrite <- seqA. rewrite rhb_sub; eauto; [ | basic_solver].
+            rewrite seq_union_l. apply inclusion_union_l; [ basic_solver |].
+            rewrite H. basic_solver. }
           rewrite <- collect_rel_seq.
           2 : { assert (IN1 : codom_rel rhb_t ⊆₁ E_t).
                   { induction 1. apply wf_rhbE in H0; eauto.
@@ -777,6 +1018,8 @@ Proof using.
         all : basic_solver. }
     admit.
 Admitted.
+
+(*MAX-WRITE-EXTENDED*)
 
 End Draft.
 
