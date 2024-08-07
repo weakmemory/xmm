@@ -354,6 +354,9 @@ Proof using.
   { admit. }
   { admit. }
   all: unfold delta_E.
+  { admit. }
+  { admit. }
+  { admit. }
   { rewrite restr_set_union, (prf_rf PFX).
     rewrite restr_irrefl_eq by now apply rf_irr.
     rewrite union_false_r.
