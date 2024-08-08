@@ -91,6 +91,7 @@ Definition swap_rel {T : Type} (r : relation T) A B :=
 Record reord_simrel_gen a_s : Prop := {
   rsr_inj : inj_dom E_t mapper;
   rsr_codom : mapper ↑₁ E_t ⊆₁ E_s \₁ extra_a a_s;
+  rsr_init : fixset (E_t ∩₁ is_init) mapper;
   rsr_tid : eq_dom E_t (tid ∘ mapper) tid;
   rsr_lab : eq_dom E_t (lab_s ∘ mapper) lab_t;
   rsr_acts : E_s ≡₁ mapper ↑₁ E_t ∪₁ extra_a a_s;
@@ -116,6 +117,7 @@ Record reord_correct_graphs : Prop := {
   rsr_init_lab : eq_dom (E_t ∩₁ is_init)
                   lab_s lab_t;
   rsr_init_acts : E_s ∩₁ is_init ≡₁ E_t ∩₁ is_init;
+  rsr_at_bt_tid : tid a_t = tid b_t;
 }.
 
 Definition reord_simrel := exists a_s, reord_simrel_gen a_s.
@@ -180,6 +182,32 @@ Proof using.
   change (lab_s (mapper y))
     with ((lab_s ∘ mapper) y).
   rewrite (rsr_lab SIMREL); now apply SUB.
+Qed.
+
+Lemma rsr_same_tid' t
+    (SIMREL : reord_simrel) :
+  mapper ↑₁ (E_t ∩₁ (fun e => tid e = t)) ≡₁
+    mapper ↑₁ E_t ∩₁ (fun e => tid e = t).
+Proof using.
+  destruct SIMREL as (a_s & SIMREL).
+  unfold same_tid. unfolder.
+  split; intros x XIN.
+  { destruct XIN as (y & (YINE & TID) & XEQ). subst x.
+    rewrite <- (rsr_tid SIMREL) in TID; ins.
+    split; ins. exists y; split; ins. }
+  destruct XIN as ((y & YINE & XEQ) & TID).
+  exists y; splits; ins. subst x.
+  rewrite <- (rsr_tid SIMREL); ins.
+Qed.
+
+Lemma rsr_same_tid e
+    (SIMREL : reord_simrel) :
+  mapper ↑₁ (E_t ∩₁ same_tid e) ≡₁
+    mapper ↑₁ E_t ∩₁ same_tid e.
+Proof using.
+  arewrite (same_tid e ≡₁ (fun e' => tid e' = tid e)).
+  { unfold same_tid. basic_solver. }
+  now apply rsr_same_tid'.
 Qed.
 
 Lemma swap_rel_union {T : Type} (r1 r2 : relation T) A B :
@@ -390,6 +418,7 @@ Qed.
 Lemma simrel_exec_not_a_not_b e l
     (E_NOT_A : e <> a_t)
     (E_NOT_B : e <> b_t)
+    (ETID : forall (WITHA : tid e = tid b_t), ~(~E_t a_t /\ E_t b_t) )
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
     (STEP : WCore.exec_inst X_t X_t' e l) :
   exists mapper' X_s',
@@ -398,19 +427,20 @@ Lemma simrel_exec_not_a_not_b e l
 Proof using.
   (* Generate new actid *)
   assert (NEWE : exists e',
+  << NINIT : ~is_init e' >> /\
   << NOTIN : ~E_s e' >> /\
   << TID : tid e' = tid e >> /\
-  << SB : ⦗E_s ∪₁ eq e'⦘ ⨾ ext_sb ⨾ ⦗E_s ∪₁ eq e'⦘ ≡
+  << NEWSB : ⦗E_s ∪₁ eq e'⦘ ⨾ ext_sb ⨾ ⦗E_s ∪₁ eq e'⦘ ≡
           sb_s ∪ WCore.sb_delta X_s e' >>).
   { admit. }
   (* unfold hypotheses *)
   red in SIMREL. destruct SIMREL as (a_s & SIMREL).
-  destruct NEWE as (e' & NOTIN & NEWTID & NEWSB).
-  red in NOTIN, NEWTID, NEWSB.
+  desf.
   destruct STEP as [ADD RFC CONS].
   destruct ADD as (r & R1 & w & W1 & W2 & ADD).
   (* Asserts *)
   set (mapper' := upd mapper e e').
+  assert (ENINIT : ~is_init e) by apply ADD.
   assert (ENOTIN : ~E_t e) by apply ADD.
   assert (EQACTS : E_t' ≡₁ E_t ∪₁ eq e) by apply ADD.
   assert (MAPEQ : eq_dom E_t mapper' mapper).
@@ -466,6 +496,12 @@ Proof using.
     WCore.sc := WCore.sc X_s;
     WCore.G := G_s';
   |}).
+  assert (SAMETID : same_tid e' ≡₁ same_tid e).
+  { unfold same_tid. now rewrite TID. }
+  assert (OLDSIMREL : reord_simrel X_s X_t a_t b_t mapper).
+  { exists a_s. ins. }
+  assert (AS_TID : extra_a X_t a_t b_t a_s ⊆₁ same_tid b_t).
+  { admit. }
   assert (SIMREL' : reord_simrel X_s' X_t' a_t b_t mapper').
   { exists a_s. constructor; ins.
     { rewrite (WCore.add_event_acts ADD). apply inj_dom_union.
@@ -476,6 +512,11 @@ Proof using.
     { rewrite EQACTS, set_collect_union, MAPER_E, MAPSUB,
               (rsr_codom SIMREL), <- EXEQ, set_minus_union_l.
       apply set_union_mori; ins. rewrite EXIN. basic_solver. }
+    { rewrite (WCore.add_event_acts ADD), set_inter_union_l.
+      arewrite (eq e ∩₁ is_init ≡₁ ∅) by basic_solver.
+      rewrite set_union_empty_r.
+      apply fixset_eq_dom with (g := mapper), SIMREL.
+      eapply eq_dom_mori; eauto. unfold flip. basic_solver. }
     { rewrite EQACTS. apply eq_dom_union. split.
       all: unfolder; unfold compose.
       { intros x XIN. rewrite MAPEQ; ins. now apply SIMREL. }
@@ -511,7 +552,28 @@ Proof using.
       rewrite collect_rel_union.
       arewrite (mapper' ↑ WCore.sb_delta X_t e ≡
                 WCore.sb_delta X_s e').
-      { admit. }
+      { unfold WCore.sb_delta.
+        rewrite collect_rel_cross, set_collect_eq.
+        apply cross_more; [| unfold mapper'; now rupd].
+        rewrite !set_inter_union_r, set_collect_union.
+        apply set_union_more.
+        { rewrite set_collect_eq_dom with (g := mapper),
+                  <- (fixset_set_fixpoint (rsr_init SIMREL)),
+                  <- (rsr_init_acts CORR).
+          all: ins.
+          eapply eq_dom_mori; eauto. unfold flip. basic_solver. }
+        rewrite set_collect_eq_dom with (g := mapper),
+                (rsr_same_tid e OLDSIMREL), SAMETID,
+                (rsr_acts SIMREL), set_inter_union_l.
+        all: try now eapply eq_dom_mori; eauto; unfold flip; basic_solver.
+        arewrite (extra_a X_t a_t b_t a_s ∩₁ same_tid e ≡₁ ∅).
+        all: try now rewrite set_union_empty_r.
+        split; [| basic_solver].
+        destruct classic with (same_tid b_t e) as [WA|NWA].
+        { unfold extra_a.
+          desf; [exfalso; apply ETID; eauto | basic_solver]. }
+        rewrite AS_TID. unfolder. unfold same_tid in *.
+        ins. desf. congruence. }
       arewrite (mapper' ↑₁ dom_rel (sb_t ⨾ ⦗eq b_t⦘) ≡₁
                 mapper ↑₁ dom_rel (sb_t ⨾ ⦗eq b_t⦘)).
       { apply set_collect_eq_dom. eapply eq_dom_mori with (x := E_t).
@@ -569,8 +631,6 @@ Proof using.
       apply (wf_coE (rsr_Gt_wf CORR)). }
     unfold WCore.co_delta. rewrite collect_rel_union.
     basic_solver 12. }
-  assert (OLDSIMREL : reord_simrel X_s X_t a_t b_t mapper).
-  { exists a_s. ins. }
   (* Actual proof *)
   exists mapper', X_s'.
   split; red; ins.
