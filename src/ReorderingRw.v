@@ -12,6 +12,7 @@ Require Import CfgOps.
 Require Import Steps. *)
 Require Import StepOps.
 Require Import Instructions.
+Require Import Setoid Morphisms.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -88,6 +89,10 @@ Definition extra_a (a_s : actid) :=
 Definition swap_rel {T : Type} (r : relation T) A B :=
   r \ A × B ∪ B × A.
 
+Definition extra_co s a_s :=
+  (s ∩₁ W_s ∩₁ Loc_s_ (loc_s a_s)) ×
+    (extra_a a_s ∩₁ W_s).
+
 Record reord_simrel_gen a_s : Prop := {
   rsr_inj : inj_dom E_t mapper;
   rsr_codom : mapper ↑₁ E_t ⊆₁ E_s \₁ extra_a a_s;
@@ -100,9 +105,7 @@ Record reord_simrel_gen a_s : Prop := {
     (mapper ↑₁ dom_rel (sb_t ⨾ ⦗eq b_t⦘)) × (extra_a a_s) ∪
     (extra_a a_s) × eq b_s;
   rsr_rf : rf_s ≡ mapper ↑ rf_t ∪ srf_s ⨾ ⦗extra_a a_s ∩₁ R_s⦘;
-  rsr_co : co_s ≡ mapper ↑ co_t ∪
-            ((E_s \₁ extra_a a_s) ∩₁ W_s ∩₁ Loc_s_ (loc_s a_s)) ×
-              (extra_a a_s ∩₁ W_s);
+  rsr_co : co_s ≡ mapper ↑ co_t ∪ extra_co (E_s \₁ extra_a a_s) a_s;
   rsr_rmw : rmw_s ≡ mapper ↑ rmw_t;
 }.
 
@@ -217,13 +220,42 @@ Proof using.
   unfold swap_rel. basic_solver 11.
 Qed.
 
-Lemma swap_rel_more {T : Type} (r1 r2 : relation T) A1 A2 B1 B2
-    (EQA : A1 ≡₁ A2)
-    (EQB : B1 ≡₁ B2)
-    (EQ : r1 ≡ r2) :
-  swap_rel r1 A1 B1 ≡ swap_rel r2 A2 B2.
+Lemma swap_rel_unionE {T : Type} (r1 r2 : relation T) A B :
+  swap_rel (r1 ∪ r2) A B ≡ swap_rel r1 A B ∪ r2 \ A × B.
 Proof using.
-  unfold swap_rel. now rewrite EQ, EQA, EQB.
+  rewrite swap_rel_union. unfold swap_rel. basic_solver 11.
+Qed.
+
+Lemma extra_co_union s1 s2 a_s :
+  extra_co (s1 ∪₁ s2) a_s ≡ extra_co s1 a_s ∪ extra_co s2 a_s.
+Proof using.
+  unfold extra_co. basic_solver 11.
+Qed.
+
+Add Parametric Morphism T : (@swap_rel T) with signature
+  same_relation ==> set_equiv ==> set_equiv
+    ==> same_relation as swap_rel_more.
+Proof.
+  intros r1 r2 REQ A1 A2 AEQ B1 B2 BEQ.
+  unfold swap_rel. now rewrite REQ, AEQ, BEQ.
+Qed.
+
+Add Parametric Morphism : extra_co with signature
+  set_equiv ==> eq ==> same_relation as extra_co_more.
+Proof.
+  intros s1 s2 SEQ a_s. unfold extra_co. now rewrite SEQ.
+Qed.
+
+#[export]
+Instance swap_rel_Propere T : Proper (_ ==> _ ==> _ ==> _) _ := swap_rel_more (T:=T).
+#[export]
+Instance extra_co_Propere : Proper (_ ==> _ ==> _) _ := extra_co_more.
+
+Lemma extra_coE s a_s :
+  extra_co s a_s ≡ (s ∩₁ W_s ∩₁ Loc_s_ (loc_s a_s)) ×
+    (extra_a a_s ∩₁ W_s).
+Proof using.
+  now unfold extra_co.
 Qed.
 
 (* Lemma G_t_niff_b_max
@@ -256,6 +288,9 @@ Qed.
  *)
 
 End SimRel.
+
+#[export]
+Hint Unfold swap_rel extra_co : unfolderDb.
 
 Section ReordSimRelInstrs.
 
@@ -411,7 +446,7 @@ Proof using CORR.
     unfold sb. ins. rewrite (rsr_init_acts CORR).
     basic_solver 11. }
   { rewrite EXA. basic_solver. }
-  { rewrite EXA. basic_solver. }
+  { rewrite EXA, extra_coE, EXA. basic_solver. }
   basic_solver.
 Qed.
 
@@ -467,6 +502,8 @@ Proof using.
     apply ADD. basic_solver. }
   assert (MAPER_E : mapper' ↑₁ eq e ≡₁ eq e').
   { subst mapper'. rewrite set_collect_eq. now rupd. }
+  assert (MAPNAS : e' <> a_s).
+  { admit. }
   assert (EXEQ : extra_a X_t a_t b_t a_s ≡₁ extra_a X_t' a_t b_t a_s).
   { unfold extra_a; do 2 desf; exfalso; eauto.
     all: apply n; split; try intro F.
@@ -538,17 +575,11 @@ Proof using.
       arewrite (swap_rel sb_t' (eq b_t ∩₁ E_t') (eq a_t ∩₁ E_t') ≡
                 WCore.sb_delta X_t e ∪
                 swap_rel sb_t (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t)).
-      { rewrite swap_rel_more with (r1 := sb_t')
-                                   (r2 := sb_t ∪ WCore.sb_delta X_t e)
-                                   (A1 := eq b_t ∩₁ E_t')
-                                   (B1 := eq a_t ∩₁ E_t')
-                                   (A2 := eq b_t ∩₁ E_t)
-                                   (B2 := eq a_t ∩₁ E_t).
-        all: try now apply ADD.
-        { unfold swap_rel. rewrite minus_union_l.
-          rewrite minus_disjoint with (r := WCore.sb_delta X_t e).
-          all: basic_solver 7. }
-        all: basic_solver. }
+      { rewrite (WCore.add_event_sb ADD), swap_rel_unionE.
+        arewrite (eq a_t ∩₁ E_t' ≡₁ eq a_t ∩₁ E_t) by basic_solver.
+        arewrite (eq b_t ∩₁ E_t' ≡₁ eq b_t ∩₁ E_t) by basic_solver.
+        rewrite minus_disjoint, unionC.
+        all: basic_solver 7. }
       rewrite collect_rel_union.
       arewrite (mapper' ↑ WCore.sb_delta X_t e ≡
                 WCore.sb_delta X_s e').
@@ -608,29 +639,25 @@ Proof using.
     { rewrite (lab_is_wE ADD), id_inter, <- seqA,
               (co_deltaE2 (rsr_Gt_wf CORR) ADD).
       basic_solver. }
-    rewrite set_minus_union_l, !set_inter_union_l, cross_union_l.
-    arewrite (eq e' \₁ extra_a X_t' a_t b_t a_s ≡₁ eq e').
+    rewrite set_minus_union_l, extra_co_union, <- EXEQ.
+    arewrite (eq e' \₁ extra_a X_t a_t b_t a_s ≡₁ eq e').
+    { rewrite set_minus_disjoint; ins.
+      apply set_disjointE. unfold extra_a.
+      desf; basic_solver. }
+    arewrite (extra_co X_s' X_t' a_t b_t (eq e') a_s ≡
+      (eq e' ∩₁ WCore.lab_is_w l) × extra_W1).
     { admit. }
-    arewrite (extra_a X_t' a_t b_t a_s ∩₁ is_w (upd lab_s e' l) ≡₁
-              extra_a X_t' a_t b_t a_s ∩₁ W_s).
+    arewrite (extra_co X_s' X_t' a_t b_t
+              (E_s \₁ extra_a X_t a_t b_t a_s) a_s ≡
+              extra_co X_s X_t a_t b_t
+                (E_s \₁ extra_a X_t a_t b_t a_s) a_s).
     { admit. }
-    arewrite ((E_s \₁ extra_a X_t' a_t b_t a_s) ∩₁ is_w (upd lab_s e' l) ∩₁ (fun e => loc (upd lab_s e' l) e = loc (upd lab_s e' l) a_s) ≡₁
-              (E_s \₁ extra_a X_t' a_t b_t a_s) ∩₁ W_s ∩₁ Loc_s_ (loc_s a_s)).
-    { admit. }
-    arewrite (
-      (eq e'
-        ∩₁ is_w (upd lab_s e' l)
-        ∩₁ (fun e => loc (upd lab_s e' l) e = loc (upd lab_s e' l) a_s)) ×
-      (extra_a X_t' a_t b_t a_s ∩₁ W_s) ≡
-        (eq e' ∩₁ WCore.lab_is_w l) × extra_W1).
-    { admit. }
-    rewrite (rsr_co SIMREL), (WCore.add_event_co ADD),
-            EXEQ, collect_rel_union.
+    rewrite (WCore.add_event_co ADD), !collect_rel_union,
+            (rsr_co SIMREL).
     arewrite (mapper' ↑ co_t ≡ mapper ↑ co_t).
     { apply collect_rel_eq_dom' with (s := E_t); ins.
       apply (wf_coE (rsr_Gt_wf CORR)). }
-    unfold WCore.co_delta. rewrite collect_rel_union.
-    basic_solver 12. }
+    basic_solver 11. }
   (* Actual proof *)
   exists mapper', X_s'.
   split; red; ins.
