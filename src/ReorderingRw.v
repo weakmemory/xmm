@@ -77,9 +77,7 @@ Notation "'Loc_s_' l" := (fun e => loc_s e = l) (at level 1).
 Notation "'Val_s_' l" := (fun e => val_s e = l) (at level 1).
 
 Record extra_a_pred x : Prop := {
-  ebp_is_r : R_s x;
-  ebp_val : val_s x = val_s a_t;
-  ebp_loc : loc_s x = loc_s a_t;
+  eba_tid : same_tid b_t x;
 }.
 
 Definition extra_a (a_s : actid) :=
@@ -96,6 +94,7 @@ Definition extra_co_D (s : actid -> Prop) ll l :=
 
 Record reord_simrel_gen a_s : Prop := {
   rsr_inj : inj_dom E_t mapper;
+  rsr_as : extra_a a_s ⊆₁ extra_a_pred;
   rsr_codom : mapper ↑₁ E_t ⊆₁ E_s \₁ extra_a a_s;
   rsr_init : fixset (E_t ∩₁ is_init) mapper;
   rsr_tid : eq_dom E_t (tid ∘ mapper) tid;
@@ -478,6 +477,7 @@ Proof using CORR.
     apply (rsr_bt_ninit CORR), INB. }
   exists a_t.
   constructor; ins.
+  { rewrite EXA. basic_solver. }
   { rewrite (rsr_init_acts CORR), EXA. basic_solver. }
   { rewrite Combinators.compose_id_right. apply CORR. }
   { rewrite EXA. rewrite (rsr_init_acts CORR). basic_solver 11. }
@@ -591,7 +591,7 @@ Proof using.
   assert (OLDSIMREL : reord_simrel X_s X_t a_t b_t mapper).
   { exists a_s. ins. }
   assert (AS_TID : extra_a X_t a_t b_t a_s ⊆₁ same_tid b_t).
-  { admit. }
+  { rewrite (rsr_as SIMREL). unfolder. intros x XIN. apply XIN. }
   assert (SIMREL' : reord_simrel X_s' X_t' a_t b_t mapper').
   { exists a_s. constructor; ins.
     { rewrite (WCore.add_event_acts ADD). apply inj_dom_union.
@@ -599,6 +599,7 @@ Proof using.
         now apply SIMREL. }
       { basic_solver. }
       rewrite MAPER_E, MAPSUB, (rsr_codom SIMREL). basic_solver. }
+    { rewrite <- EXEQ. apply SIMREL. }
     { rewrite EQACTS, set_collect_union, MAPER_E, MAPSUB,
               (rsr_codom SIMREL), <- EXEQ, set_minus_union_l.
       apply set_union_mori; ins. rewrite EXIN. basic_solver. }
@@ -901,6 +902,7 @@ Lemma simrel_exec_b_step_1
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
     (BNOTIN : ~E_t b_t) :
   exists a_s l_a X_s'',
+    << ATID : same_tid b_t a_s >> /\
     << STEP1 : WCore.exec_inst X_s  X_s'' a_s l_a >> /\
     << RF : rf (WCore.G X_s'') ≡
             rf_s ∪ srf (WCore.G X_s'') ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘ >> /\
@@ -936,7 +938,7 @@ Proof using.
   destruct ADD as (r & R1 & w & W1 & W2 & ADD).
   (* Do step 1 *)
   destruct (simrel_exec_b_step_1 SIMREL)
-        as (a_s & l_a & X_s'' & STEP1 & RF' & CO' & RMW').
+        as (a_s & l_a & X_s'' & ATID & STEP1 & RF' & CO' & RMW').
   { apply ADD. }
   exists a_s, l_a, X_s''.
   destruct STEP1 as [ADD' RFC' CONS'].
@@ -1028,6 +1030,8 @@ Proof using.
       rewrite MAPER_E, MAPSUB, (rsr_codom SIMREL), OLDEXA.
       apply set_disjointE. split; [| basic_solver].
       unfolder. ins. apply NOTIN. desf. basic_solver. }
+    { rewrite NEWEXA. unfolder. intros x XEQ. subst x.
+      constructor; ins. }
     { rewrite EQACTS, set_collect_union, MAPER_E, MAPSUB,
               (rsr_codom SIMREL), NEWEXA, set_minus_union_l,
               OLDEXA, set_minus_union_l, set_minusK.
@@ -1452,6 +1456,7 @@ Proof using CORR.
       rewrite MAPSUB, MAPER_E. apply set_disjointE.
       split; [| basic_solver]. intros x (IN & EQ).
       subst x. now apply ANCODOM. }
+    { rewrite NOEXA. basic_solver. }
     { rewrite (WCore.add_event_acts ADD), set_collect_union,
               MAPSUB, MAPER_E, (rsr_codom SIMREL), NOEXA, OLDEXA.
       basic_solver. }
