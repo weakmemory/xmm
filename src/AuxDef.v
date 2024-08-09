@@ -609,3 +609,18 @@ Proof using.
   all: rewrite same_lab_u2v_dom_loc with (s := s) (lab2 := lab2) in *.
   all: ins.
 Qed.
+
+Lemma expand_transitive {A : Type} (r : relation A) s e
+    (NOTIN : ~s e)
+    (TRANS : transitive r)
+    (ENOTIN : eq e ⊆₁ set_compl (dom_rel r ∪₁ codom_rel r))
+    (SCLOSED : forall x y (R : r x y) (INX : s y), s x) :
+  transitive (r ∪ s × eq e).
+Proof using.
+  unfolder. intros x y z.
+  intros [R1 | [INS1 EQE1]] [R2 | [INS2 EQE2]].
+  { left. now apply TRANS with y. }
+  { right; split; ins. eauto. }
+  { exfalso. subst y. apply ENOTIN with e; basic_solver. }
+  exfalso. apply NOTIN. congruence.
+Qed.

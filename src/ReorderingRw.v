@@ -954,7 +954,55 @@ Proof using.
       { apply set_subset_inter_r. split; apply ADD. }
       eapply eq_dom_mori with (x := E_t); eauto.
       unfold flip. apply ADD. }
-    { admit. }
+    { arewrite (⦗eq e ∩₁ W_t'⦘ ⨾ co_t' ≡ (eq e ∩₁ WCore.lab_is_w l) × W1).
+      { rewrite (lab_is_wE ADD), set_interC, id_inter,
+                seqA, (co_deltaE1 (rsr_Gt_wf CORR) ADD).
+        basic_solver. }
+      arewrite (co_t' ⨾ ⦗eq e ∩₁ W_t'⦘ ≡ W2 × (eq e ∩₁ WCore.lab_is_w l)).
+      { rewrite (lab_is_wE ADD), id_inter, <- seqA,
+                (co_deltaE2 (rsr_Gt_wf CORR) ADD).
+        basic_solver. }
+      rewrite (rsr_co SIMREL).
+      arewrite (mapper ↑ co_t ≡ mapper' ↑ co_t).
+      { symmetry.
+        apply collect_rel_eq_dom' with (s := E_t); ins.
+        apply (wf_coE (rsr_Gt_wf CORR)). }
+      apply transitive_more
+       with (y := mapper' ↑ co_t' ∪
+              add_max
+                (extra_co_D (E_s ∪₁ eq e') (upd lab_s e' l) (loc_s a_s))
+                (extra_a X_t a_t b_t a_s ∩₁ (fun a : actid => W_s a))).
+      { rewrite (WCore.add_event_co ADD), !collect_rel_union.
+        rewrite <- EXEQ, extra_co_D_union, add_max_union.
+        rewrite extra_co_D_eq_dom with (ll1 := upd lab_s e' l).
+        all: eauto using same_lab_u2v_dom_inclusion.
+        rewrite extra_co_eq, upds.
+        rewrite !add_max_disjoint with (A := eq e' ∩₁ _) by basic_solver.
+        rewrite !add_max_disjoint with (A := eq e' ∩₁ _ ∩₁ _) by basic_solver.
+        rewrite <- unionA.
+        unfold extra_a; desf; basic_solver 12. }
+      assert (TRANS : transitive (mapper' ↑ co_t')).
+      { admit. }
+      destruct classic
+          with (extra_a X_t a_t b_t a_s ∩₁ W_s ≡₁ eq a_s)
+            as [EQ | NEQ].
+      { rewrite EQ. unfold add_max.
+        apply expand_transitive; ins.
+        { unfolder. intro FALSO. desf. }
+        { admit. }
+        unfolder. unfolder in INX.
+        destruct INX as (((_ & ISW) & LOC) & NEQ).
+        splits.
+        { admit. }
+        { admit. }
+        { admit. }
+        admit. }
+      arewrite (extra_a X_t a_t b_t a_s ∩₁ W_s ≡₁ ∅).
+      { split; [| basic_solver]. intros x (XIN & ISW).
+        red. apply NEQ. unfold extra_a. unfold extra_a in XIN.
+        desf. basic_solver. }
+      unfold extra_co_D.
+      now rewrite add_max_empty_r, union_false_r. }
     { arewrite (rf_t' ⨾ ⦗eq e ∩₁ R_t'⦘ ≡ WCore.rf_delta_R e l w).
       { rewrite (lab_is_rE ADD), id_inter, <- seqA,
                 (rf_delta_RE (rsr_Gt_wf CORR) ADD).
