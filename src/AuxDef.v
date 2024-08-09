@@ -597,3 +597,15 @@ Proof using.
   eapply eq_dom_mori with (x := s); eauto.
   unfold flip. rewrite RESTR. basic_solver.
 Qed.
+
+Lemma same_lab_u2v_dom_eq_loc {A : Type} l
+    (s : A -> Prop)
+    lab1
+    lab2
+    (DOM : same_lab_u2v_dom s lab1 lab2) :
+  s ∩₁ (fun e => loc lab1 e = l) ≡₁ s ∩₁ (fun e => loc lab2 e = l).
+Proof using.
+  unfolder. split; intros x (XIN & LOC); splits; ins.
+  all: rewrite same_lab_u2v_dom_loc with (s := s) (lab2 := lab2) in *.
+  all: ins.
+Qed.

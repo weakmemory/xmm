@@ -223,6 +223,22 @@ Proof using.
   apply (WCore.add_event_new ADD). congruence.
 Qed.
 
+Lemma lab_is_wE' ll :
+  eq e ∩₁ is_w ll ≡₁ eq e ∩₁ WCore.lab_is_w (ll e).
+Proof using.
+  unfolder. split; intros x (XEQ & XIN); subst x.
+  all: split; ins.
+  all: unfold is_w, WCore.lab_is_w in *; desf.
+Qed.
+
+Lemma lab_loc' ll lc :
+  eq e ∩₁ (fun e => @loc _ ll e = lc) ≡₁
+    eq e ∩₁ (fun _ => WCore.lab_loc (ll e) = lc).
+Proof using.
+  unfolder. split; intros x (XEQ & XIN); subst x.
+  all: split; ins.
+Qed.
+
 Lemma lab_is_wE r R1 w W1 W2
     (ADD : WCore.add_event_gen X X' e l r R1 w W1 W2) :
   eq e ∩₁ W' ≡₁ eq e ∩₁ WCore.lab_is_w l.
