@@ -262,6 +262,12 @@ Proof using.
   unfold add_max. basic_solver 11.
 Qed.
 
+Lemma add_max_empty_r T (A : T -> Prop) :
+  add_max A ∅ ≡ ∅₂.
+Proof using.
+  unfold add_max. now rewrite cross_false_r.
+Qed.
+
 Lemma add_max_disjoint T (A B : T -> Prop)
     (DISJ : set_disjoint A B) :
   add_max A B ≡ A × B.
@@ -550,8 +556,6 @@ Proof using.
     apply ADD. basic_solver. }
   assert (MAPER_E : mapper' ↑₁ eq e ≡₁ eq e').
   { subst mapper'. rewrite set_collect_eq. now rupd. }
-  assert (MAPNAS : e' <> a_s).
-  { admit. }
   assert (EXEQ : extra_a X_t a_t b_t a_s ≡₁ extra_a X_t' a_t b_t a_s).
   { unfold extra_a; do 2 desf; exfalso; eauto.
     all: apply n; split; try intro F.
@@ -566,7 +570,6 @@ Proof using.
   assert (U2V : same_lab_u2v_dom E_s (upd lab_s e' l) lab_s).
   { unfold same_lab_u2v_dom. ins. rewrite LABEQ; ins.
     unfold same_label_u2v. desf. }
-  set (extra_W1 := extra_a X_t' a_t b_t a_s ∩₁ W_s ∩₁ Loc_s_ (WCore.lab_loc l));
   set (G_s' := {|
     acts_set := E_s ∪₁ eq e';
     threads_set := threads_set G_s;
@@ -575,7 +578,8 @@ Proof using.
     co := co_s ∪
           mapper' ↑ (⦗eq e ∩₁ W_t'⦘ ⨾ co_t') ∪
           mapper' ↑ (co_t' ⨾ ⦗eq e ∩₁ W_t'⦘) ∪
-          (eq e' ∩₁ WCore.lab_is_w l) × extra_W1;
+          add_max (eq e' ∩₁ WCore.lab_is_w l)
+            (extra_a X_t' a_t b_t a_s ∩₁ W_s ∩₁ Loc_s_ (WCore.lab_loc l));
     rmw := mapper' ↑ rmw_t';
     rmw_dep := rmw_dep_s;
     ctrl := ctrl_s;
@@ -693,23 +697,23 @@ Proof using.
     { rewrite (lab_is_wE ADD), id_inter, <- seqA,
               (co_deltaE2 (rsr_Gt_wf CORR) ADD).
       basic_solver. }
-    rewrite <- EXEQ, extra_co_D_union, add_max_union.
     rewrite (WCore.add_event_co ADD), !collect_rel_union,
             (rsr_co SIMREL).
     arewrite (mapper' ↑ co_t ≡ mapper ↑ co_t).
     { apply collect_rel_eq_dom' with (s := E_t); ins.
       apply (wf_coE (rsr_Gt_wf CORR)). }
-    arewrite (loc (upd lab_s e' l) a_s = loc_s a_s).
-    { unfold loc. rupd. congruence. }
+    rewrite <- EXEQ, extra_co_D_union, add_max_union.
     rewrite extra_co_D_eq_dom with (ll1 := upd lab_s e' l),
             same_lab_u2v_dom_is_w with (lab1 := upd lab_s e' l).
     all: eauto using same_lab_u2v_dom_inclusion.
-    arewrite ((eq e' ∩₁ WCore.lab_is_w l) × extra_W1 ≡
-              add_max (extra_co_D (eq e') (upd lab_s e' l) (loc_s a_s))
-                (extra_a X_t a_t b_t a_s ∩₁ W_s)).
-    { subst extra_W1. rewrite extra_co_eq, upds, <- EXEQ.
-      rewrite add_max_disjoint; [| apply set_disjointE; basic_solver].
-      unfold extra_a. desf; basic_solver 11. }
+    rewrite extra_co_eq, upds.
+    rewrite !add_max_disjoint with (A := eq e' ∩₁ _) by basic_solver.
+    rewrite !add_max_disjoint with (A := eq e' ∩₁ _ ∩₁ _) by basic_solver.
+    rewrite <- unionA. unfold extra_a; desf; [| basic_solver 11].
+    arewrite (loc (upd lab_s e' l) a_s = loc lab_s a_s).
+    { unfold loc. rupd. intro FALSO. subst e'.
+      apply ETID; ins. rewrite <- TID. symmetry. apply AS_TID.
+      unfold extra_a. desf. exfalso. eauto. }
     basic_solver 11. }
   (* Actual proof *)
   exists mapper', X_s'.
@@ -717,7 +721,7 @@ Proof using.
   constructor.
   { exists (option_map mapper' r), (mapper' ↑₁ R1),
            (option_map mapper' w),
-           (extra_W1 ∪₁ mapper' ↑₁ W1),
+           (extra_a X_t' a_t b_t a_s ∩₁ W_s ∩₁ Loc_s_ (WCore.lab_loc l) ∪₁ mapper' ↑₁ W1),
            (mapper' ↑₁ W2).
     constructor; ins.
     { subst mapper'. now rupd. }
@@ -781,7 +785,7 @@ Proof using.
       unfold flip. apply ADD. }
     { admit. }
     { apply set_subset_union_l; split.
-      { unfold extra_W1. basic_solver. }
+      { basic_solver. }
       rewrite set_collect_eq_dom with (g := mapper),
               rsr_is_w with (X_s := X_s) (X_t := X_t)
                             (a_t := a_t) (b_t := b_t).
@@ -790,7 +794,7 @@ Proof using.
       eapply eq_dom_mori with (x := E_t); eauto.
       unfold flip. apply ADD. }
     { apply set_subset_union_l; split.
-      { unfold extra_W1. rewrite <- EXEQ. basic_solver. }
+      { rewrite <- EXEQ. basic_solver. }
       rewrite set_collect_eq_dom with (g := mapper),
               rsr_sub_e with (X_s := X_s) (X_t := X_t)
                             (a_t := a_t) (b_t := b_t).
@@ -798,7 +802,7 @@ Proof using.
       eapply eq_dom_mori with (x := E_t); eauto.
       unfold flip. apply ADD. }
     { apply set_subset_union_l; split.
-      { unfold extra_W1. basic_solver. }
+      { basic_solver. }
       rewrite set_collect_eq_dom with (g := mapper),
               rsr_loc with (X_s := X_s) (X_t := X_t)
                            (a_t := a_t) (b_t := b_t)
@@ -878,14 +882,11 @@ Proof using.
       { rewrite (lab_is_wE ADD), id_inter, <- seqA,
                 (co_deltaE2 (rsr_Gt_wf CORR) ADD).
         basic_solver. }
-      arewrite (WCore.co_delta (mapper' e) l
-                (extra_W1 ∪₁ mapper' ↑₁ W1) (mapper' ↑₁ W2) ≡
-                  mapper' ↑ (eq e ∩₁ WCore.lab_is_w l) × W1 ∪
-                  mapper' ↑ W2 × (eq e ∩₁ WCore.lab_is_w l) ∪
-                  (eq e' ∩₁ WCore.lab_is_w l) × extra_W1).
-      { rewrite co_delta_union_W1, <- mapped_co_delta.
-        unfold mapper'. rupd. basic_solver 11. }
-      basic_solver 12. }
+      unfold mapper'.
+      rewrite co_delta_union_W1, <- mapped_co_delta,
+              upds, <- EXEQ.
+      rewrite add_max_disjoint.
+      all: basic_solver 11. }
     { rewrite <- mapped_rmw_delta, (WCore.add_event_rmw ADD),
               collect_rel_union.
       arewrite (mapper' ↑ rmw_t ≡ mapper ↑ rmw_t).
