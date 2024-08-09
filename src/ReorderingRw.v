@@ -376,19 +376,6 @@ Record program_coherent : Prop := {
   rwi_bi : ~rmwi (I2Exec.instr bi);
 }.
 
-(* Lemma G_s_wf a b
-    (NCTRL : ctrl G_t ≡ ∅₂)
-    (NDATA : data G_t ≡ ∅₂)
-    (NADDR : addr G_t ≡ ∅₂)
-    (WF : Wf G_t)
-    (WF_TIDS : forall e (NINIT : ~is_init e) (INE : E_t e),
-                tid e <> tid_init)
-    (SIMREL : reord_simrel_rw_instrs_gen a b) :
-  Wf G_s.
-Proof using.
-  admit.
-Admitted. *)
-
 End ReordSimRelInstrs.
 
 Module ReordRwSimRelProps.
@@ -425,6 +412,7 @@ Notation "'ctrl_t'" := (ctrl G_t).
 Notation "'addr_t'" := (addr G_t).
 Notation "'W_t'" := (is_w lab_t).
 Notation "'R_t'" := (is_r lab_t).
+Notation "'Loc_t_' l" := (fun e => loc_t e = l) (at level 1).
 
 Notation "'lab_t''" := (lab G_t').
 Notation "'val_t''" := (val lab_t').
@@ -464,6 +452,111 @@ Notation "'srf_s'" := (srf G_s).
 Notation "'Loc_s_' l" := (fun e => loc_s e = l) (at level 1).
 
 Hypothesis CORR : reord_correct_graphs X_s X_t a_t b_t.
+
+Lemma G_s_co_total ol
+    (SIMREL : reord_simrel X_s X_t a_t b_t mapper) :
+  is_total (E_s ∩₁ W_s ∩₁ (fun x => loc_s x = ol)) co_s.
+Proof using CORR.
+  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
+  assert (TOT : is_total
+                  (mapper ↑₁ E_t ∩₁ W_s ∩₁ Loc_s_ ol)
+                  (mapper ↑ co_t)
+  ).
+  { arewrite (mapper ↑₁ E_t ∩₁ W_s ∩₁ Loc_s_ ol ≡₁
+              mapper ↑₁ (E_t ∩₁ W_t ∩₁ Loc_t_ ol)).
+    all: try now apply total_collect_rel, CORR.
+    split; intros x XIN.
+    { destruct XIN as (((y & YIN & MAP) & XW) & XL).
+      unfold is_w in XW. unfold loc in XL.
+      rewrite <- MAP in XW, XL.
+      change (lab_s (mapper y))
+        with ((lab_s ∘ mapper) y) in XW, XL.
+      rewrite (rsr_lab SIMREL) in XW, XL; ins.
+      unfolder. exists y; splits; ins. }
+    destruct XIN as (y & (((YIN & MAP) & XW) & XL)).
+    unfolder.
+    unfold is_w, loc; subst x.
+    change (lab_s (mapper y)) with ((lab_s ∘ mapper) y).
+    rewrite (rsr_lab SIMREL); eauto. }
+  assert (MAPIN : mapper ↑₁ E_t ⊆₁ E_s).
+  { rewrite (rsr_acts SIMREL). basic_solver. }
+  rewrite (rsr_acts SIMREL), (rsr_co SIMREL).
+  rewrite !set_inter_union_l.
+  unfold is_total. intros x XIN y YIN NEQ.
+  destruct XIN as [XIN | XEQA],
+           YIN as [YIN | YEQA].
+  { destruct TOT with x y as [ORD | ORD]; ins.
+    { now do 2 left. }
+    now right; left. }
+  { unfold extra_a in *; desf.
+    all: try now exfalso; apply YEQA.
+    unfolder in YEQA; desf.
+    left; right. unfold add_max, extra_co_D.
+    split; [| basic_solver].
+    unfolder; splits; ins.
+    all: try now apply XIN.
+    { apply MAPIN, XIN. }
+    intro FALSO; desf. }
+  { unfold extra_a in *; desf.
+    all: try now exfalso; apply XEQA.
+    unfolder in XEQA; desf.
+    right; right. unfold add_max, extra_co_D.
+    split; [|basic_solver].
+    unfolder; splits; ins.
+    all: try now apply YIN.
+    { apply MAPIN, YIN. }
+    intro FALSO; desf. }
+  unfold extra_a in *; desf.
+  all: try now exfalso; apply XEQA.
+  unfolder in XEQA. unfolder in YEQA.
+  desf.
+Qed.
+
+Lemma G_s_rff
+    (SIMREL : reord_simrel X_s X_t a_t b_t mapper) :
+  functional rf_s⁻¹.
+Proof using CORR.
+  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
+  rewrite (rsr_rf SIMREL), transp_union.
+  apply functional_union.
+  { rewrite <- collect_rel_transp, (wf_rfE (rsr_Gt_wf CORR)),
+            <- restr_relE, <- restr_transp.
+    apply functional_collect_rel_inj; [apply SIMREL|].
+    rewrite restr_transp, restr_relE, <- (wf_rfE (rsr_Gt_wf CORR)).
+    apply CORR. }
+  { rewrite transp_seq, transp_eqv_rel.
+    apply functional_seq; [basic_solver |].
+    apply wf_srff'.
+    intros ol. apply (@G_s_co_total ol).
+    now exists a_s. }
+  intros x DOM1 DOM2.
+  assert (XIN : extra_a X_t a_t b_t a_s x).
+  { unfolder in DOM2. desf. }
+  apply (rsr_codom SIMREL) with x; ins.
+  unfolder. unfolder in DOM1.
+  destruct DOM1 as (y & y' & x' & RF & XEQ & YEQ).
+  exists x'. split; ins.
+  apply (wf_rfE (rsr_Gt_wf CORR)) in RF.
+  unfolder in RF. desf.
+Qed.
+
+Lemma G_s_rfE
+    (SIMREL : reord_simrel X_s X_t a_t b_t mapper) :
+  rf_s ≡ ⦗E_s⦘ ⨾ rf_s ⨾ ⦗E_s⦘.
+Proof using CORR.
+  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
+  rewrite <- restr_relE, (rsr_rf SIMREL),
+          restr_union.
+  apply union_more.
+  { rewrite (wf_rfE (rsr_Gt_wf CORR)), <- restr_relE.
+    rewrite <- collect_rel_restr, restr_restr, (rsr_acts SIMREL).
+    { rewrite set_inter_absorb_r; ins. basic_solver. }
+    eapply inj_dom_mori; ins; [| apply SIMREL].
+    rewrite (wf_rfE (rsr_Gt_wf CORR)). unfold flip.
+    basic_solver. }
+  rewrite restr_seq_eqv_r. apply seq_more; ins.
+  rewrite restr_relE. apply wf_srfE.
+Qed.
 
 Lemma sim_rel_init :
   reord_simrel
@@ -725,7 +818,7 @@ Proof using.
            (mapper' ↑₁ W2).
     constructor; ins.
     { subst mapper'. now rupd. }
-    { admit. }
+    { subst mapper'. now rupd. }
     { rewrite <- set_collect_eq_opt,
               set_collect_eq_dom with (g := mapper),
               rsr_is_w with (X_s := X_s) (X_t := X_t)
@@ -862,7 +955,21 @@ Proof using.
       eapply eq_dom_mori with (x := E_t); eauto.
       unfold flip. apply ADD. }
     { admit. }
-    { admit. }
+    { arewrite (rf_t' ⨾ ⦗eq e ∩₁ R_t'⦘ ≡ WCore.rf_delta_R e l w).
+      { rewrite (lab_is_rE ADD), id_inter, <- seqA,
+                (rf_delta_RE (rsr_Gt_wf CORR) ADD).
+        basic_solver. }
+      rewrite transp_union, mapped_rf_delta_R.
+      apply functional_union.
+      { now apply G_s_rff. }
+      { basic_solver. }
+      intros x DOM1 DOM2.
+      assert (XEQ : x = e').
+      { unfolder in DOM2. desf. subst mapper'. now rupd. }
+      subst x. apply NOTIN.
+      unfolder in DOM1. destruct DOM1 as (y & RF).
+      apply (G_s_rfE OLDSIMREL) in RF.
+      unfolder in RF. desf. }
     { unfold mapper'. now rupd. }
     { unfold mapper'. now rupd. }
     { rewrite <- mapped_rf_delta_R,
