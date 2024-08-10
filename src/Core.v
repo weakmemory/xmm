@@ -327,6 +327,7 @@ Record add_event_gen r R1 w W1 W2 : Prop := {
   add_event_init : forall l (SOME : lab_loc = Some l),
                     E (InitEvent l);
   add_event_thrd : threads_set (tid e);
+  add_event_nctrl : ctrl' ⊆ ∅₂;
   (*=================*)
   add_event_acts : E' ≡₁ E ∪₁ eq e;
   add_event_threads : threads_set' ≡₁ threads_set;
@@ -382,11 +383,14 @@ Proof using.
 Qed.
 
 Lemma add_event_wf r R1 w W1 W2
-  (ADD : add_event_gen r R1 w W1 W2)
-  (WF : Wf (WCore.G X))
-  (NCTRL : ctrl ≡ ∅₂) :
+    (ADD : add_event_gen r R1 w W1 W2)
+    (WF : Wf (WCore.G X)) :
   Wf (WCore.G X').
 Proof using.
+  assert (NCTRL : ctrl ≡ ∅₂).
+  { split; [| basic_solver].
+    rewrite <- (add_event_ctrl ADD).
+    apply ADD. }
   assert (NIN : ~ E e).
   { apply (add_event_new ADD). }
   assert (EISR : E ∩₁ R' ≡₁ E ∩₁ R).

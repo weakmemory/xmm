@@ -40,6 +40,8 @@ Notation "'W''" := (is_w lab').
 Notation "'R''" := (is_r lab').
 Notation "'F''" := (is_f lab').
 Notation "'sc''" := (WCore.sc X').
+Notation "'same_loc''" := (same_loc lab').
+Notation "'same_val''" := (same_val lab').
 
 Notation "'G'" := (WCore.G X).
 Notation "'lab'" := (lab G).
@@ -57,6 +59,8 @@ Notation "'W'" := (is_w lab).
 Notation "'R'" := (is_r lab).
 Notation "'F'" := (is_f lab).
 Notation "'sc'" := (WCore.sc X).
+Notation "'same_loc'" := (same_loc lab).
+Notation "'same_val'" := (same_val lab).
 
 Record prefix : Prop := {
   prf_init : E' ∩₁ is_init ⊆₁ E;
@@ -111,6 +115,79 @@ Proof using.
   symmetry. apply WF.
 Qed.
 
+Lemma prf_sb'
+    (PFX : prefix) :
+  sb ≡ restr_rel E sb'.
+Proof using.
+  unfold sb. rewrite restr_relE, !seqA.
+  seq_rewrite <- !id_inter.
+  rewrite set_inter_absorb_r, set_inter_absorb_l.
+  all: try now apply PFX.
+  ins.
+Qed.
+
+Lemma prefix_wf
+    (NDATA : data ≡ ∅₂)
+    (NADDR : addr ≡ ∅₂)
+    (NCTRL : ctrl ≡ ∅₂)
+    (WF : Wf G')
+    (PFX : prefix) :
+  Wf G.
+Proof using.
+  assert (SUBE : E ⊆₁ E') by apply PFX.
+  assert (EQR : E ∩₁ R' ≡₁ E ∩₁ R).
+  { admit. }
+  assert (EQW : E ∩₁ W' ≡₁ E ∩₁ W).
+  { admit. }
+  assert (EQL : restr_rel E same_loc' ⊆ same_loc).
+  { admit. }
+  assert (EQV : restr_rel E same_val' ⊆ same_val).
+  { admit. }
+  constructor.
+  { intros a b (INA & INB & NEQ & TID & NINIT).
+    apply WF. splits; ins.
+    all: now apply (prf_acts PFX). }
+  { rewrite NDATA. basic_solver. }
+  { rewrite NDATA. basic_solver. }
+  { rewrite NADDR. basic_solver. }
+  { rewrite NADDR. basic_solver. }
+  { rewrite NCTRL. basic_solver. }
+  { rewrite NCTRL. basic_solver. }
+  { rewrite NCTRL. basic_solver. }
+  { rewrite (prf_rmw PFX). rewrite (wf_rmwD WF) at 1.
+    rewrite !restr_relE, !seqA. seq_rewrite <- !id_inter.
+    rewrite EQR, set_interC with (s' := E), EQW.
+    basic_solver. }
+  { rewrite <- EQL, (prf_rmw PFX).
+    apply restr_rel_mori; ins. apply WF. }
+  { admit. }
+  { rewrite (prf_rf PFX). rewrite (wf_rfE WF) at 1.
+    rewrite !restr_relE, !seqA. seq_rewrite <- !id_inter.
+    basic_solver 11. }
+  { rewrite (prf_rf PFX). rewrite (wf_rfD WF) at 1.
+    rewrite !restr_relE, !seqA. seq_rewrite <- !id_inter.
+    rewrite EQW, set_interC with (s' := E), EQR.
+    basic_solver. }
+  { rewrite <- EQL, (prf_rf PFX).
+    apply restr_rel_mori; ins. apply WF. }
+  { enough (rf ⊆ same_val); ins.
+    rewrite <- EQV, (prf_rf PFX).
+    apply restr_rel_mori; ins. apply WF. }
+  { rewrite (prf_rf PFX), <- restr_transp.
+    apply functional_restr, WF. }
+  { rewrite (prf_co PFX). rewrite (wf_coE WF) at 1.
+    rewrite !restr_relE, !seqA. seq_rewrite <- !id_inter.
+    basic_solver 11. }
+  { rewrite (prf_co PFX). rewrite (wf_coD WF) at 1.
+    rewrite !restr_relE, !seqA. seq_rewrite <- !id_inter.
+    rewrite EQW, set_interC with (s' := E), EQW.
+    basic_solver. }
+  { rewrite <- EQL, (prf_co PFX).
+    apply restr_rel_mori; ins. apply WF. }
+  { rewrite (prf_co PFX). apply transitive_restr, WF. }
+  { admit. }
+Admitted.
+
 End Prefix.
 
 Module SubToFullExecInternal.
@@ -137,6 +214,7 @@ Notation "'W''" := (is_w lab').
 Notation "'R''" := (is_r lab').
 Notation "'F''" := (is_f lab').
 Notation "'sc''" := (WCore.sc X').
+Notation "'Loc_'' l" := (fun e => loc lab' e = l) (at level 1).
 
 Notation "'G'" := (WCore.G X).
 Notation "'lab'" := (lab G).
@@ -178,13 +256,62 @@ Definition delta_X := {|
   WCore.sc := delta_sc;
 |}.
 
+Lemma delta_G_dom
+    (NOTINE : ~ E e)
+    (PFX : prefix X X') :
+  eq_dom (E ∪₁ eq e) lab' delta_lab.
+Proof using.
+  apply eq_dom_union. split.
+  { unfolder. unfold delta_lab. ins.
+    rupd; [|congruence]. rewrite (prf_lab PFX); ins.
+    basic_solver. }
+  unfold delta_lab. unfolder. ins. desf. now rupd.
+Qed.
+
+Lemma delta_G_prefix
+    (INE : E' e)
+    (NOTINE : ~ E e)
+    (NINIT : ~ is_init e)
+    (EMAX : sb' ⨾ ⦗eq e⦘ ⊆ ⦗E⦘ ⨾ sb' ⨾ ⦗eq e⦘)
+    (PFX : prefix X X') :
+  prefix delta_X X'.
+Proof using.
+  assert (SUBE : E ∪₁ eq e ⊆₁ E').
+  { apply set_subset_union_l; split; [| basic_solver].
+    apply PFX. }
+  unfold delta_X, delta_G, delta_sc,
+         delta_E, delta_lab.
+  constructor; ins.
+  { rewrite <- (prf_init PFX). basic_solver. }
+  { apply PFX. }
+  { rewrite <- set_unionA. apply eq_dom_union.
+    unfolder; split; [| now ins; desf; rupd].
+    intros x XIN. rupd; [| desf; congruence].
+    apply PFX. now unfolder. }
+  { unfolder. intros x XIN. rupd; [| congruence].
+    now apply (prf_lab_extra PFX). }
+  rewrite id_union, seq_union_r at 1.
+  apply inclusion_union_l.
+  { rewrite (prf_sb PFX). unfold sb; ins.
+    basic_solver. }
+  rewrite EMAX.
+  unfold sb. ins. rewrite !seqA.
+  seq_rewrite <- !id_inter.
+  rewrite set_inter_absorb_r, set_inter_absorb_l.
+  { basic_solver. }
+  { basic_solver. }
+  apply set_subset_union_l in SUBE. desf.
+Qed.
+
 Lemma delta_add_event
+    (NTID : tid e <> tid_init)
     (INE : E' e)
     (NOTINE : ~ E e)
     (NINIT : ~ is_init e)
     (WF : Wf G')
     (PFX : prefix X X')
-    (EMAX : ⦗eq e⦘ ⨾ sb' ⨾ ⦗E⦘ ⊆ ∅₂) :
+    (EMAX : ⦗eq e⦘ ⨾ sb' ⨾ ⦗E⦘ ⊆ ∅₂)
+    (NCTRL : ctrl' ⊆ ∅₂) :
   WCore.add_event X delta_X e (lab' e).
 Proof using.
   red.
@@ -314,9 +441,28 @@ Proof using.
   { rewrite <- restr_transp.
     apply functional_restr, WF. }
   all: unfold delta_E.
-  { admit. }
-  { admit. }
-  { admit. }
+  { set (dom := (E ∪₁ eq e) ∩₁ W' ∩₁ Loc_' ol).
+    set (dom' := E' ∩₁ W' ∩₁ Loc_' ol).
+    assert (TOT : is_total dom (restr_rel dom co')).
+    { eapply is_total_restr. subst dom.
+      eapply is_total_mori with (x := dom').
+      all: ins; try now apply (wf_co_total WF).
+      unfold flip. subst dom'. basic_solver 11. }
+    subst dom. eapply is_total_mori; eauto; [| basic_solver].
+    unfold flip. apply set_subset_inter_r.
+    split; [apply set_subset_inter_r; split |].
+    { basic_solver. }
+    { apply eq_dom_is_w with (lab := delta_lab); [basic_solver |].
+      eapply eq_dom_mori; eauto; [| now apply delta_G_dom].
+      unfold flip. basic_solver. }
+    apply eq_dom_loc with (lab := delta_lab); [basic_solver |].
+    eapply eq_dom_mori; eauto; [| now apply delta_G_dom].
+    unfold flip. basic_solver. }
+  { apply (prf_init PFX). split; ins.
+    apply (wf_init WF). exists e.
+    split; [basic_solver |]. rewrite <- SOME.
+    now unfold loc, WCore.lab_loc. }
+  { now apply (prf_threads PFX), WF. }
   { rewrite restr_set_union, (prf_rf PFX).
     rewrite restr_irrefl_eq by now apply rf_irr.
     rewrite union_false_r.
@@ -395,62 +541,38 @@ Proof using.
   splits; ins. now apply PFX.
 Qed.
 
-Lemma delta_G_prefix
-    (INE : E' e)
-    (NOTINE : ~ E e)
-    (NINIT : ~ is_init e)
-    (EMAX : sb' ⨾ ⦗eq e⦘ ⊆ ⦗E⦘ ⨾ sb' ⨾ ⦗eq e⦘)
-    (PFX : prefix X X') :
-  prefix delta_X X'.
-Proof using.
-  assert (SUBE : E ∪₁ eq e ⊆₁ E').
-  { apply set_subset_union_l; split; [| basic_solver].
-    apply PFX. }
-  unfold delta_X, delta_G, delta_sc,
-         delta_E, delta_lab.
-  constructor; ins.
-  { rewrite <- (prf_init PFX). basic_solver. }
-  { apply PFX. }
-  { rewrite <- set_unionA. apply eq_dom_union.
-    unfolder; split; [| now ins; desf; rupd].
-    intros x XIN. rupd; [| desf; congruence].
-    apply PFX. now unfolder. }
-  { unfolder. intros x XIN. rupd; [| congruence].
-    now apply (prf_lab_extra PFX). }
-  rewrite id_union, seq_union_r at 1.
-  apply inclusion_union_l.
-  { rewrite (prf_sb PFX). unfold sb; ins.
-    basic_solver. }
-  rewrite EMAX.
-  unfold sb. ins. rewrite !seqA.
-  seq_rewrite <- !id_inter.
-  rewrite set_inter_absorb_r, set_inter_absorb_l.
-  { basic_solver. }
-  { basic_solver. }
-  apply set_subset_union_l in SUBE. desf.
-Qed.
-
 Lemma delta_G_wf
     (INE : E' e)
     (NOTINE : ~ E e)
     (NINIT : ~ is_init e)
+    (NTID : tid e <> tid_init)
     (EMAX : sb' ⨾ ⦗eq e⦘ ⊆ ⦗E⦘ ⨾ sb' ⨾ ⦗eq e⦘)
     (PFX : prefix X X')
     (NDATA : data' ⊆ ∅₂)
     (NADDR : addr' ⊆ ∅₂)
     (NCTRL : ctrl' ⊆ ∅₂)
     (NRMWDEP : rmw_dep' ⊆ ∅₂)
-    (WF : Wf G') :
+    (WF : Wf G')
+    (EMAX2 : ⦗eq e⦘ ⨾ sb' ⨾ ⦗E⦘ ⊆ ∅₂) :
   Wf delta_G.
 Proof using.
-  admit.
-Admitted.
+  destruct delta_add_event as (r & R1 & w & W1 & W2 & ADD).
+  all: eauto.
+  eapply WCore.add_event_wf
+    with (X' := delta_X) (X := X).
+  all: eauto.
+  eapply prefix_wf; eauto.
+  { rewrite (prf_data PFX). basic_solver. }
+  { rewrite (prf_addr PFX). basic_solver. }
+  rewrite (prf_ctrl PFX). basic_solver.
+Qed.
 
 
 Lemma delta_guided_add_step
     (INE : E' e)
     (NOTINE : ~ E e)
     (NINIT : ~ is_init e)
+    (NTID : tid e <> tid_init)
     (WF : Wf G')
     (XWF : WCore.wf X X' cmt)
     (PFX : prefix X X')
@@ -535,6 +657,7 @@ Record enumd_diff (l : list actid) : Prop := {
   (* Actual enum properties *)
   nodup : NoDup l;
   diff_elems : E' \₁ E ≡₁ fun x => In x l;
+  diff_elemst : E' \₁ E ⊆₁ fun x => tid x <> tid_init;
   diff_sb : restr_rel (E' \₁ E) sb' ⊆ total_order_from_list l;
   diff_rf : restr_rel (E' \₁ E) (rf' ⨾ ⦗E' \₁ cmt⦘) ⊆ total_order_from_list l;
   diff_rf_d : (E' \₁ E) ∩₁ R' ⊆₁ codom_rel rf';
@@ -673,6 +796,8 @@ Proof using.
   assert (HNINIT : ~is_init h).
   { apply (SubToFullExecInternal.diff_no_init PFX ENUM).
     basic_solver. }
+  assert (HTID : tid h <> tid_init).
+  { apply ENUM. basic_solver. }
   assert (HMAX : sb' ⨾ ⦗eq h⦘ ⊆ ⦗E⦘ ⨾ sb' ⨾ ⦗eq h⦘).
   { arewrite (sb' ⨾ ⦗eq h⦘ ⊆ ⦗E ∪₁ set_compl E⦘ ⨾ sb' ⨾ ⦗eq h⦘) at 1.
     { rewrite set_compl_union_id. basic_solver. }
@@ -712,6 +837,8 @@ Proof using.
     unfold SubToFullExecInternal.delta_E.
     now rewrite <- (SubToFullExecInternal.diff_elems ENUM),
             set_minus_minus_l. }
+  { rewrite <- (SubToFullExecInternal.diff_elemst ENUM).
+    basic_solver. }
   { unfold SubToFullExecInternal.delta_E.
     rewrite set_minus_union_r. intros x y SB.
     assert (LT : total_order_from_list (h :: t) x y).
@@ -734,6 +861,7 @@ Lemma enumd_diff_listless
     (WF : WCore.wf X X' cmt)
     (RFCO : rf_complete G')
     (FIN : set_finite (E' \₁ E))
+    (NTID : E' \₁ E ⊆₁ (fun x => tid x <> tid_init))
     (STAB : WCore.stable_uncmt_reads_gen X' cmt thrdle) :
   exists l,
     SubToFullExecInternal.enumd_diff X X' cmt l.
@@ -775,6 +903,7 @@ Lemma sub_to_full_exec_listless
     (FIN : set_finite (E' \₁ E))
     (PFX : prefix X X')
     (WF : Wf G')
+    (NTID : E' \₁ E ⊆₁ (fun x => tid x <> tid_init))
     (SCWF : imm_s.wf_sc G' sc')
     (NDATA : data' ⊆ ∅₂)
     (NADDR : addr' ⊆ ∅₂)

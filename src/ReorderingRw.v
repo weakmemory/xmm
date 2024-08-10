@@ -819,6 +819,7 @@ Proof using.
     constructor; ins.
     { subst mapper'. now rupd. }
     { subst mapper'. now rupd. }
+    { admit. }
     { rewrite <- set_collect_eq_opt,
               set_collect_eq_dom with (g := mapper),
               rsr_is_w with (X_s := X_s) (X_t := X_t)
@@ -1018,6 +1019,10 @@ Proof using.
       unfolder in DOM1. destruct DOM1 as (y & RF).
       apply (G_s_rfE OLDSIMREL) in RF.
       unfolder in RF. desf. }
+    { admit. }
+    { admit. }
+    { admit. }
+    { admit. }
     { unfold mapper'. now rupd. }
     { unfold mapper'. now rupd. }
     { rewrite <- mapped_rf_delta_R,
@@ -1232,6 +1237,7 @@ Proof using.
     constructor; ins.
     { admit. }
     { admit. }
+    { admit. }
     { apply eq_dom_is_w with (lab := lab_s).
       { rewrite <- set_collect_eq_opt,
                 set_collect_eq_dom with (g := mapper),
@@ -1489,6 +1495,10 @@ Proof using.
       { apply ADD. }
       eapply eq_dom_mori with (x := E_t); eauto.
       unfold flip. apply ADD. }
+    { admit. }
+    { admit. }
+    { admit. }
+    { admit. }
     { admit. }
     { admit. }
     { rewrite (WCore.add_event_acts ADD'). unfold mapper'.
