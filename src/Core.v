@@ -207,6 +207,8 @@ Notation "'G'" := (G X).
 Notation "'E''" := (acts_set G').
 Notation "'threads_set''" := (threads_set G').
 Notation "'lab''" := (lab G').
+Notation "'loc''" := (loc lab').
+Notation "'val''" := (val lab').
 Notation "'sb''" := (sb G').
 Notation "'rf''" := (rf G').
 Notation "'co''" := (co G').
@@ -219,6 +221,8 @@ Notation "'W''" := (is_w lab').
 Notation "'R''" := (is_r lab').
 Notation "'same_loc''" := (same_loc lab').
 Notation "'same_val''" := (same_val lab').
+Notation "'Loc_'' l" := (fun e => loc' e = l) (at level 1).
+Notation "'Val_'' l" := (fun e => val' e = l) (at level 1).
 
 Notation "'E'" := (acts_set G).
 Notation "'threads_set'" := (threads_set G).
@@ -236,6 +240,7 @@ Notation "'rmw_dep'" := (rmw_dep G).
 Notation "'W'" := (is_w lab).
 Notation "'R'" := (is_r lab).
 Notation "'same_loc'" := (same_loc lab).
+Notation "'same_val'" := (same_val lab).
 Notation "'Loc_' l" := (fun e => loc e = l) (at level 1).
 Notation "'Val_' v" := (fun e => val e = v) (at level 1).
 
@@ -315,16 +320,13 @@ Record add_event_gen r R1 w W1 W2 : Prop := {
   add_event_co_tr : transitive co';
   add_event_rff : functional (rf'⁻¹);
   (**)
-  add_event_total : forall ol : option location,
+  add_event_total : forall ol,
                     is_total
-                      (E' ∩₁ (fun a : actid => is_w lab' a)
-                      ∩₁ (fun x : actid => loc lab' x = ol)) 
-                      (co');
-  add_event_init : forall l : location,
-                    (exists b : actid, E' b /\ loc lab' b = Some l) ->
-                    E' (InitEvent l);
-  add_event_thrd : forall (e0 : actid), acts_set G' e0 -> 
-                    threads_set' (tid e0);
+                      (E' ∩₁ W' ∩₁ Loc_' ol)
+                      co';
+  add_event_init : forall l (SOME : lab_loc = Some l),
+                    E (InitEvent l);
+  add_event_thrd : threads_set (tid e);
   (*=================*)
   add_event_acts : E' ≡₁ E ∪₁ eq e;
   add_event_threads : threads_set' ≡₁ threads_set;
@@ -342,10 +344,41 @@ Record add_event_gen r R1 w W1 W2 : Prop := {
 Definition add_event :=
   exists r R1 w W1 W2, add_event_gen r R1 w W1 W2.
 
-Lemma middle_seq A (r1 r2 r3 r4 r5 : relation A) :
-  r1 ⨾ r2 ⨾ r3 ⨾ r4 ⨾ r5 ≡ r1 ⨾ (r2 ⨾ r3 ⨾ r4) ⨾ r5.
+Lemma same_loc_eq s
+    (IN : s ⊆₁ Loc_' (loc' e)) :
+  s × eq e ⊆ same_loc'.
+Proof using.
+  unfolder in *. unfold same_loc.
+  ins. desf. eauto.
+Qed.
+
+Lemma same_loc_sym A B
+    (SUB : A × B ⊆ same_loc') :
+  B × A ⊆ same_loc'.
+Proof using.
+  unfold same_loc in *. unfolder in *.
+  ins. desf. symmetry. eauto.
+Qed.
+
+Lemma funeq_sym {A B : Type} (f : A -> B) s1 s2
+    (FUN : funeq f (s1 × s2)) :
+  funeq f (s2 × s1).
+Proof using.
+  unfolder in *. ins. desf. symmetry. eauto.
+Qed.
+
+Lemma funeq_eq {A B : Type} (f : A -> B) s x
+    (SUB : s ⊆₁ (fun y => f y = f x)) :
+  funeq f (s × eq x).
 Proof using.
   basic_solver.
+Qed.
+
+Lemma funeq_val r
+    (SUB : r ⊆ same_val') :
+  funeq val' r.
+Proof using.
+  unfold same_val, val in *. unfolder in *. ins.
 Qed.
 
 Lemma add_event_wf r R1 w W1 W2
@@ -368,6 +401,20 @@ Proof using.
   { unfold R_ex. rewrite (add_event_lab ADD).
     unfolder; split; intros x (INE & LAB).
     all: now rewrite updo in * by congruence. }
+  assert (EISL : E ∩₁ Loc_' lab_loc ≡₁ E ∩₁ Loc_ lab_loc).
+  { unfold loc. rewrite (add_event_lab ADD).
+    unfolder; split; intros x (INE & LAB).
+    all: now rewrite updo in * by congruence. }
+  assert (EISV : E ∩₁ Val_' lab_val ≡₁ E ∩₁ Val_ lab_val).
+  { unfold val. rewrite (add_event_lab ADD).
+    unfolder; split; intros x (INE & LAB).
+    all: now rewrite updo in * by congruence. }
+  assert (EQLOC : loc' e = lab_loc).
+  { rewrite (add_event_lab ADD). unfold loc, lab_loc.
+    now rupd. }
+  assert (EQVAL : val' e = lab_val).
+  { rewrite (add_event_lab ADD). unfold val, lab_val.
+    now rupd. }
   assert (EINTER : E ∩₁ E' ≡₁ E).
   { rewrite (add_event_acts ADD). basic_solver. }
   assert (EINE : E ⊆₁ E').
@@ -376,6 +423,12 @@ Proof using.
   { rewrite (add_event_lab ADD).
     unfolder; intros x y (EX & SL & EY).
     unfold same_loc in *. unfold loc in *.
+    do 2 rewrite updo in * by congruence.
+    eauto. }
+  assert (VLE : ⦗E⦘ ⨾ same_val ⨾ ⦗E⦘ ⊆ same_val').
+  { rewrite (add_event_lab ADD).
+    unfolder; intros x y (EX & SL & EY).
+    unfold same_val in *. unfold val in *.
     do 2 rewrite updo in * by congruence.
     eauto. }
   constructor.
@@ -416,34 +469,42 @@ Proof using.
     rewrite NCTRL. basic_solver. }
   { split; [| basic_solver].
     rewrite (add_event_rmw ADD), (wf_rmwE WF).
-    rewrite (wf_rmwD WF) at 1. rewrite !seqA.
-    seq_rewrite !seq_eqv. rewrite !set_interC with (s' := E).
-    rewrite seq_union_l. rewrite seq_union_r.
-    apply inclusion_union_l.
-    { rewrite <- middle_seq.
-      seq_rewrite !seq_eqv. rewrite !set_interC with (s' := E).
-      rewrite EISR, EISW. left. apply H. }
-    unfold rmw_delta. rewrite !seqA. seq_rewrite !seq_eqv.
-    rewrite !set_interC with (s' := E).
-    rewrite <- (add_event_rD ADD).
-    basic_solver 42. }
-  { rewrite (add_event_rmw ADD). rewrite (wf_rmwE WF), (wf_rmwl WF).
-    apply inclusion_union_l; eauto.
-    unfold rmw_delta. rewrite (add_event_rL ADD).
+    rewrite !seq_union_l, !seq_union_r, !seqA.
+    apply union_mori.
+    { rewrite (wf_rmwD WF) at 1. rewrite !seqA.
+      seq_rewrite <- !id_inter.
+      now rewrite EISW, !set_interC with (s' := E), EISR. }
+    unfold rmw_delta.
+    seq_rewrite <- cross_inter_l.
+    seq_rewrite <- cross_inter_r.
+    rewrite set_inter_absorb_l with (s' := R'),
+            set_inter_absorb_r with (s' := W').
+    all: ins.
+    { rewrite (add_event_lab ADD).
+      unfold lab_is_w, is_w. unfolder.
+      intros x (XIN & LAB). subst x. rupd. desf. }
+    transitivity (E ∩₁ R); [| rewrite <- EISR; basic_solver].
+    apply set_subset_inter_r. split; apply ADD. }
+  { rewrite (add_event_rmw ADD), (wf_rmwE WF), (wf_rmwl WF).
+    apply inclusion_union_l; eauto. unfold rmw_delta.
+    transitivity (eq_opt r × eq e); [basic_solver |].
+    arewrite (eq_opt r ⊆₁ E ∩₁ Loc_ lab_loc).
+    { apply set_subset_inter_r. split; apply ADD. }
+    apply same_loc_eq. rewrite EQLOC, <- EISL.
     basic_solver. }
-  { rewrite (add_event_rmw ADD). 
-    apply inclusion_union_l. 
-    { rewrite (add_event_sb ADD). intros x y RMW. 
+  { rewrite (add_event_rmw ADD).
+    apply inclusion_union_l.
+    { rewrite (add_event_sb ADD). intros x y RMW.
       unfold immediate; splits; ins.
-      { destruct WF. unfold immediate in wf_rmwi. 
+      { destruct WF. unfold immediate in wf_rmwi.
         destruct wf_rmwi with (x := x) (y := y); eauto.
         basic_solver. }
       destruct R0, R2.
       { destruct WF. destruct wf_rmwi with (x := x) (y := y); eauto. }
-      { assert (YIN : E y). 
+      { assert (YIN : E y).
         { assert (HH : (⦗E⦘ ⨾ rmw ⨾ ⦗E⦘) x y).
           { apply wf_rmwE; basic_solver. }
-          destruct HH. destruct H1. destruct H2. 
+          destruct HH. destruct H1. destruct H2.
           destruct H2. destruct H3. basic_solver. }
         unfold sb_delta in H0. assert (EQ : e = y).
         { destruct H0; eauto. }
@@ -451,12 +512,12 @@ Proof using.
       { assert (EQ : c = e).
         { destruct H; eauto. }
         subst. apply wf_sbE in H0; eauto.
-        destruct H0. destruct H0. 
+        destruct H0. destruct H0.
         destruct H0. basic_solver. }
-      assert (YIN : E y). 
+      assert (YIN : E y).
         { assert (HH : (⦗E⦘ ⨾ rmw ⨾ ⦗E⦘) x y).
           { apply wf_rmwE; basic_solver. }
-        destruct HH. destruct H1. destruct H2. 
+        destruct HH. destruct H1. destruct H2.
         destruct H2. destruct H3. basic_solver. }
       unfold sb_delta in H0. assert (EQ : e = y).
       { destruct H0; eauto. }
@@ -471,125 +532,160 @@ Proof using.
     basic_solver. }
   { split; [| basic_solver].
     rewrite (add_event_rf ADD), (wf_rfE WF).
-    rewrite !seq_union_l. rewrite !seq_union_r. rewrite !seqA.
+    rewrite !seq_union_l, !seq_union_r, !seqA.
     seq_rewrite !seq_eqv. rewrite !set_interC with (s' := E).
-    rewrite EINTER. apply inclusion_union_l.
-    { apply inclusion_union_l.
-      {  basic_solver 8. }
-      assert (RFDIN1 : eq_opt w × (eq e ∩₁ (fun a : actid => R' a)) ⊆
-                ⦗E'⦘ ⨾ eq_opt w × (eq e ∩₁ (fun a : actid => R' a))).
-      { rewrite <- EINE. rewrite <- (add_event_wE ADD). basic_solver 21. }
-      assert (RFDIN2 : eq_opt w × (eq e ∩₁ (fun a : actid => R' a)) ⊆
-                eq_opt w × (eq e ∩₁ (fun a : actid => R' a)) ⨾ ⦗E'⦘).
-      { rewrite (add_event_acts ADD). basic_solver 42. }
-      unfold rf_delta_R. rewrite RFDIN1 at 1. rewrite RFDIN2 at 1.
-      basic_solver 8. }
-      assert (RFDIN1 : (eq e ∩₁ (fun a : actid => W' a)) × R1 ⊆
-                ⦗E'⦘ ⨾ (eq e ∩₁ (fun a : actid => W' a)) × R1).
-      { rewrite (add_event_acts ADD). basic_solver 42. }
-      assert (RFDIN2 : (eq e ∩₁ (fun a : actid => W' a)) × R1 ⊆
-                (eq e ∩₁ (fun a : actid => W' a)) × R1 ⨾ ⦗E'⦘).
-      { rewrite <- EINE. rewrite <- (add_event_R1E ADD). basic_solver 21. }
-      unfold rf_delta_W. rewrite RFDIN1 at 1. rewrite RFDIN2 at 1.
-      basic_solver 8. }
+    rewrite EINTER. repeat apply union_mori; ins.
+    all: rewrite (add_event_acts ADD).
+    { unfold rf_delta_R.
+      seq_rewrite <- cross_inter_l.
+      seq_rewrite <- cross_inter_r.
+      rewrite set_inter_absorb_l with (s := eq_opt w),
+              set_inter_absorb_r with (s := eq e ∩₁ lab_is_r).
+      all: rewrite ?(add_event_wE ADD).
+      all: basic_solver. }
+    unfold rf_delta_W.
+    seq_rewrite <- cross_inter_l.
+    seq_rewrite <- cross_inter_r.
+    rewrite set_inter_absorb_r with (s := R1),
+            set_inter_absorb_l with (s := eq e ∩₁ lab_is_w).
+    all: rewrite ?(add_event_R1E ADD).
+    all: basic_solver. }
   { split; [| basic_solver].
     rewrite (add_event_rf ADD), (wf_rfE WF).
-    rewrite (wf_rfD WF) at 1. rewrite !seqA.
-    seq_rewrite !seq_eqv. rewrite !set_interC with (s' := E).
-    rewrite seq_union_l. rewrite seq_union_r.
-    apply inclusion_union_l.
-    { apply inclusion_union_l.
-      { rewrite seq_union_l. rewrite seq_union_r. rewrite <- middle_seq.
-        seq_rewrite !seq_eqv. rewrite !set_interC with (s' := E).
-        rewrite EISR, EISW. do 2 left. apply H. }
-      unfold rf_delta_R. rewrite seq_union_l.
-      rewrite !seqA. seq_rewrite !seq_eqv.
-      rewrite !seq_union_r. assert (EOW : eq_opt w × (eq e ∩₁ (fun a : actid => R' a)) ≡
-                  ⦗fun a : actid => W' a⦘ ⨾ eq_opt w × (eq e ∩₁ (fun a : actid => R' a))).
-      { split; [| basic_solver]. rewrite <- (add_event_wD ADD). basic_solver 21. }
-      rewrite EOW. rewrite (wf_rfD WF) at 1. rewrite !seqA.
-      basic_solver 21. }
-    unfold rf_delta_W. rewrite <- (add_event_R1D ADD). basic_solver 21. }
-  { rewrite (add_event_rf ADD). apply inclusion_union_l.
-    { apply inclusion_union_l.
-      { rewrite (wf_rfE WF). rewrite (wf_rfl WF).
-        apply SLE. }
-      unfold rf_delta_R. rewrite (add_event_wL ADD).
+    rewrite (wf_rfD WF) at 1.
+    rewrite !seq_union_l, !seq_union_r, !seqA.
+    repeat apply union_mori.
+    { seq_rewrite !seq_eqv. rewrite !set_interC with (s' := E).
+      now rewrite EISR, EISW. }
+    { unfold rf_delta_R.
+      seq_rewrite <- cross_inter_l.
+      seq_rewrite <- cross_inter_r.
+      rewrite set_inter_absorb_l with (s := eq_opt w),
+              set_inter_absorb_r with (s := eq e ∩₁ lab_is_r).
+      all: ins.
+      { rewrite (add_event_lab ADD).
+        unfolder. unfold lab_is_r, is_r.
+        intros x (HEQ & LAB). subst x. rupd. desf. }
+      transitivity (E ∩₁ W); [| rewrite <- EISW; basic_solver].
+      apply set_subset_inter_r. split; apply ADD. }
+    unfold rf_delta_W.
+    seq_rewrite <- cross_inter_l.
+    seq_rewrite <- cross_inter_r.
+    rewrite set_inter_absorb_r with (s := R1),
+            set_inter_absorb_l with (s := eq e ∩₁ lab_is_w).
+    all: ins.
+    { rewrite (add_event_lab ADD).
+      unfolder. unfold lab_is_w, is_w.
+      intros x (HEQ & LAB). subst x. rupd. desf. }
+    transitivity (E ∩₁ R); [| rewrite <- EISR; basic_solver].
+    apply set_subset_inter_r. split; apply ADD. }
+  { rewrite (add_event_rf ADD), (wf_rfE WF), (wf_rfl WF).
+    repeat apply inclusion_union_l; eauto.
+    all: unfold rf_delta_R, rf_delta_W.
+    { transitivity (eq_opt w × eq e); [basic_solver |].
+      arewrite (eq_opt w ⊆₁ E ∩₁ Loc_ lab_loc).
+      { apply set_subset_inter_r. split; apply ADD. }
+      apply same_loc_eq. rewrite EQLOC, <- EISL.
       basic_solver. }
-    unfold rf_delta_W. rewrite (add_event_R1L ADD).
+    transitivity (eq e × R1); [basic_solver |].
+    arewrite (R1 ⊆₁ E ∩₁ Loc_ lab_loc).
+    { apply set_subset_inter_r. split; apply ADD. }
+    apply same_loc_sym, same_loc_eq. rewrite EQLOC, <- EISL.
     basic_solver. }
   { rewrite (add_event_rf ADD).
     repeat apply funeq_union.
-    { rewrite (add_event_lab ADD).
-      unfolder. intros a b RF. unfold val.
-      rupd; try now apply WF.
-      all: apply (wf_rfE WF) in RF.
-      all: unfolder in RF; desf.
-      all: congruence. }
-    { unfold rf_delta_R. unfolder.
-      intros a b (EQA & EQB & BISR).
-      subst b. symmetry.
-      apply (add_event_wv ADD).
-      desf. }
-    unfold rf_delta_W. unfolder.
-    intros a b ((EQA & BISW) & EQB).
-    subst a. now apply (add_event_R1V ADD). }
+    { enough (rf ⊆ same_val') by ins.
+      transitivity (⦗E⦘ ⨾ same_val ⨾ ⦗E⦘); ins.
+      rewrite (wf_rfE WF). repeat apply seq_mori; ins.
+      apply WF. }
+    { apply funeq_mori with (x := eq_opt w × eq e).
+      { unfold flip, rf_delta_R. basic_solver. }
+      apply funeq_eq. rewrite EQVAL.
+      transitivity (E ∩₁ Val_' lab_val); [| basic_solver].
+      rewrite EISV. apply set_subset_inter_r.
+      split; apply ADD. }
+    apply funeq_mori with (x := eq e × R1).
+    { unfold flip, rf_delta_W. basic_solver. }
+    apply funeq_sym, funeq_eq. rewrite EQVAL.
+    transitivity (E ∩₁ Val_' lab_val); [| basic_solver].
+    rewrite EISV. apply set_subset_inter_r.
+    split; apply ADD. }
   { apply (add_event_rff ADD). }
-  { rewrite (add_event_co ADD). rewrite (add_event_acts ADD).
-    split; [| basic_solver]. apply inclusion_union_l.
-    { rewrite (wf_coE WF). basic_solver. }
-    unfold co_delta. rewrite !seq_union_l. rewrite !seq_union_r.
-    apply inclusion_union_l.
-    { assert (W1IN : (eq e ∩₁ (fun a : actid => W' a)) × W1 ⊆
-            (eq e ∩₁ (fun a : actid => W' a)) × W1 ⨾ ⦗E ∪₁ eq e⦘).
-      { rewrite <- (add_event_W1E ADD). basic_solver. }
-      assert (W2IN : (eq e ∩₁ (fun a : actid => W' a)) × W1 ⊆
-            ⦗E ∪₁ eq e⦘ ⨾ (eq e ∩₁ (fun a : actid => W' a)) × W1).
-      { rewrite <- (add_event_W1E ADD). basic_solver. }
-      rewrite W1IN at 1. rewrite W2IN at 1. basic_solver 21. }
-    assert (W1IN : W2 × (eq e ∩₁ (fun a : actid => W' a)) ⊆
-                   W2 × (eq e ∩₁ (fun a : actid => W' a)) ⨾ ⦗E ∪₁ eq e⦘).
-    { rewrite <- (add_event_W2E ADD). basic_solver. }
-    assert (W2IN : W2 × (eq e ∩₁ (fun a : actid => W' a)) ⊆
-                ⦗E ∪₁ eq e⦘ ⨾ W2 × (eq e ∩₁ (fun a : actid => W' a))).
-    { rewrite <- (add_event_W2E ADD). basic_solver. }
-    rewrite W1IN at 1. rewrite W2IN at 1. basic_solver 21. }
-  { rewrite (add_event_co ADD). split; [| basic_solver].
-    apply inclusion_union_l.
-    { rewrite (wf_coE WF).
-      rewrite (wf_coD WF) at 1. rewrite !seqA.
-      seq_rewrite !seq_eqv. rewrite !set_interC with (s' := E).
-      rewrite seq_union_l. rewrite seq_union_r. rewrite <- middle_seq.
-      seq_rewrite !seq_eqv. rewrite !set_interC with (s' := E).
-      rewrite EISW. left. apply H. }
-    unfold co_delta. rewrite !seq_union_l. rewrite !seq_union_r.
-    apply inclusion_union_l.
-    { assert (W1IN : (eq e ∩₁ (fun a : actid => W' a)) × W1 ⊆
-            (eq e ∩₁ (fun a : actid => W' a)) × W1 ⨾ ⦗fun a : actid => W' a⦘).
-      { rewrite <- (add_event_W1D ADD) at 3. basic_solver 21. }
-      assert (W2IN : (eq e ∩₁ (fun a : actid => W' a)) × W1 ⊆
-            ⦗fun a : actid => W' a⦘ ⨾ (eq e ∩₁ (fun a : actid => W' a)) × W1).
-      { basic_solver 21. }
-      rewrite W1IN at 1. rewrite W2IN at 1. basic_solver 21. }
-    assert (W1IN : W2 × (eq e ∩₁ (fun a : actid => W' a)) ⊆
-            ⦗fun a : actid => W' a⦘ ⨾ W2 × (eq e ∩₁ (fun a : actid => W' a))).
-    { rewrite <- (add_event_W2D ADD) at 2. basic_solver 21. }
-    assert (W2IN : W2 × (eq e ∩₁ (fun a : actid => W' a)) ⊆
-            W2 × (eq e ∩₁ (fun a : actid => W' a)) ⨾ ⦗fun a : actid => W' a⦘).
-    { basic_solver 21. }
-    rewrite W1IN at 1. rewrite W2IN at 1. basic_solver 21. }
-  { rewrite (add_event_co ADD). apply inclusion_union_l.
-    { rewrite (wf_coE WF), (wf_col WF). apply SLE. }
-    unfold co_delta. rewrite (add_event_W1L ADD), (add_event_W2L ADD).
-    basic_solver 21. }
-  { apply (add_event_co_tr ADD); eauto. }
-  { apply (add_event_total ADD); eauto. }
+  { split; [| basic_solver].
+    rewrite (add_event_co ADD), (wf_coE WF).
+    rewrite !seq_union_l, !seq_union_r, !seqA.
+    seq_rewrite !seq_eqv. rewrite !set_interC with (s' := E).
+    rewrite EINTER. repeat apply union_mori; ins.
+    all: rewrite (add_event_acts ADD).
+    unfold co_delta.
+    rewrite !seq_union_l, !seq_union_r.
+    seq_rewrite <- !cross_inter_l.
+    seq_rewrite <- !cross_inter_r.
+    rewrite set_inter_absorb_r with (s := W1),
+            set_inter_absorb_l with (s := eq e ∩₁ lab_is_w),
+            set_inter_absorb_l with (s := W2),
+            set_inter_absorb_r with (s := eq e ∩₁ lab_is_w).
+    all: rewrite ?(add_event_W1E ADD), ?(add_event_W2E ADD).
+    all: basic_solver. }
+  { split; [| basic_solver].
+    rewrite (add_event_co ADD), (wf_coE WF).
+    rewrite (wf_coD WF) at 1.
+    rewrite !seq_union_l, !seq_union_r, !seqA.
+    repeat apply union_mori.
+    { seq_rewrite !seq_eqv. rewrite !set_interC with (s' := E).
+      now rewrite EISW. }
+    unfold co_delta. rewrite !seq_union_l, !seq_union_r.
+    seq_rewrite <- !cross_inter_l.
+    seq_rewrite <- !cross_inter_r.
+    rewrite set_inter_absorb_r with (s := W1),
+            set_inter_absorb_l with (s := eq e ∩₁ lab_is_w),
+            set_inter_absorb_l with (s := W2),
+            set_inter_absorb_r with (s := eq e ∩₁ lab_is_w).
+    all: ins.
+    { rewrite (add_event_lab ADD).
+      unfold lab_is_w, is_w. unfolder.
+      intros x (XIN & LAB). subst x. rupd. desf. }
+    { transitivity (E ∩₁ W); [| rewrite <- EISW; basic_solver].
+      apply set_subset_inter_r. split; apply ADD. }
+    { rewrite (add_event_lab ADD).
+      unfold lab_is_w, is_w. unfolder.
+      intros x (XIN & LAB). subst x. rupd. desf. }
+    transitivity (E ∩₁ W); [| rewrite <- EISW; basic_solver].
+    apply set_subset_inter_r. split; apply ADD. }
+  { rewrite (add_event_co ADD). unfold co_delta.
+    repeat apply inclusion_union_l.
+    { transitivity (⦗E⦘ ⨾ same_loc ⨾ ⦗E⦘); ins.
+      rewrite (wf_coE WF). repeat apply seq_mori; ins.
+      apply WF. }
+    { apply funeq_mori with (x := eq e × W1).
+      { unfold flip. basic_solver. }
+      apply funeq_sym, funeq_eq. rewrite EQLOC.
+      transitivity (E ∩₁ Loc_' lab_loc); [| basic_solver].
+      rewrite EISL. apply set_subset_inter_r.
+      split; apply ADD. }
+    apply funeq_mori with (x := W2 × eq e).
+    { unfold flip. basic_solver. }
+    apply funeq_eq. rewrite EQLOC.
+    transitivity (E ∩₁ Loc_' lab_loc); [| basic_solver].
+    rewrite EISL. apply set_subset_inter_r.
+    split; apply ADD. }
+  { apply (add_event_co_tr ADD). }
+  { apply (add_event_total ADD). }
   { rewrite (add_event_co ADD). apply irreflexive_union; split.
     { apply (co_irr WF). }
     unfold co_delta. apply irreflexive_union; split.
     { rewrite (add_event_W1E ADD). basic_solver. }
     rewrite (add_event_W2E ADD). basic_solver. }
-  { apply (add_event_init ADD); eauto. }
+  { destruct H as (b & INE & HLOC). apply EINE.
+    apply (add_event_acts ADD) in INE.
+    destruct INE as [INE | HEQ].
+    { apply WF. unfold loc in *.
+      rewrite (add_event_lab ADD) in HLOC.
+      rewrite updo in HLOC by congruence.
+      eauto. }
+    subst b. apply (add_event_init ADD).
+    rewrite <- HLOC, (add_event_lab ADD).
+    unfold lab_loc, loc. now rupd. }
   { rewrite (add_event_lab ADD). destruct classic with ((InitEvent l0) = e).
     { destruct ADD. rewrite H. rewrite upds. destruct add_event_ninit0.
       unfold is_init. basic_solver. }
@@ -605,7 +701,10 @@ Proof using.
     rewrite !set_interC with (s' := (fun a : actid => R_ex lab a)).
     rewrite !set_interA. rewrite <- EISREX.
     basic_solver 8. }
-  apply (add_event_thrd ADD); eauto.
+  apply (add_event_acts ADD) in EE.
+  destruct EE as [EE | EQE].
+  { now apply ADD, (wf_threads WF). }
+  subst. apply ADD, (add_event_thrd ADD).
 Qed.
 
 End AddEvent.
