@@ -598,6 +598,7 @@ Proof using CORR.
 Qed.
 
 Lemma simrel_exec_not_a_not_b e l
+    (E_TID : tid e <> tid_init)
     (E_NOT_A : e <> a_t)
     (E_NOT_B : e <> b_t)
     (ETID : forall (WITHA : tid e = tid b_t), ~(~E_t a_t /\ E_t b_t) )
@@ -819,7 +820,7 @@ Proof using.
     constructor; ins.
     { subst mapper'. now rupd. }
     { subst mapper'. now rupd. }
-    { admit. }
+    { subst mapper'. rupd. congruence. }
     { rewrite <- set_collect_eq_opt,
               set_collect_eq_dom with (g := mapper),
               rsr_is_w with (X_s := X_s) (X_t := X_t)
