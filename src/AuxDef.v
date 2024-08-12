@@ -610,17 +610,15 @@ Proof using.
   all: ins.
 Qed.
 
-Lemma expand_transitive {A : Type} (r : relation A) s e
-    (NOTIN : ~s e)
+Lemma expand_transitive {A : Type} (r : relation A) s s'
     (TRANS : transitive r)
-    (ENOTIN : eq e ⊆₁ set_compl (dom_rel r ∪₁ codom_rel r))
-    (SCLOSED : forall x y (R : r x y) (INX : s y), s x) :
-  transitive (r ∪ s × eq e).
+    (SCLOSED : upward_closed r s)
+    (NOTIN : s' ⊆₁ set_compl (dom_rel r)) :
+  transitive (r ∪ s × s').
 Proof using.
   unfolder. intros x y z.
   intros [R1 | [INS1 EQE1]] [R2 | [INS2 EQE2]].
-  { left. now apply TRANS with y. }
-  { right; split; ins. eauto. }
-  { exfalso. subst y. apply ENOTIN with e; basic_solver. }
-  exfalso. apply NOTIN. congruence.
+  all: eauto.
+  exfalso. eapply NOTIN.
+  all: unfolder; eauto.
 Qed.
