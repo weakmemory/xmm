@@ -622,3 +622,27 @@ Proof using.
   exfalso. eapply NOTIN.
   all: unfolder; eauto.
 Qed.
+
+Lemma collect_rel_minusE {A B : Type} r1 r2 (f : A -> B)
+    (FINJ : inj_dom (dom_rel r1 ∪₁ codom_rel r1 ∪₁ dom_rel r2 ∪₁ codom_rel r2) f) :
+  f ↑ (r1 \ r2) ≡ f ↑ r1 \ f ↑ r2.
+Proof using.
+  split; [| apply collect_rel_minus].
+  unfolder. intros x y (x' & y' & (R1 & R2) & XEQ & YEQ).
+  split; eauto. intros (x'' & y'' & R2' & XEQ' & YEQ').
+  apply R2.
+  rewrite FINJ with x' x'', FINJ with y' y''.
+  all: try congruence.
+  all: basic_solver 11.
+Qed.
+
+Lemma collect_rel_immediate {A B : Type} r (f : A -> B)
+    (FINJ : inj_dom (dom_rel r ∪₁ codom_rel r) f) :
+  immediate (f ↑ r) ≡ f ↑ immediate r.
+Proof using.
+  rewrite !immediateE.
+  rewrite collect_rel_minusE, collect_rel_seq; ins.
+  { now rewrite set_unionC. }
+  rewrite dom_seq, codom_seq.
+  eapply inj_dom_mori; eauto. unfold flip. basic_solver.
+Qed.
