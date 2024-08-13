@@ -507,6 +507,24 @@ Proof using.
   basic_solver.
 Qed.
 
+Lemma G_s_rfc
+    (RFC : rf_complete G_t)
+    (SIMREL : reord_simrel) :
+  rf_complete G_s.
+Proof using.
+  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
+  unfold rf_complete in *.
+  rewrite (rsr_acts SIMREL), set_inter_union_l,
+          (rsr_rf SIMREL), codom_union,
+          <- set_collect_codom.
+  apply set_union_mori.
+  { intros x (INE & ISR). eapply set_collect_mori; eauto.
+    unfolder. unfolder in INE. destruct INE as (y & INE & YEQ).
+    subst x. exists y; splits; ins.
+    unfold is_r in *. now rewrite <- (rsr_lab SIMREL). }
+  admit.
+Admitted.
+
 End SimRel.
 
 #[export]
