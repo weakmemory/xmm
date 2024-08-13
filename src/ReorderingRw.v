@@ -126,6 +126,8 @@ Record reord_correct_graphs : Prop := {
                   lab_s lab_t;
   rsr_init_acts : E_s ∩₁ is_init ≡₁ E_t ∩₁ is_init;
   rsr_at_bt_tid : tid a_t = tid b_t;
+  rsr_threads : threads_set G_s ≡₁ threads_set G_t;
+  rsr_ctrl : ctrl_s ≡ ctrl_t;
 }.
 
 Definition reord_simrel := exists a_s, reord_simrel_gen a_s.
@@ -688,7 +690,7 @@ Proof using.
   assert (ENOTIN : ~E_t e) by apply ADD.
   assert (EQACTS : E_t' ≡₁ E_t ∪₁ eq e) by apply ADD.
   assert (WF' : Wf G_t').
-  { admit. }
+  { eapply WCore.add_event_wf; eauto. apply CORR. }
   assert (MAPEQ : eq_dom E_t mapper' mapper).
   { subst mapper'. unfolder. intros x XINE.
     rupd. congruence. }
@@ -1034,8 +1036,11 @@ Proof using.
       { split; ins. rewrite (rsr_init SIMREL); ins. }
       exfalso. apply (WCore.add_event_ninit ADD).
       subst e. ins. }
-    { admit. }
-    { admit. }
+    { apply (rsr_threads CORR).
+      unfold mapper'. rupd. rewrite TID.
+      apply ADD. }
+    { rewrite (rsr_ctrl CORR), <- (WCore.add_event_ctrl ADD).
+      apply ADD. }
     { unfold mapper'. now rupd. }
     { unfold mapper'. now rupd. }
     { rewrite <- mapped_rf_delta_R,
