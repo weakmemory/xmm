@@ -231,6 +231,15 @@ Proof using.
   rewrite swap_rel_union. unfold swap_rel. basic_solver 11.
 Qed.
 
+Lemma swap_rel_sub {T : Type} (r : relation T) A B :
+  ⦗set_compl (A ∪₁ B)⦘ ⨾ swap_rel r A B ⊆ ⦗set_compl (A ∪₁ B)⦘ ⨾ r.
+Proof using.
+  unfold swap_rel.  rewrite seq_union_r.
+  arewrite (⦗set_compl (A ∪₁ B)⦘ ⨾ B × A ⊆ ∅₂).
+  { basic_solver. }
+  basic_solver.
+Qed.
+
 Lemma extra_co_D_eq_dom s ll1 ll2 l
     (EQ : eq_dom s ll1 ll2) :
   extra_co_D s ll1 l ≡₁ extra_co_D s ll2 l.
