@@ -87,107 +87,42 @@ Proof using.
     rewrite rpo_in_sb; basic_solver.
 Qed.
 
-Lemma seqA4 A (r r' r'' r''' : relation A) :
-    (r ⨾ r' ⨾ r'') ⨾ r''' ≡ r ⨾ r' ⨾ r'' ⨾ r'''.
+Lemma sb_sw_in_rpo_sw :
+    sb ⨾ sw ⊆ rpo ⨾ sw.
 Proof using.
-    rewrite seqA. rewrite seqA. basic_solver.
-Qed.
-
-Lemma sb_trans_sw_in_rpo_sw :
-    sb⁺ ⨾ sw ⊆ rpo ⨾ sw.
-Proof using.
-    assert (TRANS : transitive sb). apply sb_trans.
-    assert (SB_TR : sb⁺ ≡ sb). apply ct_of_trans; eauto.
-    rewrite SB_TR. unfold rpo. assert (RPO_SUB :
-    (⦗(fun a : actid => R a) ∩₁ (fun a : actid => is_rlx lab a)⦘
-      ⨾ sb ⨾ ⦗(fun a : actid => F a) ∩₁ (fun a : actid => is_acq lab a)⦘
-      ∪ ⦗fun a : actid => is_acq lab a⦘ ⨾ sb
-      ∪ sb ⨾ ⦗fun a : actid => is_rel lab a⦘
-      ∪ ⦗(fun a : actid => F a) ∩₁ (fun a : actid => is_rel lab a)⦘
-      ⨾ sb ⨾ ⦗(fun a : actid => W a) ∩₁ (fun a : actid => is_rlx lab a)⦘)
-    ⊆
-      (⦗(fun a : actid => R a) ∩₁ (fun a : actid => is_rlx lab a)⦘
-      ⨾ sb ⨾ ⦗(fun a : actid => F a) ∩₁ (fun a : actid => is_acq lab a)⦘
-      ∪ ⦗fun a : actid => is_acq lab a⦘ ⨾ sb
-      ∪ sb ⨾ ⦗fun a : actid => is_rel lab a⦘
-      ∪ ⦗(fun a : actid => F a) ∩₁ (fun a : actid => is_rel lab a)⦘
-      ⨾ sb ⨾ ⦗(fun a : actid => W a) ∩₁ (fun a : actid => is_rlx lab a)⦘)⁺).
-    { apply ct_step. }
-    rewrite <- RPO_SUB. intros x y H. apply seq_union_l; left.
-    apply seq_union_l; right. assert (REL_SW : sw ≡ (⦗fun a : actid => is_rel lab a⦘) ⨾ sw).
-    { unfold sw. unfold release. basic_solver 21. }
-    assert (SAME : sb ⨾ sw ≡
-                   sb ⨾ (⦗fun a : actid => is_rel lab a⦘) ⨾ sw).
-    { rewrite <- REL_SW; eauto. }
-    apply SAME in H. apply seqA in H. eauto.
+  transitivity (sb ⨾ ⦗fun a => is_rel lab a⦘ ⨾ sw).
+  { arewrite (sw ⊆ (⦗fun a => is_rel lab a⦘) ⨾ sw) at 1; [|done].
+    unfold sw. unfold release. basic_solver 21. }
+  hahn_frame_r.
+  unfold rpo, rpo_imm. rewrite <- ct_step.
+  eauto with hahn.
 Qed.
 
 Lemma sw_sb_in_rpo :
     sw ⨾ sb ⊆ sw ⨾ rpo.
 Proof using.
-    unfold rpo. assert (RPO_SUB :
-    (⦗(fun a : actid => R a) ∩₁ (fun a : actid => is_rlx lab a)⦘
-      ⨾ sb ⨾ ⦗(fun a : actid => F a) ∩₁ (fun a : actid => is_acq lab a)⦘
-      ∪ ⦗fun a : actid => is_acq lab a⦘ ⨾ sb
-      ∪ sb ⨾ ⦗fun a : actid => is_rel lab a⦘
-      ∪ ⦗(fun a : actid => F a) ∩₁ (fun a : actid => is_rel lab a)⦘
-      ⨾ sb ⨾ ⦗(fun a : actid => W a) ∩₁ (fun a : actid => is_rlx lab a)⦘)
-    ⊆
-      (⦗(fun a : actid => R a) ∩₁ (fun a : actid => is_rlx lab a)⦘
-      ⨾ sb ⨾ ⦗(fun a : actid => F a) ∩₁ (fun a : actid => is_acq lab a)⦘
-      ∪ ⦗fun a : actid => is_acq lab a⦘ ⨾ sb
-      ∪ sb ⨾ ⦗fun a : actid => is_rel lab a⦘
-      ∪ ⦗(fun a : actid => F a) ∩₁ (fun a : actid => is_rel lab a)⦘
-      ⨾ sb ⨾ ⦗(fun a : actid => W a) ∩₁ (fun a : actid => is_rlx lab a)⦘)⁺).
-    { apply ct_step. }
-    rewrite <- RPO_SUB.
-    intros x y H. apply seq_union_r. left.
-    apply seq_union_r. left. apply seq_union_r. right.
-    assert (REL_SW : sw ≡ sw ⨾ (⦗fun a : actid => is_acq lab a⦘)).
-    { unfold sw. basic_solver 21. }
-    assert (SAME : sw ⨾ sb ≡
-                   sw ⨾ (⦗fun a : actid => is_acq lab a⦘) ⨾ sb).
-    { rewrite <- seqA. rewrite <- REL_SW; eauto. }
-    apply SAME in H. vauto.
+  transitivity (sw ⨾ ⦗fun a => is_acq lab a⦘ ⨾ sb).
+  { arewrite (sw ⊆ sw ;; (⦗fun a => is_acq lab a⦘)) at 1; [|done].
+    unfold sw. basic_solver 21. }
+  hahn_frame_l.
+  unfold rpo, rpo_imm. rewrite <- ct_step.
+  eauto with hahn.
 Qed.
 
 Lemma sb_sw_trans_in_rpo_sw_trans :
     sb ⨾ sw⁺ ⊆ rpo ⨾ sw⁺.
 Proof using.
-    unfold rpo. assert (RPO_SUB :
-    (⦗(fun a : actid => R a) ∩₁ (fun a : actid => is_rlx lab a)⦘
-      ⨾ sb ⨾ ⦗(fun a : actid => F a) ∩₁ (fun a : actid => is_acq lab a)⦘
-      ∪ ⦗fun a : actid => is_acq lab a⦘ ⨾ sb
-      ∪ sb ⨾ ⦗fun a : actid => is_rel lab a⦘
-      ∪ ⦗(fun a : actid => F a) ∩₁ (fun a : actid => is_rel lab a)⦘
-      ⨾ sb ⨾ ⦗(fun a : actid => W a) ∩₁ (fun a : actid => is_rlx lab a)⦘)
-    ⊆
-      (⦗(fun a : actid => R a) ∩₁ (fun a : actid => is_rlx lab a)⦘
-      ⨾ sb ⨾ ⦗(fun a : actid => F a) ∩₁ (fun a : actid => is_acq lab a)⦘
-      ∪ ⦗fun a : actid => is_acq lab a⦘ ⨾ sb
-      ∪ sb ⨾ ⦗fun a : actid => is_rel lab a⦘
-      ∪ ⦗(fun a : actid => F a) ∩₁ (fun a : actid => is_rel lab a)⦘
-      ⨾ sb ⨾ ⦗(fun a : actid => W a) ∩₁ (fun a : actid => is_rlx lab a)⦘)⁺).
-    { apply ct_step. }
-    rewrite <- RPO_SUB. intros x y H. apply seq_union_l; left.
-    apply seq_union_l; right. assert (REL_SW : sw ≡ (⦗fun a : actid => is_rel lab a⦘) ⨾ sw).
-    { unfold sw. unfold release. basic_solver 21. }
-    assert (SAME : sb ⨾ sw⁺ ≡
-                   sb ⨾ (⦗fun a : actid => is_rel lab a⦘ ⨾ sw)⁺).
-    { rewrite <- REL_SW; eauto. }
-    apply SAME in H. apply seqA.
-    assert (IN : sb ⨾ (⦗fun a : actid => is_rel lab a⦘ ⨾ sw)⁺ ⊆
-                 sb ⨾ ⦗fun a : actid => is_rel lab a⦘ ⨾ sw⁺).
-    { rewrite inclusion_ct_seq_eqv_l; vauto. }
-    apply IN in H. eauto.
+  now rewrite ct_begin, <- !seqA, sb_sw_in_rpo_sw.
 Qed.
 
+(* TODO: remove *)
 Lemma sb_sw_trans_trans :
     (sb ⨾ sw⁺)⁺ ⊆ (rpo ⨾ sw⁺)⁺.
 Proof using.
-    apply inclusion_t_t. apply sb_sw_trans_in_rpo_sw_trans.
+  now rewrite sb_sw_trans_in_rpo_sw_trans.
 Qed.
 
+(*
 Lemma sb_rpo_start x x0 y
         (SB : sb x x0)
         (SW : sw x0 y) :
@@ -210,99 +145,55 @@ Proof using.
       destruct H2. basic_solver. }
     basic_solver.
 Qed.
+*)
 
+(* TODO: move to AuxRel.v *)
 Lemma ct_unit_left A (r : relation A) :
     r ⨾ r⁺ ⊆ r⁺.
 Proof.
-  unfold seq, inclusion; ins; desf; vauto.
+  arewrite (r ⊆ r⁺) at 1. apply ct_ct.
 Qed.
 
+(*
 Lemma ct_unit_helper A (r r' : relation A) :
     r ⨾ r⁺ ⨾ r' ⊆ r⁺ ⨾ r'.
 Proof using.
   unfold seq, inclusion; ins; desf; vauto.
   exists z0; split; vauto.
 Qed.
+*)
 
+(* TODO: move *)
 Lemma trans_helper_swapped A (r r' : relation A)
         (TRANS : transitive r) :
     r ⨾ (r' ∪ r)⁺ ⊆ r ∪ (r ⨾ r'⁺)⁺ ⨾ r^?.
 Proof using.
-      rewrite path_union2. rewrite seq_union_r.
-      apply inclusion_union_l. rewrite seq_union_r.
-      apply inclusion_union_l.
-      { right. unfold seq. exists y. split; vauto. }
-      { rewrite rtE. rewrite ct_unit_helper. rewrite ct_of_trans; vauto.
-        rewrite seq_union_r. apply inclusion_union_l.
-        { left. destruct H. destruct H. destruct H0. destruct H0.
-          basic_solver. }
-        right. unfold seq. exists y. split; vauto. }
-      rewrite ct_rotl. rewrite ct_of_trans with (r := r); vauto.
-      intros x y H. destruct H. destruct H. destruct H0. destruct H0.
-      destruct H1. destruct H1. destruct H1. destruct H1.
-      destruct H3. destruct H3. destruct H2.
-      { right. unfold seq. exists y. split; vauto.
-        assert (EQ : (fun x5 y0 : A => exists z : A, r x5 z /\ r'⁺ z y0)⁺ ≡ (r ⨾ r'⁺)⁺).
-        { unfold seq. basic_solver. }
-        apply EQ. assert (P1' : r⁺ x x1).
-        { apply ct_begin. basic_solver. }
-        assert (P1 : r x x1).
-        { apply ct_of_trans; vauto. }
-        assert (P2 : (r ⨾ r'⁺) x x3).
-        { unfold seq. basic_solver. }
-        assert (P3 : (r ⨾ r'⁺)⁺ x x4).
-        { apply ct_begin. basic_solver. }
-        apply ct_ct. unfold seq. exists x4. split; vauto.
-        apply EQ. apply ct_step. unfold seq. exists x2; vauto. }
-      { right. unfold seq. exists x4. split; vauto.
-        assert (EQ : (fun x5 y0 : A => exists z : A, r x5 z /\ r'⁺ z y0)⁺ ≡ (r ⨾ r'⁺)⁺).
-        { unfold seq. basic_solver. }
-        apply EQ. assert (P1' : r⁺ x x1).
-        { apply ct_begin. basic_solver. }
-        assert (P1 : r x x1).
-        { apply ct_of_trans; vauto. }
-        assert (P2 : (r ⨾ r'⁺) x x3).
-        { unfold seq. basic_solver. }
-        assert (P3 : (r ⨾ r'⁺)⁺ x x4).
-        { apply ct_begin. basic_solver. }
-        vauto. }
-      right.
-      assert (P4 : (r'^* ) x2 z).
-      { apply rt_rt. unfold seq; vauto. }
-      assert (EQ : (fun x5 y0 : A => exists z : A, r x5 z /\ r'⁺ z y0)⁺ ≡ (r ⨾ r'⁺)⁺).
-        { unfold seq. basic_solver. }
-      apply rtE in P4. destruct P4.
-      { destruct H2. unfold seq. exists x4. split; vauto.
-        apply EQ. apply EQ. assert (P1' : r⁺ x x1).
-        { apply ct_begin. basic_solver. }
-        assert (P1 : r x x1).
-        { apply ct_of_trans; vauto. }
-        assert (P2 : (r ⨾ r'⁺) x x3).
-        { unfold seq. basic_solver. }
-        assert (P3 : (r ⨾ r'⁺)⁺ x x4).
-        { apply ct_begin. basic_solver. }
-        vauto. }
-      unfold seq. exists z. split; vauto.
-      apply EQ. apply ct_ct. unfold seq. exists x4. split; vauto.
-      apply EQ. apply EQ. assert (P1' : r⁺ x x1).
-      { apply ct_begin. basic_solver. }
-      assert (P1 : r x x1).
-      { apply ct_of_trans; vauto. }
-      assert (P2 : (r ⨾ r'⁺) x x3).
-      { unfold seq. basic_solver. }
-      assert (P3 : (r ⨾ r'⁺)⁺ x x4).
-      { apply ct_begin. basic_solver. }
-      vauto.
+  rewrite path_union2. rewrite !seq_union_r.
+  arewrite (r ⨾ r＊ ⊆ r⁺).
+  arewrite (r ⨾ r⁺ ⊆ r⁺) by apply ct_unit_left.
+  arewrite (r⁺ ⊆ r).
+  arewrite (r'⁺ ⊆ r'＊).
+  rels.
+  rewrite rtE at 1. rewrite seq_union_r, seq_id_r.
+  unionL; eauto with hahn.
+  all: unionR right.
+  { rewrite <- ct_step with (r := r ;; r'⁺).
+    basic_solver 10. }
+  rewrite ct_rotl, <- !seqA.
+  rewrite <- ct_begin.
+  rewrite !seqA.
+  rewrite rtE, !seq_union_r, seq_id_r.
+  arewrite ((r ⨾ r'⁺)⁺ ⨾ r ⨾ r'⁺ ⊆ (r ⨾ r'⁺)⁺).
+  { now rewrite ct_unit. }
+  rewrite crE, seq_union_r, seq_id_r.
+  eauto with hahn.
 Qed.
 
+(* TODO: remove this lemma *)
 Lemma swap_helper A (r r' : relation A) :
     r ⨾ (r' ∪ r)⁺ ≡ r ⨾ (r ∪ r')⁺.
 Proof using.
-    unfold seq. split; intros x y H.
-    { destruct H. destruct H. exists x0. split; vauto.
-      apply inclusion_t_t with (r := r' ∪ r); basic_solver. }
-    destruct H. destruct H. exists x0. split; vauto.
-    apply inclusion_t_t with (r := r ∪ r'); basic_solver.
+  now rewrite unionC.
 Qed.
 
 Lemma trans_helper A (r r' : relation A)
