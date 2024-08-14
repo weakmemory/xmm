@@ -102,8 +102,7 @@ Record reord_correct_graphs : Prop := {
   rsr_Gt_rfc : rf_complete G_t;
   rsr_a_t_is_r_or_w : eq a_t ∩₁ E_t ⊆₁ (W_t ∪₁ R_t);
   rsr_b_t_is_r_or_w : eq b_t ∩₁ E_t ⊆₁ (W_t ∪₁ R_t);
-  rsr_init_lab : eq_dom (E_t ∩₁ is_init)
-                  lab_s lab_t;
+  rsr_init_lab : forall l, lab_s (InitEvent l) = Astore Xpln Opln l 0;
   rsr_init_acts : E_s ∩₁ is_init ≡₁ E_t ∩₁ is_init;
   rsr_at_bt_tid : tid a_t = tid b_t;
   rsr_threads : threads_set G_s ≡₁ threads_set G_t;
@@ -537,7 +536,7 @@ Proof using.
   { enough (HIN : (E_s ∩₁ is_init) (InitEvent l)) by now apply HIN.
     apply SIMREL. split; ins.
     admit. }
-  { admit. }
+  { apply SIMREL. }
   { admit. }
   { admit. }
   { apply G_s_co_trans; try apply SIMREL.
@@ -684,7 +683,9 @@ Proof using CORR.
   constructor; ins.
   { rewrite EXA. basic_solver. }
   { rewrite (rsr_init_acts CORR), EXA. basic_solver. }
-  { rewrite Combinators.compose_id_right. apply CORR. }
+  { rewrite Combinators.compose_id_right. unfolder.
+    intros x (_ & INIT). destruct x as [ xl | xt xn ]; ins.
+    now rewrite (rsr_init_lab CORR), (wf_init_lab WF). }
   { rewrite EXA. rewrite (rsr_init_acts CORR). basic_solver 11. }
   { rewrite EXA, !cross_false_r, !cross_false_l, !union_false_r.
     unfold swap_rel.
@@ -709,9 +710,6 @@ Proof using CORR.
     exfalso. now apply (rsr_at_ninit CORR). }
   { intros x (EQ & (_ & XINIT)). subst x.
     exfalso. now apply (rsr_bt_ninit CORR). }
-  { eapply eq_dom_mori; try now apply CORR.
-    all: ins.
-    unfold flip. basic_solver. }
   now rewrite (rsr_init_acts CORR).
 Qed.
 
@@ -941,13 +939,7 @@ Proof using.
       arewrite (eq b_t ∩₁ E_t' ⊆₁ eq b_t ∩₁ E_t) by basic_solver.
       unfolder. ins. desf. unfold is_w, is_r. rupd; [| congruence].
       apply (rsr_b_t_is_r_or_w CORR). basic_solver. }
-    { rewrite (WCore.add_event_acts ADD).
-      arewrite ((E_t ∪₁ eq e) ∩₁ is_init ≡₁ E_t ∩₁ is_init).
-      { basic_solver. }
-      unfolder. intros x (XINE & XINIT).
-      rewrite (WCore.add_event_lab ADD), !updo.
-      { apply CORR. basic_solver. }
-      all: congruence. }
+    { rupd; [apply CORR | destruct e'; ins]. }
     { rewrite (WCore.add_event_acts ADD), !set_inter_union_l.
       apply set_union_more; [apply CORR | basic_solver]. }
     { rewrite (WCore.add_event_threads ADD). apply SIMREL. }
