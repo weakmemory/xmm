@@ -94,6 +94,22 @@ Definition add_max {T : Type} (A B : T -> Prop) := (A \₁ B) × B.
 Definition extra_co_D (s : actid -> Prop) ll l :=
   (s ∩₁ is_w ll ∩₁ (fun e => loc ll e = l)).
 
+Record reord_correct_graphs : Prop := {
+  rsr_at_tid : tid a_t <> tid_init;
+  rsr_at_ninit : ~is_init a_t;
+  rsr_bt_ninit : ~is_init b_t;
+  rsr_Gt_wf : Wf G_t;
+  rsr_Gt_rfc : rf_complete G_t;
+  rsr_a_t_is_r_or_w : eq a_t ∩₁ E_t ⊆₁ (W_t ∪₁ R_t);
+  rsr_b_t_is_r_or_w : eq b_t ∩₁ E_t ⊆₁ (W_t ∪₁ R_t);
+  rsr_init_lab : eq_dom (E_t ∩₁ is_init)
+                  lab_s lab_t;
+  rsr_init_acts : E_s ∩₁ is_init ≡₁ E_t ∩₁ is_init;
+  rsr_at_bt_tid : tid a_t = tid b_t;
+  rsr_threads : threads_set G_s ≡₁ threads_set G_t;
+  rsr_ctrl : ctrl_s ≡ ctrl_t;
+}.
+
 Record reord_simrel_gen a_s : Prop := {
   rsr_inj : inj_dom E_t mapper;
   rsr_as : extra_a a_s ⊆₁ extra_a_pred;
@@ -112,22 +128,7 @@ Record reord_simrel_gen a_s : Prop := {
       (extra_co_D E_s lab_s (loc_s a_s))
       (extra_a a_s ∩₁ W_s);
   rsr_rmw : rmw_s ≡ mapper ↑ rmw_t;
-}.
-
-Record reord_correct_graphs : Prop := {
-  rsr_at_tid : tid a_t <> tid_init;
-  rsr_at_ninit : ~is_init a_t;
-  rsr_bt_ninit : ~is_init b_t;
-  rsr_Gt_wf : Wf G_t;
-  rsr_Gt_rfc : rf_complete G_t;
-  rsr_a_t_is_r_or_w : eq a_t ∩₁ E_t ⊆₁ (W_t ∪₁ R_t);
-  rsr_b_t_is_r_or_w : eq b_t ∩₁ E_t ⊆₁ (W_t ∪₁ R_t);
-  rsr_init_lab : eq_dom (E_t ∩₁ is_init)
-                  lab_s lab_t;
-  rsr_init_acts : E_s ∩₁ is_init ≡₁ E_t ∩₁ is_init;
-  rsr_at_bt_tid : tid a_t = tid b_t;
-  rsr_threads : threads_set G_s ≡₁ threads_set G_t;
-  rsr_ctrl : ctrl_s ≡ ctrl_t;
+  rsr_corr : reord_correct_graphs;
 }.
 
 Definition reord_simrel := exists a_s, reord_simrel_gen a_s.
@@ -646,6 +647,8 @@ Lemma sim_rel_init :
     a_t b_t
     id.
 Proof using CORR.
+  assert (WF : Wf G_t) by apply CORR.
+  assert (IWF : Wf (WCore.init_exec G_t)) by now apply WCore.wf_init_exec.
   assert (EXA : extra_a
     {|
       WCore.G :=
@@ -675,7 +678,19 @@ Proof using CORR.
     basic_solver 11. }
   { rewrite EXA. basic_solver. }
   { rewrite EXA. basic_solver. }
-  basic_solver.
+  { basic_solver. }
+  constructor; try now apply CORR.
+  all: ins.
+  { unfold rf_complete. intros x ((INE & INIT) & ISR).
+    exfalso. eapply read_or_fence_is_not_init; eauto. }
+  { intros x (EQ & (_ & XINIT)). subst x.
+    exfalso. now apply (rsr_at_ninit CORR). }
+  { intros x (EQ & (_ & XINIT)). subst x.
+    exfalso. now apply (rsr_bt_ninit CORR). }
+  { eapply eq_dom_mori; try now apply CORR.
+    all: ins.
+    unfold flip. basic_solver. }
+  now rewrite (rsr_init_acts CORR).
 Qed.
 
 Lemma simrel_exec_not_a_not_b e l
@@ -893,7 +908,28 @@ Proof using.
     { unfold loc. rupd. intro FALSO. subst e'.
       apply ETID; ins. rewrite <- TID. symmetry. apply AS_TID.
       unfold extra_a. desf. exfalso. eauto. }
-    basic_solver 11. }
+    { basic_solver 11. }
+    constructor; ins.
+    all: try now apply CORR.
+    { rewrite (WCore.add_event_lab ADD).
+      arewrite (eq a_t ∩₁ E_t' ⊆₁ eq a_t ∩₁ E_t) by basic_solver.
+      unfolder. ins. desf. unfold is_w, is_r. rupd; [| congruence].
+      apply (rsr_a_t_is_r_or_w CORR). basic_solver. }
+    { rewrite (WCore.add_event_lab ADD).
+      arewrite (eq b_t ∩₁ E_t' ⊆₁ eq b_t ∩₁ E_t) by basic_solver.
+      unfolder. ins. desf. unfold is_w, is_r. rupd; [| congruence].
+      apply (rsr_b_t_is_r_or_w CORR). basic_solver. }
+    { rewrite (WCore.add_event_acts ADD).
+      arewrite ((E_t ∪₁ eq e) ∩₁ is_init ≡₁ E_t ∩₁ is_init).
+      { basic_solver. }
+      unfolder. intros x (XINE & XINIT).
+      rewrite (WCore.add_event_lab ADD), !updo.
+      { apply CORR. basic_solver. }
+      all: congruence. }
+    { rewrite (WCore.add_event_acts ADD), !set_inter_union_l.
+      apply set_union_more; [apply CORR | basic_solver]. }
+    { rewrite (WCore.add_event_threads ADD). apply SIMREL. }
+    rewrite (WCore.add_event_ctrl ADD). apply SIMREL. }
   (* Actual proof *)
   exists mapper', X_s'.
   split; red; ins.
@@ -1264,6 +1300,7 @@ Proof using.
       all: try now apply CORR.
       rewrite collect_rel_empty, !union_false_r.
       basic_solver 12. }
+    { admit. }
     admit. }
   { constructor; ins.
     now exists r', R1', w', W1', W2'. }
@@ -1709,6 +1746,7 @@ Proof using CORR.
       arewrite (mapper' ↑ rf_t ≡ mapper ↑ rf_t).
       { admit. }
       now rewrite !union_false_r. }
+    { admit. }
     admit. }
   red. exists id, thrdle', dtrmt'.
   constructor; ins.
