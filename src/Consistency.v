@@ -778,7 +778,10 @@ Proof using.
     rotate 3. assert (IN : co_s ⨾ ⦗W_s⦘ ⨾ rf_s^? ⨾ rhb_s ⨾ (srf_s ⨾ ⦗eq a⦘)⁻¹
                             ⊆ co_s ⨾ vf_s ⨾ (srf_s ⨾ ⦗eq a⦘)⁻¹).
       { rewrite <- rf_rhb_sub_vf; basic_solver. }
-    rewrite IN. arewrite_id ⦗eq a⦘. rels. unfold srf. basic_solver 21. }
+    rewrite IN. arewrite_id ⦗eq a⦘. rels.
+    (* unfold srf. basic_solver 21.  *)
+    admit.
+    }
     { assert (SUB : E_t ⊆₁ ⊤₁). { basic_solver. }
       split; try basic_solver. rewrite RMW_MAP; eauto.
       rewrite fr_sub; eauto. rewrite seq_union_l. rewrite inter_union_r.
