@@ -103,7 +103,8 @@ Record reord_correct_graphs : Prop := {
   rsr_a_t_is_r_or_w : eq a_t ∩₁ E_t ⊆₁ (W_t ∪₁ R_t);
   rsr_b_t_is_r_or_w : eq b_t ∩₁ E_t ⊆₁ (W_t ∪₁ R_t);
   rsr_init_lab : forall l, lab_s (InitEvent l) = Astore Xpln Opln l 0;
-  rsr_init_acts : E_s ∩₁ is_init ≡₁ E_t ∩₁ is_init;
+  rsr_init_acts_t : is_init ⊆₁ E_t;
+  rsr_init_acts_s : is_init ⊆₁ E_s;
   rsr_at_bt_tid : tid a_t = tid b_t;
   rsr_threads : threads_set G_s ≡₁ threads_set G_t;
   rsr_ctrl : ctrl_s ≡ ctrl_t;
@@ -113,7 +114,7 @@ Record reord_simrel_gen a_s : Prop := {
   rsr_inj : inj_dom E_t mapper;
   rsr_as : extra_a a_s ⊆₁ extra_a_pred;
   rsr_codom : mapper ↑₁ E_t ⊆₁ E_s \₁ extra_a a_s;
-  rsr_init : fixset (E_t ∩₁ is_init) mapper;
+  rsr_init : fixset is_init mapper;
   rsr_tid : eq_dom E_t (tid ∘ mapper) tid;
   rsr_lab : eq_dom E_t (lab_s ∘ mapper) lab_t;
   rsr_acts : E_s ≡₁ mapper ↑₁ E_t ∪₁ extra_a a_s;
@@ -533,9 +534,7 @@ Proof using.
         as (w & SRF).
   all: eauto.
   { admit. }
-  { enough (HIN : (E_s ∩₁ is_init) (InitEvent l)) by now apply HIN.
-    apply SIMREL. split; ins.
-    admit. }
+  { now apply (rsr_init_acts_s (rsr_corr SIMREL)). }
   { apply SIMREL. }
   { admit. }
   { admit. }
@@ -669,7 +668,11 @@ Lemma sim_rel_init :
     id.
 Proof using CORR.
   assert (WF : Wf G_t) by apply CORR.
-  assert (IWF : Wf (WCore.init_exec G_t)) by now apply WCore.wf_init_exec.
+  assert (IWF : Wf (WCore.init_exec G_t)).
+  { apply WCore.wf_init_exec; ins.
+    assert (SOMELOC : location) by constructor.
+    now apply (wf_threads WF (InitEvent SOMELOC)),
+        (rsr_init_acts_t CORR). }
   assert (EXA : extra_a
     {|
       WCore.G :=
@@ -682,35 +685,31 @@ Proof using CORR.
   exists a_t.
   constructor; ins.
   { rewrite EXA. basic_solver. }
-  { rewrite (rsr_init_acts CORR), EXA. basic_solver. }
+  { rewrite EXA. basic_solver. }
   { rewrite Combinators.compose_id_right. unfolder.
-    intros x (_ & INIT). destruct x as [ xl | xt xn ]; ins.
+    intros x INIT. destruct x as [ xl | xt xn ]; ins.
     now rewrite (rsr_init_lab CORR), (wf_init_lab WF). }
-  { rewrite EXA. rewrite (rsr_init_acts CORR). basic_solver 11. }
+  { rewrite EXA. basic_solver. }
   { rewrite EXA, !cross_false_r, !cross_false_l, !union_false_r.
     unfold swap_rel.
-    arewrite (eq a_t ∩₁ (E_t ∩₁ is_init) ≡₁ ∅).
+    arewrite (eq a_t ∩₁ is_init ≡₁ ∅).
     { split; [| basic_solver]. unfolder.
       ins. desf. now apply (rsr_at_ninit CORR). }
-    arewrite (eq b_t ∩₁ (E_t ∩₁ is_init) ≡₁ ∅).
+    arewrite (eq b_t ∩₁ is_init ≡₁ ∅).
     { split; [| basic_solver]. unfolder.
       ins. desf. now apply (rsr_bt_ninit CORR). }
-    rewrite !cross_false_r, !union_false_r.
-    rewrite minus_disjoint; [| basic_solver].
-    unfold sb. ins. rewrite (rsr_init_acts CORR).
-    basic_solver 11. }
+    unfold sb. ins. rewrite !cross_false_r, !union_false_r.
+    rewrite minus_disjoint; basic_solver 11. }
   { rewrite EXA. basic_solver. }
   { rewrite EXA. basic_solver. }
   { basic_solver. }
   constructor; try now apply CORR.
   all: ins.
-  { unfold rf_complete. intros x ((INE & INIT) & ISR).
+  { unfold rf_complete. intros x (INIT & ISR).
     exfalso. eapply read_or_fence_is_not_init; eauto. }
-  { intros x (EQ & (_ & XINIT)). subst x.
-    exfalso. now apply (rsr_at_ninit CORR). }
-  { intros x (EQ & (_ & XINIT)). subst x.
-    exfalso. now apply (rsr_bt_ninit CORR). }
-  now rewrite (rsr_init_acts CORR).
+  all: intros x (EQ & XINIT); subst x; exfalso.
+  { now apply (rsr_at_ninit CORR). }
+  now apply (rsr_bt_ninit CORR).
 Qed.
 
 Lemma simrel_exec_not_a_not_b e l
@@ -821,11 +820,8 @@ Proof using.
       rewrite MAPER_E, MAPSUB, (rsr_codom SIMREL). basic_solver. }
     { rewrite <- EXEQ. apply SIMREL. }
     { rewrite <- EXEQ. ins. }
-    { rewrite (WCore.add_event_acts ADD), set_inter_union_l.
-      arewrite (eq e ∩₁ is_init ≡₁ ∅) by basic_solver.
-      rewrite set_union_empty_r.
-      apply fixset_eq_dom with (g := mapper), SIMREL.
-      eapply eq_dom_mori; eauto. unfold flip. basic_solver. }
+    { unfolder. unfold mapper'. ins. rupd; [| congruence].
+      now apply (rsr_init SIMREL). }
     { rewrite EQACTS. apply eq_dom_union. split.
       all: unfolder; unfold compose.
       { intros x XIN. rewrite MAPEQ; ins. now apply SIMREL. }
@@ -858,13 +854,11 @@ Proof using.
       { unfold WCore.sb_delta.
         rewrite collect_rel_cross, set_collect_eq.
         apply cross_more; [| unfold mapper'; now rupd].
-        rewrite !set_inter_union_r, set_collect_union.
+        rewrite set_collect_union.
         apply set_union_more.
-        { rewrite set_collect_eq_dom with (g := mapper),
-                  <- (fixset_set_fixpoint (rsr_init SIMREL)),
-                  <- (rsr_init_acts CORR).
-          all: ins.
-          eapply eq_dom_mori; eauto. unfold flip. basic_solver. }
+        { rewrite <- fixset_set_fixpoint; ins.
+          unfolder. unfold mapper'. ins. rupd; [| congruence].
+          now apply (rsr_init SIMREL). }
         rewrite set_collect_eq_dom with (g := mapper),
                 (rsr_same_tid e OLDSIMREL), SAMETID,
                 (rsr_acts SIMREL), set_inter_union_l.
@@ -940,8 +934,9 @@ Proof using.
       unfolder. ins. desf. unfold is_w, is_r. rupd; [| congruence].
       apply (rsr_b_t_is_r_or_w CORR). basic_solver. }
     { rupd; [apply CORR | destruct e'; ins]. }
-    { rewrite (WCore.add_event_acts ADD), !set_inter_union_l.
-      apply set_union_more; [apply CORR | basic_solver]. }
+    { rewrite (WCore.add_event_acts ADD), <- (rsr_init_acts_t CORR).
+      basic_solver. }
+    { rewrite <- (rsr_init_acts_s CORR). basic_solver. }
     { rewrite (WCore.add_event_threads ADD). apply SIMREL. }
     rewrite (WCore.add_event_ctrl ADD). apply SIMREL. }
   (* Actual proof *)
@@ -1094,16 +1089,7 @@ Proof using.
     { eapply G_s_co_trans with (X_s := X_s'); eauto. }
     { eapply G_s_rff with (X_s := X_s'); eauto. }
     { eapply G_s_co_total with (X_s := X_s'); eauto. }
-    { apply (rsr_acts SIMREL). left. exists (InitEvent l0).
-      assert (IN : E_t' (InitEvent l0)).
-      { apply WF'. exists e; split; [apply ADD; basic_solver |].
-        rewrite <- SOME, (WCore.add_event_lab ADD).
-        unfold loc, WCore.lab_loc. now rupd. }
-      apply ADD in IN.
-      destruct IN as [INE|EQE]; ins.
-      { split; ins. rewrite (rsr_init SIMREL); ins. }
-      exfalso. apply (WCore.add_event_ninit ADD).
-      subst e. ins. }
+    { apply SIMREL. }
     { apply (rsr_threads CORR).
       unfold mapper'. rupd. rewrite TID.
       apply ADD. }

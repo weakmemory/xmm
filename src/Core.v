@@ -72,29 +72,30 @@ Record t := {
 }.
 
 Definition init_exec G : execution :=
-  Build_execution (acts_set G ∩₁ is_init) (threads_set G) (lab G) ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂.
+  Build_execution
+    is_init (threads_set G)
+    (lab G)
+   ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂.
 
 Lemma wf_init_exec G
+    (INIT : threads_set G tid_init)
     (WF : Wf G) :
   Wf (init_exec G).
 Proof using.
   constructor.
-  { intros a b (INA & _ & _ & _ & ANIN). ins.
-    exfalso. apply ANIN, INA. }
+  { intros a b (INA & _ & _ & _ & ANIN); ins. }
   all: ins.
   all: try now rewrite ?seq_false_l, ?seq_false_r.
   { unfolder.
-    intros a (((INA & ININA) & _) & ALOC)
-           b (((INB & ININB) & _) & BLOC)
+    intros a ((INA & ININA) & ALOC)
+           b ((INB & ININB) & BLOC)
            NEQ.
     exfalso. apply NEQ.
     destruct a as [al | ta na], b as [bl | tb nb]; ins.
     unfold loc in *. rewrite (wf_init_lab WF) in *.
     congruence. }
-  { unfolder in *. desf; split; eauto.
-    apply WF; eauto. }
   { apply WF. }
-  apply WF, EE.
+  destruct e; ins.
 Qed.
 
 #[global]
@@ -292,7 +293,7 @@ Definition lab_is_w : actid -> Prop :=
   end.
 
 Definition sb_delta : relation actid :=
-  (E ∩₁ (is_init ∪₁ same_tid e)) × eq e.
+  (is_init ∪₁ E ∩₁ same_tid e) × eq e.
 
 Definition rf_delta_R w : relation actid :=
   eq_opt w × (eq e ∩₁ lab_is_r).
@@ -347,8 +348,7 @@ Record add_event_gen r R1 w W1 W2 : Prop := {
                     is_total
                       (E' ∩₁ W' ∩₁ Loc_' ol)
                       co';
-  add_event_init : forall l (SOME : lab_loc = Some l),
-                    E (InitEvent l);
+  add_event_init : is_init ⊆₁ E;
   add_event_thrd : threads_set (tid e);
   add_event_nctrl : ctrl' ⊆ ∅₂;
   (*=================*)
@@ -710,9 +710,7 @@ Proof using.
       rewrite (add_event_lab ADD) in HLOC.
       rewrite updo in HLOC by congruence.
       eauto. }
-    subst b. apply (add_event_init ADD).
-    rewrite <- HLOC, (add_event_lab ADD).
-    unfold lab_loc, loc. now rupd. }
+    subst b. now apply (add_event_init ADD). }
   { rewrite (add_event_lab ADD). destruct classic with ((InitEvent l0) = e).
     { destruct ADD. rewrite H. rewrite upds. destruct add_event_ninit0.
       unfold is_init. basic_solver. }

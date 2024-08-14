@@ -62,15 +62,14 @@ Notation "'Loc_' l" := (fun e => loc e = l) (at level 1).
 Notation "'Val_' v" := (fun e => val e = v) (at level 1).
 
 Lemma mapped_sb_delta
-    (INIT : m ↑₁ (E ∩₁ is_init) ≡₁ m ↑₁ E ∩₁ is_init)
+    (INIT : fixset is_init m)
     (TID : m ↑₁ (E ∩₁ same_tid e) ≡₁ m ↑₁ E ∩₁ same_tid (m e)) :
   m ↑ WCore.sb_delta X e ≡
-    (m ↑₁ E ∩₁ (is_init ∪₁ same_tid (m e))) × eq (m e).
+    (is_init ∪₁ m ↑₁ E ∩₁ same_tid (m e)) × eq (m e).
 Proof using.
   unfold WCore.sb_delta.
-  rewrite !set_inter_union_r, collect_rel_cross,
-          set_collect_union, set_collect_eq,
-          INIT, TID.
+  rewrite !collect_rel_cross, set_collect_union,
+          set_collect_eq, TID, <- (fixset_set_fixpoint INIT).
   ins.
 Qed.
 

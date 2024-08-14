@@ -63,7 +63,7 @@ Notation "'same_loc'" := (same_loc lab).
 Notation "'same_val'" := (same_val lab).
 
 Record prefix : Prop := {
-  prf_init : E' ∩₁ is_init ⊆₁ E;
+  prf_init : is_init ⊆₁ E;
   prf_acts : E ⊆₁ E';
   prf_threads : threads_set ≡₁ threads_set';
   prf_lab : eq_dom (is_init ∪₁ E) lab lab';
@@ -458,10 +458,7 @@ Proof using.
     apply eq_dom_loc with (lab := delta_lab); [basic_solver |].
     eapply eq_dom_mori; eauto; [| now apply delta_G_dom].
     unfold flip. basic_solver. }
-  { apply (prf_init PFX). split; ins.
-    apply (wf_init WF). exists e.
-    split; [basic_solver |]. rewrite <- SOME.
-    now unfold loc, WCore.lab_loc. }
+  { apply (prf_init PFX). }
   { now apply (prf_threads PFX), WF. }
   { rewrite restr_set_union, (prf_rf PFX).
     rewrite restr_irrefl_eq by now apply rf_irr.
@@ -523,13 +520,13 @@ Proof using.
   unfold WCore.sb_delta. split.
   { unfolder. unfold ext_sb, same_tid. ins.
     do 2 desf; split; ins; eauto. }
-  unfolder. intros x y ((HINE & HTID) & HEQ).
-  subst y. splits; ins. unfold ext_sb.
-  destruct HTID as [INIT | SAME].
-  { destruct x, e; ins. }
+  unfolder. intros x y [[INIT | [XIN TID]] HEQ].
+  all: subst y; splits; ins.
+  { now apply PFX. }
+  { unfold ext_sb; desf. }
   destruct e as [el | et en]; ins.
   destruct x as [xl | xt xn]; ins.
-  unfold same_tid in SAME. ins. subst xt.
+  unfold same_tid in TID. ins. subst xt.
   split; ins.
   destruct PeanoNat.Nat.lt_total
         with xn en
