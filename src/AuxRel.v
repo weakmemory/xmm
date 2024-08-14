@@ -19,6 +19,8 @@ From imm Require Import imm_bob.
 From imm Require Import SubExecution.
 From imm Require Import CombRelations.
 
+Set Implicit Arguments.
+
 Section AuxRel.
 
 Variable G : execution.
