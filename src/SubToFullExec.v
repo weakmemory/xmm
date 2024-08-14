@@ -308,7 +308,7 @@ Proof using.
            y as [yl | yt yn]; ins.
   split; ins.
   red in TID. ins. subst.
-  destruct NPeano.Nat.lt_total with xn yn as [LT | [EQ | GT]].
+  destruct PeanoNat.Nat.lt_total with xn yn as [LT | [EQ | GT]].
   all: eauto; try congruence.
   assert (SB : restr_rel (E' \₁ E) sb'
                 (ThreadEvent yt yn) (ThreadEvent yt xn)).
