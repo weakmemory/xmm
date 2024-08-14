@@ -523,7 +523,29 @@ Proof using.
     unfolder. unfolder in INE. destruct INE as (y & INE & YEQ).
     subst x. exists y; splits; ins.
     unfold is_r in *. now rewrite <- (rsr_lab SIMREL). }
-  admit.
+  unfold extra_a. desf; [| basic_solver].
+  intros r (EXA & ISR). subst r.
+  assert (RIN : E_s a_s).
+  { admit. }
+  assert (RLOC : exists l, loc_s a_s = Some l); desf.
+  { admit. }
+  destruct srf_exists
+      with (G := G_s) (r := a_s) (l := l)
+        as (w & SRF).
+  all: eauto.
+  { admit. }
+  { enough (HIN : (E_s ∩₁ is_init) (InitEvent l)) by now apply HIN.
+    apply SIMREL. split; ins.
+    admit. }
+  { admit. }
+  { admit. }
+  { admit. }
+  { apply G_s_co_trans; try apply SIMREL.
+    now exists a_s. }
+  { admit. }
+  { admit. }
+  { admit. }
+  exists w. basic_solver.
 Admitted.
 
 End SimRel.
