@@ -74,6 +74,29 @@ Record t := {
 Definition init_exec G : execution :=
   Build_execution (acts_set G ∩₁ is_init) (threads_set G) (lab G) ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂.
 
+Lemma wf_init_exec G
+    (WF : Wf G) :
+  Wf (init_exec G).
+Proof using.
+  constructor.
+  { intros a b (INA & _ & _ & _ & ANIN). ins.
+    exfalso. apply ANIN, INA. }
+  all: ins.
+  all: try now rewrite ?seq_false_l, ?seq_false_r.
+  { unfolder.
+    intros a (((INA & ININA) & _) & ALOC)
+           b (((INB & ININB) & _) & BLOC)
+           NEQ.
+    exfalso. apply NEQ.
+    destruct a as [al | ta na], b as [bl | tb nb]; ins.
+    unfold loc in *. rewrite (wf_init_lab WF) in *.
+    congruence. }
+  { unfolder in *. desf; split; eauto.
+    apply WF; eauto. }
+  { apply WF. }
+  apply WF, EE.
+Qed.
+
 #[global]
 Hint Unfold init_exec : unfolderDb.
 
