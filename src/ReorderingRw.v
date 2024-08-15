@@ -259,13 +259,39 @@ Proof using.
   rewrite swap_rel_union. unfold swap_rel. basic_solver 11.
 Qed.
 
-Lemma swap_rel_sub {T : Type} (r : relation T) A B :
-  ⦗set_compl (A ∪₁ B)⦘ ⨾ swap_rel r A B ⊆ ⦗set_compl (A ∪₁ B)⦘ ⨾ r.
+Lemma swap_rel_imm {T : Type} (r : relation T) A B x y
+    (XNA : ~A x)
+    (XNB : ~B x)
+    (YNA : ~A y)
+    (YNB : ~B y)
+    (IN : singl_rel x y ⊆ immediate r) :
+  singl_rel x y ⊆ immediate (swap_rel r A B).
 Proof using.
-  unfold swap_rel.  rewrite seq_union_r.
-  arewrite (⦗set_compl (A ∪₁ B)⦘ ⨾ B × A ⊆ ∅₂).
-  { basic_solver. }
-  basic_solver.
+  unfold swap_rel. rewrite immediateE in *.
+  intros x' y' EQ. unfolder in EQ. desf.
+  split.
+  { assert (IN' : r x y) by now apply IN.
+    unfolder. left; split; eauto using or_not_and. }
+  assert (IN' : ~ (r ⨾ r) x y) by now apply IN.
+  unfolder. intros FALSO. desf.
+  apply IN'. basic_solver.
+Qed.
+
+Lemma immediate_union_ignore {T : Type} (r1 r2 r3 : relation T)
+    (NOX : set_disjoint (dom_rel r1) (dom_rel r3))
+    (NOY : set_disjoint (codom_rel r1) (codom_rel r3))
+    (IN : r1 ⊆ immediate r2) :
+  r1 ⊆ immediate (r2 ∪ r3).
+Proof using.
+  rewrite immediateE in *.
+  intros x y REL. split.
+  { left. now apply IN. }
+  unfolder. intros FALSE. desf.
+  { assert (IN' : ~ (r2 ⨾ r2) x y) by now apply IN.
+    apply IN'. basic_solver. }
+  { apply NOX with x; basic_solver. }
+  { apply NOY with y; basic_solver. }
+  apply NOY with y; basic_solver.
 Qed.
 
 Lemma extra_co_D_eq_dom s ll1 ll2 l
@@ -938,8 +964,8 @@ Proof using.
   { exists a_s. ins. }
   assert (AS_TID : extra_a X_t a_t b_t a_s ⊆₁ same_tid b_t).
   { rewrite (rsr_as SIMREL). unfolder. intros x XIN. apply XIN. }
-  assert (SIMREL' : reord_simrel X_s' X_t' a_t b_t mapper').
-  { exists a_s. constructor; ins.
+  assert (SIMREL' : reord_simrel_gen X_s' X_t' a_t b_t mapper' a_s).
+  { constructor; ins.
     { rewrite (WCore.add_event_acts ADD). apply inj_dom_union.
       { unfolder. intros x y XINE YINE. rewrite !MAPEQ; ins.
         now apply SIMREL. }
@@ -1070,6 +1096,8 @@ Proof using.
     arewrite (eq e \₁ is_init ⊆₁ eq e) by basic_solver.
     apply set_finite_union. split; [| apply set_finite_eq].
     apply SIMREL. }
+  assert (SIMREL'' : reord_simrel X_s' X_t' a_t b_t mapper').
+  { now exists a_s. }
   (* Actual proof *)
   exists mapper', X_s'.
   split; red; ins.
@@ -1139,7 +1167,85 @@ Proof using.
       { apply set_subset_inter_r. split; apply ADD. }
       eapply eq_dom_mori with (x := E_t); eauto.
       unfold flip. apply ADD. }
-    { admit. }
+    { unfold WCore.right_after_e. destruct r as [r|]; ins.
+      assert (RNB : b_t <> r).
+      { admit. }
+      assert (RNA : a_t <> r).
+      { admit. }
+      assert (INJ' : inj_dom
+        (dom_rel
+          (swap_rel sb_t'
+              (eq b_t ∩₁ E_t')
+              (eq a_t ∩₁ E_t'))
+        ∪₁ codom_rel
+              (swap_rel sb_t'
+                (eq b_t ∩₁ E_t')
+                (eq a_t ∩₁ E_t')))
+        mapper').
+      { eapply inj_dom_mori; eauto.
+        all: try now apply SIMREL'.
+        unfold flip, sb, swap_rel. basic_solver 11. }
+      enough (HIN : singl_rel (mapper' r) (mapper' e) ⊆ immediate (sb G_s')).
+      { now apply HIN. }
+      rewrite <- collect_rel_singl.
+      change G_s' with (WCore.G X_s').
+      rewrite (rsr_sb SIMREL').
+      destruct classic with (tid e = tid b_t) as [ST|NT].
+      { rewrite <- EXEQ.
+        arewrite (extra_a X_t a_t b_t a_s ≡₁ ∅).
+        { unfold extra_a. desf.
+          exfalso. apply ETID; eauto. }
+        rewrite cross_false_l, cross_false_r, !union_false_r.
+        rewrite collect_rel_immediate; ins.
+        apply collect_rel_mori; ins.
+        apply swap_rel_imm.
+        all: try now intros (FALSO & _); congruence.
+        enough (HIN : immediate sb_t' r e).
+        { unfolder. unfolder in HIN. ins. desf. }
+        apply (WCore.add_event_ri ADD). }
+      apply immediate_union_ignore.
+      { rewrite collect_rel_singl, dom_singl_rel,
+                dom_cross, <- EXEQ.
+        { unfold extra_a. desf. unfolder.
+          intros x XEQ XEQ'. subst x.
+          apply NEWCODOM with (mapper' r).
+          { unfolder. exists r; split; ins.
+            apply (WCore.add_event_acts ADD). left.
+            apply (WCore.add_event_rE ADD). basic_solver. }
+          rewrite <- XEQ'. unfold extra_a. desf.
+          exfalso. eauto. }
+        apply set_nonemptyE. eauto. }
+      { rewrite collect_rel_singl, codom_singl_rel.
+        unfold extra_a; desf; [| basic_solver].
+        rewrite codom_cross; [| apply set_nonemptyE; eauto].
+        unfolder. ins. apply E_NOT_B.
+        apply (rsr_inj SIMREL'); try now desf.
+        now (apply (WCore.add_event_acts ADD); right). }
+      apply immediate_union_ignore.
+      { rewrite collect_rel_singl, dom_singl_rel.
+        unfold extra_a; desf; [| basic_solver].
+        rewrite dom_cross; [| apply set_nonemptyE; eauto].
+        admit. }
+      { rewrite collect_rel_singl, codom_singl_rel.
+        destruct classic with (dom_rel (sb_t' ⨾ ⦗eq b_t⦘) ≡₁ ∅) as [EMP|NEMP].
+        { rewrite EMP. basic_solver. }
+        rewrite codom_cross, <- EXEQ.
+        { unfold extra_a. desf. unfolder.
+          intros x XEQ XEQ'. subst x.
+          apply NEWCODOM with (mapper' e).
+          { unfolder. exists e; split; ins.
+            apply (WCore.add_event_acts ADD). now right. }
+          rewrite <- XEQ'. unfold extra_a. desf.
+          exfalso. eauto. }
+        apply set_nonemptyE. apply set_nonemptyE in NEMP.
+        desf. basic_solver. }
+      rewrite collect_rel_immediate; ins.
+      apply collect_rel_mori; ins.
+      apply swap_rel_imm.
+      all: try now intros (FALSO & _); congruence.
+      enough (HIN : immediate sb_t' r e).
+      { unfolder. unfolder in HIN. ins. desf. }
+      apply (WCore.add_event_ri ADD). }
     { apply set_subset_union_l; split.
       { basic_solver. }
       rewrite set_collect_eq_dom with (g := mapper),
