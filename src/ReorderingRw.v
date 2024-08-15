@@ -108,6 +108,7 @@ Record reord_correct_graphs : Prop := {
   rsr_at_bt_tid : tid a_t = tid b_t;
   rsr_threads : threads_set G_s ≡₁ threads_set G_t;
   rsr_ctrl : ctrl_s ≡ ctrl_t;
+  rsr_fin_t : set_finite (E_t \₁ is_init);
 }.
 
 Record reord_simrel_gen a_s : Prop := {
@@ -132,6 +133,30 @@ Record reord_simrel_gen a_s : Prop := {
 }.
 
 Definition reord_simrel := exists a_s, reord_simrel_gen a_s.
+
+Lemma rsr_map_inits
+    (SIMREL : reord_simrel) :
+  mapper ↑₁ E_t \₁ is_init ≡₁ mapper ↑₁ (E_t \₁ is_init).
+Proof using.
+  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
+  rewrite set_collect_minus, <- (fixset_set_fixpoint (rsr_init SIMREL)).
+  all: ins.
+  rewrite set_union_absorb_r; apply SIMREL.
+Qed.
+
+Lemma rsr_fin_s
+    (SIMREL : reord_simrel) :
+  set_finite (E_s \₁ is_init).
+Proof using.
+  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
+  rewrite (rsr_acts SIMREL). rewrite set_minus_union_l.
+  arewrite (extra_a a_s \₁ is_init ⊆₁ eq a_s).
+  { unfold extra_a. desf; basic_solver. }
+  apply set_finite_union. split; [| apply set_finite_eq].
+  arewrite (mapper ↑₁ E_t \₁ is_init ≡₁ mapper ↑₁ (E_t \₁ is_init)).
+  { apply rsr_map_inits. now exists a_s. }
+  apply set_finite_set_collect, SIMREL.
+Qed.
 
 Lemma rsr_sub_e s
     (SIMREL : reord_simrel)
@@ -604,7 +629,6 @@ Qed.
 
 Lemma G_s_rfc
     (RFC : rf_complete G_t)
-    (FIN : set_finite (E_s \₁ is_init))
     (SIMREL : reord_simrel) :
   rf_complete G_s.
 Proof using.
@@ -633,6 +657,7 @@ Proof using.
     now rewrite (rsr_init_lab (rsr_corr SIMREL)) in ISR. }
   { now apply (rsr_init_acts_s (rsr_corr SIMREL)). }
   { apply SIMREL. }
+  { apply rsr_fin_s. now exists a_s. }
   { apply G_s_co_l; try apply SIMREL.
     now exists a_s. }
   { apply G_s_co_trans; try apply SIMREL.
@@ -807,9 +832,11 @@ Proof using CORR.
   all: ins.
   { unfold rf_complete. intros x (INIT & ISR).
     exfalso. eapply read_or_fence_is_not_init; eauto. }
-  all: intros x (EQ & XINIT); subst x; exfalso.
-  { now apply (rsr_at_ninit CORR). }
-  now apply (rsr_bt_ninit CORR).
+  { intros x (EQ & XINIT); subst x; exfalso.
+    now apply (rsr_at_ninit CORR). }
+  { intros x (EQ & XINIT); subst x; exfalso.
+    now apply (rsr_bt_ninit CORR). }
+  rewrite set_minusK. apply set_finite_empty.
 Qed.
 
 Lemma simrel_exec_not_a_not_b e l
@@ -1038,7 +1065,11 @@ Proof using.
       basic_solver. }
     { rewrite <- (rsr_init_acts_s CORR). basic_solver. }
     { rewrite (WCore.add_event_threads ADD). apply SIMREL. }
-    rewrite (WCore.add_event_ctrl ADD). apply SIMREL. }
+    { rewrite (WCore.add_event_ctrl ADD). apply SIMREL. }
+    rewrite (WCore.add_event_acts ADD), set_minus_union_l.
+    arewrite (eq e \₁ is_init ⊆₁ eq e) by basic_solver.
+    apply set_finite_union. split; [| apply set_finite_eq].
+    apply SIMREL. }
   (* Actual proof *)
   exists mapper', X_s'.
   split; red; ins.
