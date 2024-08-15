@@ -1258,7 +1258,7 @@ Proof using.
       now rewrite (rsr_rmw SIMREL). }
     unfold sb at 1. ins. rewrite NEWSB.
     unfold mapper'. now rupd. }
-  { admit. (* RFCOM *) }
+  { eapply G_s_rfc; eauto. }
   admit.
 Admitted.
 
