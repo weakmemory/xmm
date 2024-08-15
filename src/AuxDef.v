@@ -233,14 +233,18 @@ Proof using.
   intro F. apply INJ in F; ins.
 Qed.
 
-Lemma set_collect_diff (A B : Type) (f : A -> B) s s'
-    (INJ : inj_dom ⊤₁ f) :
+Lemma set_collect_minus (A B : Type) (f : A -> B) s s'
+    (INJ : inj_dom (s ∪₁ s') f) :
   f ↑₁ (s \₁ s') ≡₁ f ↑₁ s \₁ f ↑₁ s'.
 Proof using.
-  unfolder. split; intros x HSET; desf.
-  { split; eauto. intro F.
-    destruct F as (y' & HSET2 & FHEQ).
-    apply INJ in FHEQ; ins. subst. eauto. }
+  unfolder. split; intros x HSET.
+  { destruct HSET as (y & (HSET & HMINUS) & XEQ).
+    split; eauto.
+    intros (y' & INS & XEQ'). apply HMINUS.
+    rewrite INJ with (x := y) (y := y'); eauto.
+    all: try congruence.
+    all: basic_solver. }
+  destruct HSET as ((y & HSET & XEQ) & NOTIN).
   exists y; splits; eauto.
 Qed.
 
