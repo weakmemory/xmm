@@ -650,3 +650,12 @@ Proof using.
   rewrite dom_seq, codom_seq.
   eapply inj_dom_mori; eauto. unfold flip. basic_solver.
 Qed.
+
+Lemma collect_set_disjoint {A B : Type} (f : A -> B) s1 s2
+    (FINJ : inj_dom (s1 ∪₁ s2) f)
+    (DISJ : set_disjoint s1 s2) :
+  set_disjoint (f ↑₁ s1) (f ↑₁ s2).
+Proof using.
+  apply set_disjointE. apply set_disjointE in DISJ.
+  rewrite <- set_collect_interE, DISJ, set_collect_empty; ins.
+Qed.
