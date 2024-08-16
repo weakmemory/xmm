@@ -1174,6 +1174,14 @@ Proof using.
           as [ISW|NINS]; [| basic_solver].
       assert (IN : WCore.lab_is_w l e).
       { unfold WCore.lab_is_w. desf. }
+      assert (SB : sb_t' r e).
+      { apply immediate_in, ADD. basic_solver. }
+      assert (RNINIT : ~is_init r).
+      { eapply read_or_fence_is_not_init with G_t.
+        all: try now apply SIMREL.
+        left. now apply ADD. }
+      assert (RTID : tid r = tid e).
+      { apply sb_tid_init in SB. desf. }
       assert (RNB : b_t <> r).
       { intro FALSO. subst r.
         apply (rwi_bi PROG).
@@ -1252,7 +1260,18 @@ Proof using.
       { rewrite collect_rel_singl, dom_singl_rel.
         unfold extra_a; desf; [| basic_solver].
         rewrite dom_cross; [| apply set_nonemptyE; eauto].
-        admit. }
+        rewrite <- set_collect_eq.
+        apply collect_set_disjoint.
+        { eapply inj_dom_mori; try (now apply SIMREL'); ins.
+          unfold flip. apply set_subset_union_l.
+          split; [| unfold sb; basic_solver].
+          rewrite (WCore.add_event_acts ADD),
+                  <- (WCore.add_event_rE ADD).
+          basic_solver. }
+        apply set_disjointE. split; [| basic_solver].
+        unfolder. intros x (EQR & (y & SB' & EQ)).
+        subst y. subst x. apply sb_tid_init in SB'.
+        desf. congruence. }
       { rewrite collect_rel_singl, codom_singl_rel.
         destruct classic with (dom_rel (sb_t' ⨾ ⦗eq b_t⦘) ≡₁ ∅) as [EMP|NEMP].
         { rewrite EMP. basic_solver. }
