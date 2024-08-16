@@ -744,7 +744,7 @@ Variable X_t X_t' X_s : WCore.t.
 
 Variable G_t G_t' G_s : execution.
 Variable a_t b_t : actid.
-Variable e2i_s e2i_t : actid -> I2Exec.intr_info.
+Variable e2i_s e2i_t e2i_t' : actid -> I2Exec.intr_info.
 Variable rmwi : I2Exec.instr_id -> Prop.
 Variable ai bi : I2Exec.intr_info.
 Variable mapper : actid -> actid.
@@ -866,6 +866,7 @@ Proof using CORR.
 Qed.
 
 Lemma simrel_exec_not_a_not_b e l
+    (PROG : program_coherent X_t' e2i_t' rmwi ai bi a_t b_t)
     (E_TID : tid e <> tid_init)
     (E_NOT_A : e <> a_t)
     (E_NOT_B : e <> b_t)
@@ -1167,11 +1168,38 @@ Proof using.
       { apply set_subset_inter_r. split; apply ADD. }
       eapply eq_dom_mori with (x := E_t); eauto.
       unfold flip. apply ADD. }
-    { unfold WCore.right_after_e. destruct r as [r|]; ins.
+    { destruct r as [r|]; [| basic_solver].
+      destruct classic
+          with (WCore.lab_is_w l (mapper' e))
+          as [ISW|NINS]; [| basic_solver].
+      assert (IN : WCore.lab_is_w l e).
+      { unfold WCore.lab_is_w. desf. }
       assert (RNB : b_t <> r).
-      { admit. }
+      { intro FALSO. subst r.
+        apply (rwi_bi PROG).
+        replace bi with (e2i_t' b_t).
+        { apply PROG. apply set_subset_single_l.
+          rewrite (WCore.add_event_rmw ADD), dom_union.
+          unfold WCore.rmw_delta.
+          rewrite dom_cross; [basic_solver|].
+          apply set_nonemptyE. basic_solver. }
+        symmetry. apply (rwi_bt PROG).
+        unfolder. exists b_t; splits; eauto.
+        apply (WCore.add_event_acts ADD); left.
+        now apply (WCore.add_event_rE ADD). }
       assert (RNA : a_t <> r).
-      { admit. }
+      { intro FALSO. subst r.
+        apply (rwi_ai PROG).
+        replace ai with (e2i_t' a_t).
+        { apply PROG. apply set_subset_single_l.
+          rewrite (WCore.add_event_rmw ADD), dom_union.
+          unfold WCore.rmw_delta.
+          rewrite dom_cross; [basic_solver|].
+          apply set_nonemptyE. basic_solver. }
+        symmetry. apply (rwi_at PROG).
+        unfolder. exists a_t; splits; eauto.
+        apply (WCore.add_event_acts ADD); left.
+        now apply (WCore.add_event_rE ADD). }
       assert (INJ' : inj_dom
         (dom_rel
           (swap_rel sb_t'
@@ -1185,8 +1213,7 @@ Proof using.
       { eapply inj_dom_mori; eauto.
         all: try now apply SIMREL'.
         unfold flip, sb, swap_rel. basic_solver 11. }
-      enough (HIN : singl_rel (mapper' r) (mapper' e) ⊆ immediate (sb G_s')).
-      { now apply HIN. }
+      transitivity (singl_rel (mapper' r) (mapper' e)); [basic_solver |].
       rewrite <- collect_rel_singl.
       change G_s' with (WCore.G X_s').
       rewrite (rsr_sb SIMREL').
@@ -1202,7 +1229,7 @@ Proof using.
         all: try now intros (FALSO & _); congruence.
         enough (HIN : immediate sb_t' r e).
         { unfolder. unfolder in HIN. ins. desf. }
-        apply (WCore.add_event_ri ADD). }
+        apply (WCore.add_event_ri ADD). basic_solver. }
       apply immediate_union_ignore.
       { rewrite collect_rel_singl, dom_singl_rel,
                 dom_cross, <- EXEQ.
@@ -1245,7 +1272,7 @@ Proof using.
       all: try now intros (FALSO & _); congruence.
       enough (HIN : immediate sb_t' r e).
       { unfolder. unfolder in HIN. ins. desf. }
-      apply (WCore.add_event_ri ADD). }
+      apply (WCore.add_event_ri ADD). basic_solver. }
     { apply set_subset_union_l; split.
       { basic_solver. }
       rewrite set_collect_eq_dom with (g := mapper),
