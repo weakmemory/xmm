@@ -400,7 +400,8 @@ Proof using.
       { rewrite RMW. basic_solver. }
       rewrite (wf_rmwl WF). basic_solver. }
     eapply eq_dom_mori with (x := E); eauto. }
-  { unfold WCore.right_after_e. destruct r as [r| ]; ins.
+  { intros x y (SOME & EQE & ISW). subst y.
+    destruct r as [r| ]; ins. subst x.
     assert (IMM : immediate sb' r e).
     { apply (wf_rmwi WF). unfolder in RMW.
       now apply RMW. }

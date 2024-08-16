@@ -307,12 +307,6 @@ Definition co_delta W1 W2 : relation actid :=
 Definition rmw_delta r : relation actid :=
   eq_opt r × (eq e ∩₁ lab_is_w).
 
-Definition right_after_e r :=
-  match r with
-  | Some r => immediate sb' r e
-  | None => True
-  end.
-
 Record add_event_gen r R1 w W1 W2 : Prop := {
   add_event_new : ~E e;
   add_event_ninit : ~is_init e;
@@ -326,7 +320,7 @@ Record add_event_gen r R1 w W1 W2 : Prop := {
   add_event_rD : eq_opt r ⊆₁ R;
   add_event_rE : eq_opt r ⊆₁ E;
   add_event_rL : eq_opt r ⊆₁ Loc_ lab_loc;
-  add_event_ri : right_after_e r;
+  add_event_ri : rmw_delta r ⊆ immediate sb';
   (**)
   add_event_W1D : W1 ⊆₁ W;
   add_event_W1E : W1 ⊆₁ E;
@@ -520,43 +514,35 @@ Proof using.
     apply same_loc_eq. rewrite EQLOC, <- EISL.
     basic_solver. }
   { rewrite (add_event_rmw ADD).
-    apply inclusion_union_l.
-    { rewrite (add_event_sb ADD). intros x y RMW.
-      unfold immediate; splits; ins.
-      { destruct WF. unfold immediate in wf_rmwi.
-        destruct wf_rmwi with (x := x) (y := y); eauto.
-        basic_solver. }
-      destruct R0, R2.
-      { destruct WF. destruct wf_rmwi with (x := x) (y := y); eauto. }
-      { assert (YIN : E y).
-        { assert (HH : (⦗E⦘ ⨾ rmw ⨾ ⦗E⦘) x y).
-          { apply wf_rmwE; basic_solver. }
-          destruct HH. destruct H1. destruct H2.
-          destruct H2. destruct H3. basic_solver. }
-        unfold sb_delta in H0. assert (EQ : e = y).
-        { destruct H0; eauto. }
-        subst. basic_solver. }
-      { assert (EQ : c = e).
-        { destruct H; eauto. }
-        subst. apply wf_sbE in H0; eauto.
-        destruct H0. destruct H0.
-        destruct H0. basic_solver. }
-      assert (YIN : E y).
-        { assert (HH : (⦗E⦘ ⨾ rmw ⨾ ⦗E⦘) x y).
-          { apply wf_rmwE; basic_solver. }
+    apply inclusion_union_l; [| apply ADD].
+    rewrite (add_event_sb ADD). intros x y RMW.
+    unfold immediate; splits; ins.
+    { destruct WF. unfold immediate in wf_rmwi.
+      destruct wf_rmwi with (x := x) (y := y); eauto.
+      basic_solver. }
+    destruct R0, R2.
+    { destruct WF. destruct wf_rmwi with (x := x) (y := y); eauto. }
+    { assert (YIN : E y).
+      { assert (HH : (⦗E⦘ ⨾ rmw ⨾ ⦗E⦘) x y).
+        { apply wf_rmwE; basic_solver. }
         destruct HH. destruct H1. destruct H2.
         destruct H2. destruct H3. basic_solver. }
       unfold sb_delta in H0. assert (EQ : e = y).
       { destruct H0; eauto. }
       subst. basic_solver. }
-    unfold rmw_delta. destruct ADD. unfold right_after_e in add_event_ri0.
-    destruct r.
-    { intros x y H. assert (EQ1 : x = a).
+    { assert (EQ : c = e).
       { destruct H; eauto. }
-      assert (EQ2 : y = e).
-      { destruct H. destruct H0; eauto. }
-      subst; eauto. }
-    basic_solver. }
+      subst. apply wf_sbE in H0; eauto.
+      destruct H0. destruct H0.
+      destruct H0. basic_solver. }
+    assert (YIN : E y).
+      { assert (HH : (⦗E⦘ ⨾ rmw ⨾ ⦗E⦘) x y).
+        { apply wf_rmwE; basic_solver. }
+      destruct HH. destruct H1. destruct H2.
+      destruct H2. destruct H3. basic_solver. }
+    unfold sb_delta in H0. assert (EQ : e = y).
+    { destruct H0; eauto. }
+    subst. basic_solver. }
   { split; [| basic_solver].
     rewrite (add_event_rf ADD), (wf_rfE WF).
     rewrite !seq_union_l, !seq_union_r, !seqA.
