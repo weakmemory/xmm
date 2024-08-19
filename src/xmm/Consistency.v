@@ -341,6 +341,11 @@ Notation "'ctrl_s'" := (ctrl G_s).
 Notation "'addr_s'" := (addr G_s).
 Notation "'W_s'" := (is_w lab_s).
 Notation "'R_s'" := (is_r lab_s).
+Notation "'F_s'" := (is_f lab_s).
+Notation "'Rel_s'" := (is_rel lab_s).
+Notation "'Acq_s'" := (is_acq lab_s).
+Notation "'release_s'" := (release G_s).
+Notation "'rs_s'" := (rs G_s).
 Notation "'hb_s'" := (hb G_s).
 Notation "'rhb_s'" := (rhb G_s).
 Notation "'same_loc_s'" := (same_loc lab_s).
@@ -365,6 +370,11 @@ Notation "'ctrl_t'" := (ctrl G_t).
 Notation "'addr_t'" := (addr G_t).
 Notation "'W_t'" := (is_w lab_t).
 Notation "'R_t'" := (is_r lab_t).
+Notation "'F_t'" := (is_f lab_t).
+Notation "'Rel_t'" := (is_rel lab_t).
+Notation "'Acq_t'" := (is_acq lab_t).
+Notation "'release_t'" := (release G_t).
+Notation "'rs_t'" := (rs G_t).
 Notation "'hb_t'" := (hb G_t).
 Notation "'rhb_t'" := (rhb G_t).
 Notation "'same_loc_t'" := (same_loc lab_t).
@@ -655,10 +665,10 @@ Proof using.
     rewrite seqA. rewrite EMP. basic_solver.
 Qed.
 
-Lemma sw_helper1 (m : actid -> actid)
+Lemma sw_helper_release (m : actid -> actid)
         (INJ : inj_dom E_t m)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
-        (LABS : forall x, (lab_s (m x)) = (lab_t x))
+        (LABS : eq_dom E_t (lab_s ∘ m) lab_t)
         (IS_R : is_r lab_s a)
         (NIN : set_disjoint (m ↑₁ E_t) (eq a))
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
@@ -668,21 +678,89 @@ Lemma sw_helper1 (m : actid -> actid)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
-  ⦗E_s \₁ eq a⦘ ⨾ ⦗fun a0 : actid => is_rel lab_s a0⦘ ⊆
-      m ↑ ⦗fun a0 : actid => is_rel lab_t a0⦘.
+  ⦗E_s \₁ eq a⦘ ⨾ release_s ⊆
+      m ↑ release_t.
 Proof using.
-  rewrite acts_set_helper; eauto. intros x y H.
-  destruct H. destruct H.
-  destruct H. subst. destruct H1.
-  destruct H. destruct H0. subst.
-  unfold collect_rel. exists x, x.
-  split; vauto. specialize (LABS x).
-  split; vauto. admit.
+  assert (MAPEQ : E_s \₁ eq a ≡₁ m ↑₁ E_t) by now apply acts_set_helper.
+  unfold release. rewrite !crE. rewrite !seq_union_l.
+  rewrite !seq_union_r. rewrite collect_rel_union.
+  apply union_mori.
+  { rels. unfold rs. rewrite !crE. rewrite !seq_union_l.
+    rewrite !seq_union_r. rewrite collect_rel_union.
+    apply union_mori.
+    { rels. seq_rewrite <- !id_inter.
+      intros x y (x' & ((EQ & DOM) & HREL)).
+      subst x'.
+      assert (XIN : (E_s \₁ eq a) x) by apply DOM.
+      assert (YIN : (E_s \₁ eq a) y) by admit.
+      apply MAPEQ in XIN. apply MAPEQ in YIN.
+      destruct XIN as (x' & XIN & XEQ), YIN as (y' & YIN & YEQ).
+      exists x', y'. splits; ins. split with x'; split.
+      { unfolder. unfolder in DOM. desf.
+        unfold is_w, is_rel, mod in *.
+        rewrite <- LABS with x'; splits; eauto. }
+      assert (HREL' : singl_rel x y ⊆ (rf_s ⨾ rmw_s)＊) by admit.
+      rewrite RF_MAP, seq_union_l in HREL'.
+      assert (EMP : (srf_s ⨾ ⦗eq a⦘) ⨾ rmw_s ≡ ∅₂) by admit.
+      rewrite EMP in HREL'. rewrite union_false_r in HREL'.
+      rewrite RMW_MAP in HREL'.
+      rewrite <- collect_rel_seq in HREL'; [|admit].
+      admit. }
+    admit. (* doesn't exist? *) }
+  admit.
+Admitted.
+
+Lemma sw_helper_rf (m : actid -> actid)
+        (INJ : inj_dom E_t m)
+        (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
+        (LABS : eq_dom E_t (lab_s ∘ m) lab_t)
+        (IS_R : is_r lab_s a)
+        (NIN : set_disjoint (m ↑₁ E_t) (eq a))
+        (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
+        (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
+        (RF_MAP : rf_s ≡ (m ↑ rf_t) ∪ (srf_s ⨾ ⦗eq a⦘))
+        (CO_MAP : co_s ≡ m ↑ co_t)
+        (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
+        (WF_t : Wf G_t)
+        (WF_s : Wf G_s) :
+    rf_s ⨾ (sb_s ⨾ ⦗fun a0 : actid => F_s a0⦘)^? ⨾ ⦗fun a0 : actid => Acq_s a0⦘ ⨾ ⦗E_s \₁ eq a⦘
+    ⊆ m ↑ (rf_t ⨾ (sb_t ⨾ ⦗fun a0 : actid => F_t a0⦘)^? ⨾ ⦗fun a0 : actid => Acq_t a0⦘).
+Proof using.
+    assert (MAPEQ : E_s \₁ eq a ≡₁ m ↑₁ E_t) by now apply acts_set_helper.
+    rewrite !crE. rewrite !seq_union_l.
+    rewrite !seq_union_r. rewrite collect_rel_union.
+    apply union_mori.
+    { rewrite RF_MAP. rewrite seq_union_l. apply inclusion_union_l.
+      { rels. rewrite MAPEQ. intros x y HH.
+        destruct HH as (z & (HH & (y' & (H1 & H2)))).
+        destruct H1, H2; subst. unfolder.
+        destruct HH. destruct H.
+        destruct H as (H3 & H4 & H5).
+        exists x0, x1. splits; vauto.
+        unfold is_acq, mod in *.
+        rewrite <- LABS with x1; splits; eauto.
+        apply wf_rfE in H3; eauto.
+        destruct H3 as (x2 & (H6 & (x3 & (H9 & H10)))).
+        destruct H10; vauto. }
+      rewrite seqA. basic_solver 21. }
+    rewrite RF_MAP. rewrite seq_union_l. apply inclusion_union_l.
+    { rewrite !seqA. (* condition for sb? *)
+      admit. }
+    rewrite !seqA. intros x y HH.
+    destruct HH as (z & (HH & (y0 & (H1 & H2)))).
+    destruct H1; subst.
+    destruct H2 as (y1 & (H3 & (y2 & ((EQ1 & H5) & (y3 & ((H6 & EQ2) & H7)))))).
+    subst.
+    assert (RPO : rpo_s y0 y3).
+    { unfold rpo; unfold rpo_imm.
+      admit. (* false ?*) }
+    admit.
 Admitted.
 
 Lemma sw_sub_helper (m : actid -> actid)
         (INJ : inj_dom E_t m)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
+        (LABS : eq_dom E_t (lab_s ∘ m) lab_t)
         (IS_R : is_r lab_s a)
         (NIN : set_disjoint (m ↑₁ E_t) (eq a))
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
@@ -708,9 +786,20 @@ Proof using.
     destruct CODOM. rewrite <- VERT in H0.
     destruct H0 with (x := y); vauto. }
   rewrite START. rewrite seqA.
-  unfold sw. unfold release. unfold rs. rewrite !seqA.
-  (* TODO : fix rs? *)
-  admit.
+  unfold sw. rewrite !seqA.
+  rewrite <- seqA. (* TODO : fix rs? *)
+  rewrite sw_helper_release; eauto.
+  rewrite sw_helper_rf; eauto.
+  rewrite <- collect_rel_seq; vauto.
+  assert (IN1 : codom_rel release_t ⊆₁ E_t).
+      { induction 1. apply wf_releaseE in H; eauto.
+        (* redo for ⊤₁?*)
+        admit. }
+  assert (IN2 : dom_rel (rf_t ⨾ (sb_t ⨾ ⦗fun a0 : actid => F_t a0⦘)^? ⨾ ⦗fun a0 : actid => Acq_t a0⦘) ⊆₁ E_t).
+      { induction 1. destruct H. destruct H.
+        apply wf_rfE in H; eauto. destruct H. destruct H.
+        destruct H; vauto. }
+  rewrite IN1, IN2. basic_solver.
 Admitted.
 
 Lemma sw_sub (m : actid -> actid)
