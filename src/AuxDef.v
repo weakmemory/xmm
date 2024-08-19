@@ -659,3 +659,10 @@ Proof using.
   apply set_disjointE. apply set_disjointE in DISJ.
   rewrite <- set_collect_interE, DISJ, set_collect_empty; ins.
 Qed.
+
+Lemma collect_rel_id {A : Type} (r : relation A) :
+  id ↑ r ≡ r.
+Proof using.
+  unfold id. unfolder. split; intros x y HREL; ins.
+  all: desf; eauto.
+Qed.

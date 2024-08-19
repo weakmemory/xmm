@@ -1961,6 +1961,8 @@ Proof using CORR.
     << XNOTA : x <> tid a_s >> /\
     << XYVAL : x = tid_init \/ y = tid a_s >>
   ).
+  assert (WF' : Wf G_t').
+  { admit. }
   assert (NOTINA : ~E_t a_t).
   { apply ADD. }
   assert (MAPEQ : eq_dom E_t mapper' mapper).
@@ -2051,14 +2053,9 @@ Proof using CORR.
       now rewrite !union_false_r. }
     { admit. }
     admit. }
-  (* The proof *)
-  exists mapper', X_s', cmt'.
-  split; red; ins.
-  { now exists a_s. }
-  red. exists id, thrdle', dtrmt'.
-  constructor; ins.
-  { subst dtrmt' cmt'. basic_solver. }
-  { subst cmt'. basic_solver. }
+  assert (STARTWF : WCore.wf (WCore.X_start X_s dtrmt') X_s' cmt').
+  { admit. }
+  assert (STAB : WCore.stable_uncmt_reads_gen X_s' cmt' thrdle').
   { constructor; ins.
     { unfolder. subst thrdle'. ins.
       splits; try red; eauto. intro FALSO.
@@ -2080,7 +2077,10 @@ Proof using CORR.
     destruct RF as (z & RF & YEQ' & ZEQ & ISR).
     subst y. subst y'. subst z. subst x.
     assert (XIN : E_t x').
-    { admit. }
+    { apply (wf_rfE WF') in RF. unfolder in RF. desf.
+      apply ADD in RF. destruct RF; ins.
+      exfalso. apply (rf_irr WF') with x'.
+      congruence. }
     destruct classic with (tid x' = tid a_s) as [TID | NTID].
     { left.
       enough (IN : singl_rel (mapper' x') (mapper' a_t) ⊆ sb G_s').
@@ -2109,11 +2109,51 @@ Proof using CORR.
       rewrite (rsr_tid SIMREL'); [congruence|].
       apply ADD. now left. }
     right. congruence. }
+  (* The proof *)
+  exists mapper', X_s', cmt'.
+  split; red; ins.
+  { now exists a_s. }
+  red. exists id, thrdle', dtrmt'.
+  constructor; ins.
+  { subst dtrmt' cmt'. basic_solver. }
+  { subst cmt'. basic_solver. }
   { constructor; ins.
-    all: admit. }
-  { admit. (* TODO: wf *) }
+    { unfold id; ins. rupd. intro FALSO.
+      now apply CMT. }
+    { admit. (* What happens with rpo? *) }
+    { rewrite collect_rel_id, restr_union.
+      apply inclusion_union_l; [basic_solver |].
+      unfolder. intros x y ((x' & y' & (RF & EQ & ISR) & XEQ & YEQ) & CX & CY).
+      exfalso. apply CY. rewrite <- YEQ, <- EQ.
+      unfold mapper'. now rupd. }
+    { rewrite collect_rel_id, !restr_union.
+      repeat apply inclusion_union_l; [basic_solver | |].
+      { unfolder. intros x y ((x' & y' & ((EQ & ISW) & CO) & XEQ & YEQ) & CX & CY).
+        exfalso. apply CX. rewrite <- XEQ, <- EQ.
+        unfold mapper'. now rupd. }
+      unfolder. intros x y ((x' & y' & (CO & EQ & ISR) & XEQ & YEQ) & CX & CY).
+      exfalso. apply CY. rewrite <- YEQ, <- EQ.
+      unfold mapper'. now rupd. }
+    rewrite collect_rel_id, (WCore.add_event_rmw ADD), collect_rel_union,
+            restr_union.
+    apply inclusion_union_l.
+    { admit. (* EASY *) }
+    unfolder. intros x y ((x' & y' & (R & EQ & ISW) & XEQ & YEQ) & CX & CY).
+    exfalso. apply CY. rewrite <- YEQ, <- EQ.
+    unfold mapper'. now rupd. }
   { admit. (* TODO: cons *) }
-  admit. (* subtofull *)
+  apply sub_to_full_exec_listless with (thrdle := thrdle'); ins.
+  { eapply G_s_rfc with (X_s := X_s'); eauto.
+    unfold reord_simrel; eauto 11. }
+  { admit. }
+  { admit. }
+  { admit. }
+  { admit. (* might need to update correct graphs *) }
+  { admit. }
+  { admit. }
+  { admit. }
+  { admit. }
+  admit.
 Admitted.
 
 Lemma simrel_reexec cmt a_t' b_t'
