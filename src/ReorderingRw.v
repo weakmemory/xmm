@@ -2061,7 +2061,7 @@ Proof using CORR.
   admit. (* subtofull *)
 Admitted.
 
-Lemma simrel_reexec cmt a_t' b_t' e2i_t'
+Lemma simrel_reexec cmt a_t' b_t'
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
     (PROG  : program_coherent X_t  e2i_t  rmwi ai bi a_t  b_t )
     (PROG' : program_coherent X_t' e2i_t' rmwi ai bi a_t' b_t')
