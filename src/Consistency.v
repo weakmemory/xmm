@@ -4,7 +4,6 @@ Require Import ThreadTrace.
 Require Import Core.
 Require Import TraceSwap.
 Require Import SubToFullExec.
-Require Import ReorderingCommon.
 Require Import AuxRel.
 Require Import ExecEquiv.
 Require Import ExecOps.
