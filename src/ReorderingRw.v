@@ -1989,10 +1989,8 @@ Proof using CORR.
   { intros x XIN EQ. apply (rsr_codom SIMREL) with (x := a_s).
     { basic_solver. }
     now apply OLDEXA. }
-  (* The proof *)
-  exists mapper', X_s', cmt'.
-  split; red; ins.
-  { exists a_s. constructor; ins.
+  assert (SIMREL' : reord_simrel_gen X_s' X_t' a_t b_t mapper' a_s).
+  { constructor; ins.
     { rewrite (WCore.add_event_acts ADD). apply inj_dom_union.
       { unfolder. intros x y XINE YINE. rewrite !MAPEQ; ins.
         now apply SIMREL. }
@@ -2053,6 +2051,10 @@ Proof using CORR.
       now rewrite !union_false_r. }
     { admit. }
     admit. }
+  (* The proof *)
+  exists mapper', X_s', cmt'.
+  split; red; ins.
+  { now exists a_s. }
   red. exists id, thrdle', dtrmt'.
   constructor; ins.
   { subst dtrmt' cmt'. basic_solver. }
@@ -2060,7 +2062,9 @@ Proof using CORR.
   { constructor; ins.
     { unfolder. subst thrdle'. ins.
       splits; try red; eauto. intro FALSO.
-      apply (rsr_at_tid CORR). admit. }
+      apply (rsr_at_tid CORR).
+      rewrite (rsr_at_bt_tid CORR), FALSO.
+      now apply eba_tid, SIMREL, OLDEXA. }
     { unfolder. subst thrdle'. ins. desf. }
     { constructor; unfolder; subst thrdle'.
       { ins; desf. }
@@ -2071,11 +2075,40 @@ Proof using CORR.
     rewrite seq_union_l.
     arewrite ((rf_s ⨾ ⦗E_s \₁ eq a_s⦘) ⨾ ⦗eq a_s⦘ ≡ ∅₂).
     { basic_solver. }
-    rewrite union_false_l. unfolder. intros x y [_ EQ]. subst y.
-    destruct classic with (tid x = tid a_s) as [TID | NTID].
+    rewrite union_false_l. unfolder.
+    intros x y ((x' & y' & RF & XEQ & YEQ) & EQ).
+    destruct RF as (z & RF & YEQ' & ZEQ & ISR).
+    subst y. subst y'. subst z. subst x.
+    assert (XIN : E_t x').
     { admit. }
+    destruct classic with (tid x' = tid a_s) as [TID | NTID].
+    { left.
+      enough (IN : singl_rel (mapper' x') (mapper' a_t) ⊆ sb G_s').
+      { now apply IN. }
+      change G_s' with (WCore.G X_s').
+      rewrite (rsr_sb SIMREL'), NOEXA, cross_false_l, cross_false_r,
+              !union_false_r, <- collect_rel_singl.
+      apply collect_rel_mori; ins.
+      rewrite (WCore.add_event_sb ADD), swap_rel_union.
+      apply inclusion_union_r. right.
+      assert (XNB : x' <> b_t).
+      { admit. }
+      unfold WCore.sb_delta, swap_rel.
+      unfolder. intros x y (XEQ & YEQ). subst x; subst y.
+      left. splits; ins.
+      { right. split; ins. unfold same_tid.
+        rewrite TID, <- (rsr_tid SIMREL'); [| apply ADD; now right].
+        unfold compose. congruence. }
+      apply or_not_and. left.
+      apply or_not_and. now left. }
     right. subst thrdle'; ins; splits; eauto.
-    admit. }
+    { change (tid (mapper' a_t)) with ((tid ∘ mapper') a_t).
+      rewrite (rsr_tid SIMREL'); try now apply SIMREL.
+      apply ADD. now right. }
+    { change (tid (mapper' x')) with ((tid ∘ mapper') x').
+      rewrite (rsr_tid SIMREL'); [congruence|].
+      apply ADD. now left. }
+    right. congruence. }
   { constructor; ins.
     all: admit. }
   { admit. (* TODO: wf *) }
