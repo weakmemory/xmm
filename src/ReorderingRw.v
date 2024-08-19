@@ -11,6 +11,7 @@ Require Import ExecOps.
 Require Import CfgOps.
 Require Import Steps. *)
 Require Import StepOps.
+Require Import SrfProps.
 Require Import Instructions.
 Require Import Setoid Morphisms.
 
@@ -1037,7 +1038,28 @@ Proof using.
       rewrite (rsr_sb SIMREL). basic_solver 12. }
     { arewrite (srf G_s' ⨾ ⦗extra_a X_t' a_t b_t a_s ∩₁ is_r (upd lab_s e' l)⦘
                 ≡ srf G_s ⨾ ⦗extra_a X_t a_t b_t a_s ∩₁ R_s⦘).
-      { admit. }
+      { rewrite <- EXEQ. unfold extra_a; desf; [| basic_solver].
+        assert (NID : tid e <> tid b_t).
+        { intro F. now apply ETID. }
+        rewrite !id_inter, <- !seqA.
+        rewrite srf_add_event with (X' := X_s') (X := X_s) (r := a_s)
+                                   (e := e') (l := l).
+        { ins. rewrite !seqA, <- !id_inter.
+          apply seq_more; ins. apply eqv_rel_more.
+          unfolder. split; ins; desf; splits; ins.
+          all: unfold is_r in *.
+          all: rewrite updo in *; ins.
+          all: intro FALSO; apply NID.
+          all: rewrite <- TID.
+          all: subst e'; symmetry; apply AS_TID.
+          all: unfold extra_a; desf.
+          all: exfalso; eauto. }
+        { admit. }
+        { eapply G_s_rfc; try now apply SIMREL.
+          unfold reord_simrel; eauto 11. }
+        { rewrite TID, <- eba_tid with (x := a_s) (b_t := b_t); try congruence.
+          apply SIMREL. unfold extra_a; desf. exfalso; eauto. }
+        admit. }
       arewrite (rf_t' ⨾ ⦗eq e ∩₁ R_t'⦘ ≡ WCore.rf_delta_R e l w).
       { rewrite (lab_is_rE ADD), id_inter, <- seqA,
                 (rf_delta_RE (rsr_Gt_wf CORR) ADD).
