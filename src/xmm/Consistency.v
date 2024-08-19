@@ -692,7 +692,14 @@ Proof using.
       intros x y (x' & ((EQ & DOM) & HREL)).
       subst x'.
       assert (XIN : (E_s \₁ eq a) x) by apply DOM.
-      assert (YIN : (E_s \₁ eq a) y) by admit.
+      assert (YIN : (E_s \₁ eq a) y).
+      { apply rtE in HREL. destruct HREL.
+        { destruct H. subst; eauto. }
+        apply ct_end in H. destruct H as (y0 & (H2 & (y1 & (H3 & H4)))).
+        apply wf_rmwD in H4; eauto. destruct H4 as (y2 & (H5 & y3 & (H7 & (H8 & H9)))).
+        subst. apply wf_rmwE in H7; eauto. destruct H7 as (y4 & (H10 & (y5 & (H11 & H12)))).
+        destruct H12; vauto. unfold set_minus. split; vauto.
+        unfold is_w in H9. unfold is_r in IS_R. intros HH. desf. }
       apply MAPEQ in XIN. apply MAPEQ in YIN.
       destruct XIN as (x' & XIN & XEQ), YIN as (y' & YIN & YEQ).
       exists x', y'. splits; ins. split with x'; split.
@@ -701,10 +708,24 @@ Proof using.
         rewrite <- LABS with x'; splits; eauto. }
       assert (HREL' : singl_rel x y ⊆ (rf_s ⨾ rmw_s)＊) by admit.
       rewrite RF_MAP, seq_union_l in HREL'.
-      assert (EMP : (srf_s ⨾ ⦗eq a⦘) ⨾ rmw_s ≡ ∅₂) by admit.
+      assert (EMP : (srf_s ⨾ ⦗eq a⦘) ⨾ rmw_s ≡ ∅₂).
+      { rewrite seqA. rewrite RMW_MAP.
+        rewrite wf_rmwE; eauto. split; [|basic_solver].
+        rewrite collect_rel_seqi. intros x0 y0 HH.
+        destruct HH as (z & (HH & (y1 & (H1 & H2)))).
+        destruct H2 as (y2 & (H3 & (y3 & (y4 & H5)))).
+        destruct H1. symmetry in MAPEQ. destruct H3. 
+        destruct H1. destruct H1. destruct H2. subst.
+        destruct MAPEQ. destruct H with (m x1); eauto.
+        destruct H1. basic_solver. }
       rewrite EMP in HREL'. rewrite union_false_r in HREL'.
       rewrite RMW_MAP in HREL'.
-      rewrite <- collect_rel_seq in HREL'; [|admit].
+      rewrite <- collect_rel_seq in HREL'.
+      2: { assert (IN1 : codom_rel rf_t ⊆₁ E_t).
+          { rewrite wf_rfE; eauto. basic_solver. }
+          assert (IN2 : dom_rel rmw_t ⊆₁ E_t).
+          { rewrite wf_rmwE; eauto. basic_solver. }
+          rewrite IN1, IN2. basic_solver. }
       admit. }
     admit. (* doesn't exist? *) }
   admit.
