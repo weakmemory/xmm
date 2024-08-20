@@ -1610,7 +1610,20 @@ Proof using.
     { rewrite EQACTS, set_collect_union, MAPER_E, MAPSUB.
       rewrite (rsr_acts SIMREL), NEWEXA, OLDEXA.
       basic_solver 11. }
-    { admit. }
+    { rewrite NEWEXA. unfold sb at 1.
+      ins. rewrite NEWSB, (WCore.add_event_sb ADD').
+      arewrite (swap_rel sb_t' (eq b_t ∩₁ E_t') (eq a_t ∩₁ E_t') ≡ sb_t').
+      { admit. (* Because there is not a_t *) }
+      rewrite (sb_deltaE ADD), set_collect_dom.
+      rewrite (WCore.add_event_sb ADD), collect_rel_union.
+      rewrite (rsr_sb SIMREL), OLDEXA, cross_false_l,
+              cross_false_r, !union_false_r.
+      arewrite (swap_rel sb_t (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t) ≡ sb_t).
+      { admit. }
+      arewrite (mapper' ↑ sb_t ≡ mapper ↑ sb_t).
+      { apply collect_rel_eq_dom' with (s := E_t); ins.
+        unfold sb. basic_solver 11. }
+      admit. }
     { arewrite (rf_t' ⨾ ⦗eq b_t ∩₁ R_t'⦘ ≡ WCore.rf_delta_R b_t l w).
       { rewrite (lab_is_rE ADD), id_inter, <- seqA,
                 (rf_delta_RE (rsr_Gt_wf CORR) ADD).
