@@ -2135,7 +2135,9 @@ Proof using CORR.
     { rewrite (WCore.add_event_acts ADD). apply eq_dom_union.
       split; unfold compose; unfolder; intros x XINE.
       { rewrite MAPEQ; ins. now apply SIMREL. }
-      subst x. unfold mapper'. rupd. admit. }
+      subst x. unfold mapper'. rupd.
+      rewrite (rsr_at_bt_tid CORR).
+      symmetry. now apply eba_tid, SIMREL, OLDEXA. }
     { rewrite (WCore.add_event_acts ADD), (WCore.add_event_lab ADD).
       apply eq_dom_union; split; subst mapper'.
       { unfolder. intros x XIN.
@@ -2168,16 +2170,26 @@ Proof using CORR.
       arewrite (srf G_s' ⨾ ⦗∅⦘ ≡ ∅₂).
       { basic_solver. }
       arewrite (mapper ↑ rf_t ⨾ ⦗E_s \₁ eq a_s⦘ ≡ mapper ↑ rf_t).
-      { admit. }
-      arewrite (mapper' ↑ (WCore.rf_delta_R a_t l w ⨾ ⦗eq a_t ∩₁ R_t'⦘)
-                ≡ mapper' ↑ (WCore.rf_delta_R a_t l w)).
-      { admit. }
+      { split; [basic_solver 11|].
+        unfolder. intros x y (x' & y' & RF & XEQ & YEQ).
+        assert (INE : E_t y').
+        { apply (wf_rfE (rsr_Gt_wf CORR)) in RF.
+          unfolder in RF; desf. }
+        splits; eauto.
+        { apply (rsr_acts SIMREL). basic_solver. }
+        intro FALSO. apply ANCODOM.
+        basic_solver. }
+      arewrite (WCore.rf_delta_R a_t l w ⨾ ⦗eq a_t ∩₁ R_t'⦘ ≡
+                WCore.rf_delta_R a_t l w).
+      { unfold WCore.rf_delta_R.
+        rewrite (lab_is_rE ADD). basic_solver. }
       rewrite (WCore.add_event_rf ADD), !collect_rel_union.
-      arewrite (mapper' ↑ (WCore.rf_delta_W a_t l R1) ≡ ∅₂).
-      { admit. }
       arewrite (mapper' ↑ rf_t ≡ mapper ↑ rf_t).
-      { admit. }
-      now rewrite !union_false_r. }
+      { apply collect_rel_eq_dom' with (s := E_t); ins.
+        apply (wf_rfE (rsr_Gt_wf CORR)). }
+      rewrite (add_event_to_rf_complete ADD).
+      all: try now apply CORR.
+      now rewrite collect_rel_empty, !union_false_r. }
     { admit. }
     admit. }
   assert (STARTWF : WCore.wf (WCore.X_start X_s dtrmt') X_s' cmt').
@@ -2219,7 +2231,7 @@ Proof using CORR.
       rewrite (WCore.add_event_sb ADD), swap_rel_union.
       apply inclusion_union_r. right.
       assert (XNB : x' <> b_t).
-      { admit. }
+      { admit. (* x' and a_t have an RF edge --> can't be b_t *) }
       unfold WCore.sb_delta, swap_rel.
       unfolder. intros x y (XEQ & YEQ). subst x; subst y.
       left. splits; ins.
@@ -2264,7 +2276,10 @@ Proof using CORR.
     rewrite collect_rel_id, (WCore.add_event_rmw ADD), collect_rel_union,
             restr_union.
     apply inclusion_union_l.
-    { admit. (* EASY *) }
+    { arewrite (mapper' ↑ rmw_t ≡ mapper ↑ rmw_t).
+      { apply collect_rel_eq_dom' with (s := E_t); ins.
+        apply (wf_rmwE (rsr_Gt_wf CORR)). }
+      rewrite (rsr_rmw SIMREL). basic_solver 11. }
     unfolder. intros x y ((x' & y' & (R & EQ & ISW) & XEQ & YEQ) & CX & CY).
     exfalso. apply CY. rewrite <- YEQ, <- EQ.
     unfold mapper'. now rupd. }
@@ -2272,7 +2287,13 @@ Proof using CORR.
   apply sub_to_full_exec_listless with (thrdle := thrdle'); ins.
   { eapply G_s_rfc with (X_s := X_s'); eauto.
     unfold reord_simrel; eauto 11. }
-  { admit. }
+  { arewrite (E_s \₁ dtrmt' ∩₁ E_s ≡₁ eq a_s ∪₁ eq (mapper b_t)).
+    { rewrite set_minus_inter_r, set_minusK, set_union_empty_r.
+      subst dtrmt'.
+      rewrite !set_minus_minus_r, set_minusK, set_union_empty_l.
+      rewrite !set_inter_absorb_l; ins; [| basic_solver].
+      admit. (* b_t must be in E_t *) }
+    apply set_finite_union. split; apply set_finite_eq. }
   { admit. }
   { admit. }
   { admit. (* might need to update correct graphs *) }
