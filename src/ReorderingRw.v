@@ -95,14 +95,14 @@ Definition add_max {T : Type} (A B : T -> Prop) := (A \₁ B) × B.
 Definition extra_co_D (s : actid -> Prop) ll l :=
   (s ∩₁ is_w ll ∩₁ (fun e => loc ll e = l)).
 
-Record reord_correct_graphs : Prop := {
+Record reord_step_pred : Prop := {
   rsr_at_tid : tid a_t <> tid_init;
   rsr_at_ninit : ~is_init a_t;
   rsr_bt_ninit : ~is_init b_t;
   rsr_Gt_wf : Wf G_t;
   rsr_Gt_rfc : rf_complete G_t;
-  rsr_a_t_is_r_or_w : eq a_t ∩₁ E_t ⊆₁ (W_t ∪₁ R_t);
-  rsr_b_t_is_r_or_w : eq b_t ∩₁ E_t ⊆₁ (W_t ∪₁ R_t);
+  rsr_a_t_is_r_or_w : eq a_t ∩₁ E_t ⊆₁ W_t ∪₁ R_t;
+  rsr_b_t_is_r_or_w : eq b_t ∩₁ E_t ⊆₁ W_t ∪₁ R_t;
   rsr_init_lab : forall l, lab_s (InitEvent l) = Astore Xpln Opln l 0;
   rsr_init_acts_t : is_init ⊆₁ E_t;
   rsr_init_acts_s : is_init ⊆₁ E_s;
@@ -130,7 +130,7 @@ Record reord_simrel_gen a_s : Prop := {
       (extra_co_D E_s lab_s (loc_s a_s))
       (extra_a a_s ∩₁ W_s);
   rsr_rmw : rmw_s ≡ mapper ↑ rmw_t;
-  rsr_corr : reord_correct_graphs;
+  rsr_corr : reord_step_pred;
 }.
 
 Definition reord_simrel := exists a_s, reord_simrel_gen a_s.
@@ -823,7 +823,7 @@ Notation "'R_s'" := (is_r lab_s).
 Notation "'srf_s'" := (srf G_s).
 Notation "'Loc_s_' l" := (fun e => loc_s e = l) (at level 1).
 
-Hypothesis CORR : reord_correct_graphs X_s X_t a_t b_t.
+Hypothesis CORR : reord_step_pred X_s X_t a_t b_t.
 
 Lemma sim_rel_init :
   reord_simrel
