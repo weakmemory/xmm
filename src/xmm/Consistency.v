@@ -359,11 +359,11 @@ Notation "'rmw_dep_s'" := (rmw_dep G_s).
 Notation "'data_s'" := (data G_s).
 Notation "'ctrl_s'" := (ctrl G_s).
 Notation "'addr_s'" := (addr G_s).
-Notation "'W_s'" := (is_w lab_s).
-Notation "'R_s'" := (is_r lab_s).
-Notation "'F_s'" := (is_f lab_s).
-Notation "'Rel_s'" := (is_rel lab_s).
-Notation "'Acq_s'" := (is_acq lab_s).
+Notation "'W_s'" := (fun a => is_true (is_w lab_s a)).
+Notation "'R_s'" := (fun a => is_true (is_r lab_s a)).
+Notation "'F_s'" := (fun a => is_true (is_f lab_s a)).
+Notation "'Rel_s'" := (fun a => is_true (is_rel lab_s a)).
+Notation "'Acq_s'" := (fun a => is_true (is_acq lab_s a)).
 Notation "'release_s'" := (release G_s).
 Notation "'rs_s'" := (rs G_s).
 Notation "'hb_s'" := (hb G_s).
@@ -388,11 +388,11 @@ Notation "'rmw_dep_t'" := (rmw_dep G_t).
 Notation "'data_t'" := (data G_t).
 Notation "'ctrl_t'" := (ctrl G_t).
 Notation "'addr_t'" := (addr G_t).
-Notation "'W_t'" := (is_w lab_t).
-Notation "'R_t'" := (is_r lab_t).
-Notation "'F_t'" := (is_f lab_t).
-Notation "'Rel_t'" := (is_rel lab_t).
-Notation "'Acq_t'" := (is_acq lab_t).
+Notation "'W_t'" := (fun a => is_true (is_w lab_t a)).
+Notation "'R_t'" := (fun a => is_true (is_r lab_t a)).
+Notation "'F_t'" := (fun a => is_true (is_f lab_t a)).
+Notation "'Rel_t'" := (fun a => is_true (is_rel lab_t a)).
+Notation "'Acq_t'" := (fun a => is_true (is_acq lab_t a)).
 Notation "'release_t'" := (release G_t).
 Notation "'rs_t'" := (rs G_t).
 Notation "'hb_t'" := (hb G_t).
@@ -781,7 +781,29 @@ Proof using.
           { rewrite wf_rmwE; eauto. basic_solver. }
           rewrite IN1, IN2. basic_solver. }
       admit. }
-    admit. (* doesn't exist? *) }
+    assert (sb_t ∩ same_loc_t ≡ ⦗E_t⦘ ⨾ sb_t ∩ same_loc_t ⨾ ⦗E_t⦘) as EAA.
+    { split; [|clear; basic_solver 10].
+      rewrite wf_sbE at 1. clear. basic_solver 10. }
+    arewrite (sb_t ∩ same_loc_t ⨾ ⦗W_t⦘ ⨾ (rf_t ⨾ rmw_t)＊
+              ≡
+              sb_t ∩ same_loc_t ⨾ ⦗W_t⦘ ⨾ (rf_t ⨾ rmw_t)＊⨾ ⦗E_t⦘).
+    { split; [|clear; basic_solver 10].
+      arewrite (sb_t ∩ same_loc_t ⊆ ⦗E_t⦘ ⨾ sb_t ∩ same_loc_t ⨾ ⦗E_t⦘) by apply EAA.
+      rewrite rtE, !seq_union_l, !seq_union_r, !seq_id_l, !seq_id_r.
+      apply union_mori; [clear; basic_solver|].
+      rewrite (dom_r (wf_rmwE WF_t)) at 1.
+      rewrite <- !seqA, ct_seq_eqv_r. hahn_frame_r.
+      arewrite (rf_t ⨾ rmw_t ⨾ ⦗E_t⦘ ⊆ rf_t ⨾ rmw_t).
+      hahn_frame_r. clear. basic_solver. }
+    arewrite (sb_t ∩ same_loc_t ≡ ⦗E_t⦘ ⨾ sb_t ∩ same_loc_t ⨾ ⦗E_t⦘) by apply EAA.
+    do 7 rewrite <- seqA.
+    rewrite collect_rel_seq; auto.
+    2: { eapply inj_dom_mori; eauto. red.
+         rewrite wf_sbE. clear. basic_solver 10. }
+    rewrite !seqA. do 3 rewrite <- seqA.
+    apply seq_mori.
+    { admit. }
+    admit. }
   unfold rs. rewrite !crE. rewrite !seq_union_l.
   rewrite !seq_union_r. rewrite collect_rel_union.
   apply union_mori.
