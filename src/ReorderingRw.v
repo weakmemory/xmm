@@ -713,35 +713,6 @@ Hint Unfold swap_rel add_max extra_co_D : unfolderDb.
 
 Section ReordSimRelInstrs.
 
-Variable X_t : WCore.t.
-Variable e2i_t : actid -> I2Exec.intr_info.
-Variable rmwi : I2Exec.instr_id -> Prop.
-Variable ai bi : I2Exec.intr_info.
-Variable mapper : actid -> actid.
-Variable a_t b_t : actid.
-
-Notation "'G_t'" := (WCore.G X_t).
-Notation "'lab_t'" := (lab G_t).
-Notation "'val_t'" := (val lab_t).
-Notation "'E_t'" := (acts_set G_t).
-Notation "'sb_t'" := (sb G_t).
-Notation "'rf_t'" := (rf G_t).
-Notation "'co_t'" := (co G_t).
-Notation "'rmw_t'" := (rmw G_t).
-Notation "'rpo_t'" := (rpo G_t).
-Notation "'rmw_dep_t'" := (rmw_dep G_t).
-Notation "'data_t'" := (data G_t).
-Notation "'ctrl_t'" := (ctrl G_t).
-Notation "'addr_t'" := (addr G_t).
-
-Record program_coherent : Prop := {
-  rwi_t_wf : I2Exec.E2InstrWf G_t e2i_t rmwi;
-  rwi_at : e2i_t ↑₁ (eq a_t ∩₁ E_t) ⊆₁ eq ai;
-  rwi_bt : e2i_t ↑₁ (eq b_t ∩₁ E_t) ⊆₁ eq bi;
-  rwi_ai : ~rmwi (I2Exec.instr ai);
-  rwi_bi : ~rmwi (I2Exec.instr bi);
-}.
-
 End ReordSimRelInstrs.
 
 Module ReordRwSimRelProps.
@@ -753,9 +724,6 @@ Variable X_t X_t' X_s : WCore.t.
 
 Variable G_t G_t' G_s : execution.
 Variable a_t b_t : actid.
-Variable e2i_s e2i_t e2i_t' : actid -> I2Exec.intr_info.
-Variable rmwi : I2Exec.instr_id -> Prop.
-Variable ai bi : I2Exec.intr_info.
 Variable mapper : actid -> actid.
 
 Notation "'G_t'" := (WCore.G X_t).
@@ -867,7 +835,6 @@ Proof using.
 Admitted.
 
 Lemma simrel_exec_not_a_not_b e l
-    (PROG : program_coherent X_t' e2i_t' rmwi ai bi a_t b_t)
     (E_TID : tid e <> tid_init)
     (E_NOT_A : e <> a_t)
     (E_NOT_B : e <> b_t)
@@ -1190,31 +1157,9 @@ Proof using.
       assert (RTID : tid r = tid e).
       { apply sb_tid_init in SB. desf. }
       assert (RNB : b_t <> r).
-      { intro FALSO. subst r.
-        apply (rwi_bi PROG).
-        replace bi with (e2i_t' b_t).
-        { apply PROG. apply set_subset_single_l.
-          rewrite (WCore.add_event_rmw ADD), dom_union.
-          unfold WCore.rmw_delta.
-          rewrite dom_cross; [basic_solver|].
-          apply set_nonemptyE. basic_solver. }
-        symmetry. apply (rwi_bt PROG).
-        unfolder. exists b_t; splits; eauto.
-        apply (WCore.add_event_acts ADD); left.
-        now apply (WCore.add_event_rE ADD). }
+      { admit. }
       assert (RNA : a_t <> r).
-      { intro FALSO. subst r.
-        apply (rwi_ai PROG).
-        replace ai with (e2i_t' a_t).
-        { apply PROG. apply set_subset_single_l.
-          rewrite (WCore.add_event_rmw ADD), dom_union.
-          unfold WCore.rmw_delta.
-          rewrite dom_cross; [basic_solver|].
-          apply set_nonemptyE. basic_solver. }
-        symmetry. apply (rwi_at PROG).
-        unfolder. exists a_t; splits; eauto.
-        apply (WCore.add_event_acts ADD); left.
-        now apply (WCore.add_event_rE ADD). }
+      { admit. }
       assert (INJ' : inj_dom
         (dom_rel
           (swap_rel sb_t'
@@ -1448,7 +1393,6 @@ Proof using.
 Admitted.
 
 Lemma simrel_exec_b l
-    (PROG : program_coherent X_t' e2i_t' rmwi ai bi a_t b_t)
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
     (CORR : reord_step_pred X_t a_t b_t)
     (CORR' : reord_step_pred X_t' a_t b_t)
@@ -1795,17 +1739,7 @@ Proof using.
         basic_solver. }
       assert (IS_W : WCore.lab_is_w l b_t).
       { unfold WCore.lab_is_w in *. desf. }
-      exfalso. apply (rwi_bi PROG).
-      replace bi with (e2i_t' b_t).
-      { apply PROG. apply set_subset_single_l.
-        transitivity (codom_rel rmw_t'); [| basic_solver].
-        rewrite (WCore.add_event_rmw ADD), codom_union.
-        unfold WCore.rmw_delta.
-        rewrite codom_cross; [basic_solver|].
-        apply set_nonemptyE. basic_solver. }
-      symmetry. apply (rwi_bt PROG).
-      unfolder. exists b_t; splits; eauto.
-      apply (WCore.add_event_acts ADD); now right. }
+      admit. }
     { apply eq_dom_is_w with (lab := lab_s).
       { rewrite set_collect_eq_dom with (g := mapper),
                 rsr_is_w with (X_s := X_s) (X_t := X_t)
@@ -2261,8 +2195,6 @@ Admitted.
 
 Lemma simrel_reexec cmt a_t' b_t'
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
-    (PROG  : program_coherent X_t  e2i_t  rmwi ai bi a_t  b_t )
-    (PROG' : program_coherent X_t' e2i_t' rmwi ai bi a_t' b_t')
     (STEP : WCore.reexec X_t X_t' cmt) :
   exists mapper' X_s',
     << SIM : reord_simrel X_s' X_t' a_t' b_t' mapper' >> /\
