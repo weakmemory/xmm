@@ -756,7 +756,7 @@ End ExecuteStep.
 Section ReexecStep.
 
 Variables X X' : t.
-Variable cmt : actid -> Prop.
+Variable dtrmt cmt : actid -> Prop.
 
 Notation "'G''" := (G X').
 Notation "'lab''" := (lab G').
@@ -808,7 +808,7 @@ Record reexec_gen f thrdle dtrmt : Prop :=
   reexec_steps : (guided_step cmt X')＊ (X_start dtrmt) X'; }.
 
 Definition reexec : Prop :=
-  exists f thrdle dtrmt, reexec_gen f thrdle dtrmt.
+  exists f thrdle, reexec_gen f thrdle dtrmt.
 
 End ReexecStep.
 

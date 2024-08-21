@@ -711,18 +711,43 @@ End SimRel.
 #[export]
 Hint Unfold swap_rel add_max extra_co_D : unfolderDb.
 
-Section ReordSimRelInstrs.
+Section ReordInvariant.
 
-End ReordSimRelInstrs.
+Variable I : Type.
+Variable i_a i_b : I.
+Variable e2i : actid -> I.
+Variable X_s X_t : WCore.t.
+Variable mapper : actid -> actid.
+
+Notation "'G_t'" := (WCore.G X_t).
+Notation "'G_s'" := (WCore.G X_s).
+Notation "'E_t'" := (acts_set G_t).
+
+Record reord_step_invariant_gen a_t b_t : Prop := {
+  rsr_in_inj : inj_dom (E_t \₁ is_init) e2i;
+  rsr_ia : E_t ∩₁ e2i ↓₁ eq i_a ⊆₁ eq a_t;
+  rsr_ib : E_t ∩₁ e2i ↓₁ eq i_b ⊆₁ eq b_t;
+  rsr_correct : reord_step_pred X_t a_t b_t;
+}.
+
+Record reord_invariant_gen a_t b_t : Prop := {
+  rsr_step_inv : reord_step_invariant_gen a_t b_t;
+  rsr_simrel : reord_simrel X_s X_t a_t b_t mapper;
+}.
+
+Definition reord_invariant := exists a_t b_t, reord_invariant_gen a_t b_t.
+Definition reord_step_invariant := exists a_t b_t, reord_step_invariant_gen a_t b_t.
+
+End ReordInvariant.
 
 Module ReordRwSimRelProps.
 
 Section XmmSteps.
 
-
+Variable I : Type.
+Variable i_a i_b : I.
+Variable e2i e2i' : actid -> I.
 Variable X_t X_t' X_s : WCore.t.
-
-Variable G_t G_t' G_s : execution.
 Variable a_t b_t : actid.
 Variable mapper : actid -> actid.
 
@@ -786,6 +811,9 @@ Notation "'R_s'" := (is_r lab_s).
 Notation "'srf_s'" := (srf G_s).
 Notation "'Loc_s_' l" := (fun e => loc_s e = l) (at level 1).
 
+Hypothesis INV : reord_invariant i_a i_b e2i X_t X_s mapper.
+Hypothesis INV' : reord_step_invariant i_a i_b e2i' X_t'.
+
 Lemma sim_rel_init :
   reord_simrel
     (WCore.Build_t (WCore.init_exec G_s) ∅₂)
@@ -834,19 +862,15 @@ Proof using.
   admit.
 Admitted.
 
-Lemma simrel_exec_not_a_not_b e l
-    (E_TID : tid e <> tid_init)
+Lemma simrel_exec_not_a_not_b e l ei
     (E_NOT_A : e <> a_t)
     (E_NOT_B : e <> b_t)
-    (ETID : forall (WITHA : tid e = tid b_t), ~(~E_t a_t /\ E_t b_t) )
-    (CORR : reord_step_pred X_t a_t b_t)
-    (CORR' : reord_step_pred X_t' a_t b_t)
-    (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
+    (E2I : e2i' = upd e2i e ei)
     (STEP : WCore.exec_inst X_t X_t' e l) :
   exists mapper' X_s',
-    << SIMREL : reord_simrel X_s' X_t' a_t b_t mapper' >> /\
+    << INV : reord_invariant i_a i_b e2i' X_s' X_t' mapper' >> /\
     << STEP : WCore.exec_inst X_s X_s' (mapper' e) l >>.
-Proof using.
+Proof using INV INV'.
   (* Generate new actid *)
   assert (NEWE : exists e',
   << NINIT : ~is_init e' >> /\
@@ -854,6 +878,16 @@ Proof using.
   << TID : tid e' = tid e >> /\
   << NEWSB : ⦗E_s ∪₁ eq e'⦘ ⨾ ext_sb ⨾ ⦗E_s ∪₁ eq e'⦘ ≡
           sb_s ∪ WCore.sb_delta X_s e' >>).
+  { admit. }
+  assert (CORR : reord_step_pred X_t a_t b_t).
+  { admit. }
+  assert (CORR' : reord_step_pred X_t' a_t b_t).
+  { admit. }
+  assert (SIMREL : reord_simrel X_s X_t a_t b_t mapper).
+  { admit. }
+  assert (ETID : forall (WITHA : tid e = tid b_t), ~(~E_t a_t /\ E_t b_t)).
+  { admit. }
+  assert (E_TID : tid e <> tid_init).
   { admit. }
   (* unfold hypotheses *)
   red in SIMREL. destruct SIMREL as (a_s & SIMREL).
@@ -1076,6 +1110,8 @@ Proof using.
   (* Actual proof *)
   exists mapper', X_s'.
   split; red; ins.
+  { exists a_t, b_t. constructor; ins.
+    admit. }
   constructor.
   { exists (option_map mapper' r), (mapper' ↑₁ R1),
            (option_map mapper' w),
@@ -1366,7 +1402,6 @@ Proof using.
 Admitted.
 
 Lemma simrel_exec_b_step_1
-    (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
     (BNOTIN : ~E_t b_t) :
   exists a_s l_a X_s'',
     << ATID : same_tid b_t a_s >> /\
@@ -1377,7 +1412,9 @@ Lemma simrel_exec_b_step_1
             co_s ∪ (E_s ∩₁ W_s ∩₁ Loc_s_ (WCore.lab_loc l_a)) ×
                 (eq a_s ∩₁ WCore.lab_is_w l_a) >> /\
     << RMW : rmw (WCore.G X_s'') ≡ rmw_s >>.
-Proof using.
+Proof using INV INV'.
+  assert (SIMREL : reord_simrel X_s X_t a_t b_t mapper).
+  { admit. }
   (* Generate new actid *)
   assert (NEWE : exists a_s,
   << NINIT : ~is_init a_s >> /\
@@ -1393,20 +1430,24 @@ Proof using.
 Admitted.
 
 Lemma simrel_exec_b l
-    (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
-    (CORR : reord_step_pred X_t a_t b_t)
-    (CORR' : reord_step_pred X_t' a_t b_t)
+    (E2I : e2i' = upd e2i b_t i_b)
     (STEP : WCore.exec_inst X_t X_t' b_t l) :
   exists a_s l_a X_s'' mapper' X_s',
-    << SIMREL : reord_simrel X_s' X_t' a_t b_t mapper' >> /\
+    << INV : reord_invariant i_a i_b e2i' X_s' X_t' mapper' >> /\
     << STEP1 : WCore.exec_inst X_s  X_s'' a_s l_a >> /\
     << STEP2 : WCore.exec_inst X_s'' X_s' (mapper' b_t) l >>.
 Proof using.
+  assert (SIMREL : reord_simrel X_s X_t a_t b_t mapper).
+  { admit. }
+  assert (CORR : reord_step_pred X_t a_t b_t).
+  { admit. }
+  assert (CORR' : reord_step_pred X_t' a_t b_t).
+  { admit. }
   (* unfold hypotheses *)
   destruct STEP as [ADD RFC CONS].
   destruct ADD as (r & R1 & w & W1 & W2 & ADD).
   (* Do step 1 *)
-  destruct (simrel_exec_b_step_1 SIMREL)
+  destruct simrel_exec_b_step_1
         as (a_s & l_a & X_s'' & ATID & STEP1 & RF' & CO' & RMW').
   { apply ADD. }
   exists a_s, l_a, X_s''.
@@ -1607,6 +1648,7 @@ Proof using.
   (* The proof *)
   exists mapper', X_s'.
   splits; ins.
+  { admit. }
   { constructor; ins.
     now exists r', R1', w', W1', W2'. }
   constructor; ins.
@@ -1936,15 +1978,20 @@ Proof using.
 Admitted.
 
 Lemma simrel_exec_a l
-    (CORR : reord_step_pred X_t a_t b_t)
-    (CORR' : reord_step_pred X_t' a_t b_t)
-    (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
-    (INB : E_t b_t)
+    (E2I : e2i' = upd e2i a_t i_a)
     (STEP : WCore.exec_inst X_t X_t' a_t l) :
-  exists mapper' X_s' cmt',
-    << SIM : reord_simrel X_s' X_t' a_t b_t mapper' >> /\
-    << STEP : WCore.reexec X_s X_s' cmt' >>.
-Proof using.
+  exists mapper' X_s' dtrmt' cmt',
+    << INV : reord_invariant i_a i_b e2i' X_s' X_t' mapper' >> /\
+    << STEP : WCore.reexec X_s X_s' dtrmt' cmt' >>.
+Proof using INV INV'.
+  assert (CORR : reord_step_pred X_t a_t b_t).
+  { admit. }
+  assert (CORR' : reord_step_pred X_t' a_t b_t).
+  { admit. }
+  assert (SIMREL : reord_simrel X_s X_t a_t b_t mapper).
+  { admit. }
+  assert (INB : E_t b_t).
+  { admit. }
   (* Setup vars *)
   red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   destruct STEP as [ADD RFC CONS].
@@ -2138,10 +2185,10 @@ Proof using.
       apply ADD. now left. }
     right. congruence. }
   (* The proof *)
-  exists mapper', X_s', cmt'.
+  exists mapper', X_s', dtrmt', cmt'.
   split; red; ins.
-  { now exists a_s. }
-  red. exists id, thrdle', dtrmt'.
+  { exists a_s. admit. }
+  red. exists id, thrdle'.
   constructor; ins.
   { subst dtrmt' cmt'. basic_solver. }
   { subst cmt'. basic_solver. }
@@ -2193,13 +2240,15 @@ Proof using.
   admit.
 Admitted.
 
-Lemma simrel_reexec cmt a_t' b_t'
-    (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
-    (STEP : WCore.reexec X_t X_t' cmt) :
-  exists mapper' X_s',
-    << SIM : reord_simrel X_s' X_t' a_t' b_t' mapper' >> /\
-    << STEP : WCore.reexec X_s X_s' (mapper' ↑₁ cmt) >>.
-Proof using.
+Lemma simrel_reexec dtrmt cmt
+    (E2I : eq_dom dtrmt e2i e2i')
+    (STEP : WCore.reexec X_t X_t' dtrmt cmt) :
+  exists mapper' X_s' dtrmt',
+    << INV : reord_invariant i_a i_b e2i' X_s' X_t' mapper' >> /\
+    << STEP : WCore.reexec X_s X_s' dtrmt' (mapper' ↑₁ cmt) >>.
+Proof using INV INV'.
+  assert (SIMREL : reord_simrel X_s X_t a_t b_t mapper).
+  { admit. }
   admit.
 Admitted.
 
