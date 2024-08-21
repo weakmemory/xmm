@@ -159,6 +159,30 @@ Record reord_simrel_gen a_s : Prop := {
 
 Definition reord_simrel := exists a_s, reord_simrel_gen a_s.
 
+Lemma rsr_init_acts_s
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel) :
+  is_init ⊆₁ E_s.
+Proof using.
+  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
+  rewrite (rsr_acts SIMREL), <- (rsr_init_acts PRED).
+  rewrite <- (fixset_set_fixpoint (rsr_init SIMREL)).
+  basic_solver.
+Qed.
+
+Lemma rsr_as_ninit a_s
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel_gen a_s) :
+  extra_a a_s ⊆₁ set_compl is_init.
+Proof using.
+  transitivity (same_tid b_t).
+  { rewrite (rsr_as SIMREL). intros x HSET.
+    apply HSET. }
+  assert (NTID : tid b_t <> tid_init).
+  { rewrite <- (rsr_at_bt_tid PRED). apply PRED. }
+  unfold same_tid, is_init. basic_solver.
+Qed.
+
 Lemma rsr_map_inits
     (PRED : reord_step_pred)
     (SIMREL : reord_simrel) :
@@ -744,8 +768,22 @@ Proof using.
       with (G := G_s) (r := a_s) (l := l)
         as (w & SRF).
   all: eauto.
-  all: admit.
-Admitted.
+  { eapply (rsr_as_ninit PRED SIMREL).
+    now apply extra_a_some. }
+  { apply (rsr_init_acts_s PRED); ins. red; eauto. }
+  { intro l'. rewrite <- (rsr_init SIMREL) by ins.
+    change (lab_s (mapper (InitEvent l')))
+      with ((lab_s ∘ mapper) (InitEvent l')).
+    rewrite (rsr_lab SIMREL); [apply WF |].
+    now apply (rsr_init_acts PRED). }
+  { apply rsr_fin_s; ins. red; eauto. }
+  { apply G_s_co_l; ins. red; eauto. }
+  { apply G_s_co_trans; ins. red; eauto. }
+  { apply G_s_coD; ins. red; eauto. }
+  { apply G_s_coE; ins. red; eauto. }
+  { apply G_s_co_irr; ins. red; eauto. }
+  unfolder. exists w, a_s. splits; ins.
+Qed.
 
 End SimRel.
 
