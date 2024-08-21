@@ -852,7 +852,7 @@ Notation "'R_s'" := (is_r lab_s).
 Notation "'srf_s'" := (srf G_s).
 Notation "'Loc_s_' l" := (fun e => loc_s e = l) (at level 1).
 
-Hypothesis INV : reord_invariant_gen i_a i_b e2i X_t X_s mapper a_t b_t.
+Hypothesis INV : reord_invariant_gen i_a i_b e2i X_s X_t mapper a_t b_t.
 Hypothesis INV' : reord_step_invariant i_a i_b e2i' X_t'.
 
 Lemma sim_rel_init threads
