@@ -106,6 +106,11 @@ Record reord_step_pred : Prop := {
   rsr_init_acts : is_init ⊆₁ E_t;
   rsr_at_bt_tid : tid a_t = tid b_t;
   rsr_fin_t : set_finite (E_t \₁ is_init);
+  rsr_at_bt_loc : ⦗eq a_t ∩₁ E_t⦘ ⨾ same_loc_t ⨾ ⦗eq b_t ∩₁ E_t⦘ ⊆ ∅₂;
+  rsr_at_bt_ord : forall (INA : E_t a_t), E_t b_t;
+  rsr_at_bt_imm : (eq b_t ∩₁ E_t) × (eq a_t ∩₁ E_t) ⊆ immediate sb_t;
+  rsr_at_nrmw : eq a_t ⊆₁ set_compl (dom_rel rmw_t ∪₁ codom_rel rmw_t);
+  rsr_bt_nrmw : eq b_t ⊆₁ set_compl (dom_rel rmw_t ∪₁ codom_rel rmw_t);
 }.
 
 Record reord_simrel_gen a_s : Prop := {
