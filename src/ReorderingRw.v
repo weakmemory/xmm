@@ -87,6 +87,28 @@ Definition extra_a (a_s : actid) :=
   ifP ~E_t a_t /\ E_t b_t then eq a_s
   else ∅.
 
+Lemma extra_a_some a_s
+    (NINA : ~E_t a_t)
+    (INB : E_t b_t) :
+  extra_a a_s ≡₁ eq a_s.
+Proof using.
+  unfold extra_a; desf. exfalso; eauto.
+Qed.
+
+Lemma extra_a_none_l a_s
+    (INA : E_t a_t) :
+  extra_a a_s ≡₁ ∅.
+Proof using.
+  unfold extra_a; desf. exfalso; desf.
+Qed.
+
+Lemma extra_a_none_r a_s
+    (INA : ~E_t b_t) :
+  extra_a a_s ≡₁ ∅.
+Proof using.
+  unfold extra_a; desf. exfalso; desf.
+Qed.
+
 Definition swap_rel {T : Type} (r : relation T) A B :=
   r \ A × B ∪ B × A.
 
@@ -263,6 +285,20 @@ Lemma swap_rel_unionE {T : Type} (r1 r2 : relation T) A B :
   swap_rel (r1 ∪ r2) A B ≡ swap_rel r1 A B ∪ r2 \ A × B.
 Proof using.
   rewrite swap_rel_union. unfold swap_rel. basic_solver 11.
+Qed.
+
+Lemma swap_rel_empty_l {T : Type} (r : relation T) B :
+  swap_rel r ∅ B ≡ r.
+Proof using.
+  unfold swap_rel. rewrite cross_false_l, cross_false_r.
+  basic_solver.
+Qed.
+
+Lemma swap_rel_empty_r {T : Type} (r : relation T) A :
+  swap_rel r A ∅ ≡ r.
+Proof using.
+  unfold swap_rel. rewrite cross_false_l, cross_false_r.
+  basic_solver.
 Qed.
 
 Lemma swap_rel_imm {T : Type} (r : relation T) A B x y
@@ -730,8 +766,8 @@ Notation "'E_t'" := (acts_set G_t).
 
 Record reord_step_invariant_gen a_t b_t : Prop := {
   rsr_in_inj : inj_dom (E_t \₁ is_init) e2i;
-  rsr_ia : E_t ∩₁ e2i ↓₁ eq i_a ⊆₁ eq a_t;
-  rsr_ib : E_t ∩₁ e2i ↓₁ eq i_b ⊆₁ eq b_t;
+  rsr_ia : (E_t \₁ is_init) ∩₁ e2i ↓₁ eq i_a ⊆₁ eq a_t;
+  rsr_ib : (E_t \₁ is_init) ∩₁ e2i ↓₁ eq i_b ⊆₁ eq b_t;
   rsr_correct : reord_step_pred X_t a_t b_t;
 }.
 
@@ -819,53 +855,47 @@ Notation "'Loc_s_' l" := (fun e => loc_s e = l) (at level 1).
 Hypothesis INV : reord_invariant i_a i_b e2i X_t X_s mapper.
 Hypothesis INV' : reord_step_invariant i_a i_b e2i' X_t'.
 
-Lemma sim_rel_init :
-  reord_simrel
-    (WCore.Build_t (WCore.init_exec G_s) ∅₂)
-    (WCore.Build_t (WCore.init_exec G_t) ∅₂)
-    a_t b_t
+Lemma sim_rel_init threads
+    (TIDA : tid a_t <> tid_init)
+    (NINA : ~is_init a_t)
+    (NINB : ~is_init b_t)
+    (TIDAB : tid a_t = tid b_t)
+    (INIT : threads tid_init) :
+  reord_invariant i_a i_b e2i'
+    (WCore.Build_t (WCore.init_exec threads) ∅₂)
+    (WCore.Build_t (WCore.init_exec threads) ∅₂)
     id.
 Proof using.
-  assert (WF : Wf G_t) by admit.
-  assert (IWF : Wf (WCore.init_exec G_t)).
-  { apply WCore.wf_init_exec; ins.
-    assert (SOMELOC : location) by constructor.
-    admit. }
-  assert (EXA : extra_a
-    {|
-      WCore.G :=
-        WCore.init_exec G_t;
-      WCore.sc := ∅₂
-    |} a_t b_t a_t ≡₁ ∅).
-  { unfold extra_a. desf; ins.
-    destruct a as (_ & INB). exfalso.
-    admit. }
-  exists a_t.
-  constructor; ins.
-  { rewrite EXA. basic_solver. }
-  { rewrite EXA. basic_solver. }
-  { rewrite Combinators.compose_id_right. unfolder.
-    intros x INIT. destruct x as [ xl | xt xn ]; ins.
-    admit. }
-  { rewrite EXA. basic_solver. }
-  { rewrite EXA, !cross_false_r, !cross_false_l, !union_false_r.
-    unfold swap_rel.
-    arewrite (eq a_t ∩₁ is_init ≡₁ ∅).
-    { split; [| basic_solver]. unfolder.
-      ins. desf. admit. }
-    arewrite (eq b_t ∩₁ is_init ≡₁ ∅).
-    { split; [| basic_solver]. unfolder.
-      ins. desf. admit. }
-    unfold sb. ins. rewrite !cross_false_r, !union_false_r.
-    rewrite minus_disjoint; basic_solver 11. }
-  { rewrite EXA. basic_solver. }
-  { rewrite EXA. basic_solver. }
-  { basic_solver. }
-  constructor; try now apply CORR.
-  all: ins.
-  { unfold rf_complete. admit. }
-  admit.
-Admitted.
+  clear INV INV'.
+  assert (IWF : Wf (WCore.init_exec threads)).
+  { now apply WCore.wf_init_exec. }
+  assert (AI : eq a_t ∩₁ is_init ≡₁ ∅) by basic_solver.
+  assert (BI : eq b_t ∩₁ is_init ≡₁ ∅) by basic_solver.
+  exists a_t, b_t. constructor; [| exists a_t].
+  all: constructor; ins.
+  { rewrite set_minusK. basic_solver. }
+  { rewrite set_minusK. basic_solver. }
+  { rewrite set_minusK. basic_solver. }
+  { constructor; ins.
+    { red. ins. unfold is_r, WCore.init_lab.
+      basic_solver. }
+    all: rewrite ?AI, ?BI, ?set_minusK.
+    all: try now apply set_finite_empty.
+    all: rewrite ?dom_empty, ?codom_empty, ?set_union_empty_r.
+    all: basic_solver. }
+  { rewrite extra_a_none_r; [basic_solver|ins]. }
+  { rewrite extra_a_none_r; [basic_solver|ins]. }
+  { rewrite extra_a_none_r; [basic_solver|ins]. }
+  { rewrite extra_a_none_r, cross_false_l,
+            cross_false_r, AI, BI, !union_false_r,
+            swap_rel_empty_l, collect_rel_id.
+    all: ins. }
+  { rewrite extra_a_none_r; [basic_solver|ins]. }
+  { rewrite extra_a_none_r, set_inter_empty_l,
+            add_max_empty_r; [|ins].
+    basic_solver. }
+  basic_solver.
+Qed.
 
 Lemma simrel_exec_not_a_not_b e l ei
     (E_NOT_A : e <> a_t)

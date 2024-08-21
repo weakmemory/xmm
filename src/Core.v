@@ -71,16 +71,21 @@ Record t := {
   sc : relation actid;
 }.
 
-Definition init_exec G : execution :=
+Definition init_lab e :=
+  match e with
+  | InitEvent l => Astore Xpln Opln l 0
+  | ThreadEvent _ _ => Afence Opln
+  end.
+
+Definition init_exec threads : execution :=
   Build_execution
-    is_init (threads_set G)
-    (lab G)
+    is_init threads
+    init_lab
    ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂ ∅₂.
 
-Lemma wf_init_exec G
-    (INIT : threads_set G tid_init)
-    (WF : Wf G) :
-  Wf (init_exec G).
+Lemma wf_init_exec threads
+    (INIT : threads tid_init) :
+  Wf (init_exec threads).
 Proof using.
   constructor.
   { intros a b (INA & _ & _ & _ & ANIN); ins. }
@@ -92,9 +97,7 @@ Proof using.
            NEQ.
     exfalso. apply NEQ.
     destruct a as [al | ta na], b as [bl | tb nb]; ins.
-    unfold loc in *. rewrite (wf_init_lab WF) in *.
-    congruence. }
-  { apply WF. }
+    unfold loc, init_lab in *. desf. }
   destruct e; ins.
 Qed.
 
