@@ -1686,10 +1686,25 @@ Proof using.
                 (rf_delta_RE (rsr_Gt_wf CORR) ADD).
         basic_solver. }
       rewrite NEWEXA.
-      arewrite (srf G_s' ⨾ ⦗
-          eq a_s ∩₁ is_r (upd (upd lab_s a_s l_a) b_s l)
-        ⦘ ≡ srf (WCore.G X_s'') ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘).
-      { admit. (* NOTE: srf stability exists, but it's better to refine it first *) }
+      arewrite (eq a_s ∩₁ is_r (upd (upd lab_s a_s l_a) b_s l) ≡₁
+                eq a_s ∩₁ WCore.lab_is_r l_a).
+      { admit. }
+      arewrite (srf G_s' ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘ ≡
+                srf G_s' ⨾ ⦗acts_set (WCore.G X_s'')⦘ ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘).
+      { rewrite (WCore.add_event_acts ADD'). basic_solver 11. }
+      arewrite (srf G_s' ⨾ ⦗acts_set (WCore.G X_s'')⦘ ≡
+                srf (WCore.G X_s'') ⨾ ⦗acts_set (WCore.G X_s'')⦘).
+      { apply (srf_add_event X_s'' X_s'); ins.
+        { admit. }
+        { rewrite (WCore.add_event_acts ADD'). basic_solver. }
+        { admit. }
+        { admit. }
+        { admit. }
+        { admit. }
+        admit. }
+      arewrite (⦗acts_set (WCore.G X_s'')⦘ ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘ ≡
+                ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘).
+      { rewrite (WCore.add_event_acts ADD'). basic_solver 11. }
       rewrite (rsr_rf SIMREL), (WCore.add_event_rf ADD),
               !collect_rel_union.
       arewrite (mapper' ↑ rf_t ≡ mapper ↑ rf_t).
