@@ -1772,7 +1772,8 @@ Proof using.
       unfold mapper' in FALSO. rewrite upds in FALSO.
       apply NOTIN, FALSO. }
     { unfold mapper'. now rupd. }
-    { admit. }
+    { unfold mapper'. rupd. rewrite TID.
+      rewrite <- (rsr_at_bt_tid CORR). apply CORR. }
     { apply eq_dom_is_w with (lab := lab_s).
       { rewrite <- set_collect_eq_opt,
                 set_collect_eq_dom with (g := mapper),
@@ -1894,7 +1895,9 @@ Proof using.
         basic_solver. }
       assert (IS_W : WCore.lab_is_w l b_t).
       { unfold WCore.lab_is_w in *. desf. }
-      admit. }
+      exfalso. apply (rsr_bt_nrmw CORR') with b_t; ins.
+      right. apply set_subset_single_l.
+      rewrite (WCore.add_event_rmw ADD). basic_solver 11. }
     { apply eq_dom_is_w with (lab := lab_s).
       { rewrite set_collect_eq_dom with (g := mapper),
                 rsr_is_w with (X_s := X_s) (X_t := X_t)
@@ -2048,7 +2051,8 @@ Proof using.
       apply (WCore.add_event_threads ADD'), (rsr_threads SIMREL),
             (WCore.add_event_threads ADD), (wf_threads WF').
       unfold mapper'. rupd. apply (WCore.add_event_acts ADD). now right. }
-    { admit. }
+    { now rewrite (rsr_ctrl SIMREL), <- (WCore.add_event_ctrl ADD),
+              (WCore.add_event_nctrl ADD). }
     { rewrite (WCore.add_event_acts ADD'). unfold mapper'.
       now rupd. }
     { now rewrite (WCore.add_event_threads ADD'). }
@@ -2142,6 +2146,7 @@ Proof using INV INV'.
   { apply (WCore.add_event_acts ADD) in INB'.
     destruct INB' as [INB' | EQ]; ins.
     exfalso. now apply (rsr_at_neq_bt CORR). }
+  assert (WF : Wf G_t) by apply CORR.
   assert (WF' : Wf G_t').
   { apply CORR'. }
   assert (ENINIT : ~is_init a_t) by apply ADD.
@@ -2279,7 +2284,29 @@ Proof using INV INV'.
       rewrite (add_event_to_rf_complete ADD).
       all: try now apply CORR.
       now rewrite collect_rel_empty, !union_false_r. }
-    { admit. }
+    { rewrite NOEXA, set_inter_empty_l, add_max_empty_r,
+              union_false_r.
+      rewrite set_interC with (s := eq a_t) at 1.
+      rewrite !id_inter, !seqA.
+      rewrite (co_deltaE1 WF ADD).
+      seq_rewrite (co_deltaE2 WF ADD).
+      rewrite <- cross_inter_l, <- cross_inter_r, <- !set_interA.
+      arewrite (W_t' ∩₁ eq a_t ∩₁ WCore.lab_is_w l ≡₁ eq a_t ∩₁ WCore.lab_is_w l).
+      { admit. }
+      arewrite (eq a_t ∩₁ WCore.lab_is_w l ∩₁ W_t' ≡₁ eq a_t ∩₁ WCore.lab_is_w l).
+      { admit. }
+      rewrite (WCore.add_event_co ADD). unfold WCore.co_delta.
+      rewrite !collect_rel_union, <- !unionA.
+      repeat apply union_more; ins.
+      rewrite (rsr_co SIMREL), restr_union.
+      arewrite (restr_rel (E_s \₁ eq a_s) (mapper ↑ co_t) ≡ mapper ↑ co_t).
+      { rewrite restr_relE. split; [basic_solver 11 |].
+        unfolder. intros x y (x' & y' & (CO & XEQ & YEQ)).
+        apply (wf_coE WF) in CO. unfolder in CO. desf.
+        splits; eauto.
+        all: try now apply (rsr_acts SIMREL); basic_solver.
+        all: symmetry; eauto. }
+      admit. }
     { now rewrite (rsr_threads SIMREL), (WCore.add_event_threads ADD). }
     now rewrite (rsr_ctrl SIMREL), (WCore.add_event_ctrl ADD). }
   assert (STARTWF : WCore.wf (WCore.X_start X_s dtrmt') X_s' cmt').
