@@ -35,11 +35,16 @@ Notation "'sb''" := (sb G').
 Notation "'rf''" := (rf G').
 Notation "'hb''" := (hb G').
 Notation "'sw''" := (sw G').
-Notation "'W''" := (is_w lab').
-Notation "'R''" := (is_r lab').
-Notation "'F''" := (is_f lab').
+Notation "'W''" := (fun a => is_true (is_w lab' a)).
+Notation "'R''" := (fun a => is_true (is_r lab' a)).
+Notation "'F''" := (fun a => is_true (is_f lab' a)).
+Notation "'Acq''" := (fun a => is_true (is_acq lab' a)).
+Notation "'Rel''" := (fun a => is_true (is_rel lab' a)).
 Notation "'vf''" := (vf G').
 Notation "'srf''" := (srf G').
+Notation "'release''" := (release G').
+Notation "'rs''" := (rs G').
+Notation "'rmw''" := (rmw G').
 Notation "'Loc_'' l" := (fun x => loc' x = Some l) (at level 1).
 
 Notation "'G'" := (WCore.G X).
@@ -52,11 +57,16 @@ Notation "'sb'" := (sb G).
 Notation "'rf'" := (rf G).
 Notation "'hb'" := (hb G).
 Notation "'sw'" := (sw G).
-Notation "'W'" := (is_w lab).
-Notation "'R'" := (is_r lab).
-Notation "'F'" := (is_f lab).
+Notation "'W'" := (fun a => is_true (is_w lab a)).
+Notation "'R'" := (fun a => is_true (is_r lab a)).
+Notation "'F'" := (fun a => is_true (is_f lab a)).
+Notation "'Acq'" := (fun a => is_true (is_acq lab a)).
+Notation "'Rel'" := (fun a => is_true (is_rel lab a)).
 Notation "'vf'" := (vf G).
 Notation "'srf'" := (srf G).
+Notation "'release'" := (release G).
+Notation "'rs'" := (rs G).
+Notation "'rmw'" := (rmw G).
 Notation "'Loc_' l" := (fun x => loc x = Some l) (at level 1).
 
 Lemma seq_eqv_minus_r {A : Type} r1 r2 (s : A -> Prop) :
@@ -81,147 +91,231 @@ Other version:
 show that po-rf to E is the same
 *)
 
+Lemma add_event_rs
+    (WF : Wf G)
+    (EQL : eq_dom E lab' lab)
+    (SB : sb' ⨾ ⦗E⦘ ≡ sb ⨾ ⦗E⦘)
+    (RF : rf' ⨾ ⦗E⦘ ≡ rf ⨾ ⦗E⦘)
+    (RMW : rmw' ⨾ ⦗E⦘ ≡ rmw ⨾ ⦗E⦘) :
+  rs' ⨾ ⦗E⦘ ≡ rs ⨾ ⦗E⦘.
+Proof using.
+  assert (DOMA : doma ((rf' ⨾ rmw') ⨾ ⦗E⦘) E).
+  { rewrite !seqA, RMW, (wf_rmwE WF).
+    rewrite !seqA. seq_rewrite RF.
+    rewrite (wf_rfE WF), !seqA.
+    basic_solver. }
+  assert (EQW : ⦗W'⦘ ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ ⦗W⦘).
+  { rewrite <- !id_inter, set_interC. apply eqv_rel_more.
+    unfold is_w. unfolder. split; intros x (XINE & LAB).
+    all: splits; ins.
+    all: rewrite EQL in *; ins. }
+  unfold rs at 1. rewrite !seqA.
+  arewrite ((rf' ⨾ rmw')＊ ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ (rf ⨾ rmw)＊ ⨾ ⦗E⦘).
+  { rewrite <- !cr_of_ct, !crE, !seq_union_l.
+    rewrite clos_trans_doma_r_strong; ins.
+    rewrite !seqA, RMW. rewrite (wf_rmwE WF) at 1.
+    rewrite !seqA. seq_rewrite RF.
+    rewrite seq_id_l, seq_union_r, !seqA.
+    apply union_more; [basic_solver |].
+    rewrite ct_seq_eqv_l at 1.
+    arewrite (⦗E⦘ ⨾ rf ⨾ ⦗E⦘ ⨾ rmw ⨾ ⦗E⦘ ⨾ ⦗E⦘ ≡ rf ⨾ rmw ⨾ ⦗E⦘).
+    { seq_rewrite <- (wf_rfE WF). basic_solver 11. }
+    rewrite <- seqA, (ct_seq_eqv_r E (rf ⨾ rmw)).
+    arewrite ((rf ⨾ rmw) ⨾ ⦗E⦘ ≡ rf ⨾ rmw); ins.
+    rewrite (wf_rmwE WF). basic_solver 11. }
+  seq_rewrite EQW. rewrite !seqA.
+  arewrite ((sb' ∩ same_loc')^? ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ (sb ∩ same_loc)^?).
+  { rewrite !crE, seq_union_l, seq_union_r.
+    apply union_more; [basic_solver |].
+    rewrite <- seq_eqv_inter_lr, SB, <- seq_eqv_inter_ll.
+    arewrite (sb ⨾ ⦗E⦘ ≡ sb) by (unfold sb; basic_solver).
+    arewrite (⦗E⦘ ⨾ sb ≡ sb) by (unfold sb; basic_solver).
+    unfold sb, same_loc, loc. unfolder.
+    split; intros x y ((XINE & ESB & YINE) & EQ).
+    all: splits; ins.
+    all: rewrite 2!EQL in *; ins. }
+  seq_rewrite EQW. rewrite !seqA.
+  rewrite (wf_rsE WF), seq_union_l, !seqA.
+  unfold rs. basic_solver 20.
+Qed.
+
+Lemma add_event_release
+    (WF : Wf G)
+    (EQL : eq_dom E lab' lab)
+    (SB : sb' ⨾ ⦗E⦘ ≡ sb ⨾ ⦗E⦘)
+    (RF : rf' ⨾ ⦗E⦘ ≡ rf ⨾ ⦗E⦘)
+    (RMW : rmw' ⨾ ⦗E⦘ ≡ rmw ⨾ ⦗E⦘) :
+  release' ⨾ ⦗E⦘ ≡ release ⨾ ⦗E⦘.
+Proof using.
+  unfold release at 1. rewrite !seqA.
+  rewrite (add_event_rs WF); ins.
+  arewrite (rs ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ rs ⨾ ⦗E⦘).
+  { rewrite (wf_rsE WF) at 1. rewrite seq_union_l.
+    split; [| basic_solver 7].
+    arewrite (⦗W⦘ ⨾ ⦗E⦘ ⊆ ⦗E⦘ ⨾ rs ⨾ ⦗E⦘); [| basic_solver].
+    unfold rs. basic_solver 11. }
+  rewrite crE.
+  seq_rewrite seq_union_l.
+  rewrite seq_id_l, !seqA.
+  seq_rewrite SB. rewrite !seqA.
+  arewrite (sb ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ sb ⨾ ⦗E⦘).
+  { unfold sb. rewrite !seqA.
+    seq_rewrite <- !id_inter.
+    now rewrite set_interK. }
+  arewrite (⦗F'⦘ ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ ⦗F⦘).
+  { rewrite <- !id_inter, set_interC. apply eqv_rel_more.
+    unfold is_f. unfolder. split; intros x (XINE & LAB).
+    all: splits; ins.
+    all: rewrite EQL in *; ins. }
+  rewrite <- seq_union_r.
+  arewrite (⦗Rel'⦘ ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ ⦗Rel⦘).
+  { rewrite <- !id_inter, set_interC. apply eqv_rel_more.
+    unfold is_rel, mod. unfolder. split; intros x (XINE & LAB).
+    all: splits; ins.
+    all: rewrite EQL in *; ins. }
+  arewrite (release ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ release ⨾ ⦗E⦘).
+  { rewrite (wf_releaseE WF) at 1.  rewrite seq_union_l.
+    split; [| basic_solver 7].
+    arewrite (⦗W ∩₁ Rel⦘ ⨾ ⦗E⦘ ⊆ ⦗E⦘ ⨾ release ⨾ ⦗E⦘); [| basic_solver].
+    unfold release. rewrite <- inclusion_id_cr, seq_id_l.
+    unfold rs. rewrite <- cr_of_ct, <- !inclusion_id_cr.
+    seq_rewrite !seq_id_r. basic_solver 11. }
+  unfold release.
+  rewrite crE, !seq_union_l, seq_id_l.
+  unfold sb. basic_solver 42.
+Qed.
+
+Lemma sw_add_event
+    (WF : Wf G)
+    (EQL : eq_dom E lab' lab)
+    (SB : sb' ⨾ ⦗E⦘ ≡ sb ⨾ ⦗E⦘)
+    (RF : rf' ⨾ ⦗E⦘ ≡ rf ⨾ ⦗E⦘)
+    (RMW : rmw' ⨾ ⦗E⦘ ≡ rmw ⨾ ⦗E⦘) :
+  sw' ⨾ ⦗E⦘ ≡ sw ⨾ ⦗E⦘.
+Proof using.
+  unfold sw at 1. rewrite !seqA.
+  arewrite (⦗Acq'⦘ ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ ⦗Acq⦘).
+  { rewrite <- !id_inter, set_interC. apply eqv_rel_more.
+    unfold is_acq, mod. unfolder. split; intros x (XINE & LAB).
+    all: splits; ins.
+    all: rewrite EQL in *; ins. }
+  rewrite crE. seq_rewrite seq_union_l.
+  rewrite seq_id_l, !seqA.
+  arewrite (⦗F'⦘ ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ ⦗F⦘).
+  { rewrite <- !id_inter, set_interC. apply eqv_rel_more.
+    unfold is_f. unfolder. split; intros x (XINE & LAB).
+    all: splits; ins.
+    all: rewrite EQL in *; ins. }
+  seq_rewrite SB.
+  arewrite (sb ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ sb).
+  { unfold sb. rewrite !seqA.
+    seq_rewrite <- !id_inter.
+    now rewrite set_interK. }
+  seq_rewrite <- seq_union_r.
+  seq_rewrite RF.
+  arewrite (rf ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ rf).
+  { rewrite (wf_rfE WF). basic_solver. }
+  seq_rewrite (add_event_release WF); ins.
+  arewrite (release ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ release).
+  { rewrite (wf_releaseE WF), seq_union_l, seq_union_r.
+    basic_solver 11. }
+  arewrite (⦗Acq⦘ ∪ sb ⨾ ⦗F⦘ ⨾ ⦗Acq⦘ ≡ (sb ⨾ ⦗F⦘)^? ⨾ ⦗Acq⦘).
+  { now rewrite crE, seq_union_l, seq_id_l, !seqA. }
+  replace (release ⨾ rf ⨾ (sb ⨾ ⦗F⦘)^? ⨾ ⦗Acq⦘)
+    with sw; ins.
+  rewrite (wf_swE WF). basic_solver.
+Qed.
+
 Lemma hb_add_event
     (WF : Wf G)
-    (RFC : rf_complete G)
-    (ADD_EVENT : WCore.add_event X X' e l) :
+    (EQL : eq_dom E lab' lab)
+    (SB : sb' ⨾ ⦗E⦘ ≡ sb ⨾ ⦗E⦘)
+    (RF : rf' ⨾ ⦗E⦘ ≡ rf ⨾ ⦗E⦘)
+    (RMW : rmw' ⨾ ⦗E⦘ ≡ rmw ⨾ ⦗E⦘) :
   hb' ⨾ ⦗E⦘ ≡ hb ⨾ ⦗E⦘.
 Proof using.
-  red in ADD_EVENT. desf.
-  assert (NIN : ~E e) by apply ADD_EVENT.
-  unfold hb at 1.
-  assert (SW_DELTA : exists dsw, sw' ≡ sw ∪ dsw ⨾ ⦗eq e⦘); desf.
-  { admit. }
-  rewrite (WCore.add_event_sb ADD_EVENT), SW_DELTA.
-  rewrite <- !unionA.
-  arewrite (sb ∪ WCore.sb_delta X e ∪ sw ∪ dsw ⨾ ⦗eq e⦘ ≡
-            (WCore.sb_delta X e ∪ dsw ⨾ ⦗eq e⦘) ∪ (sb ∪ sw)).
-  { basic_solver 11. }
-  rewrite ct_unionE, <- cr_of_ct.
+  assert (DOMA : doma ((sb' ∪ sw') ⨾ ⦗E⦘) E).
+  { rewrite seq_union_l, SB, (sw_add_event WF); ins.
+    rewrite (wf_swE WF). unfold sb. basic_solver 11. }
+  unfold hb.
+  rewrite clos_trans_doma_r_strong; ins.
+  rewrite seq_union_l, seq_union_r.
+  rewrite SB, (sw_add_event WF); ins.
+  rewrite <- (wf_swE WF), <- wf_sbE.
   change ((sb ∪ sw)⁺) with hb.
-  rewrite ct_end, seq_union_l, !seqA.
-  arewrite_false ((WCore.sb_delta X e ∪ dsw ⨾ ⦗eq e⦘) ⨾ hb^? ⨾ ⦗E⦘).
-  { rewrite (wf_hbE WF), crE, !seq_union_l,
-            !seq_id_l, !seq_union_r.
-    basic_solver 11. }
-  now rewrite !seq_false_r, union_false_r.
-Admitted.
-
-Lemma hb_add_event_start
-    (WF : Wf G)
-    (RFC : rf_complete G)
-    (ADD_EVENT : WCore.add_event X X' e l) :
-  ⦗eq e⦘ ⨾ hb' ≡ ∅₂.
-Proof using.
-  admit.
-Admitted.
+  rewrite (wf_hbE WF). basic_solver.
+Qed.
 
 Lemma vf_add_event
     (WF : Wf G)
-    (RFC : rf_complete G)
-    (ADD_EVENT : WCore.add_event X X' e l) :
+    (ACTS : E ⊆₁ E')
+    (EQL : eq_dom E lab' lab)
+    (SB : sb' ⨾ ⦗E⦘ ≡ sb ⨾ ⦗E⦘)
+    (RF : rf' ⨾ ⦗E⦘ ≡ rf ⨾ ⦗E⦘)
+    (RMW : rmw' ⨾ ⦗E⦘ ≡ rmw ⨾ ⦗E⦘) :
   vf' ⨾ ⦗E⦘ ≡ vf ⨾ ⦗E⦘.
 Proof using.
-  red in ADD_EVENT. desf.
-  assert (NINE : ~E e) by apply ADD_EVENT.
   unfold vf. rewrite !seqA.
-  rewrite (WCore.add_event_acts ADD_EVENT).
-  (* Shrug off the `∪₁ eq e` *)
-  rewrite id_union, seq_union_l.
-  rewrite crE at 2.
-  rewrite !seq_union_l, !seq_union_r.
-  arewrite (⦗eq e⦘ ⨾ ⦗W'⦘ ⨾ rf' ≡ ∅₂).
-  { seq_rewrite (seq_eqvC (eq e)). rewrite seqA.
-    rewrite (rf_delta_WE WF ADD_EVENT),
-            (add_event_to_rf_complete ADD_EVENT WF RFC).
-    basic_solver. }
-  rewrite !seq_false_l, union_false_r.
-  rewrite crE with (r := hb') at 2.
-  rewrite !seq_union_l, !seq_union_r.
-  seq_rewrite !seq_id_r.
-  arewrite (⦗eq e⦘ ⨾ ⦗W'⦘ ⨾ ⦗E⦘ ≡ ∅₂).
-  { basic_solver 11. }
-  rewrite union_false_l.
-  arewrite (⦗eq e⦘ ⨾ ⦗W'⦘ ⨾ hb' ≡ ∅₂).
-  { seq_rewrite (seq_eqvC (eq e)). rewrite seqA.
-    rewrite (hb_add_event_start WF RFC); [basic_solver |].
-    unfold WCore.add_event. eauto 11. }
-  rewrite !seq_false_l, union_false_r.
-  (* Shrug off the rfW delta *)
-  arewrite (⦗E⦘ ⨾ ⦗W'⦘ ≡ ⦗E⦘ ⨾ ⦗W⦘).
-  { unfold is_w. rewrite (WCore.add_event_lab ADD_EVENT).
-    unfolder. split; intros x y (EQ & XINE & LAB).
-    all: rewrite updo in * by congruence.
-    all: eauto. }
-  rewrite crE with (r := rf'), crE with (r := rf).
-  rewrite !seq_union_l, !seq_union_r.
-  seq_rewrite !seq_id_r.
-  rewrite (WCore.add_event_rf ADD_EVENT).
-  rewrite (add_event_to_rf_complete ADD_EVENT); ins.
-  rewrite union_false_r.
-  rewrite !seq_union_l, !seq_union_r.
-  arewrite (WCore.rf_delta_R e l w ⨾ hb'^? ⨾ ⦗E⦘ ≡ ∅₂).
-  { rewrite crE, seq_union_l, seq_union_r, seq_id_l.
-    rewrite (hb_add_event WF RFC), (wf_hbE WF); [basic_solver 11|].
-    unfold WCore.add_event. eauto 11. }
-  rewrite !seq_false_r, union_false_r.
-  seq_rewrite !(seq_eqvC E).
-  rewrite (wf_rfE WF), !seqA.
-  arewrite (⦗E⦘ ⨾ hb'^? ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ hb^? ⨾ ⦗E⦘); ins.
-  rewrite !crE, !seq_union_l, !seq_union_r.
-  apply union_more; ins.
-  rewrite hb_add_event; ins.
-  unfold WCore.add_event; eauto 11.
+  arewrite (hb'^? ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ hb^? ⨾ ⦗E⦘).
+  { rewrite !crE, !seq_union_l, seq_union_r.
+    apply union_more; [basic_solver |].
+    rewrite (hb_add_event WF); ins.
+    rewrite (wf_hbE WF) at 1. basic_solver. }
+  arewrite (rf'^? ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ rf^?).
+  { rewrite !crE, !seq_union_l, seq_union_r.
+    apply union_more; [basic_solver |].
+    rewrite RF. rewrite (wf_rfE WF). basic_solver. }
+  arewrite (⦗W'⦘ ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ ⦗W⦘).
+  { rewrite <- !id_inter, set_interC. apply eqv_rel_more.
+    unfold is_w. unfolder. split; intros x (XINE & LAB).
+    all: splits; ins.
+    all: rewrite EQL in *; ins. }
+  seq_rewrite <- id_inter.
+  now rewrite set_inter_absorb_l; ins.
 Qed.
 
-Lemma srf_add_event r
+Lemma srf_add_event
     (WF : Wf G)
-    (RFC : rf_complete G)
-    (OTHER : tid r <> tid e)
-    (ADD_EVENT : WCore.add_event X X' e l) :
-  srf ⨾ ⦗eq r⦘ ≡ srf' ⨾ ⦗eq r⦘.
+    (ACTS : E ⊆₁ E')
+    (EQL : eq_dom E lab' lab)
+    (SB : sb' ⨾ ⦗E⦘ ≡ sb ⨾ ⦗E⦘)
+    (RF : rf' ⨾ ⦗E⦘ ≡ rf ⨾ ⦗E⦘)
+    (CO : ⦗E⦘ ⨾ co' ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ co ⨾ ⦗E⦘)
+    (RMW : rmw' ⨾ ⦗E⦘ ≡ rmw ⨾ ⦗E⦘) :
+  srf' ⨾ ⦗E⦘ ≡ srf ⨾ ⦗E⦘.
 Proof using.
-  red in ADD_EVENT. desf.
-  assert (NOTINE : ~E e) by apply ADD_EVENT.
-  unfold srf.
-  rewrite !seq_eqv_minus_r.
-  arewrite ((co ⨾ vf ⨾ sb) ⨾ ⦗eq r⦘ ≡ co ⨾ (vf ⨾ sb ⨾ ⦗eq r⦘)).
-  { basic_solver 11. }
-  arewrite ((vf ⨾ sb) ∩ same_loc ⨾ ⦗R⦘ ⨾ ⦗eq r⦘ ≡ (vf ⨾ sb ⨾ ⦗eq r⦘) ∩ same_loc ⨾ ⦗R⦘).
-  { basic_solver 11. }
-  arewrite ((vf' ⨾ sb') ∩ same_loc' ⨾ ⦗R'⦘ ⨾ ⦗eq r⦘ ≡ (vf' ⨾ sb' ⨾ ⦗eq r⦘) ∩ same_loc' ⨾ ⦗R'⦘).
-  { basic_solver 11. }
-  rewrite (WCore.add_event_sb ADD_EVENT), seq_union_l,
-            seq_union_r.
-  arewrite (WCore.sb_delta X e ⨾ ⦗eq r⦘ ≡ ∅₂).
-  { basic_solver 11. }
-  rewrite seq_false_r, union_false_r.
-  arewrite (vf' ⨾ sb ≡ vf ⨾ sb).
-  { unfold sb. rewrite <- !seqA, vf_add_event; ins.
-    unfold WCore.add_event; eauto 11. }
-  arewrite ((vf ⨾ sb ⨾ ⦗eq r⦘) ∩ same_loc' ⨾ ⦗R'⦘ ≡
-            (vf ⨾ sb ⨾ ⦗eq r⦘) ∩ same_loc ⨾ ⦗R⦘).
-  { rewrite <- seqA with (r3 := ⦗eq r⦘).
-    rewrite !seq_eqv_inter_lr, !seqA, <- !id_inter.
-    rewrite <- !seq_eqv_inter_rr.
-    unfolder. split.
-    all: intros x y ((z & SB & VF) & LOC & EQ & ISR).
-    all: apply wf_vfE_left in SB.
-    all: unfolder in SB; desf.
-    all: unfold same_loc, is_r, loc in *.
-    all: rewrite (WCore.add_event_lab ADD_EVENT) in *.
-    all: rewrite !updo in *; splits; eauto.
-    all: congruence. }
-  arewrite (vf ⨾ sb ⨾ ⦗eq r⦘ ≡ ⦗E⦘ ⨾ vf ⨾ sb ⨾ ⦗eq r⦘).
-  { rewrite wf_vfE_left. basic_solver 11. }
-  arewrite ((⦗E⦘ ⨾ vf ⨾ sb ⨾ ⦗eq r⦘) ∩ same_loc ⨾ ⦗R⦘ ≡
-            ⦗E⦘ ⨾ (vf ⨾ sb ⨾ ⦗eq r⦘) ∩ same_loc ⨾ ⦗R⦘).
-  { basic_solver 11. }
-  rewrite !seq_eqv_minus_ll, !seq_eqv_minus_l.
-  seq_rewrite <- !restr_relE.
-  arewrite (restr_rel E co' ≡ restr_rel E co); ins.
-  rewrite (WCore.add_event_co ADD_EVENT). unfold WCore.co_delta.
-  rewrite !restr_union. basic_solver 11.
+  unfold srf at 1.
+  rewrite !seq_eqv_minus_r, !seqA.
+  arewrite (⦗R'⦘ ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ ⦗R⦘).
+  { rewrite <- !id_inter, set_interC. apply eqv_rel_more.
+    unfold is_r. unfolder. split; intros x (XINE & LAB).
+    all: splits; ins.
+    all: rewrite EQL in *; ins. }
+  seq_rewrite <- seq_eqv_inter_lr.
+  rewrite !seqA.
+  arewrite (sb' ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ sb).
+  { rewrite SB, wf_sbE. basic_solver. }
+  seq_rewrite (vf_add_event WF); ins.
+  arewrite (vf ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ vf).
+  { rewrite (wf_vfE WF). basic_solver. }
+  arewrite ((⦗E⦘ ⨾ vf ⨾ sb) ∩ same_loc' ≡ (⦗E⦘ ⨾ vf ⨾ sb) ∩ same_loc).
+  { seq_rewrite wf_sbE. unfold same_loc, loc. unfolder.
+    split; intros x y ((XINE & z & VF & ZINE & ESB & YINE) & LOC).
+    all: splits; eauto.
+    all: rewrite 2!EQL in *; ins. }
+  arewrite ((⦗E⦘ ⨾ vf ⨾ sb) ∩ same_loc ⨾ ⦗R⦘ \ co' ⨾ ⦗E⦘ ⨾ vf ⨾ sb ≡
+            (⦗E⦘ ⨾ vf ⨾ sb) ∩ same_loc ⨾ ⦗R⦘ \ ⦗E⦘ ⨾ co' ⨾ ⦗E⦘ ⨾ vf ⨾ sb).
+  { set (A := (⦗E⦘ ⨾ vf ⨾ sb) ∩ same_loc ⨾ ⦗R⦘).
+    set (B := co' ⨾ ⦗E⦘ ⨾ vf ⨾ sb).
+    unfolder. split; intros x y HREL; desf.
+    all: splits; ins; try tauto.
+    enough (HIN : E x) by tauto.
+    subst A. unfolder in HREL. desf. }
+  seq_rewrite CO. seq_rewrite <- (wf_coE WF).
+  rewrite seq_eqv_inter_ll, !seqA, seq_eqv_minus_ll.
+  change ((vf ⨾ sb) ∩ same_loc ⨾ ⦗R⦘ \ co ⨾ vf ⨾ sb)
+    with srf.
+  rewrite wf_srfE. basic_solver.
 Qed.
 
 End SrfDelta.
