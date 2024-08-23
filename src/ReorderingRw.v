@@ -1501,7 +1501,34 @@ Proof using INV INV'.
   (* unfold hypotheses *)
   red in SIMREL. destruct SIMREL as (a_s' & SIMREL).
   desf.
+  set (G_s'' := {|
+    acts_set := E_s ∪₁ eq a_s;
+    threads_set := threads_set G_s;
+    lab := upd lab_s a_s l_a;
+    rf := rf_s ∪
+          srf_s ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘;
+    co := co_s ∪
+          (W_s ∩₁ E_s ∩₁ Loc_s_ (WCore.lab_loc l_a)) × (eq a_s ∩₁ WCore.lab_is_w l_a);
+    rmw := mapper ↑ rmw_t;
+    rmw_dep := rmw_dep_s;
+    ctrl := ctrl_s;
+    data := data_s;
+    addr := addr_s;
+  |}).
+  set (X_s'' := {|
+    WCore.sc := WCore.sc X_s;
+    WCore.G := G_s'';
+  |}).
   (* The proof *)
+  exists a_s, X_s''.
+  splits.
+  { unfold same_tid. congruence. }
+  { admit. }
+  { admit. }
+  { subst X_s''. subst G_s''. ins.
+    now rewrite set_interC with (s := E_s). }
+  subst X_s''. subst G_s''. ins.
+  now rewrite (rsr_rmw SIMREL).
 Admitted.
 
 Lemma simrel_exec_b l l_a
