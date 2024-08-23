@@ -1476,10 +1476,10 @@ Proof using INV INV'.
   admit.
 Admitted.
 
-Lemma simrel_exec_b_step_1
+Lemma simrel_exec_b_step_1 l_a
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
     (BNOTIN : ~E_t b_t) :
-  exists a_s l_a X_s'',
+  exists a_s X_s'',
     << ATID : same_tid b_t a_s >> /\
     << STEP1 : WCore.exec_inst X_s  X_s'' a_s l_a >> /\
     << RF : rf (WCore.G X_s'') ≡
@@ -1503,12 +1503,13 @@ Proof using INV INV'.
   (* The proof *)
 Admitted.
 
-Lemma simrel_exec_b l
+Lemma simrel_exec_b l l_a
+    (NEQLOC : WCore.lab_loc l <> WCore.lab_loc l_a)
     (EQA : a_t = a_t')
     (EQB : b_t = b_t')
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
     (STEP : WCore.exec_inst X_t X_t' b_t l) :
-  exists a_s l_a X_s'' mapper' X_s',
+  exists a_s X_s'' mapper' X_s',
     << SIMREL : reord_simrel X_s' X_t' a_t' b_t' mapper' >> /\
     << STEP1 : WCore.exec_inst X_s  X_s'' a_s l_a >> /\
     << STEP2 : WCore.exec_inst X_s'' X_s' (mapper' b_t) l >>.
@@ -1519,12 +1520,12 @@ Proof using.
   destruct STEP as [ADD RFC CONS].
   destruct ADD as (r & R1 & w & W1 & W2 & ADD).
   (* Do step 1 *)
-  destruct (simrel_exec_b_step_1 SIMREL)
-        as (a_s & l_a & X_s'' & ATID & STEP1 & RF' & CO' & RMW').
+  destruct (simrel_exec_b_step_1 l_a SIMREL)
+        as (a_s & X_s'' & ATID & STEP1 & RF' & CO' & RMW').
   all: try congruence.
   { apply ADD. }
   subst a_t'. subst b_t'.
-  exists a_s, l_a, X_s''.
+  exists a_s, X_s''.
   destruct STEP1 as [ADD' RFC' CONS'].
   destruct ADD' as (r' & R1' & w' & W1' & W2' & ADD').
   (* Generate new actid *)
@@ -1732,7 +1733,11 @@ Proof using.
       rewrite NEWEXA, !extra_co_D_union, !add_max_union.
       arewrite (extra_co_D (eq b_s) (upd (upd lab_s a_s l_a) b_s l)
                 (loc (upd (upd lab_s a_s l_a) b_s l) a_s) ≡₁ ∅).
-      { admit. (* b_t and a_t are to different locs *) }
+      { split; [| basic_solver].
+        unfolder. unfold loc. rupd.
+        intros x ((BEQ & _) & LOC). subst x.
+        rewrite upds in LOC. unfold WCore.lab_loc in NEQLOC.
+        desf. }
       rewrite add_max_empty_l, union_false_r.
       rewrite add_max_sub
          with (A := extra_co_D (eq a_s) _ _)
