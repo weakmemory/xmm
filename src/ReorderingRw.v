@@ -864,8 +864,11 @@ Notation "'ctrl_s'" := (ctrl G_s).
 Notation "'addr_s'" := (addr G_s).
 Notation "'W_s'" := (is_w lab_s).
 Notation "'R_s'" := (is_r lab_s).
+Notation "'vf_s'" := (vf G_s).
 Notation "'srf_s'" := (srf G_s).
 Notation "'Loc_s_' l" := (fun e => loc_s e = l) (at level 1).
+
+Notation "'Tid_' t" := (fun e => tid e = t) (at level 1).
 
 Hypothesis INV : reord_step_pred X_t a_t b_t.
 Hypothesis INV' : reord_step_pred X_t' a_t' b_t'.
@@ -1477,6 +1480,12 @@ Proof using INV INV'.
   admit.
 Admitted.
 
+Lemma minus_inter_l {A : Type} (r1 r2 r3 : relation A) :
+  (r1 ∩ r2) \ r3 ≡ (r1 \ r3) ∩ r2.
+Proof using.
+  unfolder. split; ins; desf; eauto.
+Qed.
+
 Lemma simrel_exec_b_step_1 l_a
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
     (BNOTIN : ~E_t b_t) :
@@ -1501,12 +1510,16 @@ Proof using INV INV'.
   (* unfold hypotheses *)
   red in SIMREL. destruct SIMREL as (a_s' & SIMREL).
   desf.
+  assert (WF_S : Wf G_s).
+  { admit. }
+  set (sb_s' := ⦗E_s ∪₁ eq a_s⦘ ⨾ ext_sb ⨾ ⦗E_s ∪₁ eq a_s⦘).
+  set (srf_s' := (⦗Loc_s_ (WCore.lab_loc l_a)⦘ ⨾ vf_s ⨾ sb_s') \ (co_s ⨾ vf_s ⨾ sb_s')).
   set (G_s'' := {|
     acts_set := E_s ∪₁ eq a_s;
     threads_set := threads_set G_s;
     lab := upd lab_s a_s l_a;
     rf := rf_s ∪
-          srf_s ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘;
+          srf_s' ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘;
     co := co_s ∪
           (W_s ∩₁ E_s ∩₁ Loc_s_ (WCore.lab_loc l_a)) × (eq a_s ∩₁ WCore.lab_is_w l_a);
     rmw := mapper ↑ rmw_t;
@@ -1524,7 +1537,54 @@ Proof using INV INV'.
   splits.
   { unfold same_tid. congruence. }
   { admit. }
-  { admit. }
+  { unfold X_s'' at 1. ins.
+    apply union_more; ins.
+    unfold srf.
+    seq_rewrite seq_eqv_minus_lr. rewrite !seqA.
+    seq_rewrite <- id_inter.
+    arewrite (is_r (lab G_s'') ∩₁ (eq a_s ∩₁ WCore.lab_is_r l_a) ≡₁
+              eq a_s ∩₁ WCore.lab_is_r l_a).
+    { admit. }
+    rewrite id_inter.
+    rewrite <- !seqA with (r2 := ⦗eq a_s⦘).
+    apply seq_more; try easy.
+    rewrite minus_inter_l, <- seq_eqv_inter_rr.
+    arewrite (same_loc (lab G_s'') ⨾ ⦗eq a_s⦘ ≡
+              (fun x y => loc (lab G_s'') x = WCore.lab_loc l_a) ⨾ ⦗eq a_s⦘).
+    { admit. }
+    rewrite seq_eqv_inter_rr.
+    arewrite ((vf G_s'' ⨾ sb G_s'' \ co G_s'' ⨾ vf G_s'' ⨾ sb G_s'') ∩ (fun x _ : actid => loc (lab G_s'') x = WCore.lab_loc l_a) ≡
+              ⦗fun x => loc (lab G_s'') x = (WCore.lab_loc l_a)⦘ ;; (vf G_s'' ⨾ sb G_s'' \ co G_s'' ⨾ vf G_s'' ⨾ sb G_s'')).
+    { basic_solver 11. }
+    unfold srf_s'.
+    arewrite (sb_s' ≡ sb G_s'').
+    rewrite !seq_eqv_minus_r, !seqA.
+    arewrite (sb G_s'' ⨾ ⦗eq a_s⦘ ≡ ⦗E_s⦘ ⨾ sb G_s'' ⨾ ⦗eq a_s⦘).
+    { unfold sb. ins. rewrite NEWSB.
+      rewrite seq_union_l, seq_union_r. rewrite wf_sbE, !seqA.
+      seq_rewrite <- !id_inter. rewrite set_interK.
+      apply union_more; ins.
+      split; [| basic_solver 11].
+      admit. }
+    arewrite (vf G_s'' ⨾ ⦗E_s⦘ ≡ vf_s ⨾ ⦗E_s⦘).
+    { apply (vf_add_event X_s X_s''); ins.
+      { basic_solver. }
+      { unfolder. ins; desf. rupd. congruence. }
+      { unfold sb at 1. ins. rewrite NEWSB.
+        rewrite seq_union_l. basic_solver 11. }
+      { basic_solver 11. }
+      now rewrite (rsr_rmw SIMREL). }
+    rewrite <- seq_eqv_minus_ll.
+    apply minus_rel_more; rewrite <- !seqA.
+    all: do 3 (apply seq_more; try easy).
+    all: rewrite (wf_vfE WF_S), <- !seqA.
+    all: do 2 (apply seq_more; try easy).
+    { rewrite <- !id_inter. apply eqv_rel_more.
+      unfold loc. unfolder. split; intros x (HSET & HIN).
+      all: split; ins.
+      all: rewrite updo in *; ins.
+      all: congruence. }
+    subst G_s''. ins. basic_solver. }
   { subst X_s''. subst G_s''. ins.
     now rewrite set_interC with (s := E_s). }
   subst X_s''. subst G_s''. ins.
