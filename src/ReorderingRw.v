@@ -1439,7 +1439,8 @@ Proof using INV INV'.
     { apply (rsr_threads SIMREL).
       unfold mapper'. rupd. rewrite TID.
       apply ADD. }
-    { admit. }
+    { rewrite (rsr_ctrl SIMREL), <- (WCore.add_event_ctrl ADD).
+      apply ADD. }
     { unfold mapper'. now rupd. }
     { unfold mapper'. now rupd. }
     { rewrite <- mapped_rf_delta_R,
