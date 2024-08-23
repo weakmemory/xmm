@@ -1689,7 +1689,10 @@ Proof using.
       rewrite NEWEXA.
       arewrite (eq a_s ∩₁ is_r (upd (upd lab_s a_s l_a) b_s l) ≡₁
                 eq a_s ∩₁ WCore.lab_is_r l_a).
-      { admit. }
+      { unfolder. split; intros x (EQ & ISR).
+        all: split; ins; subst x; unfold is_r in *.
+        all: rewrite updo, upds in *; try congruence.
+        all: unfold WCore.lab_is_r in *; desf. }
       arewrite (srf G_s' ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘ ≡
                 srf G_s' ⨾ ⦗acts_set (WCore.G X_s'')⦘ ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘).
       { rewrite (WCore.add_event_acts ADD'). basic_solver 11. }
@@ -1698,11 +1701,58 @@ Proof using.
       { apply (srf_add_event X_s'' X_s'); ins.
         { admit. }
         { rewrite (WCore.add_event_acts ADD'). basic_solver. }
-        { admit. }
-        { admit. }
-        { admit. }
-        { admit. }
-        admit. }
+        { rewrite (WCore.add_event_acts ADD'),
+                  (WCore.add_event_lab ADD').
+          apply eq_dom_union. split; unfolder.
+          all: intros x XIN; rupd; ins; try congruence.
+          intro FALSO. apply NOTIN. left; congruence. }
+        { unfold sb at 1. ins. rewrite NEWSB.
+          rewrite (WCore.add_event_sb ADD'),
+                  (WCore.add_event_acts ADD').
+          rewrite seq_union_l at 1.
+          unfold WCore.sb_delta at 2.
+          rewrite <- cross_inter_r.
+          arewrite (eq b_s ∩₁ (E_s ∪₁ eq a_s) ≡₁ ∅).
+          { split; [| basic_solver]. unfolder. ins; desf; eauto.
+            apply NOTIN. now left. }
+          now rewrite cross_false_r, union_false_r. }
+        { rewrite RF', (WCore.add_event_acts ADD'), !seq_union_l.
+          arewrite_false (mapper' ↑ (rf_t' ⨾ ⦗eq b_t ∩₁ R_t'⦘) ⨾ ⦗E_s ∪₁ eq a_s⦘).
+          { unfolder. intros x y ((x' & y' & (z & RF & ZEQ & ZEQ' & ISR) & XEQ & YEQ) & YIN).
+            subst z. subst y'. subst y. unfold mapper' in YIN. rewrite upds in YIN.
+            destruct YIN as [YIN | EQ]; [| congruence]. apply NOTIN. now left. }
+          now rewrite union_false_r. }
+        { rewrite CO', (WCore.add_event_acts ADD'), !seq_union_l,
+                  !seq_union_r.
+          arewrite_false (⦗E_s ∪₁ eq a_s⦘ ⨾ mapper' ↑ (⦗eq b_t ∩₁ W_t'⦘ ⨾ co_t')).
+          { unfolder. intros x y (XIN & (x' & y' & (z & (XEQ' & XEQ'' & ISW) & CO) & XEQ & YEQ)).
+            subst z. subst x'. subst x. unfold mapper' in XIN. rewrite upds in XIN.
+            destruct XIN as [XIN | EQ]; [| congruence]. apply NOTIN. now left. }
+          arewrite_false (mapper' ↑ (co_t' ⨾ ⦗eq b_t ∩₁ W_t'⦘) ⨾ ⦗E_s ∪₁ eq a_s⦘).
+          { unfolder. intros x y ((x' & y' & (z & CO & YEQ' & YEQ'' & ISW) & XEQ & YEQ) & YIN).
+            subst z. subst y'. subst y. unfold mapper' in YIN. rewrite upds in YIN.
+            destruct YIN as [YIN | EQ]; [| congruence]. apply NOTIN. now left. }
+          rewrite seq_false_l, seq_false_r, !union_false_r.
+          now rewrite set_interC with (s := E_s). }
+        rewrite RMW', (WCore.add_event_acts ADD'), (WCore.add_event_rmw ADD),
+                collect_rel_union, seq_union_l.
+        arewrite (mapper' ↑ rmw_t ≡ mapper ↑ rmw_t).
+        { apply collect_rel_eq_dom' with (s := E_t); ins.
+          apply (wf_rmwE (rsr_Gt_wf CORR)). }
+        arewrite_false (WCore.rmw_delta b_t l r).
+        { destruct r as [r|]; [| basic_solver].
+          destruct classic
+              with (WCore.lab_is_w l ≡₁ ∅)
+                as [NISW|ISW].
+          { unfold WCore.rmw_delta. rewrite NISW.
+            basic_solver. }
+          assert (IS_W : WCore.lab_is_w l b_t).
+          { unfold WCore.lab_is_w in *. desf. }
+          exfalso. apply (rsr_bt_nrmw CORR') with b_t; ins.
+          right. apply set_subset_single_l.
+          rewrite (WCore.add_event_rmw ADD). basic_solver 11. }
+        now rewrite <- (rsr_rmw SIMREL), collect_rel_empty, seq_false_l,
+                    union_false_r. }
       arewrite (⦗acts_set (WCore.G X_s'')⦘ ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘ ≡
                 ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘).
       { rewrite (WCore.add_event_acts ADD'). basic_solver 11. }
