@@ -2781,13 +2781,14 @@ Proof using INV INV'.
       rewrite (rsr_acts SIMREL). basic_solver. }
     apply set_finite_union. split; apply set_finite_eq. }
   { admit. }
-  { admit. }
+  { eapply G_s_wf with (X_s := X_s'); eauto.
+    red; eauto. }
   { admit. (* might need to update correct graphs *) }
-  { admit. }
-  { admit. }
-  { admit. }
-  { admit. }
-  admit.
+  { admit. (* TODO: sc... *) }
+  { now rewrite (rsr_data SIMREL), (rsr_ndata CORR). }
+  { now rewrite (rsr_addr SIMREL), (rsr_naddr CORR). }
+  { now rewrite (rsr_ctrl SIMREL), (rsr_nctrl CORR). }
+  now rewrite (rsr_rmw_dep SIMREL), (rsr_nrmw_dep CORR).
 Admitted.
 
 Lemma simrel_reexec dtrmt cmt
