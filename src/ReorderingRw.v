@@ -800,7 +800,27 @@ Proof using.
     hahn_rewrite (wf_rmwE WF) in RMW.
     rewrite !(rsr_lab SIMREL).
     all: unfolder in RMW; desf. }
-  { admit. }
+  { rewrite (rsr_rmw SIMREL), (rsr_sb SIMREL).
+    assert (NEXA : extra_a a_s ⊆₁ set_compl (mapper ↑₁ E_t)).
+    { rewrite (rsr_codom SIMREL), set_compl_minus. basic_solver. }
+    apply immediate_union_ignore.
+    { rewrite (wf_rmwE WF), <- restr_relE.
+      rewrite dom_cross; [| apply set_nonemptyE; basic_solver].
+      apply set_disjointE. split; [| basic_solver].
+      arewrite (dom_rel (mapper ↑ restr_rel E_t rmw_t) ⊆₁ mapper ↑₁ E_t).
+      { basic_solver 11. }
+      rewrite NEXA. basic_solver. }
+    { unfold extra_a; desf; [| rewrite cross_false_l; basic_solver].
+      rewrite codom_cross; [| apply set_nonemptyE; basic_solver].
+      apply set_disjointE. split; [| basic_solver].
+      unfolder. intros x ((x0 & x' & y' & RMW & XEQ & YEQ) & XEQ').
+      subst. apply (wf_rmwE WF) in RMW. unfolder in RMW.
+      destruct RMW as (DOM & RMW & CODOM).
+      apply (rsr_inj SIMREL) in XEQ'; desf.
+      apply (rsr_bt_nrmw PRED) with b_t; ins.
+      basic_solver. }
+    (* TODO: stronger condition *)
+    admit. }
   { apply G_s_rfE; ins. red; eauto. }
   { apply dom_helper_3. rewrite (rsr_rf SIMREL).
     apply inclusion_union_l.
