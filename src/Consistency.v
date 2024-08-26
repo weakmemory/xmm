@@ -813,6 +813,9 @@ Proof using.
     assert (sb_t ∩ same_loc_t ≡ ⦗E_t⦘ ⨾ sb_t ∩ same_loc_t ⨾ ⦗E_t⦘) as EAA.
     { split; [|clear; basic_solver 10].
       rewrite wf_sbE at 1. clear. basic_solver 10. }
+    assert (sb_s ∩ same_loc_s ≡ ⦗E_s⦘ ⨾ sb_s ∩ same_loc_s ⨾ ⦗E_s⦘) as EAA'.
+    { split; [|clear; basic_solver 10].
+      rewrite wf_sbE at 1. clear. basic_solver 10. }
     arewrite (sb_t ∩ same_loc_t ⨾ ⦗W_t⦘ ⨾ (rf_t ⨾ rmw_t)＊
               ≡
               sb_t ∩ same_loc_t ⨾ ⦗W_t⦘ ⨾ (rf_t ⨾ rmw_t)＊⨾ ⦗E_t⦘).
@@ -829,15 +832,57 @@ Proof using.
     rewrite collect_rel_seq; auto.
     2: { eapply inj_dom_mori; eauto. red.
          rewrite wf_sbE. clear. basic_solver 10. }
-    rewrite !seqA. do 3 rewrite <- seqA.
+    rewrite !seqA. do 2 rewrite <- seqA.
     apply seq_mori.
+    { rewrite seqA. rewrite MAPEQ.
+      intros x y HH. destruct HH as (z & (HH & (y' & (H1 & H2)))).
+      destruct HH, H1, H2; subst. unfolder.
+      destruct H0. destruct H. subst.
+      exists x, x. splits; vauto; unfold is_w, is_r, is_rel, mod in *.
+      all : rewrite <- LABS with x; splits; eauto. }
+    assert (WNEQ : sb_s ∩ same_loc_s ⨾ ⦗W_s⦘ ≡ sb_s ∩ same_loc_s ⨾ ⦗E_s \₁ eq a⦘ ⨾ ⦗W_s⦘).
+    { rewrite EAA'. rewrite !seqA. 
+      split; [|clear; basic_solver 10]. 
+      hahn_frame_l. hahn_frame_l.
+      unfold set_minus. intros x y HH.
+      destruct HH. destruct H.
+      destruct H, H0; subst. split with y. 
+      assert (PREI : exists x, m x = y).
+      { apply E_MAP in H1. destruct H1.
+        { destruct H. destruct H. exists x. vauto. }
+        exfalso. unfold is_r, is_w in *. desf. }
+      destruct PREI as (x & PREI). 
+      split; vauto. split with (m x). 
+      split.
+      { split; vauto. split; vauto.
+        intros F. unfold is_r, is_w in *. desf. }
+      unfold is_w in *; vauto. }
+    rewrite <- seqA. rewrite WNEQ. rewrite !seqA.
+    assert (WEQ : ⦗E_s \₁ eq a⦘ ⨾ ⦗W_s⦘ ⊆ ⦗E_s \₁ eq a⦘ ⨾ m ↑ ⦗W_t⦘).
+    { intros x y HH. destruct HH. destruct H.
+      assert (EQQ : ⦗E_s \₁ eq a⦘ ≡ m ↑ ⦗E_t⦘).
+      { rewrite MAPEQ. basic_solver 12. }
+      apply EQQ in H. destruct H0; subst. split with y.
+      split.
+      { apply EQQ; vauto. }
+      destruct H. destruct H.
+      destruct H as (H2 & H3 & H4).
+      red. exists x1, x1. splits; vauto.
+      destruct H2; subst. apply LABS in H0.
+      unfold compose in H0. red. splits; vauto. 
+      unfold is_w in *. basic_solver 21. }
+    rewrite <- seqA with (r3 := (rf_s ⨾ rmw_s)＊). 
+    rewrite WEQ. rewrite seqA. rewrite <- seqA.
+    rewrite SB_SL_MAP. rewrite sw_helper_rf_rmw; eauto.
+    intros x y HH. destruct HH as (z & (HH & (y' & (H1 & H2)))).
+    assert (PATHEQ : (m ↑ (rf_t ⨾ rmw_t))＊ ≡ m ↑ (rf_t ⨾ rmw_t)＊).
     { admit. }
     admit. }
   unfold rs. rewrite !crE. rewrite !seq_union_l.
   rewrite !seq_union_r. rewrite collect_rel_union.
   apply union_mori.
   { rels. rewrite !seqA. admit. }
-  (* condition on sb? *)
+  (* rlx *)
   admit.
 Admitted.
 
@@ -877,16 +922,9 @@ Proof using.
         destruct H10; vauto. }
       rewrite seqA. basic_solver 21. }
     rewrite RF_MAP. rewrite seq_union_l. apply inclusion_union_l.
-    { rewrite !seqA. (* condition for sb? *)
+    { rewrite !seqA. (* rlx *)
       admit. }
-    rewrite !seqA. intros x y HH.
-    destruct HH as (z & (HH & (y0 & (H1 & H2)))).
-    destruct H1; subst. 
-    destruct H2 as (y1 & (H3 & (y2 & ((EQ1 & H5) & (y3 & ((H6 & EQ2) & H7)))))).
-    subst.
-    assert (RPO : rpo_s y0 y3).
-    { unfold rpo; unfold rpo_imm.
-      admit. (* false ?*) }
+    rewrite !seqA. (* rlx *)
     admit.
 Admitted.
 
@@ -1043,6 +1081,129 @@ Proof using.
     rewrite EMP1, EMP3, EMP5. basic_solver.
 Qed.
 
+Lemma rhb_start (m : actid -> actid)
+        (INJ : inj_dom E_t m)
+        (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
+        (LABS : eq_dom E_t (lab_s ∘ m) lab_t)
+        (IS_R : is_r lab_s a)
+        (NIN : set_disjoint (m ↑₁ E_t) (eq a))
+        (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
+        (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
+        (CODOM_SB_SL : codom_rel (⦗eq a⦘ ⨾ (sb_s ∩ same_loc_s)) ≡₁ ∅)
+        (SB_SL_MAP : (sb_s ∩ same_loc_s)⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ (sb_t ∩ same_loc_t))
+        (RF_MAP : rf_s ≡ (m ↑ rf_t) ∪ (srf_s ⨾ ⦗eq a⦘))
+        (CO_MAP : co_s ≡ m ↑ co_t)
+        (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
+        (WF_t : Wf G_t)
+        (WF_s : Wf G_s) :
+    ⦗E_s \₁ eq a⦘ ⨾ rhb_s ⨾ ⦗E_s \₁ eq a⦘ ≡ rhb_s ⨾ ⦗E_s \₁ eq a⦘.
+Proof using.
+    split; [basic_solver|].
+    hahn_frame_r. unfold rhb. rewrite ct_begin. hahn_frame_r.
+    rewrite !seq_union_r. apply union_mori.
+    { apply union_mori.
+      { intros x y H. unfold seq. exists x. split; vauto. 
+        red; split; vauto. assert (H' : (sb_s ∩ same_loc_s) x y) by apply H.
+        destruct H. apply wf_sbE in H.
+        destruct H. destruct H. destruct H; subst.
+        unfold set_minus; split; vauto.
+        intros F; subst. unfold codom_rel in CODOM_SB_SL.
+        destruct CODOM_SB_SL. destruct H with y.
+        exists x0. split with x0. split; vauto. }
+      intros x y H. unfold seq. exists x. split; vauto.
+      red; split; vauto. assert (H' : (rpo_s) x y) by apply H.
+      apply wf_rpoE in H; vauto. destruct H. destruct H. destruct H; subst.
+      unfold set_minus; split; vauto.
+      intros F; subst. unfold codom_rel in CODOM_RPO.
+      destruct CODOM_RPO. destruct H with y.
+      exists x0. split with x0. split; vauto. }
+    intros x y H. unfold seq. exists x. split; vauto.
+    red; split; vauto. assert (H' : (sw_s) x y) by apply H.
+    apply wf_swE in H; vauto. destruct H. destruct H. destruct H; subst.
+    unfold set_minus; split; vauto.
+    intros F; subst. apply wf_swD in H'; vauto.
+    destruct H'. destruct H. 
+    destruct H; subst. destruct H3.
+    destruct H.
+    { unfold is_f, is_w, is_r in *. desf. }
+    unfold is_f, is_w, is_r in *. desf.
+Qed.
+
+Lemma rhb_imm_start (m : actid -> actid)
+        (INJ : inj_dom E_t m)
+        (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
+        (LABS : eq_dom E_t (lab_s ∘ m) lab_t)
+        (IS_R : is_r lab_s a)
+        (NIN : set_disjoint (m ↑₁ E_t) (eq a))
+        (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
+        (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
+        (CODOM_SB_SL : codom_rel (⦗eq a⦘ ⨾ (sb_s ∩ same_loc_s)) ≡₁ ∅)
+        (SB_SL_MAP : (sb_s ∩ same_loc_s)⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ (sb_t ∩ same_loc_t))
+        (RF_MAP : rf_s ≡ (m ↑ rf_t) ∪ (srf_s ⨾ ⦗eq a⦘))
+        (CO_MAP : co_s ≡ m ↑ co_t)
+        (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
+        (WF_t : Wf G_t)
+        (WF_s : Wf G_s) :
+    ⦗E_s \₁ eq a⦘ ⨾ (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s) ⨾ ⦗E_s \₁ eq a⦘ ≡ 
+                    (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s) ⨾ ⦗E_s \₁ eq a⦘.
+Proof using.
+    split; [basic_solver|]. hahn_frame_r. 
+    rewrite !seq_union_r. apply union_mori.
+    { apply union_mori.
+      { intros x y H. unfold seq. exists x. split; vauto. 
+        red; split; vauto. assert (H' : (sb_s ∩ same_loc_s) x y) by apply H.
+        destruct H. apply wf_sbE in H.
+        destruct H. destruct H. destruct H; subst.
+        unfold set_minus; split; vauto.
+        intros F; subst. unfold codom_rel in CODOM_SB_SL.
+        destruct CODOM_SB_SL. destruct H with y.
+        exists x0. split with x0. split; vauto. }
+      intros x y H. unfold seq. exists x. split; vauto.
+      red; split; vauto. assert (H' : (rpo_s) x y) by apply H.
+      apply wf_rpoE in H; vauto. destruct H. destruct H. destruct H; subst.
+      unfold set_minus; split; vauto.
+      intros F; subst. unfold codom_rel in CODOM_RPO.
+      destruct CODOM_RPO. destruct H with y.
+      exists x0. split with x0. split; vauto. }
+    intros x y H. unfold seq. exists x. split; vauto.
+    red; split; vauto. assert (H' : (sw_s) x y) by apply H.
+    apply wf_swE in H; vauto. destruct H. destruct H. destruct H; subst.
+    unfold set_minus; split; vauto.
+    intros F; subst. apply wf_swD in H'; vauto.
+    destruct H'. destruct H. 
+    destruct H; subst. destruct H3.
+    destruct H.
+    { unfold is_f, is_w, is_r in *. desf. }
+    unfold is_f, is_w, is_r in *. desf.
+Qed.
+
+Lemma rhb_fin (m : actid -> actid)
+        (INJ : inj_dom E_t m)
+        (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
+        (LABS : eq_dom E_t (lab_s ∘ m) lab_t)
+        (IS_R : is_r lab_s a)
+        (NIN : set_disjoint (m ↑₁ E_t) (eq a))
+        (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
+        (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
+        (CODOM_SB_SL : codom_rel (⦗eq a⦘ ⨾ (sb_s ∩ same_loc_s)) ≡₁ ∅)
+        (SB_SL_MAP : (sb_s ∩ same_loc_s)⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ (sb_t ∩ same_loc_t))
+        (RF_MAP : rf_s ≡ (m ↑ rf_t) ∪ (srf_s ⨾ ⦗eq a⦘))
+        (CO_MAP : co_s ≡ m ↑ co_t)
+        (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
+        (WF_t : Wf G_t)
+        (WF_s : Wf G_s) :
+    (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s) ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ (sb_t ∩ same_loc_t ∪ rpo_t ∪ sw_t).
+Proof using.
+    rewrite !seq_union_l.
+    rewrite !collect_rel_union.
+    apply union_mori.
+    { apply union_mori.
+      { rewrite SB_SL_MAP. basic_solver. }
+      rewrite RPO_MAP. basic_solver. }
+    rewrite sw_sub_helper; eauto.
+    basic_solver. 
+Qed.
+
 Lemma rhb_sub (m : actid -> actid)
         (INJ : inj_dom E_t m)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
@@ -1060,8 +1221,11 @@ Lemma rhb_sub (m : actid -> actid)
         (WF_s : Wf G_s) :
     rhb_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rhb_t.
 Proof using.
-    unfold rhb. rewrite sw_sub; eauto.
-    admit. (* full rework rewuired *) 
+    arewrite (rhb_s ⊆ rhb_s^? ⨾ (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s)) at 1.
+    { unfold rhb. rewrite ct_end at 1. hahn_frame_r.
+      basic_solver. }
+    rewrite <- rhb_imm_start; eauto.
+    admit. (* induction? *)
 Admitted.
 
 Lemma read_extent (m : actid -> actid)
@@ -1230,7 +1394,7 @@ Proof using.
       apply RMWN in H. destruct H. destruct H. 
       destruct H. destruct H3. destruct H4; eauto.
       all : basic_solver. }
-    admit.
+    admit. (* sc *)
 Admitted. 
 
 (*MAX-WRITE-EXTENDED*)
