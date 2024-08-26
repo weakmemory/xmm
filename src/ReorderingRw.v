@@ -1186,7 +1186,7 @@ Proof using INV INV'.
   { rewrite (rsr_as SIMREL). unfolder. intros x XIN. apply XIN. }
   assert (SRF' : srf G_s' ⨾ ⦗E_s⦘ ≡ srf G_s ⨾ ⦗E_s⦘).
   { apply (srf_add_event X_s X_s'); ins.
-    { admit. }
+    { eapply G_s_wf with (X_t := X_t); eauto. }
     { basic_solver. }
     { unfold sb at 1. ins. rewrite NEWSB.
       rewrite seq_union_l. basic_solver 11. }
@@ -1696,7 +1696,8 @@ Proof using INV INV'.
   red in SIMREL. destruct SIMREL as (a_s' & SIMREL).
   desf.
   assert (WF_S : Wf G_s).
-  { admit. }
+  { eapply G_s_wf with (X_t := X_t); eauto.
+    red; eauto. }
   set (sb_s' := ⦗E_s ∪₁ eq a_s⦘ ⨾ ext_sb ⨾ ⦗E_s ∪₁ eq a_s⦘).
   set (srf_s' := (⦗Loc_s_ (WCore.lab_loc l_a)⦘ ⨾ vf_s ⨾ sb_s') \ (co_s ⨾ vf_s ⨾ sb_s')).
   set (G_s'' := {|
@@ -1841,7 +1842,8 @@ Proof using.
     apply CORR. }
   assert (WF_S'' : Wf (WCore.G X_s'')).
   { apply (WCore.add_event_wf ADD').
-    admit. }
+    eapply G_s_wf with (X_t := X_t); eauto.
+    red; eauto. }
   assert (ENINIT : ~is_init b_t) by apply ADD.
   assert (ENOTIN : ~E_t b_t) by apply ADD.
   assert (EQACTS : E_t' ≡₁ E_t ∪₁ eq b_t) by apply ADD.
@@ -1908,7 +1910,8 @@ Proof using.
   assert (SRF'': srf G_s' ⨾ ⦗acts_set (WCore.G X_s'')⦘ ≡
                 srf (WCore.G X_s'') ⨾ ⦗acts_set (WCore.G X_s'')⦘).
   { apply (srf_add_event X_s'' X_s'); ins.
-    { admit. }
+    { rewrite (WCore.add_event_acts ADD').
+      basic_solver. }
     { rewrite (WCore.add_event_acts ADD'),
               (WCore.add_event_lab ADD').
       apply eq_dom_union. split; unfolder.
