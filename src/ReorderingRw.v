@@ -138,6 +138,10 @@ Record reord_step_pred : Prop := {
   rsr_at_nrmw : eq a_t ⊆₁ set_compl (dom_rel rmw_t ∪₁ codom_rel rmw_t);
   rsr_bt_nrmw : eq b_t ⊆₁ set_compl (dom_rel rmw_t ∪₁ codom_rel rmw_t);
   rsr_at_neq_bt : a_t <> b_t;
+  rsr_nctrl : ctrl_t ≡ ∅₂;
+  rsr_ndata : data_t ≡ ∅₂;
+  rsr_naddr : addr_t ≡ ∅₂;
+  rsr_nrmw_dep : rmw_dep_t ≡ ∅₂;
 }.
 
 Record reord_simrel_gen a_s : Prop := {
@@ -160,6 +164,9 @@ Record reord_simrel_gen a_s : Prop := {
   rsr_rmw : rmw_s ≡ mapper ↑ rmw_t;
   rsr_threads : threads_set G_s ≡₁ threads_set G_t;
   rsr_ctrl : ctrl_s ≡ ctrl_t;
+  rsr_data : data_s ≡ data_t;
+  rsr_addr : addr_s ≡ addr_t;
+  rsr_rmw_dep : rmw_dep_s ≡ rmw_dep_t;
 }.
 
 Definition reord_simrel := exists a_s, reord_simrel_gen a_s.
@@ -761,13 +768,20 @@ Proof using.
   red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   constructor.
   { admit. }
-  { admit. }
-  { admit. }
-  { admit. }
-  { admit. }
-  { admit. }
-  { admit. }
-  { admit. }
+  { rewrite (rsr_data SIMREL), (rsr_ndata PRED).
+    basic_solver. }
+  { rewrite (rsr_data SIMREL), (rsr_ndata PRED).
+    basic_solver. }
+  { rewrite (rsr_addr SIMREL), (rsr_naddr PRED).
+    basic_solver. }
+  { rewrite (rsr_addr SIMREL), (rsr_naddr PRED).
+    basic_solver. }
+  { rewrite (rsr_ctrl SIMREL), (rsr_nctrl PRED).
+    basic_solver. }
+  { rewrite (rsr_ctrl SIMREL), (rsr_nctrl PRED).
+    basic_solver. }
+  { rewrite (rsr_ctrl SIMREL), (rsr_nctrl PRED).
+    basic_solver. }
   { apply dom_helper_3. rewrite (rsr_rmw SIMREL).
     unfolder. intros x y (x' & y' & RMW & HEQ).
     desf. unfold is_w, is_r.
@@ -856,8 +870,10 @@ Proof using.
       with ((lab_s ∘ mapper) (InitEvent l)).
     rewrite (rsr_lab SIMREL); try now apply WF.
     now apply (rsr_init_acts PRED). }
-  { admit. }
-  { admit. }
+  { rewrite (rsr_rmw_dep SIMREL), (rsr_nrmw_dep PRED).
+    basic_solver. }
+  { rewrite (rsr_rmw_dep SIMREL), (rsr_nrmw_dep PRED).
+    basic_solver. }
   intros x XIN. apply (rsr_acts SIMREL) in XIN.
   destruct XIN as [XIN | EQ]; apply (rsr_threads SIMREL).
   { unfolder in XIN. desf.
@@ -1326,7 +1342,10 @@ Proof using INV INV'.
         unfold extra_a. desf. exfalso. eauto. }
       basic_solver 11. }
     { rewrite (WCore.add_event_threads ADD). apply SIMREL. }
-    rewrite (WCore.add_event_ctrl ADD). apply SIMREL. }
+    { rewrite (WCore.add_event_ctrl ADD). apply SIMREL. }
+    { rewrite (WCore.add_event_data ADD). apply SIMREL. }
+    { rewrite (WCore.add_event_addr ADD). apply SIMREL. }
+    rewrite (WCore.add_event_rmw_dep ADD). apply SIMREL. }
   assert (SIMREL'' : reord_simrel X_s' X_t' a_t b_t mapper').
   { now exists a_s. }
   (* Actual proof *)
@@ -2073,7 +2092,10 @@ Proof using.
       unfold WCore.co_delta. rewrite collect_rel_union.
       basic_solver 11. }
     { rewrite (WCore.add_event_threads ADD). apply SIMREL. }
-    rewrite (WCore.add_event_ctrl ADD). apply SIMREL. }
+    { rewrite (WCore.add_event_ctrl ADD). apply SIMREL. }
+    { rewrite (WCore.add_event_data ADD). apply SIMREL. }
+    { rewrite (WCore.add_event_addr ADD). apply SIMREL. }
+    rewrite (WCore.add_event_rmw_dep ADD). apply SIMREL. }
   assert (SIMREL' : reord_simrel X_s' X_t' a_t b_t mapper').
   { now exists a_s. }
   (* The proof *)
@@ -2626,7 +2648,10 @@ Proof using INV INV'.
         all: symmetry; eauto. }
       admit. }
     { now rewrite (rsr_threads SIMREL), (WCore.add_event_threads ADD). }
-    now rewrite (rsr_ctrl SIMREL), (WCore.add_event_ctrl ADD). }
+    { rewrite (WCore.add_event_ctrl ADD). apply SIMREL. }
+    { rewrite (WCore.add_event_data ADD). apply SIMREL. }
+    { rewrite (WCore.add_event_addr ADD). apply SIMREL. }
+    rewrite (WCore.add_event_rmw_dep ADD). apply SIMREL. }
   assert (STARTWF : WCore.wf (WCore.X_start X_s dtrmt') X_s' cmt').
   { admit. }
   assert (STAB : WCore.stable_uncmt_reads_gen X_s' cmt' thrdle').
