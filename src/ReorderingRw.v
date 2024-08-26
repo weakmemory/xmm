@@ -55,6 +55,7 @@ Notation "'F_t'" := (is_f lab_t).
 Notation "'Loc_t_' l" := (fun e => loc_t e = l) (at level 1).
 Notation "'Val_t_' l" := (fun e => val_t e = l) (at level 1).
 Notation "'same_loc_t'" := (same_loc lab_t).
+Notation "'same_val_t'" := (same_val lab_t).
 
 Notation "'G_s'" := (WCore.G X_s).
 Notation "'lab_s'" := (lab G_s).
@@ -810,7 +811,20 @@ Proof using.
       all: unfolder in RF; desf. }
     transitivity srf_s; [basic_solver |].
     apply wf_srf_loc. }
-  { admit. }
+  { rewrite (rsr_rf SIMREL).
+    apply funeq_union.
+    { unfolder. intros x y (x' & y' & RF & HEQ).
+      desf. unfold val.
+      change (lab_s (mapper x')) with ((lab_s ∘ mapper) x').
+      change (lab_s (mapper y')) with ((lab_s ∘ mapper) y').
+      assert (LOC : same_val_t x' y') by now apply (wf_rfv WF).
+      hahn_rewrite (wf_rfE WF) in RF.
+      rewrite !(rsr_lab SIMREL).
+      all: unfolder in RF; desf. }
+    unfolder. intros x y (SRF & EXA & IS_W).
+    eapply eba_val with (x := y); ins.
+    { now apply SIMREL. }
+    basic_solver. }
   { rewrite (rsr_rf SIMREL), transp_union.
     apply functional_union.
     { rewrite <- collect_rel_transp,
