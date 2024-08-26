@@ -749,6 +749,111 @@ Proof using.
   unfold extra_co_D. basic_solver.
 Qed.
 
+Lemma G_s_wf
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel) :
+  Wf G_s.
+Proof using.
+  assert (WF : Wf G_t) by apply PRED.
+  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
+  constructor.
+  { admit. }
+  { admit. }
+  { admit. }
+  { admit. }
+  { admit. }
+  { admit. }
+  { admit. }
+  { admit. }
+  { apply dom_helper_3. rewrite (rsr_rmw SIMREL).
+    unfolder. intros x y (x' & y' & RMW & HEQ).
+    desf. unfold is_w, is_r.
+    change (lab_s (mapper x')) with ((lab_s ∘ mapper) x').
+    change (lab_s (mapper y')) with ((lab_s ∘ mapper) y').
+    hahn_rewrite (wf_rmwD WF) in RMW.
+    hahn_rewrite (wf_rmwE WF) in RMW.
+    rewrite !(rsr_lab SIMREL).
+    all: unfolder in RMW; desf. }
+  { rewrite (rsr_rmw SIMREL).
+    unfolder. intros x y (x' & y' & RMW & HEQ).
+    desf. unfold same_loc, loc.
+    change (lab_s (mapper x')) with ((lab_s ∘ mapper) x').
+    change (lab_s (mapper y')) with ((lab_s ∘ mapper) y').
+    assert (LOC : same_loc_t x' y') by now apply (wf_rmwl WF).
+    hahn_rewrite (wf_rmwE WF) in RMW.
+    rewrite !(rsr_lab SIMREL).
+    all: unfolder in RMW; desf. }
+  { admit. }
+  { apply G_s_rfE; ins. red; eauto. }
+  { apply dom_helper_3. rewrite (rsr_rf SIMREL).
+    apply inclusion_union_l.
+    { unfolder. intros x y (x' & y' & RF & HEQ).
+      desf. unfold is_w, is_r.
+      change (lab_s (mapper x')) with ((lab_s ∘ mapper) x').
+      change (lab_s (mapper y')) with ((lab_s ∘ mapper) y').
+      hahn_rewrite (wf_rfD WF) in RF.
+      hahn_rewrite (wf_rfE WF) in RF.
+      rewrite !(rsr_lab SIMREL).
+      all: unfolder in RF; desf. }
+    transitivity srf_s; [basic_solver |].
+    apply dom_helper_3, wf_srfD. }
+  { rewrite (rsr_rf SIMREL). apply inclusion_union_l.
+    { unfolder. intros x y (x' & y' & RF & HEQ).
+      desf. unfold same_loc, loc.
+      change (lab_s (mapper x')) with ((lab_s ∘ mapper) x').
+      change (lab_s (mapper y')) with ((lab_s ∘ mapper) y').
+      assert (LOC : same_loc_t x' y') by now apply (wf_rfl WF).
+      hahn_rewrite (wf_rfE WF) in RF.
+      rewrite !(rsr_lab SIMREL).
+      all: unfolder in RF; desf. }
+    transitivity srf_s; [basic_solver |].
+    apply wf_srf_loc. }
+  { admit. }
+  { rewrite (rsr_rf SIMREL), transp_union.
+    apply functional_union.
+    { rewrite <- collect_rel_transp,
+              (wf_rfE WF), <- restr_relE,
+              <- restr_transp.
+      apply functional_collect_rel_inj; [apply SIMREL|].
+      rewrite restr_transp, restr_relE, <- (wf_rfE WF).
+      apply WF. }
+    { apply functional_mori with srf_s⁻¹; [unfold flip; basic_solver |].
+      apply wf_srff'. intros ol.
+      apply G_s_co_total with (ol := ol); ins.
+      red; eauto. }
+    intros x DOM1 DOM2. unfolder in DOM2. desf.
+    eapply (rsr_codom SIMREL); eauto.
+    unfolder in DOM1. unfolder.
+    destruct DOM1 as (y0 & x' & y' & RF & XEQ & YEQ).
+    apply (wf_rfE WF) in RF. unfolder in RF; desf.
+    eauto 11. }
+  { apply G_s_coE; ins. red; eauto. }
+  { apply G_s_coD; ins. red; eauto. }
+  { apply G_s_co_l; ins. red; eauto. }
+  { apply G_s_co_trans; ins. red; eauto. }
+  { ins; apply G_s_co_total with (ol := ol); ins.
+    red; eauto. }
+  { apply G_s_co_irr; ins. red; eauto. }
+  { ins. apply rsr_init_acts_s; ins. red; eauto. }
+  { intros l. rewrite <- (rsr_init SIMREL); ins.
+    change (lab_s (mapper (InitEvent l)))
+      with ((lab_s ∘ mapper) (InitEvent l)).
+    rewrite (rsr_lab SIMREL); try now apply WF.
+    now apply (rsr_init_acts PRED). }
+  { admit. }
+  { admit. }
+  intros x XIN. apply (rsr_acts SIMREL) in XIN.
+  destruct XIN as [XIN | EQ]; apply (rsr_threads SIMREL).
+  { unfolder in XIN. desf.
+    change (tid (mapper y)) with ((tid ∘ mapper) y).
+    rewrite (rsr_tid SIMREL); [apply WF|]; ins. }
+  unfold extra_a in EQ; desf.
+  arewrite (tid x = tid b_t).
+  { symmetry. apply eba_tid, (rsr_as SIMREL).
+    desf. apply extra_a_some; ins. }
+  apply WF; desf.
+Admitted.
+
 Lemma G_s_rfc
     (PRED : reord_step_pred)
     (SIMREL : reord_simrel) :
