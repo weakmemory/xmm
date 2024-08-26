@@ -1718,14 +1718,11 @@ Proof using INV INV'.
     WCore.sc := WCore.sc X_s;
     WCore.G := G_s'';
   |}).
-  (* The proof *)
-  exists a_s, X_s''.
-  splits.
-  { unfold same_tid. congruence. }
-  { admit. }
-  { unfold X_s'' at 1. ins.
-    apply union_more; ins.
-    unfold srf.
+  assert (SRF' :
+    srf_s' ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘ ≡
+    srf (WCore.G X_s'') ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘
+  ).
+  { unfold X_s'' at 1. ins. unfold srf.
     seq_rewrite seq_eqv_minus_lr. rewrite !seqA.
     seq_rewrite <- id_inter.
     arewrite (is_r (lab G_s'') ∩₁ (eq a_s ∩₁ WCore.lab_is_r l_a) ≡₁
@@ -1771,6 +1768,74 @@ Proof using INV INV'.
       all: rewrite updo in *; ins.
       all: congruence. }
     subst G_s''. ins. basic_solver. }
+  assert (SRF_W : exists w,
+    eq_opt w ≡₁ dom_rel (srf_s' ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘)).
+  { admit. }
+  (* The proof *)
+  exists a_s, X_s''.
+  splits.
+  { unfold same_tid. congruence. }
+  { constructor; ins.
+    { destruct SRF_W as (w & SRF_W).
+      red.
+      exists None, ∅, w, ∅,
+        (W_s ∩₁ E_s ∩₁ Loc_s_ (WCore.lab_loc l_a)).
+      constructor; ins.
+      { admit. }
+      { rewrite SRF_W, SRF', wf_srfD.
+        rewrite !seqA.
+        seq_rewrite (seq_eqvC (is_r (lab G_s''))).
+        seq_rewrite <- SRF'. rewrite seqA.
+        unfold srf_s'.
+        transitivity (dom_rel (⦗is_w (lab G_s'')⦘ ⨾ (
+            ⦗Loc_s_ (WCore.lab_loc l_a)⦘ ⨾ vf_s ⨾ sb_s'
+          ) ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘
+            ⨾ ⦗is_r (lab G_s'')⦘
+        )); [basic_solver 11|].
+        rewrite !seqA.
+        seq_rewrite (seq_eqvC (is_w (lab G_s''))).
+        rewrite seqA, (wf_vfE WF_S), !seqA.
+        arewrite (⦗is_w (lab G_s'')⦘ ⨾ ⦗E_s⦘ ≡ ⦗W_s⦘ ⨾ ⦗E_s⦘).
+        { rewrite <- !id_inter. apply eqv_rel_more.
+          unfold G_s''; ins. unfolder. split; ins; desf.
+          all: splits; ins.
+          all: unfold is_w in *.
+          all: rewrite updo in *; ins.
+          all: congruence. }
+        basic_solver 11. }
+      { rewrite SRF_W.
+        unfold srf_s'.
+        rewrite (wf_vfE WF_S), !seqA.
+        basic_solver 11. }
+      { rewrite SRF_W.
+        unfold srf_s'.
+        basic_solver 11. }
+      { admit. }
+      { basic_solver. }
+      { basic_solver. }
+      { basic_solver. }
+      { basic_solver. }
+      { admit. }
+      { admit. }
+      { admit. }
+      { eapply rsr_init_acts_s with (X_t := X_t); eauto.
+        red; eauto. }
+      { admit. }
+      { now rewrite (rsr_ctrl SIMREL), (rsr_nctrl INV). }
+      { unfold WCore.rf_delta_R. rewrite SRF_W.
+        basic_solver 11. }
+      { basic_solver 11. }
+      rewrite (rsr_rmw SIMREL).
+      basic_solver 11. }
+    { assert (RFC_S : rf_complete G_s).
+      { eapply G_s_rfc with (X_t := X_t); eauto.
+        red; eauto. }
+      unfold rf_complete. unfold G_s''; ins.
+      rewrite set_inter_union_l, SRF'.
+      admit. }
+    admit. (* Cons *) }
+  { unfold X_s'' at 1. ins.
+    apply union_more; ins. }
   { subst X_s''. subst G_s''. ins.
     now rewrite set_interC with (s := E_s). }
   subst X_s''. subst G_s''. ins.
