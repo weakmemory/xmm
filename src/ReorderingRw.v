@@ -81,6 +81,8 @@ Notation "'Val_s_' l" := (fun e => val_s e = l) (at level 1).
 Notation "'same_loc_s'" := (same_loc lab_s).
 Notation "'same_val_s'" := (same_val lab_s).
 
+Notation "'Tid_' t" := (fun e => tid e = t) (at level 1).
+
 Record extra_a_pred x : Prop := {
   eba_tid : same_tid b_t x;
   eba_val : srf_s ⨾ ⦗eq x ∩₁ R_s⦘ ⊆ same_val lab_s;
@@ -142,6 +144,7 @@ Record reord_step_pred : Prop := {
   rsr_ndata : data_t ≡ ∅₂;
   rsr_naddr : addr_t ≡ ∅₂;
   rsr_nrmw_dep : rmw_dep_t ≡ ∅₂;
+  rsr_ninit_acts : E_t ∩₁ Tid_ tid_init ⊆₁ is_init;
 }.
 
 Record reord_simrel_gen a_s : Prop := {
@@ -286,8 +289,8 @@ Qed.
 
 Lemma rsr_same_tid' t
     (SIMREL : reord_simrel) :
-  mapper ↑₁ (E_t ∩₁ (fun e => tid e = t)) ≡₁
-    mapper ↑₁ E_t ∩₁ (fun e => tid e = t).
+  mapper ↑₁ (E_t ∩₁ Tid_ t) ≡₁
+    mapper ↑₁ E_t ∩₁ Tid_ t.
 Proof using.
   destruct SIMREL as (a_s & SIMREL).
   unfold same_tid. unfolder.
@@ -298,6 +301,32 @@ Proof using.
   destruct XIN as ((y & YINE & XEQ) & TID).
   exists y; splits; ins. subst x.
   rewrite <- (rsr_tid SIMREL); ins.
+Qed.
+
+Lemma rsr_ninit_exa_tid a_s
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel_gen a_s) :
+  extra_a a_s ∩₁ Tid_ tid_init ⊆₁ ∅.
+Proof using.
+  unfold extra_a; desf; [| basic_solver].
+  unfolder. intros x (XEQ & TID). subst x.
+  apply (rsr_at_tid PRED).
+  rewrite (rsr_at_bt_tid PRED), <- TID.
+  apply SIMREL, extra_a_some; desf.
+Qed.
+
+Lemma rsr_ninit_acts_s
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel) :
+  E_s ∩₁ Tid_ tid_init ⊆₁ is_init.
+Proof using.
+  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
+  rewrite (rsr_acts SIMREL), set_inter_union_l.
+  rewrite <- rsr_same_tid'; [| red; eauto].
+  rewrite rsr_ninit_exa_tid; ins.
+  rewrite (rsr_ninit_acts PRED),
+          <- (fixset_set_fixpoint (rsr_init SIMREL)).
+  basic_solver.
 Qed.
 
 Lemma rsr_same_tid e
@@ -767,7 +796,11 @@ Proof using.
   assert (WF : Wf G_t) by apply PRED.
   red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   constructor.
-  { admit. }
+  { intros x y (XIN & YIN & NEQ & TID & NINIT).
+    destruct x as [xl | xt xn], y as [yl | yt yn]; try now ins.
+    all: try now (ins; congruence).
+    exfalso. apply NINIT, rsr_ninit_acts_s; ins.
+    red; eauto. }
   { rewrite (rsr_data SIMREL), (rsr_ndata PRED).
     basic_solver. }
   { rewrite (rsr_data SIMREL), (rsr_ndata PRED).
@@ -1095,8 +1128,6 @@ Proof using INV INV'.
   { admit. }
   assert (CORR : reord_step_pred X_t a_t b_t); ins.
   assert (CORR' : reord_step_pred X_t' a_t b_t); ins.
-  assert (E_TID : tid e <> tid_init).
-  { admit. }
   (* unfold hypotheses *)
   red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   desf.
@@ -1107,6 +1138,10 @@ Proof using INV INV'.
   assert (ENINIT : ~is_init e) by apply ADD.
   assert (ENOTIN : ~E_t e) by apply ADD.
   assert (EQACTS : E_t' ≡₁ E_t ∪₁ eq e) by apply ADD.
+  assert (E_TID : tid e <> tid_init).
+  { intro FALSO. apply ENINIT.
+    apply (rsr_ninit_acts CORR'). split; ins.
+    apply EQACTS. now right. }
   assert (WF' : Wf G_t').
   { eapply WCore.add_event_wf; eauto. apply CORR. }
   assert (MAPEQ : eq_dom E_t mapper' mapper).
@@ -2848,7 +2883,22 @@ Proof using INV INV'.
   { admit. }
   { eapply G_s_wf with (X_s := X_s'); eauto.
     red; eauto. }
-  { admit. (* might need to update correct graphs *) }
+  { unfold dtrmt'.
+    rewrite set_inter_absorb_r; [| basic_solver].
+    rewrite !set_minus_minus_r, set_minusK, set_union_empty_l.
+    apply set_subset_union_l. split.
+    { unfolder. intros x (INE & XEQ) FALSO. subst x.
+      eapply rsr_as_ninit with (x := a_s) (X_t := X_t); eauto.
+      { apply extra_a_some; ins. }
+      eapply rsr_ninit_acts_s with (X_t := X_t); eauto.
+      { red; eauto. }
+      split; ins. }
+    unfolder. intros x (INE & XEQ) FALSO. subst x.
+    assert (INIT : is_init b_t).
+    { change (tid (mapper b_t)) with ((tid ∘ mapper) b_t) in FALSO.
+      rewrite (rsr_tid SIMREL) in FALSO; ins.
+      apply (rsr_ninit_acts CORR). split; ins. }
+    apply (rsr_bt_ninit CORR); ins. }
   { admit. (* TODO: sc... *) }
   { now rewrite (rsr_data SIMREL), (rsr_ndata CORR). }
   { now rewrite (rsr_addr SIMREL), (rsr_naddr CORR). }
