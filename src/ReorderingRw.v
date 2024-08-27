@@ -1811,6 +1811,7 @@ Qed.
 
 Lemma simrel_exec_b_step_1 l_a
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
+    (THREADS : threads_set G_t (tid b_t))
     (BNOTIN : ~E_t b_t) :
   exists l_a' a_s X_s'',
     << LABU2V : same_label_u2v l_a' l_a >> /\
@@ -1916,6 +1917,53 @@ Proof using INV INV'.
       all: rewrite updo in *; ins.
       all: congruence. }
     subst G_s''. ins. basic_solver. }
+  assert (LOCEQ : WCore.lab_loc l_a = WCore.lab_loc l_a').
+  { unfold WCore.lab_loc, same_label_u2v in *. do 2 desf. }
+  assert (TOT : forall ol,
+    is_total
+    ((E_s ∪₁ eq a_s)
+    ∩₁ (is_w (upd lab_s a_s l_a'))
+    ∩₁ (fun e => loc (upd lab_s a_s l_a') e = ol))
+    (co_s ∪
+      (W_s ∩₁ E_s ∩₁ Loc_s_ (WCore.lab_loc l_a)) × (eq a_s ∩₁ WCore.lab_is_w l_a))
+  ).
+  { ins.
+    rewrite !set_inter_union_l.
+    unfold is_total. intros x XIN y YIN NEQ.
+    destruct XIN as [XIN | XEQA],
+            YIN as [YIN | YEQA].
+    { destruct (wf_co_total WF_S) with ol x y as [ORF | ORF]; ins.
+      all: try now do 2 left.
+      all: try now right; left.
+      { unfolder in XIN.
+        unfolder. desf. splits; ins.
+        all: unfold is_w, loc in *.
+        all: rewrite updo in *; ins.
+        all: congruence. }
+      unfolder in YIN.
+      unfolder. desf. splits; ins.
+      all: unfold is_w, loc in *.
+      all: rewrite updo in *; ins.
+      all: congruence. }
+    { unfolder in YEQA. unfolder in XIN.
+      desf.
+      unfold loc, is_w in *.
+      rewrite upds in *.
+      rewrite updo in * by congruence.
+      left; right.
+      split; [| unfold WCore.lab_is_w; basic_solver].
+      unfolder. splits; ins.
+      rewrite LOCEQ. unfold WCore.lab_loc. desf. }
+    { unfolder in XEQA. unfolder in YIN.
+      desf.
+      unfold loc, is_w in *.
+      rewrite upds in *.
+      rewrite updo in * by congruence.
+      right; right.
+      split; [| unfold WCore.lab_is_w; basic_solver].
+      unfolder. splits; ins.
+      rewrite LOCEQ. unfold WCore.lab_loc. desf. }
+    unfolder in XEQA. unfolder in YEQA. desf. }
   (* The proof *)
   exists l_a', a_s, X_s''.
   splits; ins.
@@ -1953,24 +2001,46 @@ Proof using INV INV'.
         basic_solver 11. }
       { rewrite SRF_W.
         unfold srf_s'.
-        arewrite (Loc_s_ (WCore.lab_loc l_a') ≡₁
-                  Loc_s_ (WCore.lab_loc l_a)).
-        { admit. }
+        rewrite <- LOCEQ.
         basic_solver 11. }
       { rewrite SRF_W; ins. }
       { basic_solver. }
       { basic_solver. }
       { basic_solver. }
-      { arewrite (Loc_s_ (WCore.lab_loc l_a') ≡₁
-                  Loc_s_ (WCore.lab_loc l_a)).
-        { admit. }
+      { rewrite <- LOCEQ.
         basic_solver. }
-      { admit. }
-      { admit. }
-      { admit. }
+      { apply expand_transitive.
+        { eapply G_s_co_trans with (X_t := X_t); eauto.
+          red; eauto. }
+        { unfold upward_closed. intros x y REL XIN.
+          destruct XIN as ((YINE & ISW) & HLOC).
+          unfolder.
+          eapply G_s_coE with (X_t := X_t) in REL.
+          all: eauto; try now (red; eauto).
+          unfolder in REL. destruct REL as (EX & REL & EY).
+          eapply G_s_coD with (X_t := X_t) in REL.
+          all: eauto; try now (red; eauto).
+          unfolder in REL. destruct REL as (DX & REL & DY).
+          eapply G_s_co_l with (X_t := X_t) in REL.
+          all: eauto; try now (red; eauto).
+          unfold same_loc in REL.
+          splits; ins. congruence. }
+        rewrite G_s_coE with (X_t := X_t).
+        all: eauto; try now (red; eauto).
+        unfolder. ins. desf. intro F; desf. }
+      { rewrite transp_union. apply functional_union.
+        { eapply G_s_rff with (X_t := X_t); eauto.
+          red; eauto. }
+        { rewrite SRF'. apply functional_mori with (x := (srf G_s'')⁻¹).
+          { unfold flip; basic_solver. }
+          apply wf_srff'; ins. }
+        intros x RF SRF.
+        unfolder in RF. destruct RF as (y & RF).
+        apply (wf_rfE WF_S) in RF.
+        unfolder in SRF. unfolder in RF. desf. }
       { eapply rsr_init_acts_s with (X_t := X_t); eauto.
         red; eauto. }
-      { admit. }
+      { rewrite TID. now apply (rsr_threads SIMREL). }
       { now rewrite (rsr_ctrl SIMREL), (rsr_nctrl INV). }
       { unfold WCore.rf_delta_R. rewrite SRF_W.
         arewrite (WCore.lab_is_r l_a' ≡₁
