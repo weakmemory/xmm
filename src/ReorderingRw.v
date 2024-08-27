@@ -2205,7 +2205,8 @@ Proof using.
             co_s ∪ (E_s ∩₁ W_s ∩₁ Loc_s_ (WCore.lab_loc l_a)) ×
                 (eq a_s ∩₁ WCore.lab_is_w l_a) >> /\
     << RMW' : rmw (WCore.G X_s'') ≡ rmw_s >>).
-  { now apply simrel_exec_b_step_1. }
+  { apply simrel_exec_b_step_1; ins.
+    apply (WCore.add_event_thrd ADD). }
   subst a_t'. subst b_t'. desf.
   exists l_a', a_s, X_s''.
   destruct STEPA as [ADD' RFC' CONS'].
@@ -2403,7 +2404,7 @@ Proof using.
       apply seq_more; ins. rewrite <- !id_inter.
       apply eqv_rel_more.
       arewrite (WCore.lab_is_r l_a ≡₁ WCore.lab_is_r l_a').
-      { admit. }
+      { unfold WCore.lab_is_r, same_label_u2v in *. desf. }
       rewrite <- (lab_is_rE ADD'), (WCore.add_event_lab ADD').
       unfolder. split; ins; desf.
       all: split; ins.
@@ -2479,7 +2480,7 @@ Proof using.
       all: try now apply CORR.
       rewrite collect_rel_empty, !union_false_r.
       arewrite (WCore.lab_is_r l_a ≡₁ WCore.lab_is_r l_a').
-      { admit. }
+      { unfold WCore.lab_is_r, same_label_u2v in *. desf. }
       basic_solver 12. }
     { arewrite (⦗eq b_t ∩₁ W_t'⦘ ⨾ co_t' ≡ (eq b_t ∩₁ WCore.lab_is_w l) × W1).
       { rewrite (lab_is_wE ADD), set_interC, id_inter, seqA,
@@ -2526,9 +2527,9 @@ Proof using.
         apply set_disjointE. unfold extra_co_D. basic_solver 11. }
       unfold WCore.co_delta. rewrite collect_rel_union.
       arewrite (WCore.lab_is_w l_a ≡₁ WCore.lab_is_w l_a').
-      { admit. }
-      arewrite (Loc_s_ (WCore.lab_loc l_a) ≡₁ Loc_s_ (WCore.lab_loc l_a')).
-      { admit. }
+      { unfold WCore.lab_is_w, same_label_u2v in *. desf. }
+      arewrite (WCore.lab_loc l_a = (WCore.lab_loc l_a')).
+      { unfold WCore.lab_loc, same_label_u2v in *. do 2 desf. }
       basic_solver 11. }
     { rewrite (WCore.add_event_threads ADD). apply SIMREL. }
     { rewrite (WCore.add_event_ctrl ADD). apply SIMREL. }
