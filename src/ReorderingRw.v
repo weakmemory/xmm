@@ -1159,6 +1159,7 @@ Notation "'R_s'" := (is_r lab_s).
 Notation "'vf_s'" := (vf G_s).
 Notation "'srf_s'" := (srf G_s).
 Notation "'Loc_s_' l" := (fun e => loc_s e = l) (at level 1).
+Notation "'Val_s_' l" := (fun e => val_s e = l) (at level 1).
 
 Notation "'Tid_' t" := (fun e => tid e = t) (at level 1).
 
@@ -1811,9 +1812,10 @@ Qed.
 Lemma simrel_exec_b_step_1 l_a
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
     (BNOTIN : ~E_t b_t) :
-  exists a_s X_s'',
+  exists l_a' a_s X_s'',
+    << LABU2V : same_label_u2v l_a' l_a >> /\
     << ATID : same_tid b_t a_s >> /\
-    << STEP1 : WCore.exec_inst X_s  X_s'' a_s l_a >> /\
+    << STEP1 : WCore.exec_inst X_s  X_s'' a_s l_a' >> /\
     << RF : rf (WCore.G X_s'') ≡
             rf_s ∪ srf (WCore.G X_s'') ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘ >> /\
     << CO : co (WCore.G X_s'') ≡
@@ -1837,10 +1839,19 @@ Proof using INV INV'.
     red; eauto. }
   set (sb_s' := ⦗E_s ∪₁ eq a_s⦘ ⨾ ext_sb ⨾ ⦗E_s ∪₁ eq a_s⦘).
   set (srf_s' := (⦗Loc_s_ (WCore.lab_loc l_a)⦘ ⨾ vf_s ⨾ sb_s') \ (co_s ⨾ vf_s ⨾ sb_s')).
+  assert (SRF_W : exists w,
+    eq_opt w ≡₁ dom_rel (srf_s' ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘)).
+  { admit. }
+  destruct SRF_W as (w & SRF_W).
+  assert (ALAB : exists l_a',
+    << U2V : same_label_u2v l_a' l_a >> /\
+    << VAL : dom_rel (srf_s' ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘) ⊆₁ Val_s_ (WCore.lab_val l_a') >>
+  ); desf.
+  { admit. }
   set (G_s'' := {|
     acts_set := E_s ∪₁ eq a_s;
     threads_set := threads_set G_s;
-    lab := upd lab_s a_s l_a;
+    lab := upd lab_s a_s l_a';
     rf := rf_s ∪
           srf_s' ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘;
     co := co_s ∪
@@ -1905,20 +1916,16 @@ Proof using INV INV'.
       all: rewrite updo in *; ins.
       all: congruence. }
     subst G_s''. ins. basic_solver. }
-  assert (SRF_W : exists w,
-    eq_opt w ≡₁ dom_rel (srf_s' ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘)).
-  { admit. }
   (* The proof *)
-  exists a_s, X_s''.
-  splits.
-  { unfold same_tid. congruence. }
+  exists l_a', a_s, X_s''.
+  splits; ins.
   { constructor; ins.
-    { destruct SRF_W as (w & SRF_W).
-      red.
+    { red.
       exists None, ∅, w, ∅,
         (W_s ∩₁ E_s ∩₁ Loc_s_ (WCore.lab_loc l_a)).
       constructor; ins.
-      { admit. }
+      { rewrite TID, <- (rsr_at_bt_tid INV).
+        apply INV. }
       { rewrite SRF_W, SRF', wf_srfD.
         rewrite !seqA.
         seq_rewrite (seq_eqvC (is_r (lab G_s''))).
@@ -1946,12 +1953,18 @@ Proof using INV INV'.
         basic_solver 11. }
       { rewrite SRF_W.
         unfold srf_s'.
+        arewrite (Loc_s_ (WCore.lab_loc l_a') ≡₁
+                  Loc_s_ (WCore.lab_loc l_a)).
+        { admit. }
         basic_solver 11. }
-      { admit. }
+      { rewrite SRF_W; ins. }
       { basic_solver. }
       { basic_solver. }
       { basic_solver. }
-      { basic_solver. }
+      { arewrite (Loc_s_ (WCore.lab_loc l_a') ≡₁
+                  Loc_s_ (WCore.lab_loc l_a)).
+        { admit. }
+        basic_solver. }
       { admit. }
       { admit. }
       { admit. }
@@ -1960,8 +1973,15 @@ Proof using INV INV'.
       { admit. }
       { now rewrite (rsr_ctrl SIMREL), (rsr_nctrl INV). }
       { unfold WCore.rf_delta_R. rewrite SRF_W.
+        arewrite (WCore.lab_is_r l_a' ≡₁
+                  WCore.lab_is_r l_a).
+        { admit. }
         basic_solver 11. }
-      { basic_solver 11. }
+      { unfold WCore.co_delta.
+        arewrite (WCore.lab_is_w l_a' ≡₁
+                  WCore.lab_is_w l_a).
+        { admit. }
+        basic_solver 11. }
       rewrite (rsr_rmw SIMREL).
       basic_solver 11. }
     { assert (RFC_S : rf_complete G_s).
@@ -1971,10 +1991,8 @@ Proof using INV INV'.
       rewrite set_inter_union_l, SRF'.
       admit. }
     admit. (* Cons *) }
-  { unfold X_s'' at 1. ins.
-    apply union_more; ins. }
-  { subst X_s''. subst G_s''. ins.
-    now rewrite set_interC with (s := E_s). }
+  { apply union_more; ins. }
+  { now rewrite set_interC with (s := E_s). }
   subst X_s''. subst G_s''. ins.
   now rewrite (rsr_rmw SIMREL).
 Admitted.
@@ -1985,9 +2003,9 @@ Lemma simrel_exec_b l l_a
     (EQB : b_t = b_t')
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
     (STEP : WCore.exec_inst X_t X_t' b_t l) :
-  exists a_s X_s'' mapper' X_s',
+  exists l_a' a_s X_s'' mapper' X_s',
     << SIMREL : reord_simrel X_s' X_t' a_t' b_t' mapper' >> /\
-    << STEP1 : WCore.exec_inst X_s  X_s'' a_s l_a >> /\
+    << STEP1 : WCore.exec_inst X_s  X_s'' a_s l_a' >> /\
     << STEP2 : WCore.exec_inst X_s'' X_s' (mapper' b_t) l >>.
 Proof using.
   assert (CORR : reord_step_pred X_t a_t b_t); ins.
@@ -1996,13 +2014,21 @@ Proof using.
   destruct STEP as [ADD RFC CONS].
   destruct ADD as (r & R1 & w & W1 & W2 & ADD).
   (* Do step 1 *)
-  destruct (simrel_exec_b_step_1 l_a SIMREL)
-        as (a_s & X_s'' & ATID & STEP1 & RF' & CO' & RMW').
-  all: try congruence.
-  { apply ADD. }
-  subst a_t'. subst b_t'.
-  exists a_s, X_s''.
-  destruct STEP1 as [ADD' RFC' CONS'].
+  assert (NINB : ~E_t b_t) by apply ADD.
+  assert (STEP1 : exists l_a' a_s X_s'',
+    << LABU2V : same_label_u2v l_a' l_a >> /\
+    << ATID : same_tid b_t a_s >> /\
+    << STEPA : WCore.exec_inst X_s  X_s'' a_s l_a' >> /\
+    << RF' : rf (WCore.G X_s'') ≡
+            rf_s ∪ srf (WCore.G X_s'') ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘ >> /\
+    << CO' : co (WCore.G X_s'') ≡
+            co_s ∪ (E_s ∩₁ W_s ∩₁ Loc_s_ (WCore.lab_loc l_a)) ×
+                (eq a_s ∩₁ WCore.lab_is_w l_a) >> /\
+    << RMW' : rmw (WCore.G X_s'') ≡ rmw_s >>).
+  { now apply simrel_exec_b_step_1. }
+  subst a_t'. subst b_t'. desf.
+  exists l_a', a_s, X_s''.
+  destruct STEPA as [ADD' RFC' CONS'].
   destruct ADD' as (r' & R1' & w' & W1' & W2' & ADD').
   (* Generate new actid *)
   assert (NEWE : exists b_s,
@@ -2013,13 +2039,12 @@ Proof using.
           sb (WCore.G X_s'') ∪ WCore.sb_delta X_s'' b_s >>).
   { admit. }
   red in SIMREL. destruct SIMREL as (a_s' & SIMREL).
-  red in RF', CO', RMW'.
   desf.
   set (mapper' := upd mapper b_t b_s).
   set (G_s' := {|
     acts_set := E_s ∪₁ eq a_s ∪₁ eq b_s;
     threads_set := threads_set G_s;
-    lab := upd (upd lab_s a_s l_a) b_s l;
+    lab := upd (upd lab_s a_s l_a') b_s l;
     rf := rf_s ∪
           mapper' ↑ (rf_t' ⨾ ⦗eq b_t ∩₁ R_t'⦘) ∪
           srf (WCore.G X_s'') ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘;
@@ -2105,7 +2130,7 @@ Proof using.
   assert (LABEQ : eq_dom E_s (lab (WCore.G X_s'')) lab_s).
   { rewrite (WCore.add_event_lab ADD'). unfolder.
     intros x XINE. rupd; ins. congruence. }
-  assert (LABEQ' : eq_dom E_s (upd (upd lab_s a_s l_a) b_s l) lab_s).
+  assert (LABEQ' : eq_dom E_s (upd (upd lab_s a_s l_a') b_s l) lab_s).
   { rewrite (WCore.add_event_lab ADD') in LABEQ. unfolder.
     intros x XINE. rupd; ins; try congruence.
     intro FALSO. eapply NOTIN. left; congruence. }
@@ -2177,7 +2202,7 @@ Proof using.
       unfolder. ins. apply NOTIN. desf. basic_solver. }
     { rewrite NEWEXA. unfolder. intros x XEQ. subst x.
       constructor; ins.
-      assert (SUBRF : rf (WCore.G X_s'') ⊆ same_val (upd (upd lab_s a_s l_a) b_s l)).
+      assert (SUBRF : rf (WCore.G X_s'') ⊆ same_val (upd (upd lab_s a_s l_a') b_s l)).
       { unfolder. unfold same_val. intros x y RF.
         apply (wf_rfE WF_S'') in RF. unfolder in RF.
         destruct RF as (DOM & RF & CODOM).
@@ -2197,6 +2222,8 @@ Proof using.
       { rewrite (WCore.add_event_acts ADD'). basic_solver 11. }
       apply seq_more; ins. rewrite <- !id_inter.
       apply eqv_rel_more.
+      arewrite (WCore.lab_is_r l_a ≡₁ WCore.lab_is_r l_a').
+      { admit. }
       rewrite <- (lab_is_rE ADD'), (WCore.add_event_lab ADD').
       unfolder. split; ins; desf.
       all: split; ins.
@@ -2249,18 +2276,18 @@ Proof using.
                 (rf_delta_RE (rsr_Gt_wf CORR) ADD).
         basic_solver. }
       rewrite NEWEXA.
-      arewrite (eq a_s ∩₁ is_r (upd (upd lab_s a_s l_a) b_s l) ≡₁
-                eq a_s ∩₁ WCore.lab_is_r l_a).
+      arewrite (eq a_s ∩₁ is_r (upd (upd lab_s a_s l_a') b_s l) ≡₁
+                eq a_s ∩₁ WCore.lab_is_r l_a').
       { unfolder. split; intros x (EQ & ISR).
         all: split; ins; subst x; unfold is_r in *.
         all: rewrite updo, upds in *; try congruence.
         all: unfold WCore.lab_is_r in *; desf. }
-      arewrite (srf G_s' ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘ ≡
-                srf G_s' ⨾ ⦗acts_set (WCore.G X_s'')⦘ ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘).
+      arewrite (srf G_s' ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a'⦘ ≡
+                srf G_s' ⨾ ⦗acts_set (WCore.G X_s'')⦘ ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a'⦘).
       { rewrite (WCore.add_event_acts ADD'). basic_solver 11. }
       seq_rewrite SRF''. rewrite seqA.
-      arewrite (⦗acts_set (WCore.G X_s'')⦘ ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘ ≡
-                ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘).
+      arewrite (⦗acts_set (WCore.G X_s'')⦘ ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a'⦘ ≡
+                ⦗eq a_s ∩₁ WCore.lab_is_r l_a'⦘).
       { rewrite (WCore.add_event_acts ADD'). basic_solver 11. }
       rewrite (rsr_rf SIMREL), (WCore.add_event_rf ADD),
               !collect_rel_union.
@@ -2271,6 +2298,8 @@ Proof using.
       rewrite (add_event_to_rf_complete ADD).
       all: try now apply CORR.
       rewrite collect_rel_empty, !union_false_r.
+      arewrite (WCore.lab_is_r l_a ≡₁ WCore.lab_is_r l_a').
+      { admit. }
       basic_solver 12. }
     { arewrite (⦗eq b_t ∩₁ W_t'⦘ ⨾ co_t' ≡ (eq b_t ∩₁ WCore.lab_is_w l) × W1).
       { rewrite (lab_is_wE ADD), set_interC, id_inter, seqA,
@@ -2287,34 +2316,39 @@ Proof using.
         apply (wf_coE (rsr_Gt_wf CORR)). }
       rewrite OLDEXA, set_inter_empty_l, add_max_empty_r, union_false_r.
       rewrite NEWEXA, !extra_co_D_union, !add_max_union.
-      arewrite (extra_co_D (eq b_s) (upd (upd lab_s a_s l_a) b_s l)
-                (loc (upd (upd lab_s a_s l_a) b_s l) a_s) ≡₁ ∅).
+      arewrite (extra_co_D (eq b_s) (upd (upd lab_s a_s l_a') b_s l)
+                (loc (upd (upd lab_s a_s l_a') b_s l) a_s) ≡₁ ∅).
       { split; [| basic_solver].
         unfolder. unfold loc. rupd.
         intros x ((BEQ & _) & LOC). subst x.
         rewrite upds in LOC. unfold WCore.lab_loc in NEQLOC.
-        desf. }
+        unfold same_label_u2v in LABU2V.
+        do 2 desf. }
       rewrite add_max_empty_l, union_false_r.
       rewrite add_max_sub
          with (A := extra_co_D (eq a_s) _ _)
            by basic_solver 11.
       rewrite union_false_r.
-      rewrite extra_co_D_eq_dom with (ll1 := upd (upd lab_s a_s l_a) b_s l).
+      rewrite extra_co_D_eq_dom with (ll1 := upd (upd lab_s a_s l_a') b_s l).
       all: eauto using same_lab_u2v_dom_inclusion.
-      arewrite (eq a_s ∩₁ is_w (upd (upd lab_s a_s l_a) b_s l) ≡₁
-                eq a_s ∩₁ WCore.lab_is_w l_a).
+      arewrite (eq a_s ∩₁ is_w (upd (upd lab_s a_s l_a') b_s l) ≡₁
+                eq a_s ∩₁ WCore.lab_is_w l_a').
       { unfold is_w, WCore.lab_is_w. unfolder.
         split; intros x (EQ & LAB); split; ins; subst x.
         all: rewrite updo, upds in *; ins.
         all: desf. }
-      arewrite (loc (upd (upd lab_s a_s l_a) b_s l) a_s = WCore.lab_loc l_a).
+      arewrite (loc (upd (upd lab_s a_s l_a') b_s l) a_s = WCore.lab_loc l_a').
       { unfold loc, WCore.lab_loc. now rupd. }
       unfold add_max.
-      arewrite (extra_co_D E_s lab_s (WCore.lab_loc l_a) \₁ eq a_s ∩₁ WCore.lab_is_w l_a
-                ≡₁ extra_co_D E_s lab_s (WCore.lab_loc l_a)).
+      arewrite (extra_co_D E_s lab_s (WCore.lab_loc l_a') \₁ eq a_s ∩₁ WCore.lab_is_w l_a'
+                ≡₁ extra_co_D E_s lab_s (WCore.lab_loc l_a')).
       { rewrite set_minus_disjoint; ins.
         apply set_disjointE. unfold extra_co_D. basic_solver 11. }
       unfold WCore.co_delta. rewrite collect_rel_union.
+      arewrite (WCore.lab_is_w l_a ≡₁ WCore.lab_is_w l_a').
+      { admit. }
+      arewrite (Loc_s_ (WCore.lab_loc l_a) ≡₁ Loc_s_ (WCore.lab_loc l_a')).
+      { admit. }
       basic_solver 11. }
     { rewrite (WCore.add_event_threads ADD). apply SIMREL. }
     { rewrite (WCore.add_event_ctrl ADD). apply SIMREL. }
