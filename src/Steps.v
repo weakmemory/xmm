@@ -7,9 +7,9 @@ Require Import ThreadTrace.
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
-From imm Require Import Events Execution Execution_eco imm_s_hb.
+From imm Require Import Events Execution Execution_eco.
 From imm Require Import imm_s_ppo.
-From imm Require Import imm_s_hb.
+Require Import xmm_s_hb.
 From imm Require Import imm_bob.
 From imm Require Import SubExecution.
 

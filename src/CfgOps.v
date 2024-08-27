@@ -1,6 +1,6 @@
-From imm Require Import Events Execution imm_s_hb.
+From imm Require Import Events Execution.
 From imm Require Import imm_s_ppo.
-From imm Require Import imm_s_hb.
+Require Import xmm_s_hb.
 From imm Require Import imm_bob.
 From imm Require Import SubExecution.
 
@@ -144,7 +144,7 @@ Proof using.
     rewrite set_inter_absorb_r; ins. basic_solver. }
   { constructor; ins.
     all: try now apply WF.
-    { rewrite WF.(WCore.wprop_wf_scc).(imm_s.wf_scE).
+    { rewrite WF.(WCore.wprop_wf_scc).(xmm_s.wf_scE).
       rewrite <- !restr_relE, restr_restr.
       apply restr_rel_more; ins. basic_solver. }
     rewrite !set_inter_union_l.
@@ -247,7 +247,7 @@ Proof using.
   constructor; ins.
   { apply exec_mapped_wf; ins; try now apply WF.
     all: now rewrite ?NDATA, ?NADDR, collect_rel_empty. }
-  all: try apply imm_s.Build_wf_sc; ins.
+  all: try apply xmm_s.Build_wf_sc; ins.
   all: rewrite 1?exec_mapped_F with (G := GC) (f := f),
                1?exec_mapped_R with (G := GC) (f := f),
                1?exec_mapped_is_sc with (G := GC) (f := f),

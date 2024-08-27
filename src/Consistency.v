@@ -17,12 +17,12 @@ From hahn Require Import Hahn.
 From hahn Require Import HahnTrace.
 From hahn Require Import HahnSorted.
 From hahnExt Require Import HahnExt.
-From imm Require Import Events Execution Execution_eco imm_s_hb.
+From imm Require Import Events Execution Execution_eco.
 From imm Require Import imm_s_ppo.
-From imm Require Import imm_s_hb.
+Require Import xmm_s_hb.
 From imm Require Import imm_bob.
 From imm Require Import SubExecution.
-From imm Require Import CombRelations. 
+Require Import xmm_comb_rel. 
 
 Module Consistency.
 
@@ -158,7 +158,7 @@ Proof using.
     unfold rpo. left. left. left. right. destruct RPO. destruct H.
     assert (ACQ : is_acq lab x0).
     { destruct H0. destruct H0. destruct H1. destruct H1.
-      destruct H2. basic_solver. }
+      destruct H2. destruct H2. destruct H3. basic_solver. }
     basic_solver.
 Qed.
 
@@ -786,8 +786,8 @@ Proof using.
       destruct XIN as (x' & XIN & XEQ), YIN as (y' & YIN & YEQ).
       exists x', y'. splits; ins. split with x'; split.
       { unfolder. unfolder in DOM. desf.
-        unfold is_w, is_rel, mod in *.
-        rewrite <- LABS with x'; splits; eauto. }
+        unfold is_w, is_rel, is_rlx, mod in *.
+        rewrite <- LABS with x'; eauto. }
       assert (HREL' : singl_rel x y ⊆ (rf_s ⨾ rmw_s)＊).
       { intros x0 y0 HH. destruct HH; vauto. }
       rewrite RF_MAP, seq_union_l in HREL'.
@@ -816,9 +816,9 @@ Proof using.
     assert (sb_s ∩ same_loc_s ≡ ⦗E_s⦘ ⨾ sb_s ∩ same_loc_s ⨾ ⦗E_s⦘) as EAA'.
     { split; [|clear; basic_solver 10].
       rewrite wf_sbE at 1. clear. basic_solver 10. }
-    arewrite (sb_t ∩ same_loc_t ⨾ ⦗W_t⦘ ⨾ (rf_t ⨾ rmw_t)＊
+    arewrite (sb_t ∩ same_loc_t ⨾ ⦗W_t⦘ ⨾ ⦗fun a0 : actid => is_rlx lab_t a0⦘ ⨾ (rf_t ⨾ rmw_t)＊
               ≡
-              sb_t ∩ same_loc_t ⨾ ⦗W_t⦘ ⨾ (rf_t ⨾ rmw_t)＊⨾ ⦗E_t⦘).
+              sb_t ∩ same_loc_t ⨾ ⦗W_t⦘ ⨾ ⦗fun a0 : actid => is_rlx lab_t a0⦘ ⨾ (rf_t ⨾ rmw_t)＊⨾ ⦗E_t⦘).
     { split; [|clear; basic_solver 10].
       arewrite (sb_t ∩ same_loc_t ⊆ ⦗E_t⦘ ⨾ sb_t ∩ same_loc_t ⨾ ⦗E_t⦘) by apply EAA.
       rewrite rtE, !seq_union_l, !seq_union_r, !seq_id_l, !seq_id_r.
@@ -858,19 +858,24 @@ Proof using.
         intros F. unfold is_r, is_w in *. desf. }
       unfold is_w in *; vauto. }
     rewrite <- seqA. rewrite WNEQ. rewrite !seqA.
-    assert (WEQ : ⦗E_s \₁ eq a⦘ ⨾ ⦗W_s⦘ ⊆ ⦗E_s \₁ eq a⦘ ⨾ m ↑ ⦗W_t⦘).
+    assert (WEQ : ⦗E_s \₁ eq a⦘ ⨾ (⦗W_s⦘ ⨾ ⦗fun a0 : actid => is_rlx lab_s a0⦘) ⊆ ⦗E_s \₁ eq a⦘ ⨾ m ↑ (⦗W_t⦘ ⨾ ⦗fun a0 : actid => is_rlx lab_t a0⦘)).
     { intros x y HH. destruct HH. destruct H.
       assert (EQQ : ⦗E_s \₁ eq a⦘ ≡ m ↑ ⦗E_t⦘).
       { rewrite MAPEQ. basic_solver 12. }
-      apply EQQ in H. destruct H0; subst. split with y.
+      apply EQQ in H. destruct H0. destruct H0.
+      destruct H1; subst. destruct H0; subst.
+      split with y.
       split.
       { apply EQQ; vauto. }
       destruct H. destruct H.
-      destruct H as (H2 & H3 & H4).
+      destruct H as (H3 & H4 & H5).
       red. exists x1, x1. splits; vauto.
-      destruct H2; subst. apply LABS in H0.
-      unfold compose in H0. red. splits; vauto. 
-      unfold is_w in *. basic_solver 21. }
+      destruct H3; subst. apply LABS in H0.
+      unfold compose in H0. red. exists x1. 
+      splits; vauto; unfold is_w, is_rlx in *.
+      { basic_solver 21. }
+      red. split; vauto. unfold mod in *. basic_solver 21. }
+    rewrite <- seqA with (r3 := (rf_s ⨾ rmw_s)＊). 
     rewrite <- seqA with (r3 := (rf_s ⨾ rmw_s)＊). 
     rewrite WEQ. rewrite seqA. rewrite <- seqA.
     rewrite SB_SL_MAP. rewrite sw_helper_rf_rmw; eauto.
@@ -901,8 +906,8 @@ Lemma sw_helper_rf (m : actid -> actid)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
-    rf_s ⨾ (sb_s ⨾ ⦗fun a0 : actid => F_s a0⦘)^? ⨾ ⦗fun a0 : actid => Acq_s a0⦘ ⨾ ⦗E_s \₁ eq a⦘
-    ⊆ m ↑ (rf_t ⨾ (sb_t ⨾ ⦗fun a0 : actid => F_t a0⦘)^? ⨾ ⦗fun a0 : actid => Acq_t a0⦘).
+    rf_s ⨾ ⦗fun a0 : actid => is_rlx lab_s a0⦘ ⨾ (sb_s ⨾ ⦗F_s⦘)^? ⨾ ⦗Acq_s⦘ ⨾ ⦗E_s \₁ eq a⦘
+    ⊆ m ↑ (rf_t ⨾ ⦗fun a0 : actid => is_rlx lab_t a0⦘⨾ (sb_t ⨾ ⦗F_t⦘)^? ⨾ ⦗Acq_t⦘).
 Proof using.
     assert (MAPEQ : E_s \₁ eq a ≡₁ m ↑₁ E_t) by now apply acts_set_helper.
     rewrite !crE. rewrite !seq_union_l.
@@ -910,16 +915,16 @@ Proof using.
     apply union_mori.
     { rewrite RF_MAP. rewrite seq_union_l. apply inclusion_union_l.
       { rels. rewrite MAPEQ. intros x y HH.
-        destruct HH as (z & (HH & (y' & (H1 & H2)))).
-        destruct H1, H2; subst. unfolder.
+        destruct HH as (z & (HH & (y' & (H1 & (z' & (H2 & H3)))))).
+        destruct H1, H2, H3; subst. unfolder.
         destruct HH. destruct H.
-        destruct H as (H3 & H4 & H5). 
+        destruct H as (H5 & H6 & H7). 
         exists x0, x1. splits; vauto.
-        unfold is_acq, mod in *.
-        rewrite <- LABS with x1; splits; eauto.
-        apply wf_rfE in H3; eauto. 
-        destruct H3 as (x2 & (H6 & (x3 & (H9 & H10)))).
-        destruct H10; vauto. }
+        all : unfold is_acq, is_rlx, mod in *.
+        all : rewrite <- LABS with x1; splits; eauto.
+        all : apply wf_rfE in H5; eauto. 
+        all : destruct H5 as (x2 & (HH6 & (x3 & (HH9 & HH10)))).
+        all : destruct HH10; vauto. }
       rewrite seqA. basic_solver 21. }
     rewrite RF_MAP. rewrite seq_union_l. apply inclusion_union_l.
     { rewrite !seqA. (* rlx *)
@@ -967,7 +972,7 @@ Proof using.
   rewrite <- collect_rel_seq; vauto.
   2 : { assert (IN1 : codom_rel (⦗E_t⦘ ⨾ release_t) ⊆₁ E_t).
         { rewrite wf_releaseE; vauto. rewrite seq_union_r. basic_solver. }
-        assert (IN2 : dom_rel (rf_t ⨾ (sb_t ⨾ ⦗fun a0 : actid => F_t a0⦘)^? ⨾ ⦗fun a0 : actid => Acq_t a0⦘) ⊆₁ E_t).
+        assert (IN2 : dom_rel (rf_t ⨾ ⦗fun a0 : actid => is_rlx lab_t a0⦘ ⨾ (sb_t ⨾ ⦗fun a0 : actid => F_t a0⦘)^? ⨾ ⦗fun a0 : actid => Acq_t a0⦘) ⊆₁ E_t).
         { induction 1. destruct H. destruct H.
           apply wf_rfE in H; eauto. destruct H. destruct H. 
           destruct H; vauto. }
@@ -1221,11 +1226,24 @@ Lemma rhb_sub (m : actid -> actid)
         (WF_s : Wf G_s) :
     rhb_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rhb_t.
 Proof using.
-    arewrite (rhb_s ⊆ rhb_s^? ⨾ (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s)) at 1.
-    { unfold rhb. rewrite ct_end at 1. hahn_frame_r.
-      basic_solver. }
-    rewrite <- rhb_imm_start; eauto.
-    admit. (* induction? *)
+    (* unfold rhb. induction 1.
+    destruct H. apply clos_trans_t1n in H.
+    induction H. 
+    { assert (PATH : ((sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s) ⨾ ⦗E_s \₁ eq a⦘) x y) by vauto.
+      apply rhb_fin with (m := m) in PATH; eauto. unfold collect_rel in *.
+      destruct PATH as (x' & y' & (H1 & H2 & H3)). exists x', y'. splits; vauto. }
+    assert (H' : ⦗E_s \₁ eq a⦘ z y) by vauto.
+    apply IHclos_trans_1n in H'. 
+    destruct H0; subst. *)
+    unfold rhb.
+    assert (IND1 : (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s) ⨾ ⦗E_s \₁ eq a⦘ 
+                  ⊆ m ↑ (sb_t ∩ same_loc_t ∪ rpo_t ∪ sw_t)⁺).
+    { rewrite rhb_fin; vauto. intros x y HH. unfold collect_rel in *. 
+      destruct HH as (x' & y' & (H1 & H2 & H3)). exists x', y'. splits; vauto. }
+    assert (IND2 : m ↑ (sb_t ∩ same_loc_t ∪ rpo_t ∪ sw_t)⁺ ⨾ (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s) ⨾ ⦗E_s \₁ eq a⦘
+                  ⊆ m ↑ (sb_t ∩ same_loc_t ∪ rpo_t ∪ sw_t)⁺).
+    { admit. }
+    admit.
 Admitted.
 
 Lemma read_extent (m : actid -> actid)

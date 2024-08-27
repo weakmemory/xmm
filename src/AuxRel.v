@@ -1,8 +1,10 @@
-From imm Require Import Events Execution imm_s_hb.
+From imm Require Import Events Execution.
+Require Import xmm_s_hb.
 From imm Require Import imm_s_ppo.
-From imm Require Import imm_s_hb.
 From imm Require Import imm_bob.
 From imm Require Import SubExecution.
+From imm Require Import Events Execution Execution_eco.
+Require Import xmm_comb_rel.
 
 Require Import Program.Basics.
 Require Import AuxDef.
@@ -12,12 +14,6 @@ From hahn Require Import Hahn.
 From hahn Require Import HahnTrace.
 From hahn Require Import HahnSorted.
 From hahnExt Require Import HahnExt.
-From imm Require Import Events Execution Execution_eco imm_s_hb.
-From imm Require Import imm_s_ppo.
-From imm Require Import imm_s_hb.
-From imm Require Import imm_bob.
-From imm Require Import SubExecution.
-From imm Require Import CombRelations.
 
 Section AuxRel.
 
