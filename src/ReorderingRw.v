@@ -788,6 +788,24 @@ Proof using.
   unfold extra_co_D. basic_solver.
 Qed.
 
+Lemma immediate_union_ignore_alt {T : Type} (r1 r2 r3 : relation T)
+    (NOX : set_disjoint (dom_rel r1) (codom_rel r3))
+    (NOY : set_disjoint (codom_rel r1) (codom_rel r3))
+    (EDGE : set_disjoint (codom_rel r3) (dom_rel r2))
+    (IN : r1 ⊆ immediate r2) :
+  r1 ⊆ immediate (r2 ∪ r3).
+Proof using.
+  rewrite immediateE in *.
+  intros x y REL. split.
+  { left. now apply IN. }
+  unfolder. intros FALSE. desf.
+  { assert (IN' : ~ (r2 ⨾ r2) x y) by now apply IN.
+    apply IN'. basic_solver. }
+  { apply EDGE with z; basic_solver. }
+  { apply NOY with y; basic_solver. }
+  apply NOY with y; basic_solver.
+Qed.
+
 Lemma G_s_wf
     (PRED : reord_step_pred)
     (SIMREL : reord_simrel) :
@@ -852,8 +870,92 @@ Proof using.
       apply (rsr_inj SIMREL) in XEQ'; desf.
       apply (rsr_bt_nrmw PRED) with b_t; ins.
       basic_solver. }
-    (* TODO: stronger condition *)
-    admit. }
+    assert (NEMPTY : forall (INB : E_t b_t),
+      ~ mapper ↑₁ dom_rel (sb_t ⨾ ⦗eq b_t⦘) ≡₁ ∅).
+    { ins. apply set_nonemptyE.
+      assert (LOC : location) by constructor.
+      exists (InitEvent LOC). apply set_subset_single_l.
+      arewrite (eq (InitEvent LOC) ≡₁ mapper ↑₁ eq (InitEvent LOC)).
+      { rewrite <- fixset_set_fixpoint; ins.
+        eapply fixset_mori with (x := is_init); ins.
+        { unfold flip. basic_solver. }
+        apply SIMREL. }
+      apply set_collect_mori; ins.
+      unfold sb, ext_sb. rewrite !seqA.
+      rewrite <- id_inter, set_inter_absorb_l; [| basic_solver].
+      unfolder. ins; desf. exists b_t; splits; ins.
+      { now apply (rsr_init_acts PRED). }
+      assert (NINIT : ~is_init b_t) by apply PRED.
+      destruct b_t; ins. }
+    apply immediate_union_ignore_alt.
+    { apply set_disjointE. split; [| basic_solver].
+      unfold extra_a; desf; [| basic_solver].
+      rewrite codom_cross; [| desf; eauto].
+      unfolder. intros x ((x0 & x' & y' & RMW & XEQ & YEQ) & XEQ').
+      apply (wf_rmwE WF) in RMW. unfolder in RMW.
+      destruct RMW as (DOM & RMW & CODOM).
+      eapply (rsr_codom SIMREL) with a_s; [basic_solver 11 |].
+      apply extra_a_some; desf. }
+    { apply set_disjointE. split; [| basic_solver].
+      unfold extra_a; desf; [| basic_solver].
+      rewrite codom_cross; [| desf; eauto].
+      unfolder. intros x ((x0 & x' & y' & RMW & XEQ & YEQ) & XEQ').
+      apply (wf_rmwE WF) in RMW. unfolder in RMW.
+      destruct RMW as (DOM & RMW & CODOM).
+      eapply (rsr_codom SIMREL) with a_s; [basic_solver 11 |].
+      apply extra_a_some; desf. }
+    { apply set_disjointE. split; [| basic_solver].
+      unfold extra_a; desf; [| basic_solver].
+      rewrite codom_cross; [| desf; eauto].
+      unfold sb, swap_rel. unfolder. ins. desf.
+      eapply NEXA with (mapper x'); [| basic_solver].
+      apply extra_a_some; ins. }
+    intros x y HREL.
+    enough (HIN : singl_rel x y ⊆
+      immediate (mapper ↑ swap_rel sb_t (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t))).
+    { now apply HIN. }
+    arewrite (mapper ↑ swap_rel sb_t (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t) ≡
+              swap_rel
+                (mapper ↑ sb_t)
+                (mapper ↑₁ (eq b_t ∩₁ E_t))
+                (mapper ↑₁ (eq a_t ∩₁ E_t))).
+    { unfold swap_rel.
+      rewrite collect_rel_union, collect_rel_minusE,
+              !collect_rel_cross; ins.
+      eapply inj_dom_mori with (x := E_t); ins; try now apply SIMREL.
+      unfold flip. rewrite wf_sbE. basic_solver 11. }
+    apply swap_rel_imm.
+    { intro FALSO. apply (rsr_bt_nrmw PRED) with b_t; ins.
+      unfolder in HREL. unfolder in FALSO.
+      destruct HREL as (x' & y' & RMW & XEQ & YEQ).
+      destruct FALSO as (b_t' & (BEQ & BINE) & BEQ'); subst b_t'.
+      subst. apply (rsr_inj SIMREL) in BEQ'; ins.
+      all: try now (left; desf; basic_solver).
+      apply (wf_rmwE WF) in RMW. unfolder in RMW. desf. }
+    { intro FALSO. apply (rsr_at_nrmw PRED) with a_t; ins.
+      unfolder in HREL. unfolder in FALSO.
+      destruct HREL as (x' & y' & RMW & XEQ & YEQ).
+      destruct FALSO as (b_t' & (BEQ & BINE) & BEQ'); subst b_t'.
+      subst. apply (rsr_inj SIMREL) in BEQ'; ins.
+      all: try now (left; desf; basic_solver).
+      apply (wf_rmwE WF) in RMW. unfolder in RMW. desf. }
+    { intro FALSO. apply (rsr_bt_nrmw PRED) with b_t; ins.
+      unfolder in HREL. unfolder in FALSO.
+      destruct HREL as (x' & y' & RMW & XEQ & YEQ).
+      destruct FALSO as (b_t' & (BEQ & BINE) & BEQ'); subst b_t'.
+      subst. apply (rsr_inj SIMREL) in BEQ'; ins.
+      all: try now (right; desf; basic_solver).
+      apply (wf_rmwE WF) in RMW. unfolder in RMW. desf. }
+    { intro FALSO. apply (rsr_at_nrmw PRED) with a_t; ins.
+      unfolder in HREL. unfolder in FALSO.
+      destruct HREL as (x' & y' & RMW & XEQ & YEQ).
+      destruct FALSO as (b_t' & (BEQ & BINE) & BEQ'); subst b_t'.
+      subst. apply (rsr_inj SIMREL) in BEQ'; ins.
+      all: try now (right; desf; basic_solver).
+      apply (wf_rmwE WF) in RMW. unfolder in RMW. desf. }
+    rewrite collect_rel_immediate, <- (wf_rmwi WF); [basic_solver |].
+    eapply inj_dom_mori with (x := E_t); ins; try now apply SIMREL.
+    unfold flip. rewrite wf_sbE. basic_solver. }
   { apply G_s_rfE; ins. red; eauto. }
   { apply dom_helper_3. rewrite (rsr_rf SIMREL).
     apply inclusion_union_l.
@@ -937,7 +1039,7 @@ Proof using.
   { symmetry. apply eba_tid, (rsr_as SIMREL).
     desf. apply extra_a_some; ins. }
   apply WF; desf.
-Admitted.
+Qed.
 
 Lemma G_s_rfc
     (PRED : reord_step_pred)
