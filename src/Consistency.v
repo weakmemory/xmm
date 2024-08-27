@@ -339,6 +339,14 @@ Proof using.
     admit. 
 Admitted. *)
 
+Lemma wf_rhb_immE 
+        (WF : Wf G) :
+    (sb ∩ same_loc ∪ rpo ∪ sw) ≡ ⦗E⦘ ⨾ (sb ∩ same_loc ∪ rpo ∪ sw) ⨾ ⦗E⦘.
+Proof using.
+    split; [| basic_solver].
+    rewrite wf_sbE, wf_rpoE, wf_swE; eauto. basic_solver 42.
+Qed.
+
 End HB.
 
 Section Draft. 
@@ -1149,10 +1157,10 @@ Lemma rhb_imm_start (m : actid -> actid)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
-    ⦗E_s \₁ eq a⦘ ⨾ (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s) ⨾ ⦗E_s \₁ eq a⦘ ≡ 
-                    (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s) ⨾ ⦗E_s \₁ eq a⦘.
+    ⦗E_s \₁ eq a⦘ ⨾ (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s) ≡ 
+                    (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s).
 Proof using.
-    split; [basic_solver|]. hahn_frame_r. 
+    split; [basic_solver|]. 
     rewrite !seq_union_r. apply union_mori.
     { apply union_mori.
       { intros x y H. unfold seq. exists x. split; vauto. 
@@ -1206,7 +1214,7 @@ Proof using.
       { rewrite SB_SL_MAP. basic_solver. }
       rewrite RPO_MAP. basic_solver. }
     rewrite sw_sub_helper; eauto.
-    basic_solver. 
+    basic_solver.
 Qed.
 
 Lemma rhb_sub (m : actid -> actid)
@@ -1226,15 +1234,6 @@ Lemma rhb_sub (m : actid -> actid)
         (WF_s : Wf G_s) :
     rhb_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rhb_t.
 Proof using.
-    (* unfold rhb. induction 1.
-    destruct H. apply clos_trans_t1n in H.
-    induction H. 
-    { assert (PATH : ((sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s) ⨾ ⦗E_s \₁ eq a⦘) x y) by vauto.
-      apply rhb_fin with (m := m) in PATH; eauto. unfold collect_rel in *.
-      destruct PATH as (x' & y' & (H1 & H2 & H3)). exists x', y'. splits; vauto. }
-    assert (H' : ⦗E_s \₁ eq a⦘ z y) by vauto.
-    apply IHclos_trans_1n in H'. 
-    destruct H0; subst. *)
     unfold rhb.
     assert (IND1 : (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s) ⨾ ⦗E_s \₁ eq a⦘ 
                   ⊆ m ↑ (sb_t ∩ same_loc_t ∪ rpo_t ∪ sw_t)⁺).
@@ -1242,9 +1241,42 @@ Proof using.
       destruct HH as (x' & y' & (H1 & H2 & H3)). exists x', y'. splits; vauto. }
     assert (IND2 : m ↑ (sb_t ∩ same_loc_t ∪ rpo_t ∪ sw_t)⁺ ⨾ (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s) ⨾ ⦗E_s \₁ eq a⦘
                   ⊆ m ↑ (sb_t ∩ same_loc_t ∪ rpo_t ∪ sw_t)⁺).
-    { admit. }
-    admit.
-Admitted.
+    { assert (TRIN : m ↑ (sb_t ∩ same_loc_t ∪ rpo_t ∪ sw_t)⁺ ⨾ m ↑ (sb_t ∩ same_loc_t ∪ rpo_t ∪ sw_t)⁺ 
+              ⊆ m ↑ (sb_t ∩ same_loc_t ∪ rpo_t ∪ sw_t)⁺).
+      { intros x y HH. destruct HH. destruct H.
+        unfold collect_rel in H, H0. unfold collect_rel.
+        destruct H as (x' & y' & (H1 & H2 & H3)).
+        destruct H0 as (x'' & y'' & (H4 & H5 & H6)).
+        exists x', y''. splits; vauto.
+        assert (EQ : x'' = y'). 
+        { apply INJ; vauto. 
+          { apply ct_begin in H4. destruct H4. destruct H.
+            apply wf_rhb_immE in H; vauto. destruct H. destruct H.
+            apply H. }
+          apply ct_end in H1. destruct H1. destruct H.
+          apply wf_rhb_immE in H0; vauto. destruct H0. destruct H0.
+          destruct H1. destruct H1. 
+          destruct H2; subst; vauto. }
+        subst. apply ct_ct.
+        unfold seq. exists y'. splits; vauto. }
+      rewrite <- TRIN at 2. apply seq_mori; vauto. }
+    assert (IND3 : ((sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s) ⨾ ⦗E_s \₁ eq a⦘)⁺
+                  ⊆ m ↑ (sb_t ∩ same_loc_t ∪ rpo_t ∪ sw_t)⁺).
+    { apply inclusion_t_ind_right; vauto. }
+    assert (IND4 : (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s)⁺ ⨾ ⦗E_s \₁ eq a⦘ ⊆ 
+                  ((sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s) ⨾ ⦗E_s \₁ eq a⦘)⁺).
+    { induction 1. destruct H. destruct H0; subst.
+      induction H. 
+      { apply ct_step. unfold seq. exists y. splits; vauto. }
+      apply ct_begin in H0. destruct H0. destruct H0.
+      eapply rhb_imm_start in H0; vauto.
+      destruct H0. destruct H0.
+      destruct H0; subst.
+      apply IHclos_trans1 in H4.
+      apply IHclos_trans2 in H1.
+      apply ct_ct. unfold seq. exists x1. splits; vauto. }
+    rewrite IND4; vauto.
+Qed.
 
 Lemma read_extent (m : actid -> actid)
         (INJ : inj_dom E_t m)
