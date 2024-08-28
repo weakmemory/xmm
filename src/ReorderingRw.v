@@ -2935,6 +2935,9 @@ Proof using INV INV'.
   assert (MAPEQ : eq_dom E_t mapper' mapper).
   { subst mapper'. unfolder. intros x XINE.
     rupd. congruence. }
+  assert (MAPEQ2 : eq_dom E_t mapper mapper').
+  { subst mapper'. unfolder. intros x XINE.
+    rupd. congruence. }
   assert (MAPSUB : mapper' ↑₁ E_t ≡₁ mapper ↑₁ E_t).
   { split; unfolder; intros x (y & YINE & HEQ).
     { exists y; split; ins. rewrite <- MAPEQ; ins. }
@@ -3012,7 +3015,35 @@ Proof using INV INV'.
         symmetry. apply CORR. }
       arewrite ((is_init ∪₁ E_t ∩₁ same_tid a_t) \₁ eq b_t ≡₁
                 dom_rel (sb_t ⨾ ⦗eq b_t⦘)).
-      { admit. }
+      { rewrite sb_tid_init', seq_union_l, unionC, dom_union,
+                set_minus_union_l.
+        assert (NINIT : ~is_init b_t) by apply INV.
+        arewrite (is_init \₁ eq b_t ≡₁ is_init).
+        { split; [basic_solver|]. unfolder.
+          ins. split; ins. intro F; congruence. }
+        arewrite (same_tid a_t ≡₁ same_tid b_t).
+        { unfold same_tid. now rewrite (rsr_at_bt_tid INV). }
+        apply set_union_more.
+        { unfold sb. split; [|basic_solver 11].
+          unfolder. ins. eexists. splits; eauto.
+          { apply (rsr_init_acts INV); ins. }
+          unfold ext_sb. desf; ins. }
+        rewrite wf_sbE, <- seq_eqv_inter_lr, !seqA, <- id_inter.
+        rewrite set_inter_absorb_l
+           with (s := eq b_t)
+             by basic_solver.
+        unfolder. unfold same_tid.
+        split; intros x HREL; desf; splits; ins.
+        all: try now (intro F; desf; eapply sb_irr; eauto).
+        eexists; splits; eauto.
+        destruct (sb_total G_t)
+            with (tid b_t) x b_t
+              as [RSB|LSB].
+        all: ins; try congruence.
+        { unfolder; splits; ins. intro F; destruct x; ins.
+          apply (rsr_at_tid CORR). now rewrite (rsr_at_bt_tid CORR). }
+        exfalso. apply (rsr_bt_max CORR) with b_t x; ins.
+        basic_solver 11. }
       arewrite (mapper' ↑ sb_t ≡ mapper ↑ sb_t).
       { apply collect_rel_eq_dom.
         eapply eq_dom_mori; eauto. unfold flip.
@@ -3072,9 +3103,17 @@ Proof using INV INV'.
       seq_rewrite (co_deltaE2 WF ADD).
       rewrite <- cross_inter_l, <- cross_inter_r, <- !set_interA.
       arewrite (W_t' ∩₁ eq a_t ∩₁ WCore.lab_is_w l ≡₁ eq a_t ∩₁ WCore.lab_is_w l).
-      { admit. }
+      { split; [basic_solver |].
+        unfolder. unfold is_w, WCore.lab_is_w.
+        intros x (XEQ & ISW). splits; ins.
+        rewrite (WCore.add_event_lab ADD).
+        subst x. rewrite upds. desf. }
       arewrite (eq a_t ∩₁ WCore.lab_is_w l ∩₁ W_t' ≡₁ eq a_t ∩₁ WCore.lab_is_w l).
-      { admit. }
+      { split; [basic_solver |].
+        unfolder. unfold is_w, WCore.lab_is_w.
+        intros x (XEQ & ISW). splits; ins.
+        rewrite (WCore.add_event_lab ADD).
+        subst x. rewrite upds. desf. }
       rewrite (WCore.add_event_co ADD). unfold WCore.co_delta.
       rewrite !collect_rel_union, <- !unionA.
       repeat apply union_more; ins.
@@ -3086,14 +3125,24 @@ Proof using INV INV'.
         splits; eauto.
         all: try now apply (rsr_acts SIMREL); basic_solver.
         all: symmetry; eauto. }
-      admit. }
+      rewrite restr_add_max, OLDEXA.
+      arewrite (eq a_s ∩₁ W_s ∩₁ (E_s \₁ eq a_s) ≡₁ ∅).
+      { basic_solver. }
+      rewrite add_max_empty_r, union_false_r.
+      apply collect_rel_eq_dom' with (s := E_t); ins.
+      apply (wf_coE (rsr_Gt_wf CORR)). }
     { now rewrite (rsr_threads SIMREL), (WCore.add_event_threads ADD). }
     { rewrite (WCore.add_event_ctrl ADD). apply SIMREL. }
     { rewrite (WCore.add_event_data ADD). apply SIMREL. }
     { rewrite (WCore.add_event_addr ADD). apply SIMREL. }
     rewrite (WCore.add_event_rmw_dep ADD). apply SIMREL. }
   assert (STARTWF : WCore.wf (WCore.X_start X_s dtrmt') X_s' cmt').
-  { admit. }
+  { constructor; ins.
+    { admit. }
+    { admit. }
+    { admit. }
+    { admit. }
+    admit. }
   assert (STAB : WCore.stable_uncmt_reads_gen X_s' cmt' thrdle').
   { constructor; ins.
     { unfolder. subst thrdle'. ins.
