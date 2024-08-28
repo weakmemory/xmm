@@ -130,19 +130,32 @@ Lemma prefix_wf
     (NDATA : data ≡ ∅₂)
     (NADDR : addr ≡ ∅₂)
     (NCTRL : ctrl ≡ ∅₂)
+    (NRMWDEP : rmw_dep ≡ ∅₂)
     (WF : Wf G')
     (PFX : prefix) :
   Wf G.
 Proof using.
   assert (SUBE : E ⊆₁ E') by apply PFX.
   assert (EQR : E ∩₁ R' ≡₁ E ∩₁ R).
-  { admit. }
+  { unfolder. split; ins; desf.
+    all: split; ins; unfold is_r in *.
+    all: rewrite (prf_lab PFX) in *; ins.
+    all: now right. }
   assert (EQW : E ∩₁ W' ≡₁ E ∩₁ W).
-  { admit. }
+  { unfolder. split; ins; desf.
+    all: split; ins; unfold is_w in *.
+    all: rewrite (prf_lab PFX) in *; ins.
+    all: now right. }
   assert (EQL : restr_rel E same_loc' ⊆ same_loc).
-  { admit. }
+  { unfolder. ins; desf.
+    unfold same_loc, loc in *.
+    rewrite !(prf_lab PFX) in *; ins.
+    all: now right. }
   assert (EQV : restr_rel E same_val' ⊆ same_val).
-  { admit. }
+  { unfolder. ins; desf.
+    unfold same_val, val in *.
+    rewrite !(prf_lab PFX) in *; ins.
+    all: now right. }
   constructor.
   { intros a b (INA & INB & NEQ & TID & NINIT).
     apply WF. splits; ins.
@@ -160,7 +173,8 @@ Proof using.
     basic_solver. }
   { rewrite <- EQL, (prf_rmw PFX).
     apply restr_rel_mori; ins. apply WF. }
-  { admit. }
+  { rewrite (prf_rmw PFX), (wf_rmwi WF), (prf_sb' PFX).
+    unfolder. ins; desf. split; ins. desf; eauto. }
   { rewrite (prf_rf PFX). rewrite (wf_rfE WF) at 1.
     rewrite !restr_relE, !seqA. seq_rewrite <- !id_inter.
     basic_solver 11. }
@@ -185,8 +199,25 @@ Proof using.
   { rewrite <- EQL, (prf_co PFX).
     apply restr_rel_mori; ins. apply WF. }
   { rewrite (prf_co PFX). apply transitive_restr, WF. }
-  { admit. }
-Admitted.
+  { intros ol. rewrite (prf_co PFX). unfolder.
+    intros x ((XINE & XISW) & XLOC).
+    intros y ((YINE & YISW) & YLOC).
+    intros NEQ.
+    destruct (wf_co_total WF) with ol x y as [CO|CO].
+    all: eauto.
+    all: unfolder; splits; eauto.
+    all: unfold is_w, loc; rewrite <- (prf_lab PFX).
+    all: ins.
+    all: now right. }
+  { rewrite (prf_co PFX). apply irreflexive_restr, WF. }
+  { ins; desf. now apply (prf_init PFX). }
+  { ins; desf. rewrite (prf_lab PFX); [| now left].
+    apply WF. }
+  { rewrite NRMWDEP. basic_solver. }
+  { rewrite NRMWDEP. basic_solver. }
+  ins. apply (prf_acts PFX) in EE.
+  now apply (prf_threads PFX), WF.
+Qed.
 
 End Prefix.
 
@@ -562,7 +593,8 @@ Proof using.
   eapply prefix_wf; eauto.
   { rewrite (prf_data PFX). basic_solver. }
   { rewrite (prf_addr PFX). basic_solver. }
-  rewrite (prf_ctrl PFX). basic_solver.
+  { rewrite (prf_ctrl PFX). basic_solver. }
+  rewrite (prf_rmw_dep PFX). basic_solver.
 Qed.
 
 
