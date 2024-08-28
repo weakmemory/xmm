@@ -3274,7 +3274,44 @@ Proof using INV INV'.
       red; eauto. }
     { apply prefix_exec_restr_eq; ins.
       basic_solver. }
-    { admit. (* Nobody reads from a_s *) }
+    { unfold rf_complete, G_s', cmt'. ins.
+      arewrite ((E_s \₁ eq a_s) ∩₁ E_s ≡₁ E_s \₁ eq a_s).
+      { basic_solver. }
+      arewrite ((E_s \₁ eq a_s) ∩₁ is_r (upd lab_s a_s l) ≡₁
+                (E_s \₁ eq a_s) ∩₁ R_s).
+      { unfolder. split; ins; desf; splits; ins.
+        all: unfold is_r in *.
+        all: rewrite updo in *; congruence. }
+      rewrite seq_union_l, seq_union_r, !seqA.
+      rewrite codom_union.
+      arewrite_false (mapper' ↑ (rf_t' ⨾ ⦗eq a_t ∩₁ R_t'⦘) ⨾ ⦗E_s \₁ eq a_s⦘).
+      { unfolder. intros x y HREL. desf.
+        unfold mapper' in *.
+        now rewrite upds in *. }
+      rewrite seq_false_r, codom_empty, set_union_empty_r.
+      seq_rewrite seq_eqvK. unfolder.
+      intros x ((XINE & NEQ) & ISR).
+      assert (RFC_S : rf_complete G_s).
+      { eapply G_s_rfc with (X_t := X_t); eauto.
+        red; eauto. }
+      assert (WF_S : Wf G_s).
+      { eapply G_s_wf with (X_t := X_t); eauto.
+        red; eauto. }
+      destruct RFC_S with x
+            as (xw & RF); [split; ins|].
+      exists xw; splits; ins.
+      { apply (wf_rfE WF_S) in RF.
+        unfolder in RF; desf. }
+      intro F; subst xw.
+      apply (rsr_rf SIMREL) in RF.
+      destruct RF as [RFT | SRF].
+      { unfolder in RFT.
+        destruct RFT as (x' & y' & RFT & EQ & _).
+        apply MAPNEQ with x'; ins.
+        apply (wf_rfE WF) in RFT.
+        unfolder in RFT; desf. }
+      unfolder in SRF. destruct SRF as (_ & EXA & _).
+      apply OLDEXA in EXA. congruence. }
     { unfold dtrmt', cmt'. basic_solver 11. }
     admit. (* sc... *) }
   assert (STAB : WCore.stable_uncmt_reads_gen X_s' cmt' thrdle').
