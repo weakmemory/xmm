@@ -3167,8 +3167,11 @@ Proof using INV INV'.
       all: intro F; subst x.
       { eapply rsr_as_ninit with (X_t := X_t); eauto.
         now apply OLDEXA. }
-      apply (rsr_bt_ninit INV).
-      admit. }
+      assert (TID : (tid ∘ mapper) b_t = tid_init).
+      { unfold compose. destruct (mapper b_t); ins. }
+      rewrite (rsr_tid SIMREL) in TID; ins.
+      apply (rsr_at_tid INV).
+      now rewrite (rsr_at_bt_tid INV). }
     unfold X_s'. constructor; ins.
     { now rewrite DT, INIT. }
     { basic_solver. }
@@ -3266,6 +3269,7 @@ Proof using INV INV'.
       { rewrite (rsr_data SIMREL), (rsr_ndata INV). basic_solver. }
       { rewrite (rsr_addr SIMREL), (rsr_naddr INV). basic_solver. }
       { rewrite (rsr_ctrl SIMREL), (rsr_nctrl INV). basic_solver. }
+      { rewrite (rsr_rmw_dep SIMREL), (rsr_nrmw_dep INV). basic_solver. }
       eapply G_s_wf with (X_s := X_s') (X_t := X_t'); eauto.
       red; eauto. }
     { apply prefix_exec_restr_eq; ins.
