@@ -3157,7 +3157,55 @@ Proof using INV INV'.
     { rewrite (WCore.add_event_addr ADD). apply SIMREL. }
     rewrite (WCore.add_event_rmw_dep ADD). apply SIMREL. }
   assert (PFX : SubToFullExec.prefix (WCore.X_start X_s dtrmt') X_s').
-  { admit. }
+  { assert (DT : dtrmt' ∩₁ E_s ≡₁ dtrmt').
+    { admit. }
+    assert (INIT : is_init ⊆₁ dtrmt').
+    { admit. }
+    unfold X_s'. constructor; ins.
+    { now rewrite DT, INIT. }
+    { basic_solver. }
+    { rewrite DT, INIT, set_unionK.
+      unfold dtrmt'. unfolder; ins; desf.
+      rupd. congruence. }
+    { admit. (* what *) }
+    { rewrite DT, restr_union, restr_relE,
+              !seqA, <- id_inter.
+      arewrite ((E_s \₁ eq a_s) ∩₁ dtrmt' ≡₁ dtrmt').
+      { unfold dtrmt'. basic_solver. }
+      arewrite_false (restr_rel dtrmt' (mapper' ↑ (rf_t' ⨾ ⦗eq a_t ∩₁ R_t'⦘))).
+      { unfold dtrmt', mapper'. unfolder. ins; desf.
+        rewrite upds, updo in *.
+        all: congruence. }
+      now rewrite union_false_r. }
+    { rewrite DT, !restr_union, !restr_relE,
+              !seqA, <- !id_inter.
+      seq_rewrite <- !id_inter.
+      rewrite set_interC.
+      arewrite ((E_s \₁ eq a_s) ∩₁ dtrmt' ≡₁ dtrmt').
+      { unfold dtrmt'. basic_solver. }
+      arewrite_false (⦗dtrmt'⦘ ⨾ mapper' ↑ (⦗eq a_t ∩₁ W_t'⦘ ⨾ co_t')).
+      { unfold dtrmt', mapper'. unfolder. ins; desf.
+        rewrite upds in *. congruence. }
+      arewrite_false (mapper' ↑ (co_t' ⨾ ⦗eq a_t ∩₁ W_t' ⦘) ⨾ ⦗dtrmt'⦘).
+      { unfold dtrmt', mapper'. unfolder. ins; desf.
+        rewrite upds in *. congruence. }
+      now rewrite seq_false_l, seq_false_r, !union_false_r. }
+    { rewrite DT, (WCore.add_event_rmw ADD),
+              collect_rel_union, restr_union,
+              !restr_relE, (rsr_rmw SIMREL).
+      arewrite (mapper' ↑ rmw_t ≡ mapper ↑ rmw_t).
+      { apply collect_rel_eq_dom' with (s := E_t); ins.
+        apply (wf_rmwE (rsr_Gt_wf CORR)). }
+      arewrite_false (mapper' ↑ WCore.rmw_delta a_t l r ⨾ ⦗dtrmt'⦘).
+      { unfold dtrmt', mapper'. unfolder. ins; desf.
+        rewrite upds in *. congruence. }
+      now rewrite seq_false_r, union_false_r. }
+    { rewrite (rsr_data SIMREL), (rsr_ndata CORR). basic_solver. }
+    { rewrite (rsr_ctrl SIMREL), (rsr_nctrl CORR). basic_solver. }
+    { rewrite (rsr_addr SIMREL), (rsr_naddr CORR). basic_solver. }
+    { rewrite (rsr_rmw_dep SIMREL), (rsr_nrmw_dep CORR). basic_solver. }
+    { admit. }
+    admit. }
   assert (STARTWF : WCore.wf (WCore.X_start X_s dtrmt') X_s' cmt').
   { constructor; ins.
     { apply prefix_wf with (X := WCore.X_start X_s dtrmt') (X' := X_s').
