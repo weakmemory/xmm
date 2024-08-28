@@ -3345,7 +3345,7 @@ Proof using INV INV'.
   { constructor; ins.
     { unfold id; ins. rupd. intro FALSO.
       now apply CMT. }
-    { admit. (* What happens with rpo? *) }
+    { rewrite collect_rel_id. admit. (* What happens with rpo? *) }
     { rewrite collect_rel_id, restr_union.
       apply inclusion_union_l; [basic_solver |].
       unfolder. intros x y ((x' & y' & (RF & EQ & ISR) & XEQ & YEQ) & CX & CY).
