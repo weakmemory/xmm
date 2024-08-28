@@ -47,13 +47,12 @@ Notation "'Loc_' l" := (fun x => loc x = Some l) (at level 1).
 
 Definition ppo_alt := (sb ∩ same_loc ∪ bob)⁺.
 Definition hb_alt := (ppo_alt ∪ rf)⁺.
-Definition rpo :=
-  sb ∩ same_loc ∪
-  ⦗is_acq⦘ ⨾ sb ⨾ ⦗is_rel⦘ ∪
+Definition rpo_imm :=
   ⦗R ∩₁ is_rlx⦘ ⨾ sb ⨾ ⦗F ∩₁ is_acq⦘ ∪
   ⦗is_acq⦘ ⨾ sb ∪
   sb ⨾ ⦗is_rel⦘ ∪
   ⦗F ∩₁ is_rel⦘ ⨾ sb ⨾ ⦗W ∩₁ is_rlx⦘.
+Definition rpo := rpo_imm⁺.
 Definition rhb := (rpo ∪ sw)⁺.
 Definition vf := ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf^? ⨾ hb^?.
 Definition srf := ((vf ⨾ sb) ∩ same_loc) ⨾ ⦗R⦘ \ (co ⨾ vf ⨾ sb).
@@ -83,9 +82,16 @@ Proof.
   basic_solver.
 Qed.
 
+Lemma rpo_imm_in_sb : rpo_imm ⊆ sb.
+Proof using.
+  unfold rpo_imm.
+  basic_solver.
+Qed.
+
 Lemma rpo_in_sb : rpo ⊆ sb.
 Proof using.
-  unfold rpo. unfolder. ins. desf.
+  unfold rpo. rewrite rpo_imm_in_sb.
+  apply ct_of_trans. apply sb_trans.
 Qed.
 
 Lemma wf_rpoE

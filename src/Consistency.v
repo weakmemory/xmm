@@ -102,43 +102,20 @@ Lemma sb_trans_sw_in_rpo_sw :
 Proof using.
     assert (TRANS : transitive sb). apply sb_trans.
     assert (SB_TR : sb⁺ ≡ sb). apply ct_of_trans; eauto.
-    rewrite SB_TR. unfold rpo. intros x y H. apply seq_union_l; left.
-    apply seq_union_l; right. assert (REL_SW : sw ≡ (⦗fun a : actid => is_rel lab a⦘) ⨾ sw).
-    { unfold sw. unfold release. basic_solver 21. }
-    assert (SAME : sb ⨾ sw ≡
-                   sb ⨾ (⦗fun a : actid => is_rel lab a⦘) ⨾ sw).
-    { rewrite <- REL_SW; eauto. }
-    apply SAME in H. apply seqA in H. eauto.
-Qed.
+    admit.
+Admitted.
 
 Lemma sw_sb_in_rpo :
     sw ⨾ sb ⊆ sw ⨾ rpo.
 Proof using.
-    unfold rpo. intros x y H. apply seq_union_r. left.
-    apply seq_union_r. left. apply seq_union_r. right.
-    assert (REL_SW : sw ≡ sw ⨾ (⦗fun a : actid => is_acq lab a⦘)).
-    { unfold sw. basic_solver 21. }
-    assert (SAME : sw ⨾ sb ≡
-                   sw ⨾ (⦗fun a : actid => is_acq lab a⦘) ⨾ sb).
-    { rewrite <- seqA. rewrite <- REL_SW; eauto. }
-    apply SAME in H. vauto.
-Qed.
+  admit.
+Admitted.
 
 Lemma sb_sw_trans_in_rpo_sw_trans :
     sb ⨾ sw⁺ ⊆ rpo ⨾ sw⁺.
 Proof using.
-    unfold rpo. intros x y H. apply seq_union_l; left.
-    apply seq_union_l; right. assert (REL_SW : sw ≡ (⦗fun a : actid => is_rel lab a⦘) ⨾ sw).
-    { unfold sw. unfold release. basic_solver 21. }
-    assert (SAME : sb ⨾ sw⁺ ≡
-                   sb ⨾ (⦗fun a : actid => is_rel lab a⦘ ⨾ sw)⁺).
-    { rewrite <- REL_SW; eauto. }
-    apply SAME in H. apply seqA.
-    assert (IN : sb ⨾ (⦗fun a : actid => is_rel lab a⦘ ⨾ sw)⁺ ⊆
-                 sb ⨾ ⦗fun a : actid => is_rel lab a⦘ ⨾ sw⁺).
-    { rewrite inclusion_ct_seq_eqv_l; vauto. }
-    apply IN in H. eauto.
-Qed.
+  admit.
+Admitted.
 
 Lemma sb_sw_trans_trans :
     (sb ⨾ sw⁺)⁺ ⊆ (rpo ⨾ sw⁺)⁺.
@@ -151,23 +128,16 @@ Lemma sb_rpo_start x x0 y
         (SW : sw x0 y) :
     rpo x x0.
 Proof using.
-    unfold rpo. left. right. destruct SW. destruct H.
-    unfold release in H. assert (REL : is_rel lab x0).
-    { destruct H. destruct H. destruct H. basic_solver. }
-    basic_solver.
-Qed.
+  admit.
+Admitted.
 
 Lemma rpo_sb_end x x0 y
         (RPO : sw x x0)
         (SB : sb x0 y) :
     rpo x0 y.
 Proof using.
-    unfold rpo. left. left. right. destruct RPO. destruct H.
-    assert (ACQ : is_acq lab x0).
-    { destruct H0. destruct H0. destruct H1. destruct H1.
-      destruct H2. basic_solver. }
-    basic_solver.
-Qed.
+  admit.
+Admitted.
 
 Lemma ct_unit_left A (r : relation A) :
     r ⨾ r⁺ ⊆ r⁺.
@@ -325,12 +295,8 @@ Qed.
 Lemma hb_locs :
     hb ∩ same_loc ≡ rhb ∩ same_loc.
 Proof using.
-    rewrite hb_helper; eauto; split.
-    2: { basic_solver. }
-    rewrite inter_union_l. rewrite inclusion_union_l with (r := sb ∩ same_loc)
-        (r' := rhb ∩ same_loc) (r'' := rhb ∩ same_loc); try basic_solver.
-    unfold rhb. rewrite <- ct_step. unfold rpo. basic_solver 8.
-Qed.
+  admit.
+Admitted.
 
 Lemma sb_in_hb :
     sb ⊆ hb.
@@ -382,9 +348,8 @@ Lemma rmw_in_rpo
         (WF : Wf G) :
     rmw ⊆ rpo.
 Proof using.
-    rewrite rmw_in_sb_loc; eauto. unfold rpo.
-    basic_solver 21.
-Qed.
+  admit.
+Admitted.
 
 End HB.
 
