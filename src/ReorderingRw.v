@@ -3158,16 +3158,24 @@ Proof using INV INV'.
     rewrite (WCore.add_event_rmw_dep ADD). apply SIMREL. }
   assert (PFX : SubToFullExec.prefix (WCore.X_start X_s dtrmt') X_s').
   { assert (DT : dtrmt' ∩₁ E_s ≡₁ dtrmt').
-    { admit. }
+    { unfold dtrmt'. basic_solver. }
     assert (INIT : is_init ⊆₁ dtrmt').
-    { admit. }
+    { unfold dtrmt'. erewrite <- (rsr_init_acts_s INV).
+      all: try red; eauto.
+      unfolder. intros x XNIT.
+      splits; ins.
+      all: intro F; subst x.
+      { eapply rsr_as_ninit with (X_t := X_t); eauto.
+        now apply OLDEXA. }
+      apply (rsr_bt_ninit INV).
+      admit. }
     unfold X_s'. constructor; ins.
     { now rewrite DT, INIT. }
     { basic_solver. }
     { rewrite DT, INIT, set_unionK.
       unfold dtrmt'. unfolder; ins; desf.
       rupd. congruence. }
-    { admit. (* what *) }
+    { unfolder. ins. rupd. congruence. }
     { rewrite DT, restr_union, restr_relE,
               !seqA, <- id_inter.
       arewrite ((E_s \₁ eq a_s) ∩₁ dtrmt' ≡₁ dtrmt').
@@ -3204,8 +3212,53 @@ Proof using INV INV'.
     { rewrite (rsr_ctrl SIMREL), (rsr_nctrl CORR). basic_solver. }
     { rewrite (rsr_addr SIMREL), (rsr_naddr CORR). basic_solver. }
     { rewrite (rsr_rmw_dep SIMREL), (rsr_nrmw_dep CORR). basic_solver. }
-    { admit. }
-    admit. }
+    { now rewrite DT. }
+    unfold SubExecution.restrict. rewrite wf_sbE; ins.
+    unfold sb at 2. ins.
+    rewrite !seqA, <- id_inter, set_interC, !DT.
+    unfolder. intros x y (XINE & SB & YD).
+    splits; ins; [| red in SB; unfolder in SB; desf].
+    apply (rsr_sb SIMREL') in SB.
+    destruct SB as [[SB | ESB] | ESB].
+    { destruct SB as (x' & y' & SB & XEQ & YEQ).
+      subst. unfold swap_rel in SB.
+      assert (YNB : y' <> b_t).
+      { intro F. apply YD. subst y'.
+        unfold mapper'. rupd. congruence. }
+      assert (YNA : y' <> a_t).
+      { intro F. destruct YD as [YD _].
+        apply YD. subst y'.
+        unfold mapper'. now rupd. }
+      destruct SB as [SB | EX]; [|unfolder in EX; desf].
+      destruct SB as [SB BAN].
+      assert (XNA : x' <> a_t).
+      { intro F; subst. apply (WCore.add_event_sb ADD) in SB.
+        destruct SB as [SB|SB].
+        all: unfold sb in SB; unfolder in SB.
+        all: desf. }
+      assert (XNB : x' <> b_t).
+      { intro F; subst. apply (WCore.add_event_sb ADD) in SB.
+        destruct SB as [SB|SB].
+        all: unfold sb in SB; unfolder in SB.
+        all: desf.
+        eapply (rsr_bt_max INV); ins.
+        unfold sb; basic_solver. }
+      assert (XIN : E_t x').
+      { unfold sb in SB. unfolder in SB.
+        destruct SB as (SB & _ & _).
+        apply (WCore.add_event_acts ADD) in SB.
+        destruct SB; congruence. }
+      unfold mapper' in *. rewrite updo in *; ins.
+      unfold dtrmt'. unfolder; splits; ins.
+      { symmetry. eauto. }
+      intro FALSO. apply (rsr_inj SIMREL) in FALSO.
+      all: ins; congruence. }
+    { unfolder in ESB.
+      destruct ESB as (_ & FALSO).
+      apply NOEXA in FALSO. desf. }
+    unfolder in ESB.
+    destruct ESB as (FALSO & _).
+    apply NOEXA in FALSO. desf. }
   assert (STARTWF : WCore.wf (WCore.X_start X_s dtrmt') X_s' cmt').
   { constructor; ins.
     { apply prefix_wf with (X := WCore.X_start X_s dtrmt') (X' := X_s').
