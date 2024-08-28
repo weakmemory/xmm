@@ -2875,6 +2875,26 @@ Proof using.
   admit. (* is_cons *)
 Admitted.
 
+Lemma prefix_exec_restr_eq X X' d
+    (SUB : d ⊆₁ acts_set (WCore.G X))
+    (PFX : SubToFullExec.prefix X X') :
+  WCore.exec_restr_eq X X' d.
+Proof using.
+  constructor.
+  all: try now apply PFX.
+  { rewrite !set_inter_absorb_l; ins.
+    now rewrite <- (prf_acts PFX). }
+  { eapply eq_dom_mori; try now apply PFX.
+    all: ins.
+    unfold flip. rewrite SUB. basic_solver. }
+  { now rewrite (prf_rf PFX), restr_restr, set_inter_absorb_l. }
+  { now rewrite (prf_co PFX), restr_restr, set_inter_absorb_l. }
+  { now rewrite (prf_rmw PFX), restr_restr, set_inter_absorb_l. }
+  { now rewrite (prf_data PFX). }
+  { now rewrite (prf_ctrl PFX). }
+  now rewrite (prf_rmw_dep PFX).
+Qed.
+
 Lemma simrel_exec_a l
     (EQA : a_t = a_t')
     (EQB : b_t = b_t')
@@ -3136,13 +3156,22 @@ Proof using INV INV'.
     { rewrite (WCore.add_event_data ADD). apply SIMREL. }
     { rewrite (WCore.add_event_addr ADD). apply SIMREL. }
     rewrite (WCore.add_event_rmw_dep ADD). apply SIMREL. }
+  assert (PFX : SubToFullExec.prefix (WCore.X_start X_s dtrmt') X_s').
+  { admit. }
   assert (STARTWF : WCore.wf (WCore.X_start X_s dtrmt') X_s' cmt').
   { constructor; ins.
-    { admit. }
-    { admit. }
-    { admit. }
-    { admit. }
-    admit. }
+    { apply prefix_wf with (X := WCore.X_start X_s dtrmt') (X' := X_s').
+      all: ins.
+      { rewrite (rsr_data SIMREL), (rsr_ndata INV). basic_solver. }
+      { rewrite (rsr_addr SIMREL), (rsr_naddr INV). basic_solver. }
+      { rewrite (rsr_ctrl SIMREL), (rsr_nctrl INV). basic_solver. }
+      eapply G_s_wf with (X_s := X_s') (X_t := X_t'); eauto.
+      red; eauto. }
+    { apply prefix_exec_restr_eq; ins.
+      basic_solver. }
+    { admit. (* Nobody reads from a_s *) }
+    { unfold dtrmt', cmt'. basic_solver 11. }
+    admit. (* sc... *) }
   assert (STAB : WCore.stable_uncmt_reads_gen X_s' cmt' thrdle').
   { constructor; ins.
     { unfolder. subst thrdle'. ins.
@@ -3246,7 +3275,6 @@ Proof using INV INV'.
       rewrite !set_inter_absorb_l; ins; [| basic_solver].
       rewrite (rsr_acts SIMREL). basic_solver. }
     apply set_finite_union. split; apply set_finite_eq. }
-  { admit. }
   { eapply G_s_wf with (X_s := X_s'); eauto.
     red; eauto. }
   { unfold dtrmt'.
