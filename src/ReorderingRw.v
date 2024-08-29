@@ -3501,7 +3501,7 @@ Proof using INV INV'.
       { apply collect_rel_eq_dom' with (s := E_t); ins.
         apply (wf_rmwE (rsr_Gt_wf CORR)). }
       rewrite (rsr_rmw SIMREL). basic_solver 11. }
-    unfolder. intros x y ((x' & y' & (R & EQ & ISW) & XEQ & YEQ) & CX & CY).
+    unfolder. intros x y ((x' & y' & (RO & EQ & ISW) & XEQ & YEQ) & CX & CY).
     exfalso. apply CY. rewrite <- YEQ, <- EQ.
     unfold mapper'. now rupd. }
   { admit. (* TODO: cons *) }
