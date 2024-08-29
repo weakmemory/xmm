@@ -170,6 +170,7 @@ Record reord_simrel_gen a_s : Prop := {
   rsr_data : data_s ≡ data_t;
   rsr_addr : addr_s ≡ addr_t;
   rsr_rmw_dep : rmw_dep_s ≡ rmw_dep_t;
+  rsr_nrpo : ⦗mapper ↑₁ (eq a_t ∩₁ E_t)⦘ ⨾ rpo_s ⨾ ⦗mapper ↑₁ (eq b_t ∩₁ E_t)⦘ ⊆ ∅₂;
 }.
 
 Definition reord_simrel := exists a_s, reord_simrel_gen a_s.
@@ -1212,6 +1213,7 @@ Proof using.
             add_max_empty_r; [|ins].
     basic_solver. }
   { basic_solver. }
+  { rewrite AI, BI, set_collect_empty. basic_solver. }
   { red. ins. unfold is_r, WCore.init_lab.
     basic_solver. }
   all: rewrite ?AI, ?BI, ?set_minusK.
@@ -1515,7 +1517,8 @@ Proof using INV INV'.
     { rewrite (WCore.add_event_ctrl ADD). apply SIMREL. }
     { rewrite (WCore.add_event_data ADD). apply SIMREL. }
     { rewrite (WCore.add_event_addr ADD). apply SIMREL. }
-    rewrite (WCore.add_event_rmw_dep ADD). apply SIMREL. }
+    { rewrite (WCore.add_event_rmw_dep ADD). apply SIMREL. }
+    admit. }
   assert (SIMREL'' : reord_simrel X_s' X_t' a_t b_t mapper').
   { now exists a_s. }
   (* Actual proof *)
@@ -2547,7 +2550,9 @@ Proof using.
     { rewrite (WCore.add_event_ctrl ADD). apply SIMREL. }
     { rewrite (WCore.add_event_data ADD). apply SIMREL. }
     { rewrite (WCore.add_event_addr ADD). apply SIMREL. }
-    rewrite (WCore.add_event_rmw_dep ADD). apply SIMREL. }
+    { rewrite (WCore.add_event_rmw_dep ADD). apply SIMREL. }
+    arewrite (eq a_t ∩₁ E_t' ≡₁ ∅) by basic_solver.
+    rewrite set_collect_empty. basic_solver. }
   assert (SIMREL' : reord_simrel X_s' X_t' a_t b_t mapper').
   { now exists a_s. }
   (* The proof *)
@@ -3179,7 +3184,8 @@ Proof using INV INV'.
     { rewrite (WCore.add_event_ctrl ADD). apply SIMREL. }
     { rewrite (WCore.add_event_data ADD). apply SIMREL. }
     { rewrite (WCore.add_event_addr ADD). apply SIMREL. }
-    rewrite (WCore.add_event_rmw_dep ADD). apply SIMREL. }
+    { rewrite (WCore.add_event_rmw_dep ADD). apply SIMREL. }
+    admit. }
   assert (PFX : SubToFullExec.prefix (WCore.X_start X_s dtrmt') X_s').
   { assert (DT : dtrmt' ∩₁ E_s ≡₁ dtrmt').
     { unfold dtrmt'. basic_solver. }
