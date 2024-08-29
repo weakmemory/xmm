@@ -1162,10 +1162,14 @@ Notation "'ctrl_s'" := (ctrl G_s).
 Notation "'addr_s'" := (addr G_s).
 Notation "'W_s'" := (fun x => is_true (is_w lab_s x)).
 Notation "'R_s'" := (fun x => is_true (is_r lab_s x)).
+Notation "'F_s'" := (F G_s).
 Notation "'vf_s'" := (vf G_s).
 Notation "'srf_s'" := (srf G_s).
 Notation "'Loc_s_' l" := (fun e => loc_s e = l) (at level 1).
 Notation "'Val_s_' l" := (fun e => val_s e = l) (at level 1).
+Notation "'Rlx_s'" := (Rlx G_s).
+Notation "'Acq_s'" := (Acq G_s).
+Notation "'Rel_s'" := (Rel G_s).
 
 Notation "'Tid_' t" := (fun e => tid e = t) (at level 1).
 
