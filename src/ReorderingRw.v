@@ -1105,6 +1105,7 @@ Notation "'G_s'" := (WCore.G X_s).
 
 Notation "'R' G" := (fun e => is_true (is_r (lab G) e)) (at level 1).
 Notation "'F' G" := (fun e => is_true (is_f (lab G) e)) (at level 1).
+Notation "'W' G" := (fun e => is_true (is_w (lab G) e)) (at level 1).
 Notation "'Acq' G" := (fun e => is_true (is_acq (lab G) e)) (at level 1).
 Notation "'Rlx' G" := (fun e => is_true (is_rlx (lab G) e)) (at level 1).
 Notation "'Rel' G" := (fun e => is_true (is_rel (lab G) e)) (at level 1).
@@ -3398,7 +3399,44 @@ Proof using INV INV'.
       { admit. }
       apply clos_trans_mori. unfold rpo_imm.
       rewrite !restr_union, !restr_relE, !seqA.
-       }
+      arewrite (⦗cmt'⦘ ⨾ ⦗R G_s' ∩₁ Rlx G_s'⦘ ≡ ⦗R_s ∩₁ Rlx_s⦘ ⨾ ⦗cmt'⦘).
+      { unfold cmt'. unfolder.
+        split; ins; desf; splits; ins.
+        all: unfold is_r, is_rlx, mod in *.
+        all: rewrite updo in *; ins.
+        all: congruence. }
+      arewrite (⦗cmt'⦘ ⨾ ⦗Acq G_s'⦘ ≡ ⦗Acq_s⦘ ⨾ ⦗cmt'⦘).
+      { unfold cmt'. unfolder.
+        split; ins; desf; splits; ins.
+        all: unfold is_acq, mod in *.
+        all: rewrite updo in *; ins.
+        all: congruence. }
+      arewrite (⦗cmt'⦘ ⨾ ⦗F G_s' ∩₁ Rel G_s'⦘ ≡ ⦗F_s ∩₁ Rel_s⦘ ⨾ ⦗cmt'⦘).
+      { unfold cmt'. unfolder.
+        split; ins; desf; splits; ins.
+        all: unfold is_f, is_rel, mod in *.
+        all: rewrite updo in *; ins.
+        all: congruence. }
+      arewrite (⦗F G_s' ∩₁ Acq G_s'⦘ ⨾ ⦗cmt'⦘ ≡ ⦗cmt'⦘ ⨾ ⦗F_s ∩₁ Acq_s⦘).
+      { unfold cmt'. unfolder.
+        split; ins; desf; splits; ins.
+        all: unfold is_f, is_acq, mod in *.
+        all: rewrite updo in *; ins.
+        all: congruence. }
+      arewrite (⦗Rel G_s'⦘ ⨾ ⦗cmt'⦘ ≡ ⦗cmt'⦘ ⨾ ⦗Rel_s⦘).
+      { unfold cmt'. unfolder.
+        split; ins; desf; splits; ins.
+        all: unfold is_rel, mod in *.
+        all: rewrite updo in *; ins.
+        all: congruence. }
+      arewrite (⦗W G_s' ∩₁ Rlx G_s'⦘ ⨾ ⦗cmt'⦘ ≡ ⦗cmt'⦘ ⨾ ⦗W_s ∩₁ Rlx_s⦘).
+      { unfold cmt'. unfolder.
+        split; ins; desf; splits; ins.
+        all: unfold is_w, is_rlx, mod in *.
+        all: rewrite updo in *; ins.
+        all: congruence. }
+      seq_rewrite <- !restr_relE.
+      now arewrite (restr_rel cmt' (sb G_s') ⊆ sb_s). }
     { rewrite collect_rel_id, restr_union.
       apply inclusion_union_l; [basic_solver |].
       unfolder. intros x y ((x' & y' & (RF & EQ & ISR) & XEQ & YEQ) & CX & CY).
