@@ -2907,6 +2907,18 @@ Proof using.
   now rewrite (prf_rmw_dep PFX).
 Qed.
 
+Lemma restr_rel_ct {A : Type} (r : relation A) s
+    (NEST : upward_closed r s) :
+  restr_rel s r⁺ ⊆ (restr_rel s r)⁺.
+Proof using.
+  intros x y (REL & DOM & CODOM).
+  apply clos_trans_tn1 in REL. apply clos_tn1_trans.
+  induction REL as [y REL | y z REL IHREL].
+  { apply tn1_step. basic_solver. }
+  apply Relation_Operators.tn1_trans with y.
+  all: basic_solver.
+Qed.
+
 Lemma simrel_exec_a l
     (EQA : a_t = a_t')
     (EQB : b_t = b_t')
@@ -3396,7 +3408,33 @@ Proof using INV INV'.
       now apply CMT. }
     { rewrite collect_rel_id. unfold rpo.
       arewrite (restr_rel cmt' (rpo_imm G_s')⁺ ⊆ (restr_rel cmt' (rpo_imm G_s'))⁺).
-      { admit. }
+      { apply restr_rel_ct. unfold upward_closed, cmt'.
+        intros x y RPOIMM CMT.
+        assert (RPNEQ : forall (EQA : x = a_s) (EQB : y = mapper' b_t), False).
+        { admit. }
+        apply rpo_imm_in_sb in RPOIMM. split.
+        { unfold sb in RPOIMM; unfolder in RPOIMM; desf. }
+        intro FALSO; subst x.
+        apply (rsr_sb SIMREL') in RPOIMM.
+        hahn_rewrite NOEXA in RPOIMM.
+        hahn_rewrite cross_false_l in RPOIMM.
+        hahn_rewrite cross_false_r in RPOIMM.
+        do 2 hahn_rewrite union_false_r in RPOIMM.
+        destruct RPOIMM as (x' & y' & RPOIMM & XEQ & YEQ).
+        unfold swap_rel in RPOIMM.
+        destruct RPOIMM as [[SB BAN] | SWP].
+        { apply (WCore.add_event_sb ADD) in SB.
+          destruct SB as [SB | DELTA].
+          { unfold sb in SB. unfolder in SB. desf.
+            unfold mapper' in XEQ.
+            rewrite updo in XEQ by congruence.
+            eapply MAPNEQ with x'; eauto. }
+          unfolder in DELTA. destruct DELTA as (_ & HEQA).
+          subst y'. unfold mapper' in YEQ.
+          rewrite upds in YEQ. subst y.
+          now apply CMT. }
+        unfolder in SWP; desf. subst y'.
+        apply RPNEQ; congruence. }
       apply clos_trans_mori. unfold rpo_imm.
       rewrite !restr_union, !restr_relE, !seqA.
       arewrite (⦗cmt'⦘ ⨾ ⦗R G_s' ∩₁ Rlx G_s'⦘ ≡ ⦗R_s ∩₁ Rlx_s⦘ ⨾ ⦗cmt'⦘).
