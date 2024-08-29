@@ -1103,6 +1103,12 @@ Notation "'G_t'" := (WCore.G X_t).
 Notation "'G_t''" := (WCore.G X_t').
 Notation "'G_s'" := (WCore.G X_s).
 
+Notation "'R' G" := (fun e => is_true (is_r (lab G) e)) (at level 1).
+Notation "'F' G" := (fun e => is_true (is_f (lab G) e)) (at level 1).
+Notation "'Acq' G" := (fun e => is_true (is_acq (lab G) e)) (at level 1).
+Notation "'Rlx' G" := (fun e => is_true (is_rlx (lab G) e)) (at level 1).
+Notation "'Rel' G" := (fun e => is_true (is_rel (lab G) e)) (at level 1).
+
 Notation "'lab_t'" := (lab G_t).
 Notation "'val_t'" := (val lab_t).
 Notation "'loc_t'" := (loc lab_t).
@@ -1117,8 +1123,8 @@ Notation "'rmw_dep_t'" := (rmw_dep G_t).
 Notation "'data_t'" := (data G_t).
 Notation "'ctrl_t'" := (ctrl G_t).
 Notation "'addr_t'" := (addr G_t).
-Notation "'W_t'" := (is_w lab_t).
-Notation "'R_t'" := (is_r lab_t).
+Notation "'W_t'" := (fun x => is_true (is_w lab_t x)).
+Notation "'R_t'" := (fun x => is_true (is_r lab_t x)).
 Notation "'Loc_t_' l" := (fun e => loc_t e = l) (at level 1).
 
 Notation "'lab_t''" := (lab G_t').
@@ -1135,8 +1141,8 @@ Notation "'rmw_dep_t''" := (rmw_dep G_t').
 Notation "'data_t''" := (data G_t').
 Notation "'ctrl_t''" := (ctrl G_t').
 Notation "'addr_t''" := (addr G_t').
-Notation "'W_t''" := (is_w lab_t').
-Notation "'R_t''" := (is_r lab_t').
+Notation "'W_t''" := (fun x => is_true (is_w lab_t' x)).
+Notation "'R_t''" := (fun x => is_true (is_r lab_t' x)).
 Notation "'Loc_t_'' l" := (fun e => loc_t' e = l) (at level 1).
 
 Notation "'lab_s'" := (lab G_s).
@@ -1154,8 +1160,8 @@ Notation "'rmw_dep_s'" := (rmw_dep G_s).
 Notation "'data_s'" := (data G_s).
 Notation "'ctrl_s'" := (ctrl G_s).
 Notation "'addr_s'" := (addr G_s).
-Notation "'W_s'" := (is_w lab_s).
-Notation "'R_s'" := (is_r lab_s).
+Notation "'W_s'" := (fun x => is_true (is_w lab_s x)).
+Notation "'R_s'" := (fun x => is_true (is_r lab_s x)).
 Notation "'vf_s'" := (vf G_s).
 Notation "'srf_s'" := (srf G_s).
 Notation "'Loc_s_' l" := (fun e => loc_s e = l) (at level 1).
@@ -1259,7 +1265,7 @@ Proof using INV INV'.
   { rewrite (WCore.add_event_lab ADD). unfolder.
     intros x XINE. rupd. congruence. }
   assert (MAPNEQ : forall x (IN : E_t x), mapper x <> e').
-  { intros x XINE F. apply NOTIN, (rsr_codom SIMREL).
+  { intros x XINE FALSO. apply NOTIN, (rsr_codom SIMREL).
     basic_solver. }
   assert (A_PRESERVED : E_t' a_t <-> E_t a_t).
   { split; intros INA.
@@ -1280,8 +1286,9 @@ Proof using INV INV'.
   { subst mapper'. rewrite set_collect_eq. now rupd. }
   assert (EXEQ : extra_a X_t a_t b_t a_s ≡₁ extra_a X_t' a_t b_t a_s).
   { unfold extra_a; do 2 desf; exfalso; eauto.
-    all: apply n; split; try intro F.
-    { apply a. apply EQACTS in F. destruct F; congruence. }
+    all: apply n; split; try intro FALSO.
+    { apply a. apply EQACTS in FALSO.
+      destruct FALSO; congruence. }
     { apply EQACTS. basic_solver. }
     { apply a, EQACTS. basic_solver. }
     apply EQACTS in a0. destruct a0; congruence. }
@@ -2101,7 +2108,7 @@ Proof using INV INV'.
         splits; ins. congruence. }
       rewrite G_s_coE with (X_t := X_t).
       all: eauto; try now (red; eauto).
-      unfolder. ins. desf. intro F; desf. }
+      unfolder. ins. desf. intro FALSO; desf. }
     { rewrite transp_union. apply functional_union.
       { eapply G_s_rff with (X_t := X_t); eauto.
         red; eauto. }
@@ -2271,10 +2278,10 @@ Proof using.
   { rewrite (WCore.add_event_lab ADD). unfolder.
     intros x XINE. rupd. congruence. }
   assert (MAPNEQ : forall x (IN : E_t x), mapper x <> b_s).
-  { intros x XINE F. apply NOTIN. left.
+  { intros x XINE FALSO. apply NOTIN. left.
     apply (rsr_codom SIMREL). basic_solver. }
   assert (MAPNEQ' : forall x (IN : E_t x), mapper x <> a_s).
-  { intros x XINE F. apply ANOTINS.
+  { intros x XINE FALSO. apply ANOTINS.
     apply (rsr_codom SIMREL). basic_solver. }
   assert (ANOTIN : ~E_t a_t).
   { intro FALSO. now apply ENOTIN, (rsr_at_bt_ord CORR). }
@@ -3040,7 +3047,7 @@ Proof using INV INV'.
         assert (NINIT : ~is_init b_t) by apply INV.
         arewrite (is_init \₁ eq b_t ≡₁ is_init).
         { split; [basic_solver|]. unfolder.
-          ins. split; ins. intro F; congruence. }
+          ins. split; ins. intro FALSO; congruence. }
         arewrite (same_tid a_t ≡₁ same_tid b_t).
         { unfold same_tid. now rewrite (rsr_at_bt_tid INV). }
         apply set_union_more.
@@ -3054,13 +3061,13 @@ Proof using INV INV'.
              by basic_solver.
         unfolder. unfold same_tid.
         split; intros x HREL; desf; splits; ins.
-        all: try now (intro F; desf; eapply sb_irr; eauto).
+        all: try now (intro FALSO; desf; eapply sb_irr; eauto).
         eexists; splits; eauto.
         destruct (sb_total G_t)
             with (tid b_t) x b_t
               as [RSB|LSB].
         all: ins; try congruence.
-        { unfolder; splits; ins. intro F; destruct x; ins.
+        { unfolder; splits; ins. intro FALSO; destruct x; ins.
           apply (rsr_at_tid CORR). now rewrite (rsr_at_bt_tid CORR). }
         exfalso. apply (rsr_bt_max CORR) with b_t x; ins.
         basic_solver 11. }
@@ -3164,7 +3171,7 @@ Proof using INV INV'.
       all: try red; eauto.
       unfolder. intros x XNIT.
       splits; ins.
-      all: intro F; subst x.
+      all: intro FALSO; subst x.
       { eapply rsr_as_ninit with (X_t := X_t); eauto.
         now apply OLDEXA. }
       assert (TID : (tid ∘ mapper) b_t = tid_init).
@@ -3226,21 +3233,21 @@ Proof using INV INV'.
     { destruct SB as (x' & y' & SB & XEQ & YEQ).
       subst. unfold swap_rel in SB.
       assert (YNB : y' <> b_t).
-      { intro F. apply YD. subst y'.
+      { intro FALSO. apply YD. subst y'.
         unfold mapper'. rupd. congruence. }
       assert (YNA : y' <> a_t).
-      { intro F. destruct YD as [YD _].
+      { intro FALSO. destruct YD as [YD _].
         apply YD. subst y'.
         unfold mapper'. now rupd. }
       destruct SB as [SB | EX]; [|unfolder in EX; desf].
       destruct SB as [SB BAN].
       assert (XNA : x' <> a_t).
-      { intro F; subst. apply (WCore.add_event_sb ADD) in SB.
+      { intro FALSO; subst. apply (WCore.add_event_sb ADD) in SB.
         destruct SB as [SB|SB].
         all: unfold sb in SB; unfolder in SB.
         all: desf. }
       assert (XNB : x' <> b_t).
-      { intro F; subst. apply (WCore.add_event_sb ADD) in SB.
+      { intro FALSO; subst. apply (WCore.add_event_sb ADD) in SB.
         destruct SB as [SB|SB].
         all: unfold sb in SB; unfolder in SB.
         all: desf.
@@ -3302,7 +3309,7 @@ Proof using INV INV'.
       exists xw; splits; ins.
       { apply (wf_rfE WF_S) in RF.
         unfolder in RF; desf. }
-      intro F; subst xw.
+      intro FALSO; subst xw.
       apply (rsr_rf SIMREL) in RF.
       destruct RF as [RFT | SRF].
       { unfolder in RFT.
@@ -3382,7 +3389,12 @@ Proof using INV INV'.
   { constructor; ins.
     { unfold id; ins. rupd. intro FALSO.
       now apply CMT. }
-    { rewrite collect_rel_id. admit. (* What happens with rpo? *) }
+    { rewrite collect_rel_id. unfold rpo.
+      arewrite (restr_rel cmt' (rpo_imm G_s')⁺ ⊆ (restr_rel cmt' (rpo_imm G_s'))⁺).
+      { admit. }
+      apply clos_trans_mori. unfold rpo_imm.
+      rewrite !restr_union, !restr_relE, !seqA.
+       }
     { rewrite collect_rel_id, restr_union.
       apply inclusion_union_l; [basic_solver |].
       unfolder. intros x y ((x' & y' & (RF & EQ & ISR) & XEQ & YEQ) & CX & CY).
