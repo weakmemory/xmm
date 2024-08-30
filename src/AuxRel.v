@@ -410,4 +410,18 @@ Proof using.
   apply Relation_Operators.tn1_trans with y; eauto.
 Qed.
 
+Lemma rpo_to_rpo_imm a b
+    (SBIMM : immediate sb a b)
+    (RPO : rpo a b) :
+  rpo_imm a b.
+Proof using.
+  unfold rpo in RPO.
+  apply clos_trans_tn1 in RPO.
+  destruct RPO as [y RPO | y z HEAD TAIL]; ins.
+  apply clos_tn1_trans in TAIL.
+  apply rpo_in_sb in TAIL.
+  apply rpo_imm_in_sb in HEAD.
+  exfalso. now apply SBIMM with y.
+Qed.
+
 End AuxRel.
