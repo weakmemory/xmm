@@ -147,8 +147,8 @@ Record reord_step_pred : Prop := {
   rsr_naddr : addr_t ≡ ∅₂;
   rsr_nrmw_dep : rmw_dep_t ≡ ∅₂;
   rsr_ninit_acts : E_t ∩₁ Tid_ tid_init ⊆₁ is_init;
-  rser_at_nacq : eq a_t ∩₁ E_t ⊆₁ set_compl Acq_t;
-  rser_bt_nrel : eq b_t ∩₁ E_t ⊆₁ set_compl Rel_t;
+  rsr_at_nacq : eq a_t ∩₁ E_t ⊆₁ set_compl Acq_t;
+  rsr_bt_nrel : eq b_t ∩₁ E_t ⊆₁ set_compl Rel_t;
 }.
 
 Record reord_simrel_gen a_s : Prop := {
@@ -3241,7 +3241,7 @@ Proof using INV INV'.
       arewrite (lab G_s' (mapper' a_t) = lab_t' a_t).
       { rewrite (WCore.add_event_lab ADD). unfold mapper'.
         ins. now rupd. }
-      intro FALSO. apply (rser_at_nacq CORR') with a_t.
+      intro FALSO. apply (rsr_at_nacq CORR') with a_t.
       all: try split; ins. }
     assert (BNREL : ~ (Rel G_s' (mapper' b_t))).
     { unfold is_rel, mod.
@@ -3250,7 +3250,7 @@ Proof using INV INV'.
         ins. rupd; try congruence; eauto.
         change (lab_s (mapper b_t)) with ((lab_s ∘ mapper) b_t).
         rewrite (rsr_lab SIMREL); ins. }
-      intro FALSO. apply (rser_bt_nrel CORR') with b_t.
+      intro FALSO. apply (rsr_bt_nrel CORR') with b_t.
       all: try split; ins. }
     unfolder in RPOIMM. desf. }
   assert (PFX : SubToFullExec.prefix (WCore.X_start X_s dtrmt') X_s').
