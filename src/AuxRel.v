@@ -28,9 +28,9 @@ Notation "'lab'" := (lab G).
 Notation "'E'" := (acts_set G).
 Notation "'loc'" := (loc lab).
 Notation "'same_loc'" := (same_loc lab).
-Notation "'is_acq'" := (is_acq lab).
-Notation "'is_rel'" := (is_rel lab).
-Notation "'is_rlx'" := (is_rlx lab).
+Notation "'Acq'" := (fun e => is_true (is_acq lab e)).
+Notation "'Rel'" := (fun e => is_true (is_rel lab e)).
+Notation "'Rlx'" := (fun e => is_true (is_rlx lab e)).
 Notation "'sb'" := (sb G).
 Notation "'rf'" := (rf G).
 Notation "'co'" := (co G).
@@ -39,19 +39,19 @@ Notation "'ppo'" := (ppo G).
 Notation "'hb'" := (hb G).
 Notation "'psc'" := (imm.psc G).
 Notation "'sw'" := (sw G).
-Notation "'W'" := (is_w lab).
-Notation "'R'" := (is_r lab).
-Notation "'F'" := (is_f lab).
+Notation "'W'" := (fun e => is_true (is_w lab e)).
+Notation "'R'" := (fun e => is_true (is_r lab e)).
+Notation "'F'" := (fun e => is_true (is_f lab e)).
 Notation "'bob'" := (bob G).
 Notation "'Loc_' l" := (fun x => loc x = Some l) (at level 1).
 
 Definition ppo_alt := (sb ∩ same_loc ∪ bob)⁺.
 Definition hb_alt := (ppo_alt ∪ rf)⁺.
 Definition rpo_imm :=
-  ⦗R ∩₁ is_rlx⦘ ⨾ sb ⨾ ⦗F ∩₁ is_acq⦘ ∪
-  ⦗is_acq⦘ ⨾ sb ∪
-  sb ⨾ ⦗is_rel⦘ ∪
-  ⦗F ∩₁ is_rel⦘ ⨾ sb ⨾ ⦗W ∩₁ is_rlx⦘.
+  ⦗R ∩₁ Rlx⦘ ⨾ sb ⨾ ⦗F ∩₁ Acq⦘ ∪
+  ⦗Acq⦘ ⨾ sb ∪
+  sb ⨾ ⦗Rel⦘ ∪
+  ⦗F ∩₁ Rel⦘ ⨾ sb ⨾ ⦗W ∩₁ Rlx⦘.
 Definition rpo := rpo_imm⁺.
 Definition rhb := (rpo ∪ sw)⁺.
 Definition vf := ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf^? ⨾ hb^?.
@@ -307,7 +307,7 @@ Lemma sw_to_nacq a
 Proof using.
   unfold sw. hahn_frame.
   rewrite <- id_inter.
-  arewrite (is_acq ∩₁ eq a ⊆₁ ∅); [| basic_solver].
+  arewrite (Acq ∩₁ eq a ⊆₁ ∅); [| basic_solver].
   unfold is_acq, mode_le, mod in *. unfolder.
   ins. desf.
 Qed.
@@ -367,6 +367,47 @@ Lemma vf_to_nacq_with_srf a
   srf ⨾ ⦗eq a⦘ ⊆ vf ⨾ sb ⨾ ⦗eq a⦘.
 Proof using.
   unfold srf. basic_solver 11.
+Qed.
+
+Lemma rpo_imm_upward_closed s
+    (SBUP : upward_closed sb s) :
+  upward_closed rpo_imm s.
+Proof using.
+  unfold upward_closed, rpo_imm.
+  unfolder. intros x y HREL IN; desf.
+  all: eapply SBUP; eauto.
+Qed.
+
+Lemma rpo_upward_closed s
+    (SBUP : upward_closed sb s) :
+  upward_closed rpo s.
+Proof using.
+  unfold upward_closed, rpo.
+  intros x y REL.
+  apply clos_trans_tn1 in REL.
+  induction REL as [y REL | y z HEAD TAIL IHREL].
+  { intro HIN. eapply rpo_imm_upward_closed; eauto. }
+  intro HIN. apply IHREL.
+  eapply rpo_imm_upward_closed; eauto.
+Qed.
+
+Lemma ct_l_upward_closed {A : Type} (r : relation A) s
+    (UPC : upward_closed r s) :
+  r⁺ ⨾ ⦗s⦘ ≡ (r ⨾ ⦗s⦘)⁺.
+Proof using.
+  split; [|apply inclusion_ct_seq_eqv_r].
+  arewrite (r⁺ ≡ clos_trans_n1 A r).
+  { unfolder; split; ins.
+    all: now apply clos_trans_tn1_iff. }
+  arewrite ((r ⨾ ⦗s⦘)⁺ ≡ clos_trans_n1 A (r ⨾ ⦗s⦘)).
+  { unfolder; split; ins.
+    all: now apply clos_trans_tn1_iff. }
+  unfolder. intros x y (REL & YINE).
+  generalize YINE; clear YINE.
+  induction REL as [y REL | y z REL IHREL].
+  all: intros HIN.
+  { apply tn1_step. eauto. }
+  apply Relation_Operators.tn1_trans with y; eauto.
 Qed.
 
 End AuxRel.

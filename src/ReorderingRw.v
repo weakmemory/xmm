@@ -80,6 +80,8 @@ Notation "'Loc_s_' l" := (fun e => loc_s e = l) (at level 1).
 Notation "'Val_s_' l" := (fun e => val_s e = l) (at level 1).
 Notation "'same_loc_s'" := (same_loc lab_s).
 Notation "'same_val_s'" := (same_val lab_s).
+Notation "'Acq_t'" := (fun e => is_true (is_acq lab_t e)).
+Notation "'Rel_t'" := (fun e => is_true (is_rel lab_t e)).
 
 Notation "'Tid_' t" := (fun e => tid e = t) (at level 1).
 
@@ -145,6 +147,8 @@ Record reord_step_pred : Prop := {
   rsr_naddr : addr_t ≡ ∅₂;
   rsr_nrmw_dep : rmw_dep_t ≡ ∅₂;
   rsr_ninit_acts : E_t ∩₁ Tid_ tid_init ⊆₁ is_init;
+  rser_at_nacq : eq a_t ∩₁ E_t ⊆₁ set_compl Acq_t;
+  rser_bt_nrel : eq b_t ∩₁ E_t ⊆₁ set_compl Rel_t;
 }.
 
 Record reord_simrel_gen a_s : Prop := {
@@ -1518,7 +1522,31 @@ Proof using INV INV'.
     { rewrite (WCore.add_event_data ADD). apply SIMREL. }
     { rewrite (WCore.add_event_addr ADD). apply SIMREL. }
     { rewrite (WCore.add_event_rmw_dep ADD). apply SIMREL. }
-    admit. }
+    destruct classic with (E_t' b_t)
+          as [INB|NINB]; [| basic_solver].
+    destruct classic with (E_t' a_t)
+          as [INA|NINA]; [| basic_solver].
+    arewrite (eq a_t ∩₁ E_t' ≡₁ eq a_t ∩₁ E_t).
+    { basic_solver. }
+    arewrite (eq b_t ∩₁ E_t' ≡₁ eq b_t ∩₁ E_t).
+    { basic_solver. }
+    rewrite !set_collect_eq_dom with (f := mapper') (g := mapper).
+    all: try (eapply eq_dom_mori with (x := E_t); eauto).
+    all: unfold flip; try basic_solver.
+    assert (INBS : mapper ↑₁ (eq b_t ∩₁ E_t) ⊆₁ E_s).
+    { transitivity (mapper' ↑₁ E_t); [basic_solver |].
+      rewrite MAPSUB, (rsr_codom SIMREL). basic_solver. }
+    arewrite (rpo G_s' ⨾ ⦗mapper ↑₁ (eq b_t ∩₁ E_t)⦘ ⊆
+              rpo G_s' ⨾ ⦗E_s⦘ ⨾ ⦗mapper ↑₁ (eq b_t ∩₁ E_t)⦘).
+    { rewrite <- id_inter, set_inter_absorb_l with (s' := E_s).
+      all: ins. }
+    arewrite (rpo G_s' ⨾ ⦗E_s⦘ ≡ rpo_s ⨾ ⦗E_s⦘).
+    { apply (add_event_rpo X_s X_s'); ins.
+      { eapply G_s_wf with (X_t := X_t); eauto. }
+      unfold sb at 1. ins. rewrite NEWSB.
+      rewrite seq_union_l. basic_solver 11. }
+    rewrite <- id_inter, set_inter_absorb_l with (s' := E_s).
+    all: apply SIMREL || ins. }
   assert (SIMREL'' : reord_simrel X_s' X_t' a_t b_t mapper').
   { now exists a_s. }
   (* Actual proof *)
@@ -3185,7 +3213,46 @@ Proof using INV INV'.
     { rewrite (WCore.add_event_data ADD). apply SIMREL. }
     { rewrite (WCore.add_event_addr ADD). apply SIMREL. }
     { rewrite (WCore.add_event_rmw_dep ADD). apply SIMREL. }
-    admit. }
+    unfolder. intros x y (XINE & RPO & YINE).
+    destruct XINE as (x' & (AEQ & XIN) & XEQ).
+    destruct YINE as (y' & (BEQ & YIN) & YEQ).
+    subst y. subst y'. subst x. subst x'.
+    assert (RPOIMM : rpo_imm G_s' (mapper' a_t) (mapper' b_t)).
+    { admit. }
+    unfold rpo_imm in RPOIMM.
+    assert (ANF : ~ (F G_s' (mapper' a_t))).
+    { unfold is_f.
+      arewrite (lab G_s' (mapper' a_t) = lab_t' a_t).
+      { rewrite (WCore.add_event_lab ADD). unfold mapper'.
+        ins. now rupd. }
+      destruct (rsr_a_t_is_r_or_w CORR') with a_t.
+      all: unfold is_r, is_w in *; desf. }
+    assert (BNF : ~ (F G_s' (mapper' b_t))).
+    { unfold is_f.
+      arewrite (lab G_s' (mapper' b_t) = lab_t' b_t).
+      { rewrite (WCore.add_event_lab ADD). unfold mapper'.
+        ins. rupd; try congruence; eauto.
+        change (lab_s (mapper b_t)) with ((lab_s ∘ mapper) b_t).
+        rewrite (rsr_lab SIMREL); ins. }
+      destruct (rsr_b_t_is_r_or_w CORR') with b_t.
+      all: unfold is_r, is_w in *; desf. }
+    assert (ANACQ : ~ (Acq G_s' (mapper' a_t))).
+    { unfold is_acq, mod.
+      arewrite (lab G_s' (mapper' a_t) = lab_t' a_t).
+      { rewrite (WCore.add_event_lab ADD). unfold mapper'.
+        ins. now rupd. }
+      intro FALSO. apply (rser_at_nacq CORR') with a_t.
+      all: try split; ins. }
+    assert (BNREL : ~ (Rel G_s' (mapper' b_t))).
+    { unfold is_rel, mod.
+      arewrite (lab G_s' (mapper' b_t) = lab_t' b_t).
+      { rewrite (WCore.add_event_lab ADD). unfold mapper'.
+        ins. rupd; try congruence; eauto.
+        change (lab_s (mapper b_t)) with ((lab_s ∘ mapper) b_t).
+        rewrite (rsr_lab SIMREL); ins. }
+      intro FALSO. apply (rser_bt_nrel CORR') with b_t.
+      all: try split; ins. }
+    unfolder in RPOIMM. desf. }
   assert (PFX : SubToFullExec.prefix (WCore.X_start X_s dtrmt') X_s').
   { assert (DT : dtrmt' ∩₁ E_s ≡₁ dtrmt').
     { unfold dtrmt'. basic_solver. }
@@ -3417,7 +3484,13 @@ Proof using INV INV'.
       { apply restr_rel_ct. unfold upward_closed, cmt'.
         intros x y RPOIMM CMT.
         assert (RPNEQ : forall (EQA : x = a_s) (EQB : y = mapper' b_t), False).
-        { admit. }
+        { intros FALSO1 FALSO2; subst x; subst y.
+          eapply (rsr_nrpo SIMREL') with a_s (mapper' b_t).
+          unfold X_s'. ins.
+          unfolder. splits; eauto.
+          { exists a_t; splits; ins.
+            unfold mapper'. now rupd. }
+          unfold rpo. basic_solver. }
         apply rpo_imm_in_sb in RPOIMM. split.
         { unfold sb in RPOIMM; unfolder in RPOIMM; desf. }
         intro FALSO; subst x.

@@ -40,12 +40,15 @@ Notation "'R''" := (fun a => is_true (is_r lab' a)).
 Notation "'F''" := (fun a => is_true (is_f lab' a)).
 Notation "'Acq''" := (fun a => is_true (is_acq lab' a)).
 Notation "'Rel''" := (fun a => is_true (is_rel lab' a)).
+Notation "'Rlx''" := (fun a => is_true (is_rlx lab' a)).
 Notation "'vf''" := (vf G').
 Notation "'srf''" := (srf G').
 Notation "'release''" := (release G').
 Notation "'rs''" := (rs G').
 Notation "'rmw''" := (rmw G').
 Notation "'Loc_'' l" := (fun x => loc' x = Some l) (at level 1).
+Notation "'rpo''" := (rpo G').
+Notation "'rpo_imm''" := (rpo_imm G').
 
 Notation "'G'" := (WCore.G X).
 Notation "'lab'" := (lab G).
@@ -62,12 +65,15 @@ Notation "'R'" := (fun a => is_true (is_r lab a)).
 Notation "'F'" := (fun a => is_true (is_f lab a)).
 Notation "'Acq'" := (fun a => is_true (is_acq lab a)).
 Notation "'Rel'" := (fun a => is_true (is_rel lab a)).
+Notation "'Rlx'" := (fun a => is_true (is_rlx lab a)).
 Notation "'vf'" := (vf G).
 Notation "'srf'" := (srf G).
 Notation "'release'" := (release G).
 Notation "'rs'" := (rs G).
 Notation "'rmw'" := (rmw G).
 Notation "'Loc_' l" := (fun x => loc x = Some l) (at level 1).
+Notation "'rpo'" := (rpo G).
+Notation "'rpo_imm'" := (rpo_imm G).
 
 Lemma seq_eqv_minus_r {A : Type} r1 r2 (s : A -> Prop) :
   (r1 \ r2) ⨾ ⦗s⦘ ≡ (r1 ⨾ ⦗s⦘) \ (r2 ⨾ ⦗s⦘).
@@ -316,6 +322,75 @@ Proof using.
   change ((vf ⨾ sb) ∩ same_loc ⨾ ⦗R⦘ \ co ⨾ vf ⨾ sb)
     with srf.
   rewrite wf_srfE. basic_solver.
+Qed.
+
+Lemma add_event_rpo_imm
+    (WF : Wf G)
+    (EQL : eq_dom E lab' lab)
+    (SB : sb' ⨾ ⦗E⦘ ≡ sb ⨾ ⦗E⦘) :
+  rpo_imm' ⨾ ⦗E⦘ ≡ rpo_imm ⨾ ⦗E⦘.
+Proof using.
+  unfold rpo_imm.
+  rewrite !seq_union_l, !seqA.
+  arewrite (⦗F' ∩₁ Acq'⦘ ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ ⦗F ∩₁ Acq⦘ ⨾ ⦗E⦘).
+  { unfolder. split; ins; desf.
+    all: splits; ins.
+    all: unfold is_acq, is_f, mod in *.
+    all: rewrite EQL in *; ins. }
+  arewrite (⦗W' ∩₁ Rlx'⦘ ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ ⦗W ∩₁ Rlx⦘ ⨾ ⦗E⦘).
+  { unfolder. split; ins; desf.
+    all: splits; ins.
+    all: unfold is_rlx, is_w, mod in *.
+    all: rewrite EQL in *; ins. }
+  arewrite (⦗Rel'⦘ ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ ⦗Rel⦘ ⨾ ⦗E⦘).
+  { unfolder. split; ins; desf.
+    all: splits; ins.
+    all: unfold is_rel, mod in *.
+    all: rewrite EQL in *; ins. }
+  seq_rewrite !SB. rewrite !seqA.
+  arewrite (sb ≡ ⦗E⦘ ⨾ sb).
+  { rewrite wf_sbE. basic_solver. }
+  arewrite (⦗R' ∩₁ Rlx'⦘ ⨾ ⦗E⦘ ≡ ⦗R ∩₁ Rlx⦘ ⨾ ⦗E⦘).
+  { unfolder. split; ins; desf.
+    all: splits; ins.
+    all: unfold is_rlx, is_r, mod in *.
+    all: rewrite EQL in *; ins. }
+  arewrite (⦗Acq'⦘ ⨾ ⦗E⦘ ≡ ⦗Acq⦘ ⨾ ⦗E⦘).
+  { unfolder. split; ins; desf.
+    all: splits; ins.
+    all: unfold is_acq, mod in *.
+    all: rewrite EQL in *; ins. }
+  arewrite (⦗F' ∩₁ Rel'⦘ ⨾ ⦗E⦘ ≡ ⦗F ∩₁ Rel⦘ ⨾ ⦗E⦘).
+  { unfolder. split; ins; desf.
+    all: splits; ins.
+    all: unfold is_f, is_rel, mod in *.
+    all: rewrite EQL in *; ins. }
+  seq_rewrite <- !wf_sbE.
+  assert (SBR : ⦗E⦘ ⨾ sb ≡ sb).
+  { rewrite wf_sbE. basic_solver. }
+  now seq_rewrite !SBR.
+Qed.
+
+Lemma add_event_rpo
+    (WF : Wf G)
+    (EQL : eq_dom E lab' lab)
+    (ESB : sb' ⨾ ⦗E⦘ ≡ sb ⨾ ⦗E⦘) :
+  rpo' ⨾ ⦗E⦘ ≡ rpo ⨾ ⦗E⦘.
+Proof using.
+  unfold rpo.
+  rewrite !ct_l_upward_closed.
+  { rewrite add_event_rpo_imm; ins. }
+  all: apply rpo_imm_upward_closed.
+  all: unfold upward_closed.
+  { unfold sb. basic_solver. }
+  intros x y SB XINE.
+  enough (SB' : sb x y).
+  { generalize SB'. unfold sb.
+    basic_solver. }
+  enough (SB' : (sb' ⨾ ⦗E⦘) x y).
+  { apply ESB in SB'. generalize SB'.
+    basic_solver. }
+  basic_solver.
 Qed.
 
 End SrfDelta.
