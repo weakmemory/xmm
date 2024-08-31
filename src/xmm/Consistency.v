@@ -910,8 +910,50 @@ Proof using.
         apply wf_rfE in H7; vauto.
         destruct H7 as (x3 & (H10 & (x4 & (H11 & H12)))).
         destruct H12; subst. apply LABS in H0.
-        unfold is_r in *. basic_solver. } (* rlx *)
-      admit. }
+        unfold is_r in *. basic_solver. }
+      arewrite ((⦗R_s⦘ ⨾ ⦗fun a0 : actid => is_rlx lab_s a0⦘ ⨾ sb_s ⨾ ⦗F_s⦘ ⨾ ⦗Acq_s⦘) 
+              ⊆ ⦗R_s⦘ ⨾ ⦗fun a0 : actid => is_rlx lab_s a0⦘ ⨾ rpo_s ⨾ ⦗F_s⦘ ⨾ ⦗Acq_s⦘).
+        { unfold rpo; unfold rpo_imm. rewrite <- ct_step. basic_solver 21. }
+      arewrite (rpo_s ⨾ ⦗F_s⦘ ⨾ ⦗Acq_s⦘ ⨾ ⦗E_s \₁ eq a⦘ 
+                ⊆ rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⨾ ⦗F_s⦘ ⨾ ⦗Acq_s⦘) by basic_solver.
+      do 2 rewrite <- seqA. rewrite <- seqA with (r3 := ⦗F_s⦘ ⨾ ⦗Acq_s⦘).
+      rewrite RPO_MAP. rewrite !seqA.
+      intros x y H. unfold seq at 1 in H. destruct H as (z & H & H').
+      destruct H' as (z1 & H0 & (z2 & H1 & (z3 & H2 & (z4 & H3 & (z5 & H4))))).
+      destruct H0, H1, H3; subst. 
+      unfold collect_rel in H, H2.
+      destruct H as (x0 & z0 & (HH0 & HH1 & HH2)); subst.
+      destruct H2 as (z1 & y0 & (HH3 & HH4 & HH5)); subst.
+      unfold collect_rel. exists x0, y0. splits; vauto.
+      unfold seq at 1. exists z0. splits; vauto.
+      unfold seq. exists z1. 
+      assert (ZE : E_t z0).
+      { apply wf_rfE in HH0; vauto.
+        destruct HH0 as (x1 & (HH6 & (x2 & (HH9 & HH10)))).
+        destruct HH10; vauto. }
+      assert (ZEQ : z0 = z1).
+      { apply INJ; vauto.
+        apply wf_rpoE in HH3; vauto.
+        destruct HH3 as (x1 & (HH6 & (x2 & (HH9 & HH10)))).
+        destruct HH6; vauto. }
+      subst. splits; vauto. 
+      { red. splits; vauto.
+        apply LABS in ZE. unfold compose in ZE. 
+        unfold is_rlx in *. unfold mod in *.
+        basic_solver 21. }
+      exists y0. splits; vauto.
+      { apply rpo_in_sb in HH3; vauto. }
+      exists y0.
+      assert (EY : E_t y0).
+      { apply wf_rpoE in HH3; vauto.
+        destruct HH3 as (x1 & (HH6 & (x2 & (HH9 & HH10)))).
+        destruct HH10; vauto. }
+      splits; vauto.
+      { apply LABS in EY. unfold compose in EY.
+        unfold is_f in *. basic_solver 21. }
+      apply LABS in EY. unfold compose in EY.
+      unfold is_acq in *. unfold mod in *. 
+      basic_solver 21. }
     rewrite !seqA.
     arewrite (⦗eq a⦘ ⊆ ⦗eq a⦘ ⨾ ⦗fun a0 : actid => is_r lab_s a0⦘).
     { unfold is_r in IS_R. basic_solver. }
@@ -923,7 +965,7 @@ Proof using.
       intros x y HH. destruct H with y; exists x; vauto. }
     destruct EMP. rewrite <- seqA with (r3 := ⦗E_s \₁ eq a⦘).
     rewrite H1. basic_solver.
-Admitted.
+Qed.
 
 Lemma sw_sub_helper (m : actid -> actid)
         (INJ : inj_dom E_t m)
