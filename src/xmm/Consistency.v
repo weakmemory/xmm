@@ -1521,11 +1521,11 @@ Lemma write_eco_sub (m : actid -> actid)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
     eco_s ⊆ m ↑ eco_t 
-          ∪ (((W_s \₁ eq a) ∩₁ same_loc_s a) × eq a) ⨾ (m ↑ rf_t^?)
-          ∪ (m ↑ rf_t^?) ⨾ (((W_s \₁ eq a) ∩₁ same_loc_s a) × eq a) ⨾ (m ↑ rf_t^?).
+          ∪ (((W_s \₁ eq a) ∩₁ same_loc_s a) × eq a) ⨾ rf_s^?
+          ∪ (m ↑ rf_t⁻¹) ⨾ (((W_s \₁ eq a) ∩₁ same_loc_s a) × eq a) ⨾ rf_s^?.
 Proof using.
     unfold eco. repeat rewrite collect_rel_union. rewrite RF_MAP.
-    repeat apply inclusion_union_l. 
+    repeat apply inclusion_union_l.
     { repeat left; vauto. }
     { rewrite CO_MAP. rewrite seq_union_l. apply inclusion_union_l.
       { case_refl _.
@@ -1541,9 +1541,105 @@ Proof using.
         assert (IN2 : dom_rel rf_t ⊆₁ E_t).
         { rewrite wf_rfE; eauto. basic_solver. }
         rewrite IN1, IN2. basic_solver. }
-      admit. }
-    admit.
-Admitted.
+      rewrite crE. rewrite seq_union_r.
+      apply inclusion_union_l.
+      { rels. }
+      rewrite <- !unionA. rewrite !seq_union_r.
+      rewrite <- !unionA. do 2 left. right; vauto. }
+    rewrite write_fr_sub; vauto.
+    rewrite seq_union_l. apply inclusion_union_l.
+    { rewrite crE. rewrite seq_union_r.
+      apply inclusion_union_l.
+      { rels. do 2 left. right. unfold collect_rel.
+        destruct H as (x0 & y0 & (H1 & H2 & H3)). 
+        exists x0, y0. splits; vauto. 
+        unfold seq. exists y0. splits; vauto. }
+      do 2 left. right. unfold collect_rel.
+      destruct H as (z & ((x0' & z0' & (H1 & H2 & H3)) &
+                                 x0 & (z0 & H4 & (H5 & H6)))). 
+      exists x0', z0. splits; vauto. 
+      unfold seq. exists z0'. splits; vauto. 
+      assert (EQ : x0 = z0').
+      { apply INJ; vauto.
+        { apply wf_rfE in H4; vauto.
+          destruct H4. destruct H. apply H. }
+        apply wf_frE in H1; vauto.
+        destruct H1. destruct H.
+        destruct H0. destruct H0.
+        destruct H1; vauto. }
+      subst. vauto. }
+    rewrite seqA; right; basic_solver 8.
+Qed.
+
+Lemma write_codom_sw (m : actid -> actid)
+        (INJ : inj_dom E_t m)
+        (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
+        (IS_W : is_w lab_s a)
+        (NIN : set_disjoint (m ↑₁ E_t) (eq a))
+        (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
+        (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
+        (CODOM_SB_SL : codom_rel (⦗eq a⦘ ⨾ (sb_s ∩ same_loc_s)) ≡₁ ∅)
+        (SB_SL_MAP : (sb_s ∩ same_loc_s)⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ (sb_t ∩ same_loc_t))
+        (RF_MAP : rf_s ≡ m ↑ rf_t)
+        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
+        (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
+        (CONS : WCore.is_cons G_t sc_t)
+        (WF_t : Wf G_t)
+        (WF_s : Wf G_s) :
+    codom_rel (⦗eq a⦘ ⨾ sw_s) ≡₁ ∅.
+Proof using.
+    split; vauto.
+    unfold sw. unfold release. unfold rs.
+    arewrite_id ⦗Rel_s⦘; rels.
+    rewrite crE. intros x H.
+    destruct H. destruct H. destruct H.
+    destruct H; subst. apply seq_union_l in H0.
+    destruct H0.
+    { destruct H. destruct H. destruct H; subst.
+      destruct H0. destruct H. destruct H; subst.
+      destruct H0. destruct H. destruct H; subst.
+      destruct H0. destruct H. 
+      apply rtE in H. destruct H.
+      { destruct H; subst. destruct H0. destruct H.
+        apply RF_MAP in H. unfold collect_rel in H.
+        destruct H as (x' & y' & (HH1 & HH2 & HH3)).
+        apply wf_rfE in HH1; vauto. destruct HH1. destruct H.
+        destruct H; subst. destruct NIN with (m x0); vauto. }
+      apply ct_begin in H. destruct H. destruct H.
+      destruct H. destruct H.
+      apply RF_MAP in H. unfold collect_rel in H.
+      destruct H as (x' & y' & (HH1 & HH2 & HH3)).
+      apply wf_rfE in HH1; vauto. destruct HH1. destruct H.
+      destruct H; subst. destruct NIN with (m x0); vauto. }
+    destruct H. destruct H. destruct H. destruct H.
+    destruct H; subst. mode_solver.
+Qed.
+
+Lemma write_sw_helper_rf_rmw (m : actid -> actid)
+        (INJ : inj_dom E_t m)
+        (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
+        (IS_W : is_w lab_s a)
+        (NIN : set_disjoint (m ↑₁ E_t) (eq a))
+        (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
+        (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
+        (CODOM_SB_SL : codom_rel (⦗eq a⦘ ⨾ (sb_s ∩ same_loc_s)) ≡₁ ∅)
+        (SB_SL_MAP : (sb_s ∩ same_loc_s)⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ (sb_t ∩ same_loc_t))
+        (RF_MAP : rf_s ≡ m ↑ rf_t)
+        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
+        (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
+        (CONS : WCore.is_cons G_t sc_t)
+        (WF_t : Wf G_t)
+        (WF_s : Wf G_s) :
+    rf_s ⨾ rmw_s ≡ m ↑ (rf_t ⨾ rmw_t).
+Proof using.
+    rewrite RF_MAP, RMW_MAP. 
+    rewrite collect_rel_seq; vauto.
+    assert (IN1 : codom_rel rf_t ⊆₁ E_t).
+    { rewrite wf_rfE; eauto. basic_solver. }
+    assert (IN2 : dom_rel rmw_t ⊆₁ E_t).
+    { rewrite wf_rmwE; eauto. basic_solver. }
+    rewrite IN1, IN2. basic_solver.
+Qed.
 
 Lemma write_sw_sub (m : actid -> actid)
         (INJ : inj_dom E_t m)
@@ -1620,11 +1716,11 @@ Proof using.
   assert (EMP3 : codom_rel ((⦗eq a⦘ ⨾ sw_s) ⨾ (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s)＊) ≡₁ ∅).
   { apply empty_seq_codom; eauto. }
   assert (EMP4 : codom_rel (⦗eq a⦘ ⨾ sb_s ∩ same_loc_s) ≡₁ ∅).
-  { admit. (*???*) }
+  { vauto. }
   assert (EMP5 : codom_rel ((⦗eq a⦘ ⨾ sb_s ∩ same_loc_s) ⨾ (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s)＊) ≡₁ ∅).
   { apply empty_seq_codom; eauto. }
   rewrite EMP1, EMP3, EMP5. basic_solver.
-Admitted.
+Qed.
 
 Lemma write_extent (m : actid -> actid)
         (INJ : inj_dom E_t m)
