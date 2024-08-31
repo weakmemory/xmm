@@ -63,7 +63,7 @@ Implicit Type SC_PER_LOC : sc_per_loc G.
 (******************************************************************************)
 
 (* release sequence *)
-Definition rs := ⦗W⦘ ⨾ (sb ∩ same_loc)^? ⨾ ⦗W⦘ ⨾ ⦗Rlx⦘ ⨾ (rf ⨾ rmw)＊.
+Definition rs := ⦗W⦘ ⨾ ⦗Rlx⦘ ⨾ (rf ⨾ rmw)＊.
 
 Definition release := ⦗Rel⦘ ⨾ (⦗F⦘ ⨾ sb)^? ⨾ rs.
 
@@ -112,8 +112,7 @@ Lemma wf_rsE WF : rs ≡ ⦗W∩₁Rlx⦘ ∪ ⦗E⦘ ⨾ rs ⨾ ⦗E⦘.
 Proof using.
 unfold rs.
 split; [|basic_solver 15].
-rewrite rtE; relsf; unionL.
-rewrite wf_sbE; basic_solver 21.
+rewrite rtE; relsf; unionL; [basic_solver 12|].
 unionR right -> right.
 rewrite (dom_r (wf_rmwE WF)) at 1.
 rewrite <- !seqA.
@@ -122,7 +121,6 @@ rewrite !seqA.
 arewrite (⦗E⦘ ⨾ ⦗W⦘ ≡ ⦗W⦘ ⨾ ⦗E⦘) by basic_solver.
 hahn_frame.
 rewrite ct_begin.
-rewrite (dom_l (@wf_sbE G)) at 1.
 rewrite (dom_l (wf_rfE WF)) at 1.
 basic_solver 21.
 Qed.
@@ -253,21 +251,10 @@ Qed.
 Lemma rs_in_co WF SC_PER_LOC : rs ⊆ ⦗W⦘ ⨾ co^?.
 Proof using.
 unfold rs.
-
-assert (A: ⦗W⦘ ⨾ (sb ∩ same_loc)^? ⨾ ⦗W⦘ ⊆ ⦗W⦘ ⨾ co^?).
-{ arewrite (⦗W⦘ ⊆ ⦗W⦘ ⨾ ⦗W⦘) at 1 by basic_solver.
-  rewrite crE; relsf; unionL; [basic_solver|].
-  sin_rewrite (w_sb_loc_w_in_coi WF SC_PER_LOC).
-  sin_rewrite (dom_l (wf_coiD WF)).
-  ie_unfolder; basic_solver. }
 arewrite_id ⦗Rlx⦘. rewrite seq_id_l.
-
-rewrite rtE; relsf; unionL; [done|].
+rewrite rtE; relsf; unionL; [basic_solver|].
 sin_rewrite !(rf_rmw_in_co WF SC_PER_LOC).
 sin_rewrite (dom_r (wf_coD WF)).
-
-sin_rewrite A.
-rewrite !seqA.
 hahn_frame.
 arewrite_id ⦗W⦘.
 generalize (co_trans WF); ins; relsf.
