@@ -860,8 +860,113 @@ Proof using.
   arewrite ((⦗Rel_s⦘ ⨾ ⦗F_s⦘ ⨾ sb_s ⨾ ⦗W_s⦘ ⨾ ⦗fun a0 : actid => is_rlx lab_s a0⦘) 
           ⊆ ⦗Rel_s⦘ ⨾ ⦗F_s⦘ ⨾ rpo_s ⨾ ⦗W_s⦘ ⨾ ⦗fun a0 : actid => is_rlx lab_s a0⦘).
     { unfold rpo; unfold rpo_imm. rewrite <- ct_step. basic_solver 21. }
-  admit. 
-Admitted.
+  rewrite wf_rpoE; eauto. rewrite !seqA.
+  arewrite (⦗E_s⦘ ⨾ ⦗W_s⦘ ⊆ ⦗E_s \₁ eq a⦘ ⨾ ⦗W_s⦘).
+    { unfold set_minus. intros x y HH.
+      destruct HH. destruct H. destruct H.
+      destruct H0; subst. 
+      unfolder. splits; vauto. 
+      intros F. unfold is_w, is_r in *. 
+      basic_solver. }
+  do 3 rewrite <- seqA.
+  rewrite <- seqA with (r3 := ⦗W_s⦘ ⨾ ⦗fun a0 : actid => is_rlx lab_s a0⦘ ⨾ (rf_s ⨾ rmw_s)＊).
+  rewrite RPO_MAP. rewrite !seqA.
+  intros x y H. destruct H as (x0 & (H1 & (x1 & (H2 & (x2 & (H3 & (x3 &
+                (H4 & (x4 & (H5 & (x5 & (H6 & x6 & (H7 & H8))))))))))))).
+  destruct H1, H2, H3, H4, H6, H6, H7; subst.
+  apply MAPEQ in H0. destruct H0 as (x' & H0 & H0').
+  unfold collect_rel. 
+  apply rtE in H8. destruct H8.
+  { destruct H. destruct H5. destruct H3.
+    destruct H3 as (HH1 & HH2 & HH3).
+    exists x', x0. splits; vauto.
+    unfold seq.
+    exists x'. splits; vauto.
+    exists x'. splits.
+    { apply LABS in H0. unfold compose in H0.
+      red. splits; vauto. unfold is_rel in *. 
+      unfold mod in *. basic_solver 21. }
+    exists x'. splits.
+    { apply LABS in H0. unfold compose in H0.
+      red. splits; vauto. unfold is_f in *. 
+      basic_solver 21. }
+    exists x0. splits.
+    { apply INJ in HH2; vauto. 
+      { apply rpo_in_sb in HH1; vauto. }
+      apply wf_rpoE in HH1; vauto. 
+      destruct HH1. destruct H.
+      destruct H; vauto. }
+    assert (XE : E_t x0).
+    { apply wf_rpoE in HH1; vauto. 
+      destruct HH1. destruct H. destruct H3.
+      destruct H3. destruct H4; vauto. }
+    exists x0. splits.
+    { red; splits; vauto.
+      apply LABS in XE. unfold compose in XE.
+      unfold is_w in *. basic_solver. }
+    exists x0. splits.
+    { red; splits; vauto.
+      apply LABS in XE. unfold compose in XE.
+      unfold is_rlx in *. unfold mod in *. basic_solver. }
+    apply rtE. left. basic_solver. }
+  assert (TREQ : (rf_s ⨾ rmw_s)⁺ ⊆ (m ↑ (rf_t ⨾ rmw_t))⁺).
+  { apply clos_trans_mori; apply sw_helper_rf_rmw; eauto. }
+  apply TREQ in H. 
+  assert (REST : (rf_t ⨾ rmw_t) ≡ restr_rel E_t (rf_t ⨾ rmw_t)).
+  { rewrite restr_relE. rewrite wf_rfE, wf_rmwE; eauto.
+    basic_solver 21. }
+  assert (TREQ' : (m ↑ (rf_t ⨾ rmw_t))⁺ ≡ (m ↑ restr_rel E_t (rf_t ⨾ rmw_t))⁺).
+  { split; apply clos_trans_mori; rewrite <- REST; vauto. }
+  apply TREQ' in H. apply collect_rel_ct_inj in H; vauto.
+  unfold collect_rel in H. destruct H as (x0 & y0 & (HH1 & HH2 & HH3)).
+  assert (TREQ'' : (restr_rel E_t (rf_t ⨾ rmw_t))⁺ ⊆ (rf_t ⨾ rmw_t)⁺).
+  { apply clos_trans_mori; basic_solver. }
+  apply TREQ'' in HH1.
+  exists x', y0. splits; vauto.
+  unfold seq.
+  exists x'. splits; vauto.
+  exists x'. splits.
+  { apply LABS in H0. unfold compose in H0.
+    red. splits; vauto. unfold is_rel in *. 
+    unfold mod in *. basic_solver 21. }
+  exists x'. splits.
+  { apply LABS in H0. unfold compose in H0.
+    red. splits; vauto. unfold is_f in *. 
+    basic_solver 21. }
+  exists x0. splits.
+  { destruct H5 as (z1 & z2 & (HH2 & HH3 & HH4)).
+    apply rpo_in_sb in HH2; vauto. 
+    apply INJ in HH3; vauto. 
+    { apply INJ in HH4; vauto. 
+      { apply wf_sbE in HH2; vauto. 
+        destruct HH2. destruct H. destruct H.
+        destruct H. destruct H1. destruct H. 
+        destruct H1; vauto. }
+      apply ct_begin in HH1. destruct HH1. destruct H.
+      destruct H. destruct H. apply wf_rfE in H; vauto.
+      destruct H. destruct H. apply H. }
+    apply wf_sbE in HH2; vauto.
+    destruct HH2. destruct H. destruct H; vauto. }
+  destruct H5. destruct H. destruct H as (HH3 & HH4 & HH5).
+  assert (XE : E_t x0).
+  { apply wf_rpoE in HH3; vauto. 
+    destruct HH3. destruct H. destruct H.
+    destruct H1. destruct H1.
+    destruct H4; subst. 
+    apply INJ in HH5; vauto.
+    apply ct_begin in HH1. destruct HH1. destruct H.
+    destruct H. destruct H. apply wf_rfE in H; vauto.
+    destruct H. destruct H. apply H. }
+  exists x0. splits.
+  { red; splits; vauto.
+    apply LABS in XE. unfold compose in XE.
+    unfold is_w in *. basic_solver. }
+  exists x0. splits.
+  { red; splits; vauto.
+    apply LABS in XE. unfold compose in XE.
+    unfold is_rlx in *. unfold mod in *. basic_solver. }
+  apply rtE. right. basic_solver.
+Qed.
 
 Lemma sw_helper_rf (m : actid -> actid)
         (INJ : inj_dom E_t m)
@@ -1743,6 +1848,7 @@ Proof using.
   arewrite ((⦗Rel_s⦘ ⨾ ⦗F_s⦘ ⨾ sb_s ⨾ ⦗W_s⦘ ⨾ ⦗fun a0 : actid => is_rlx lab_s a0⦘) 
           ⊆ ⦗Rel_s⦘ ⨾ ⦗F_s⦘ ⨾ rpo_s ⨾ ⦗W_s⦘ ⨾ ⦗fun a0 : actid => is_rlx lab_s a0⦘).
     { unfold rpo; unfold rpo_imm. rewrite <- ct_step. basic_solver 21. }
+  rewrite rtE.
   admit. 
 Admitted.
 
