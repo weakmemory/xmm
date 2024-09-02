@@ -23,6 +23,18 @@ Proof using.
   basic_solver.
 Qed.
 
+Lemma cross_minus_l {T : Type} (A1 A2 B : T -> Prop) :
+  (A1 \₁ A2) × B ≡ A1 × B \ A2 × B.
+Proof using.
+  unfolder. split; ins; desf; tauto.
+Qed.
+
+Lemma set_minus_inter {A : Type} (s1 s2 s3 : A -> Prop) :
+  (s1 \₁ s2 ∩₁ s3) ∩₁ s3 ≡₁ (s1 \₁ s2) ∩₁ s3.
+Proof using.
+  unfolder. split; ins; desf; tauto.
+Qed.
+
 Definition swap_rel {T : Type} (r : relation T) A B :=
   r \ A × B ∪ B × A.
 

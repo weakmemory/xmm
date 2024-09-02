@@ -381,14 +381,6 @@ Proof using.
   unfold extra_co_D. basic_solver 12.
 Qed.
 
-Lemma set_minus_inter {A : Type} (s1 s2 s3 : A -> Prop) :
-  (s1 \₁ s2 ∩₁ s3) ∩₁ s3 ≡₁ (s1 \₁ s2) ∩₁ s3.
-Proof using.
-  unfolder. split; intros x ((S1 & S2) & S3).
-  { split; eauto. }
-  splits; eauto. apply or_not_and. eauto.
-Qed.
-
 Lemma extra_co_DE a_s
     (GSIM : reord_simrel_gen a_s) :
   extra_co_D E_s lab_s (loc_s a_s) \₁ extra_a a_s ∩₁ W_s ≡₁
@@ -421,13 +413,6 @@ Qed.
 
 #[export]
 Instance extra_co_D_Propere : Proper (_ ==> _ ==> _ ==> _) _ := extra_co_D_more.
-
-Lemma cross_minus_l {T : Type} (A1 A2 B : T -> Prop) :
-  (A1 \₁ A2) × B ≡ A1 × B \ A2 × B.
-Proof using.
-  clear.
-  unfolder. split; ins; desf; splits; tauto.
-Qed.
 
 Lemma G_s_co_total ol
     (PRED : reord_step_pred)
