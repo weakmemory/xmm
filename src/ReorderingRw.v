@@ -1859,7 +1859,7 @@ Proof using INV INV'.
     unfolder in XEQA. unfolder in YEQA. desf. }
   assert (STEP : WCore.add_event X_s X_s'' a_s l_a').
   { red. exists None, ∅, w, ∅,
-      (W_s ∩₁ E_s ∩₁ Loc_s_ (WCore.lab_loc l_a)).
+      (W_s ∩₁ E_s ∩₁ Loc_s_ (WCore.lab_loc l_a) ∩₁ WCore.lab_is_w l_a).
     constructor; ins.
     { rewrite TID, <- (rsr_at_bt_tid INV).
       apply INV. }
@@ -1931,16 +1931,27 @@ Proof using INV INV'.
       red; eauto. }
     { rewrite TID. now apply (rsr_threads SIMREL). }
     { now rewrite (rsr_ctrl SIMREL), (rsr_nctrl INV). }
+    { enough (EMP : eq_opt w ⊆₁ ∅).
+      { clear - EMP. unfolder in *. desf.
+        exfalso. eauto. }
+      rewrite SRF_W.
+      clear - NR U2V. unfolder. ins. desf.
+      unfold is_r, WCore.lab_is_r, same_label_u2v in *.
+      rewrite upds in *. desf. }
+    { split; [| basic_solver].
+      clear - NW U2V. unfolder. ins. desf.
+      unfold is_w, WCore.lab_is_w, same_label_u2v in *.
+      rewrite upds in *. desf. }
     { unfold WCore.rf_delta_R. rewrite SRF_W.
-      arewrite (WCore.lab_is_r l_a' ≡₁
-                WCore.lab_is_r l_a).
-      { unfold WCore.lab_is_r, same_label_u2v in *. do 2 desf. }
-      basic_solver 11. }
-    { unfold WCore.co_delta.
-      arewrite (WCore.lab_is_w l_a' ≡₁
-                WCore.lab_is_w l_a).
-      { unfold WCore.lab_is_w, same_label_u2v in *. do 2 desf. }
-      basic_solver 11. }
+      clear. basic_solver 11. }
+    { apply union_more; ins.
+      unfold WCore.co_delta.
+      rewrite cross_false_r, union_false_l.
+      destruct classic with (WCore.lab_is_w l_a ≡₁ ∅) as [EMP|NEMP].
+      { now rewrite EMP, !set_inter_empty_r, cross_false_l,
+                    cross_false_r. }
+      unfold WCore.lab_is_w in *. desf.
+      now rewrite !set_inter_full_r. }
     rewrite (rsr_rmw SIMREL).
     basic_solver 11. }
   assert (WF_S' : Wf G_s'').
