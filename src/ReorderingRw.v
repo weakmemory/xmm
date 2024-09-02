@@ -30,6 +30,12 @@ From imm Require Import CombRelations.
 
 Set Implicit Arguments.
 
+Definition extra_co_D (s : actid -> Prop) ll l :=
+  (s ∩₁ is_w ll ∩₁ (fun e => loc ll e = l)).
+
+#[export]
+Hint Unfold extra_co_D : unfolderDb.
+
 Section SimRel.
 
 Variable X_s X_t : WCore.t.
@@ -116,9 +122,6 @@ Lemma extra_a_none_r a_s
 Proof using.
   unfold extra_a; desf. exfalso; desf.
 Qed.
-
-Definition extra_co_D (s : actid -> Prop) ll l :=
-  (s ∩₁ is_w ll ∩₁ (fun e => loc ll e = l)).
 
 Record reord_step_pred : Prop := {
   rsr_at_tid : tid a_t <> tid_init;
@@ -220,7 +223,7 @@ Proof using.
   red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   rewrite (rsr_acts SIMREL). rewrite set_minus_union_l.
   arewrite (extra_a a_s \₁ is_init ⊆₁ eq a_s).
-  { unfold extra_a. desf; basic_solver. }
+  { unfold extra_a. desf; clear; basic_solver. }
   apply set_finite_union. split; [| apply set_finite_eq].
   arewrite (mapper ↑₁ E_t \₁ is_init ≡₁ mapper ↑₁ (E_t \₁ is_init)).
   { apply rsr_map_inits; try red; eauto. }
@@ -289,20 +292,41 @@ Proof using.
   rewrite (rsr_lab SIMREL); now apply SUB.
 Qed. *)
 
+Lemma rsr_tid' e
+    (SIMREL : reord_simrel)
+    (INE : E_t e) :
+  tid e = tid (mapper e).
+Proof using.
+  destruct SIMREL as (a_s & SIMREL).
+  rewrite <- (rsr_tid SIMREL); ins.
+Qed.
+
+Lemma rsr_lab' e
+    (SIMREL : reord_simrel)
+    (INE : E_t e) :
+  lab_t e = lab_s (mapper e).
+Proof using.
+  destruct SIMREL as (a_s & SIMREL).
+  rewrite <- (rsr_lab SIMREL); ins.
+Qed.
+
 Lemma rsr_same_tid' t
     (SIMREL : reord_simrel) :
   mapper ↑₁ (E_t ∩₁ Tid_ t) ≡₁
     mapper ↑₁ E_t ∩₁ Tid_ t.
 Proof using.
-  destruct SIMREL as (a_s & SIMREL).
   unfold same_tid. unfolder.
-  split; intros x XIN.
-  { destruct XIN as (y & (YINE & TID) & XEQ). subst x.
-    rewrite <- (rsr_tid SIMREL) in TID; ins.
-    split; ins. exists y; split; ins. }
-  destruct XIN as ((y & YINE & XEQ) & TID).
-  exists y; splits; ins. subst x.
-  rewrite <- (rsr_tid SIMREL); ins.
+  split; ins; desf; splits; eauto.
+  { symmetry. now apply rsr_tid'. }
+  eexists; splits; eauto.
+  now apply rsr_tid'.
+Qed.
+
+Lemma rsr_bt_tid
+    (PRED : reord_step_pred) :
+  tid b_t <> tid_init.
+Proof using.
+  rewrite <- (rsr_at_bt_tid PRED). apply PRED.
 Qed.
 
 Lemma rsr_ninit_exa_tid a_s
@@ -310,11 +334,14 @@ Lemma rsr_ninit_exa_tid a_s
     (SIMREL : reord_simrel_gen a_s) :
   extra_a a_s ∩₁ Tid_ tid_init ⊆₁ ∅.
 Proof using.
-  unfold extra_a; desf; [| basic_solver].
-  unfolder. intros x (XEQ & TID). subst x.
-  apply (rsr_at_tid PRED).
-  rewrite (rsr_at_bt_tid PRED), <- TID.
-  apply SIMREL, extra_a_some; desf.
+  rewrite (rsr_as SIMREL).
+  transitivity (same_tid b_t ∩₁ Tid_ tid_init).
+  { apply set_subset_inter; [| ins].
+    unfolder; ins. now apply eba_tid. }
+  assert (NEQ : tid b_t <> tid_init).
+  { now apply rsr_bt_tid. }
+  clear - NEQ. unfold same_tid.
+  unfolder. ins. desf. congruence.
 Qed.
 
 Lemma rsr_ninit_acts_s
@@ -328,7 +355,7 @@ Proof using.
   rewrite rsr_ninit_exa_tid; ins.
   rewrite (rsr_ninit_acts PRED),
           <- (fixset_set_fixpoint (rsr_init SIMREL)).
-  basic_solver.
+  now rewrite set_union_empty_r.
 Qed.
 
 Lemma rsr_same_tid e
@@ -336,7 +363,7 @@ Lemma rsr_same_tid e
   mapper ↑₁ (E_t ∩₁ same_tid e) ≡₁
     mapper ↑₁ E_t ∩₁ same_tid e.
 Proof using.
-  arewrite (same_tid e ≡₁ (fun e' => tid e' = tid e)).
+  arewrite (same_tid e ≡₁ Tid_ (tid e)).
   { unfold same_tid. basic_solver. }
   now apply rsr_same_tid'.
 Qed.
@@ -372,13 +399,13 @@ Lemma extra_co_D_union s1 s2 ll l :
   extra_co_D (s1 ∪₁ s2) ll l ≡₁
     extra_co_D s1 ll l ∪₁ extra_co_D s2 ll l.
 Proof using.
-  unfold extra_co_D. basic_solver 11.
+  unfold extra_co_D. now rewrite !set_inter_union_l.
 Qed.
 
 Lemma extra_co_D_minus s1 s2 ll l :
   extra_co_D s1 ll l \₁ s2 ≡₁ extra_co_D (s1 \₁ s2) ll l.
 Proof using.
-  unfold extra_co_D. basic_solver 12.
+  unfold extra_co_D. now rewrite !set_inter_minus_l.
 Qed.
 
 Lemma extra_co_DE a_s
@@ -420,59 +447,44 @@ Lemma G_s_co_total ol
   is_total (E_s ∩₁ W_s ∩₁ (fun x => loc_s x = ol)) co_s.
 Proof using.
   assert (WF : Wf G_t) by apply PRED.
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   assert (TOT : is_total
                   (mapper ↑₁ E_t ∩₁ W_s ∩₁ Loc_s_ ol)
                   (mapper ↑ co_t)
   ).
-  { arewrite (mapper ↑₁ E_t ∩₁ W_s ∩₁ Loc_s_ ol ≡₁
-              mapper ↑₁ (E_t ∩₁ W_t ∩₁ Loc_t_ ol)).
-    all: try now apply total_collect_rel, WF.
-    split; intros x XIN.
-    { destruct XIN as (((y & YIN & MAP) & XW) & XL).
-      unfold is_w in XW. unfold loc in XL.
-      rewrite <- MAP in XW, XL.
-      change (lab_s (mapper y))
-        with ((lab_s ∘ mapper) y) in XW, XL.
-      rewrite (rsr_lab SIMREL) in XW, XL; ins.
-      unfolder. exists y; splits; ins. }
-    destruct XIN as (y & (((YIN & MAP) & XW) & XL)).
-    unfolder.
-    unfold is_w, loc; subst x.
-    change (lab_s (mapper y)) with ((lab_s ∘ mapper) y).
-    rewrite (rsr_lab SIMREL); eauto. }
+  { rewrite !set_interA. unfolder.
+    intros x ((x' & XINE & XEQ) & XW & XL)
+           y ((y' & YINE & YEQ) & YW & YL)
+           NEQ.
+    subst x. subst y.
+    assert (NEQ' : x' <> y') by congruence.
+    destruct (wf_co_total WF) with (ol := ol) (a := x') (b := y').
+    all: eauto 11.
+    all: unfolder; splits; ins.
+    all: unfold is_w, loc in *.
+    all: now rewrite (rsr_lab' _ SIMREL). }
+  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   assert (MAPIN : mapper ↑₁ E_t ⊆₁ E_s).
   { rewrite (rsr_acts SIMREL). basic_solver. }
   rewrite (rsr_acts SIMREL), (rsr_co SIMREL).
+  unfold extra_a; desf.
+  all: try now (rewrite set_union_empty_r, set_inter_empty_l,
+                        add_max_empty_r, union_false_r).
   rewrite !set_inter_union_l.
   unfold is_total. intros x XIN y YIN NEQ.
-  destruct XIN as [XIN | XEQA],
-           YIN as [YIN | YEQA].
-  { destruct TOT with x y as [ORD | ORD]; ins.
-    { now do 2 left. }
-    now right; left. }
-  { unfold extra_a in *; desf.
-    all: try now exfalso; apply YEQA.
-    unfolder in YEQA; desf.
-    left; right. unfold add_max, extra_co_D.
-    split; [| basic_solver].
-    unfolder; splits; ins.
-    all: try now apply XIN.
-    { apply MAPIN, XIN. }
-    intro FALSO; desf. }
-  { unfold extra_a in *; desf.
-    all: try now exfalso; apply XEQA.
-    unfolder in XEQA; desf.
-    right; right. unfold add_max, extra_co_D.
-    split; [|basic_solver].
-    unfolder; splits; ins.
-    all: try now apply YIN.
-    { apply MAPIN, YIN. }
-    intro FALSO; desf. }
-  unfold extra_a in *; desf.
-  all: try now exfalso; apply XEQA.
-  unfolder in XEQA. unfolder in YEQA.
-  desf.
+  assert (NEQ' : y <> x) by congruence.
+  destruct XIN as [XIN | XIN],
+           YIN as [YIN | YIN].
+  { unfold union.
+    destruct TOT with x y as [ORD | ORD].
+    all: eauto. }
+  all: clear - YIN XIN MAPIN NEQ.
+  { left; right.
+    unfolder in *. desf.
+    eauto 11 using or_not_and. }
+  { right; right.
+    unfolder in *. desf.
+    eauto 11 using or_not_and. }
+  exfalso. unfolder in *. desf.
 Qed.
 
 Lemma G_s_rff
@@ -482,9 +494,9 @@ Lemma G_s_rff
 Proof using.
   assert (WF : Wf G_t) by apply PRED.
   red in SIMREL. destruct SIMREL as (a_s & SIMREL).
-  rewrite (rsr_rf SIMREL), transp_union.
+  rewrite (rsr_rf SIMREL), transp_union, (wf_rfE WF).
   apply functional_union.
-  { rewrite <- collect_rel_transp, (wf_rfE WF),
+  { rewrite <- collect_rel_transp,
             <- restr_relE, <- restr_transp.
     apply functional_collect_rel_inj; [apply SIMREL|].
     rewrite restr_transp, restr_relE, <- (wf_rfE WF).
@@ -494,15 +506,8 @@ Proof using.
     apply wf_srff'.
     intros ol. apply (@G_s_co_total ol PRED).
     now exists a_s. }
-  intros x DOM1 DOM2.
-  assert (XIN : extra_a a_s x).
-  { unfolder in DOM2. desf. }
-  apply (rsr_codom SIMREL) with x; ins.
-  unfolder. unfolder in DOM1.
-  destruct DOM1 as (y & y' & x' & RF & XEQ & YEQ).
-  exists x'. split; ins.
-  apply (wf_rfE WF) in RF.
-  unfolder in RF. desf.
+  clear - SIMREL. unfolder in *. ins. desf.
+  eapply (rsr_codom SIMREL); basic_solver.
 Qed.
 
 Lemma G_s_rfE
@@ -510,17 +515,16 @@ Lemma G_s_rfE
     (SIMREL : reord_simrel) :
   rf_s ≡ ⦗E_s⦘ ⨾ rf_s ⨾ ⦗E_s⦘.
 Proof using.
-  assert (WF : Wf G_t) by apply PRED.
   red in SIMREL. destruct SIMREL as (a_s & SIMREL).
+  assert (WF : Wf G_t) by apply PRED.
+  assert (SUB : E_s \₁ extra_a a_s ⊆₁ E_s) by basic_solver.
   rewrite <- restr_relE, (rsr_rf SIMREL),
           restr_union.
   apply union_more.
-  { rewrite (wf_rfE WF), <- restr_relE.
-    rewrite <- collect_rel_restr, restr_restr, (rsr_acts SIMREL).
-    { rewrite set_inter_absorb_r; ins. basic_solver. }
-    eapply inj_dom_mori; ins; [| apply SIMREL].
-    rewrite (wf_rfE WF). unfold flip.
-    basic_solver. }
+  { split; [| basic_solver 11].
+    rewrite <- SUB, <- (rsr_codom SIMREL).
+    rewrite (wf_rfE WF), <- restr_relE.
+    clear. basic_solver. }
   rewrite restr_seq_eqv_r. apply seq_more; ins.
   rewrite restr_relE. apply wf_srfE.
 Qed.
@@ -531,9 +535,16 @@ Lemma G_s_co_trans
   transitive co_s.
 Proof using.
   assert (WF : Wf G_t) by apply PRED.
-  assert (COL : co_t ⊆ same_loc_t) by apply WF.
-  assert (COE : co_t ⊆ ⦗E_t⦘ ⨾ co_t ⨾ ⦗E_t⦘) by apply WF.
-  assert (COD : co_t ⊆ ⦗W_t⦘ ⨾ co_t ⨾ ⦗W_t⦘) by apply WF.
+  assert (COL : forall ol, upward_closed co_t (Loc_t_ ol)).
+  { unfold upward_closed. intros ol x y CO LOC.
+    apply (wf_col WF) in CO. unfold same_loc in *.
+    congruence. }
+  assert (COE : upward_closed co_t E_t).
+  { unfold upward_closed. intros x y CO YIN.
+    apply (wf_coE WF) in CO. unfolder in CO; desf. }
+  assert (COD : upward_closed co_t W_t).
+  { unfold upward_closed. intros x y CO YD.
+    apply (wf_coD WF) in CO. unfolder in CO; desf. }
   red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   rewrite (rsr_co SIMREL).
   apply expand_transitive.
@@ -543,25 +554,20 @@ Proof using.
     { apply SIMREL. }
     rewrite restr_relE, <- (wf_coE WF).
     apply WF. }
-  { unfold upward_closed. intros x y REL XIN.
+  { unfold upward_closed in *. intros x y REL XIN.
     apply (extra_co_DE SIMREL).
     apply (extra_co_DE SIMREL) in XIN.
-    unfolder in *.
-    destruct REL as (x' & y' & CO & XEQ & YEQ).
-    subst x. subst y.
+    destruct REL as (x' & y' & CO & XEQ & YEQ). subst.
     destruct XIN as (y & ((YINE & ISW) & HLOC) & YMAP).
-    exists x'. splits; ins.
-    { eapply (COE x' y'); eauto. }
-    { eapply (COD x' y'); eauto. }
-    rewrite <- HLOC.
-    rewrite <- (rsr_inj SIMREL) with (x := y') (y := y); eauto.
-    { eapply (COL x' y'); eauto. }
-    eapply (COE x' y'); eauto. }
-  rewrite <- set_collect_dom.
-  arewrite (dom_rel co_t ⊆₁ E_t).
-  { rewrite COE. basic_solver. }
-  rewrite (rsr_codom SIMREL), set_compl_minus.
-  basic_solver.
+    apply (rsr_inj SIMREL) in YMAP; desf.
+    { unfolder. eauto 11. }
+    clear - CO WF.
+    apply (wf_coE WF) in CO. unfolder in CO. desf. }
+  arewrite (extra_a a_s ∩₁ W_s ⊆₁ set_compl (mapper ↑₁ E_t)).
+  { rewrite (rsr_codom SIMREL). clear.
+    unfolder. ins. desf. tauto. }
+  rewrite (wf_coE WF). apply set_compl_mori.
+  unfold flip. clear. basic_solver.
 Qed.
 
 Lemma G_s_co_irr
@@ -579,7 +585,7 @@ Proof using.
     { apply SIMREL. }
     rewrite restr_relE, <- (wf_coE WF).
     apply WF. }
-  unfold add_max. unfolder. ins. desf. eauto.
+  unfold add_max. clear. basic_solver.
 Qed.
 
 Lemma G_s_co_l
@@ -588,20 +594,17 @@ Lemma G_s_co_l
   co_s ⊆ same_loc_s.
 Proof using.
   assert (WF : Wf G_t) by apply PRED.
-  assert (COL : co_t ⊆ same_loc_t) by apply WF.
-  assert (COE : co_t ⊆ ⦗E_t⦘ ⨾ co_t ⨾ ⦗E_t⦘) by apply WF.
   red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   rewrite (rsr_co SIMREL).
   apply inclusion_union_l.
-  { unfolder. intros x y (x' & y' & CO & XEQ & YEQ).
-    subst x. subst y. unfold same_loc, loc in *.
-    change (lab_s (mapper x')) with ((lab_s ∘ mapper) x').
-    change (lab_s (mapper y')) with ((lab_s ∘ mapper) y').
-    rewrite !(rsr_lab SIMREL).
-    all: try now apply COE in CO; unfolder in CO; desf.
-    now apply COL. }
-  unfold add_max, extra_co_D. unfold same_loc, extra_a.
-  desf; basic_solver.
+  { rewrite (wf_coE WF), (wf_col WF). unfolder.
+    ins. desf. unfold same_loc, loc in *.
+    rewrite <- !rsr_lab'.
+    all: try red; eauto. }
+  unfold extra_a. desf.
+  { clear. basic_solver. }
+  rewrite set_inter_empty_l, add_max_empty_r.
+  clear. basic_solver.
 Qed.
 
 Lemma G_s_coE
@@ -610,19 +613,15 @@ Lemma G_s_coE
   co_s ≡ ⦗E_s⦘ ⨾ co_s ⨾ ⦗E_s⦘.
 Proof using.
   assert (WF : Wf G_t) by apply PRED.
+  apply dom_helper_3.
   red in SIMREL. destruct SIMREL as (a_s & SIMREL).
-  rewrite <- restr_relE, (rsr_co SIMREL),
-          restr_union.
-  apply union_more.
-  { rewrite (wf_coE WF), <- restr_relE.
-    rewrite <- collect_rel_restr, restr_restr, (rsr_acts SIMREL).
-    { rewrite set_inter_absorb_r; ins. basic_solver. }
-    eapply inj_dom_mori; ins; [| apply SIMREL].
-    rewrite (wf_coE WF). unfold flip.
-    basic_solver. }
-  rewrite restr_add_max. apply add_max_more.
-  { unfold extra_co_D. basic_solver. }
-  rewrite (rsr_acts SIMREL). basic_solver.
+  rewrite (rsr_co SIMREL), (rsr_acts SIMREL).
+  apply inclusion_union_l.
+  { rewrite (wf_coE WF). clear. basic_solver. }
+  unfold extra_a. desf.
+  { basic_solver. }
+  rewrite set_inter_empty_l, add_max_empty_r.
+  basic_solver.
 Qed.
 
 Lemma G_s_coD
@@ -631,25 +630,18 @@ Lemma G_s_coD
   co_s ≡ ⦗W_s⦘ ⨾ co_s ⨾ ⦗W_s⦘.
 Proof using.
   assert (WF : Wf G_t) by apply PRED.
-  assert (COE : co_t ⊆ ⦗E_t⦘ ⨾ co_t ⨾ ⦗E_t⦘) by apply WF.
-  assert (COD : co_t ⊆ ⦗W_t⦘ ⨾ co_t ⨾ ⦗W_t⦘) by apply WF.
   red in SIMREL. destruct SIMREL as (a_s & SIMREL).
-  rewrite (rsr_co SIMREL), seq_union_l, seq_union_r.
-  apply union_more.
-  { split; [| basic_solver 11].
-    unfolder. intros x y (x' & y' & CO & XEQ & YEQ).
-    subst x. subst y. splits; eauto; unfold is_w.
-    all: hahn_rewrite COE in CO; hahn_rewrite COD in CO.
-    { change (lab_s (mapper x')) with ((lab_s ∘ mapper) x').
-      rewrite (rsr_lab SIMREL).
-      all: unfolder in CO; desf. }
-    change (lab_s (mapper y')) with ((lab_s ∘ mapper) y').
-    rewrite (rsr_lab SIMREL).
-    all: unfolder in CO; desf. }
-  rewrite <- restr_relE, restr_add_max.
-  unfold add_max. apply cross_more; [| basic_solver].
-  rewrite set_interA, set_interK. apply set_minus_more; ins.
-  unfold extra_co_D. basic_solver.
+  apply dom_helper_3.
+  rewrite (rsr_co SIMREL), (wf_coD WF),
+          (wf_coE WF).
+  apply inclusion_union_l.
+  { unfolder. ins. desf. unfold is_w in *.
+    rewrite <- !rsr_lab'.
+    all: try red; eauto. }
+  unfold extra_a. desf.
+  { basic_solver. }
+  rewrite set_inter_empty_l, add_max_empty_r.
+  basic_solver.
 Qed.
 
 Lemma immediate_union_ignore_alt {T : Type} (r1 r2 r3 : relation T)
@@ -697,43 +689,28 @@ Proof using.
     basic_solver. }
   { rewrite (rsr_ctrl SIMREL), (rsr_nctrl PRED).
     basic_solver. }
-  { apply dom_helper_3. rewrite (rsr_rmw SIMREL).
-    unfolder. intros x y (x' & y' & RMW & HEQ).
-    desf. unfold is_w, is_r.
-    change (lab_s (mapper x')) with ((lab_s ∘ mapper) x').
-    change (lab_s (mapper y')) with ((lab_s ∘ mapper) y').
-    hahn_rewrite (wf_rmwD WF) in RMW.
-    hahn_rewrite (wf_rmwE WF) in RMW.
-    rewrite !(rsr_lab SIMREL).
-    all: unfolder in RMW; desf. }
-  { rewrite (rsr_rmw SIMREL).
-    unfolder. intros x y (x' & y' & RMW & HEQ).
-    desf. unfold same_loc, loc.
-    change (lab_s (mapper x')) with ((lab_s ∘ mapper) x').
-    change (lab_s (mapper y')) with ((lab_s ∘ mapper) y').
-    assert (LOC : same_loc_t x' y') by now apply (wf_rmwl WF).
-    hahn_rewrite (wf_rmwE WF) in RMW.
-    rewrite !(rsr_lab SIMREL).
-    all: unfolder in RMW; desf. }
+  { apply dom_helper_3.
+    rewrite (rsr_rmw SIMREL), (wf_rmwD WF), (wf_rmwE WF).
+    unfolder. ins. desf. unfold is_w, is_r in *.
+    rewrite <- !rsr_lab'.
+    all: try red; eauto. }
+  { rewrite (rsr_rmw SIMREL), (wf_rmwE WF), (wf_rmwl WF).
+    unfolder. ins. desf. unfold same_loc, loc in *.
+    rewrite <- !rsr_lab'.
+    all: try red; eauto. }
   { rewrite (rsr_rmw SIMREL), (rsr_sb SIMREL).
     assert (NEXA : extra_a a_s ⊆₁ set_compl (mapper ↑₁ E_t)).
     { rewrite (rsr_codom SIMREL), set_compl_minus. basic_solver. }
     apply immediate_union_ignore.
-    { rewrite (wf_rmwE WF), <- restr_relE.
-      rewrite dom_cross; [| apply set_nonemptyE; basic_solver].
-      apply set_disjointE. split; [| basic_solver].
-      arewrite (dom_rel (mapper ↑ restr_rel E_t rmw_t) ⊆₁ mapper ↑₁ E_t).
-      { basic_solver 11. }
-      rewrite NEXA. basic_solver. }
-    { unfold extra_a; desf; [| rewrite cross_false_l; basic_solver].
-      rewrite codom_cross; [| apply set_nonemptyE; basic_solver].
-      apply set_disjointE. split; [| basic_solver].
-      unfolder. intros x ((x0 & x' & y' & RMW & XEQ & YEQ) & XEQ').
-      subst. apply (wf_rmwE WF) in RMW. unfolder in RMW.
-      destruct RMW as (DOM & RMW & CODOM).
-      apply (rsr_inj SIMREL) in XEQ'; desf.
-      apply (rsr_bt_nrmw PRED) with b_t; ins.
-      basic_solver. }
+    { rewrite (wf_rmwE WF), NEXA.
+      clear. basic_solver. }
+    { unfold extra_a. desf; [| clear; basic_solver].
+      rewrite codom_cross; [| apply set_nonemptyE; eauto].
+      rewrite <- set_collect_codom, <- set_collect_eq.
+      apply collect_set_disjoint.
+      { eapply inj_dom_mori with (x := E_t); eauto; [| apply SIMREL].
+        unfold flip. rewrite (wf_rmwE WF). basic_solver. }
+      rewrite (rsr_bt_nrmw PRED). clear. basic_solver. }
     assert (NEMPTY : forall (INB : E_t b_t),
       ~ mapper ↑₁ dom_rel (sb_t ⨾ ⦗eq b_t⦘) ≡₁ ∅).
     { ins. apply set_nonemptyE.
@@ -980,9 +957,6 @@ Proof using.
 Qed.
 
 End SimRel.
-
-#[export]
-Hint Unfold swap_rel add_max extra_co_D : unfolderDb.
 
 Module ReordRwSimRelProps.
 

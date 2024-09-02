@@ -162,3 +162,6 @@ Qed.
 Instance swap_rel_Propere T : Proper (_ ==> _ ==> _ ==> _) _ := swap_rel_more (T:=T).
 #[export]
 Instance add_max_Propere T : Proper (_ ==> _ ==> _) _ := add_max_more (T:=T).
+
+#[export]
+Hint Unfold swap_rel add_max : unfolderDb.
