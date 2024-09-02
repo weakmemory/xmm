@@ -143,6 +143,24 @@ Proof using.
   apply NOY with y; basic_solver.
 Qed.
 
+Lemma immediate_union_ignore_alt {T : Type} (r1 r2 r3 : relation T)
+    (NOX : set_disjoint (dom_rel r1) (codom_rel r3))
+    (NOY : set_disjoint (codom_rel r1) (codom_rel r3))
+    (EDGE : set_disjoint (codom_rel r3) (dom_rel r2))
+    (IN : r1 ⊆ immediate r2) :
+  r1 ⊆ immediate (r2 ∪ r3).
+Proof using.
+  rewrite immediateE in *.
+  intros x y REL. split.
+  { left. now apply IN. }
+  unfolder. intros FALSE. desf.
+  { assert (IN' : ~ (r2 ⨾ r2) x y) by now apply IN.
+    apply IN'. basic_solver. }
+  { apply EDGE with z; basic_solver. }
+  { apply NOY with y; basic_solver. }
+  apply NOY with y; basic_solver.
+Qed.
+
 Add Parametric Morphism T : (@swap_rel T) with signature
   same_relation ==> set_equiv ==> set_equiv
     ==> same_relation as swap_rel_more.
