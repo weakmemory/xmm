@@ -227,7 +227,7 @@ Proof using.
   apply set_finite_set_collect, PRED.
 Qed.
 
-Lemma rsr_sub_e s
+(* Lemma rsr_sub_e s
     (SIMREL : reord_simrel)
     (SUB : s ⊆₁ E_t) :
   mapper ↑₁ s ⊆₁ E_s.
@@ -287,7 +287,7 @@ Proof using.
   change (lab_s (mapper y))
     with ((lab_s ∘ mapper) y).
   rewrite (rsr_lab SIMREL); now apply SUB.
-Qed.
+Qed. *)
 
 Lemma rsr_same_tid' t
     (SIMREL : reord_simrel) :
