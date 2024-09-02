@@ -1399,7 +1399,7 @@ Proof using INV INV'.
     arewrite (mapper' ↑ rmw_t ≡ mapper ↑ rmw_t).
     { apply collect_rel_eq_dom' with (s := E_t); ins.
       apply (wf_rmwE (rsr_Gt_wf CORR)). }
-    arewrite_false (mapper' ↑ WCore.rmw_delta e l r ⨾ ⦗E_s⦘); [| basic_solver 11].
+    arewrite_false (mapper' ↑ WCore.rmw_delta e r ⨾ ⦗E_s⦘); [| basic_solver 11].
     assert (EEQ : mapper' e = e').
     { unfold mapper'. now rupd. }
     unfolder. ins. desf. congruence. }
@@ -1508,10 +1508,10 @@ Proof using INV INV'.
       arewrite (⦗E_s⦘ ⨾ ⦗extra_a X_t a_t b_t a_s ∩₁ R_s⦘ ≡
                       ⦗extra_a X_t a_t b_t a_s ∩₁ R_s⦘).
       { basic_solver 11. }
-      arewrite (rf_t' ⨾ ⦗eq e ∩₁ R_t'⦘ ≡ WCore.rf_delta_R e l w).
+      arewrite (rf_t' ⨾ ⦗eq e ∩₁ R_t'⦘ ≡ WCore.rf_delta_R e w).
       { rewrite (lab_is_rE ADD), id_inter, <- seqA,
                 (rf_delta_RE (rsr_Gt_wf CORR) ADD).
-        basic_solver. }
+        admit. }
       rewrite (rsr_rf SIMREL), (WCore.add_event_rf ADD),
               !collect_rel_union.
       arewrite (mapper' ↑ rf_t ≡ mapper ↑ rf_t).
@@ -1541,12 +1541,12 @@ Proof using INV INV'.
       rewrite extra_co_eq, upds.
       rewrite !add_max_disjoint with (A := eq e' ∩₁ _) by basic_solver.
       rewrite !add_max_disjoint with (A := eq e' ∩₁ _ ∩₁ _) by basic_solver.
-      rewrite <- unionA. unfold extra_a; desf; [| basic_solver 11].
+      rewrite <- unionA. unfold extra_a; desf; [| admit].
       arewrite (loc (upd lab_s e' l) a_s = loc lab_s a_s).
       { unfold loc. rupd. intro FALSO. subst e'.
         apply ETID; ins. rewrite <- TID. symmetry. apply AS_TID.
         unfold extra_a. desf. exfalso. eauto. }
-      basic_solver 11. }
+      admit. }
     { rewrite (WCore.add_event_threads ADD). apply SIMREL. }
     { rewrite (WCore.add_event_ctrl ADD). apply SIMREL. }
     { rewrite (WCore.add_event_data ADD). apply SIMREL. }
@@ -1587,291 +1587,46 @@ Proof using INV INV'.
            (option_map mapper' w),
            (extra_a X_t' a_t b_t a_s ∩₁ W_s ∩₁ Loc_s_ (WCore.lab_loc l) ∪₁ mapper' ↑₁ W1),
            (mapper' ↑₁ W2).
-    constructor; ins.
+    apply add_event_to_wf; ins.
+    { eapply rsr_init_acts_s with (X_s := X_s) (X_t := X_t); eauto. }
     { subst mapper'. now rupd. }
     { subst mapper'. now rupd. }
     { subst mapper'. rupd. congruence. }
-    { rewrite <- set_collect_eq_opt,
-              set_collect_eq_dom with (g := mapper),
-              rsr_is_w with (X_s := X_s) (X_t := X_t)
-                            (a_t := a_t) (b_t := b_t).
-      all: ins.
-      { apply set_subset_inter_r. split; apply ADD. }
-      eapply eq_dom_mori with (x := E_t); eauto.
-      unfold flip. apply ADD. }
-    { rewrite <- set_collect_eq_opt,
-              set_collect_eq_dom with (g := mapper),
-              rsr_sub_e with (X_s := X_s) (X_t := X_t)
-                            (a_t := a_t) (b_t := b_t).
-      all: ins; try now apply ADD.
-      eapply eq_dom_mori with (x := E_t); eauto.
-      unfold flip. apply ADD. }
-    { rewrite <- set_collect_eq_opt,
-              set_collect_eq_dom with (g := mapper),
-              rsr_loc with (X_s := X_s) (X_t := X_t)
-                           (a_t := a_t) (b_t := b_t)
-                           (l := WCore.lab_loc l).
-      all: ins.
-      { apply set_subset_inter_r. split; apply ADD. }
-      eapply eq_dom_mori with (x := E_t); eauto.
-      unfold flip. apply ADD. }
-    { rewrite <- set_collect_eq_opt,
-              set_collect_eq_dom with (g := mapper),
-              rsr_val with (X_s := X_s) (X_t := X_t)
-                           (a_t := a_t) (b_t := b_t)
-                           (v := WCore.lab_val l).
-      all: ins; try now apply ADD.
-      { apply set_subset_inter_r. split; apply ADD. }
-      eapply eq_dom_mori with (x := E_t); eauto.
-      unfold flip. apply ADD. }
-    { rewrite <- set_collect_eq_opt,
-              set_collect_eq_dom with (g := mapper),
-              rsr_is_r with (X_s := X_s) (X_t := X_t)
-                            (a_t := a_t) (b_t := b_t).
-      all: ins.
-      { apply set_subset_inter_r. split; apply ADD. }
-      eapply eq_dom_mori with (x := E_t); eauto.
-      unfold flip. apply ADD. }
-    { rewrite <- set_collect_eq_opt,
-              set_collect_eq_dom with (g := mapper),
-              rsr_sub_e with (X_s := X_s) (X_t := X_t)
-                            (a_t := a_t) (b_t := b_t).
-      all: ins; try now apply ADD.
-      eapply eq_dom_mori with (x := E_t); eauto.
-      unfold flip. apply ADD. }
-    { rewrite <- set_collect_eq_opt,
-              set_collect_eq_dom with (g := mapper),
-              rsr_loc with (X_s := X_s) (X_t := X_t)
-                           (a_t := a_t) (b_t := b_t)
-                           (l := WCore.lab_loc l).
-      all: ins.
-      { apply set_subset_inter_r. split; apply ADD. }
-      eapply eq_dom_mori with (x := E_t); eauto.
-      unfold flip. apply ADD. }
-    { destruct r as [r|]; [| basic_solver].
-      destruct classic
-          with (WCore.lab_is_w l (mapper' e))
-          as [ISW|NINS]; [| basic_solver].
-      assert (IN : WCore.lab_is_w l e).
-      { unfold WCore.lab_is_w. desf. }
-      assert (SB : sb_t' r e).
-      { apply immediate_in, ADD. basic_solver. }
-      assert (RNINIT : ~is_init r).
-      { eapply read_or_fence_is_not_init with G_t.
-        all: try now apply CORR.
-        left. now apply ADD. }
-      assert (RTID : tid r = tid e).
-      { apply sb_tid_init in SB. desf. }
-      assert (RNB : b_t <> r).
-      { intro FALSO. eapply (rsr_bt_nrmw CORR'); eauto.
-        apply set_subset_single_l. rewrite (WCore.add_event_rmw ADD).
-        basic_solver 11. }
-      assert (RNA : a_t <> r).
-      { intro FALSO. eapply (rsr_at_nrmw CORR'); eauto.
-        apply set_subset_single_l. rewrite (WCore.add_event_rmw ADD).
-        basic_solver 11. }
-      assert (INJ' : inj_dom
-        (dom_rel
-          (swap_rel sb_t'
-              (eq b_t ∩₁ E_t')
-              (eq a_t ∩₁ E_t'))
-        ∪₁ codom_rel
-              (swap_rel sb_t'
-                (eq b_t ∩₁ E_t')
-                (eq a_t ∩₁ E_t')))
-        mapper').
-      { eapply inj_dom_mori; eauto.
-        all: try now apply SIMREL'.
-        unfold flip, sb, swap_rel. basic_solver 11. }
-      transitivity (singl_rel (mapper' r) (mapper' e)); [basic_solver |].
-      rewrite <- collect_rel_singl.
-      change G_s' with (WCore.G X_s').
-      rewrite (rsr_sb SIMREL').
-      destruct classic with (tid e = tid b_t) as [ST|NT].
-      { rewrite <- EXEQ.
-        arewrite (extra_a X_t a_t b_t a_s ≡₁ ∅).
-        { unfold extra_a. desf.
-          exfalso. apply ETID; eauto. }
-        rewrite cross_false_l, cross_false_r, !union_false_r.
-        rewrite collect_rel_immediate; ins.
-        apply collect_rel_mori; ins.
-        apply swap_rel_imm.
-        all: try now intros (FALSO & _); congruence.
-        enough (HIN : immediate sb_t' r e).
-        { unfolder. unfolder in HIN. ins. desf. }
-        apply (WCore.add_event_ri ADD). basic_solver. }
-      apply immediate_union_ignore.
-      { rewrite collect_rel_singl, dom_singl_rel,
-                dom_cross, <- EXEQ.
-        { unfold extra_a. desf. unfolder.
-          intros x XEQ XEQ'. subst x.
-          apply NEWCODOM with (mapper' r).
-          { unfolder. exists r; split; ins.
-            apply (WCore.add_event_acts ADD). left.
-            apply (WCore.add_event_rE ADD). basic_solver. }
-          rewrite <- XEQ'. unfold extra_a. desf.
-          exfalso. eauto. }
-        apply set_nonemptyE. eauto. }
-      { rewrite collect_rel_singl, codom_singl_rel.
-        unfold extra_a; desf; [| basic_solver].
-        rewrite codom_cross; [| apply set_nonemptyE; eauto].
-        unfolder. ins. apply E_NOT_B.
-        apply (rsr_inj SIMREL'); try now desf.
-        now (apply (WCore.add_event_acts ADD); right). }
-      apply immediate_union_ignore.
-      { rewrite collect_rel_singl, dom_singl_rel.
-        unfold extra_a; desf; [| basic_solver].
-        rewrite dom_cross; [| apply set_nonemptyE; eauto].
-        rewrite <- set_collect_eq.
-        apply collect_set_disjoint.
-        { eapply inj_dom_mori; try (now apply SIMREL'); ins.
-          unfold flip. apply set_subset_union_l.
-          split; [| unfold sb; basic_solver].
-          rewrite (WCore.add_event_acts ADD),
-                  <- (WCore.add_event_rE ADD).
-          basic_solver. }
-        apply set_disjointE. split; [| basic_solver].
-        unfolder. intros x (EQR & (y & SB' & EQ)).
-        subst y. subst x. apply sb_tid_init in SB'.
-        desf. congruence. }
-      { rewrite collect_rel_singl, codom_singl_rel.
-        destruct classic with (dom_rel (sb_t' ⨾ ⦗eq b_t⦘) ≡₁ ∅) as [EMP|NEMP].
-        { rewrite EMP. basic_solver. }
-        rewrite codom_cross, <- EXEQ.
-        { unfold extra_a. desf. unfolder.
-          intros x XEQ XEQ'. subst x.
-          apply NEWCODOM with (mapper' e).
-          { unfolder. exists e; split; ins.
-            apply (WCore.add_event_acts ADD). now right. }
-          rewrite <- XEQ'. unfold extra_a. desf.
-          exfalso. eauto. }
-        apply set_nonemptyE. apply set_nonemptyE in NEMP.
-        desf. basic_solver. }
-      rewrite collect_rel_immediate; ins.
-      apply collect_rel_mori; ins.
-      apply swap_rel_imm.
-      all: try now intros (FALSO & _); congruence.
-      enough (HIN : immediate sb_t' r e).
-      { unfolder. unfolder in HIN. ins. desf. }
-      apply (WCore.add_event_ri ADD). basic_solver. }
-    { apply set_subset_union_l; split.
-      { basic_solver. }
-      rewrite set_collect_eq_dom with (g := mapper),
-              rsr_is_w with (X_s := X_s) (X_t := X_t)
-                            (a_t := a_t) (b_t := b_t).
-      all: ins.
-      { apply set_subset_inter_r. split; apply ADD. }
-      eapply eq_dom_mori with (x := E_t); eauto.
-      unfold flip. apply ADD. }
-    { apply set_subset_union_l; split.
-      { rewrite <- EXEQ. basic_solver. }
-      rewrite set_collect_eq_dom with (g := mapper),
-              rsr_sub_e with (X_s := X_s) (X_t := X_t)
-                            (a_t := a_t) (b_t := b_t).
-      all: ins; try now apply ADD.
-      eapply eq_dom_mori with (x := E_t); eauto.
-      unfold flip. apply ADD. }
-    { apply set_subset_union_l; split.
-      { basic_solver. }
-      rewrite set_collect_eq_dom with (g := mapper),
-              rsr_loc with (X_s := X_s) (X_t := X_t)
-                           (a_t := a_t) (b_t := b_t)
-                           (l := WCore.lab_loc l).
-      all: ins.
-      { apply set_subset_inter_r. split; apply ADD. }
-      eapply eq_dom_mori with (x := E_t); eauto.
-      unfold flip. apply ADD. }
-    { rewrite set_collect_eq_dom with (g := mapper),
-              rsr_is_w with (X_s := X_s) (X_t := X_t)
-                            (a_t := a_t) (b_t := b_t).
-      all: ins.
-      { apply set_subset_inter_r. split; apply ADD. }
-      eapply eq_dom_mori with (x := E_t); eauto.
-      unfold flip. apply ADD. }
-    { rewrite set_collect_eq_dom with (g := mapper),
-              rsr_sub_e with (X_s := X_s) (X_t := X_t)
-                            (a_t := a_t) (b_t := b_t).
-      all: ins; try now apply ADD.
-      eapply eq_dom_mori with (x := E_t); eauto.
-      unfold flip. apply ADD. }
-    { rewrite set_collect_eq_dom with (g := mapper),
-              rsr_loc with (X_s := X_s) (X_t := X_t)
-                           (a_t := a_t) (b_t := b_t)
-                           (l := WCore.lab_loc l).
-      all: ins.
-      { apply set_subset_inter_r. split; apply ADD. }
-      eapply eq_dom_mori with (x := E_t); eauto.
-      unfold flip. apply ADD. }
-    { rewrite set_collect_eq_dom with (g := mapper),
-              rsr_is_r with (X_s := X_s) (X_t := X_t)
-                            (a_t := a_t) (b_t := b_t).
-      all: ins.
-      { apply set_subset_inter_r. split; apply ADD. }
-      eapply eq_dom_mori with (x := E_t); eauto.
-      unfold flip. apply ADD. }
-    { rewrite set_collect_eq_dom with (g := mapper),
-              rsr_sub_e with (X_s := X_s) (X_t := X_t)
-                            (a_t := a_t) (b_t := b_t).
-      all: ins; try now apply ADD.
-      eapply eq_dom_mori with (x := E_t); eauto.
-      unfold flip. apply ADD. }
-    { rewrite set_collect_eq_dom with (g := mapper),
-              rsr_loc with (X_s := X_s) (X_t := X_t)
-                           (a_t := a_t) (b_t := b_t)
-                           (l := WCore.lab_loc l).
-      all: ins.
-      { apply set_subset_inter_r. split; apply ADD. }
-      eapply eq_dom_mori with (x := E_t); eauto.
-      unfold flip. apply ADD. }
-    { rewrite set_collect_eq_dom with (g := mapper),
-              rsr_val with (X_s := X_s) (X_t := X_t)
-                           (a_t := a_t) (b_t := b_t)
-                           (v := WCore.lab_val l).
-      all: ins; try now apply ADD.
-      { apply set_subset_inter_r. split; apply ADD. }
-      eapply eq_dom_mori with (x := E_t); eauto.
-      unfold flip. apply ADD. }
-    { eapply G_s_co_trans with (X_s := X_s'); eauto. }
-    { eapply G_s_rff with (X_s := X_s'); eauto. }
-    { eapply G_s_co_total with (X_s := X_s'); eauto. }
-    { eapply rsr_init_acts_s with (X_s := X_s) (X_t := X_t); eauto. }
-    { apply (rsr_threads SIMREL).
-      unfold mapper'. rupd. rewrite TID.
-      apply ADD. }
-    { rewrite (rsr_ctrl SIMREL), <- (WCore.add_event_ctrl ADD).
-      apply ADD. }
-    { unfold mapper'. now rupd. }
-    { unfold mapper'. now rupd. }
+    { subst mapper'. now rupd. }
+    { subst mapper'. now rupd. }
     { rewrite <- mapped_rf_delta_R,
               <- mapped_rf_delta_W.
-      arewrite (rf_t' ⨾ ⦗eq e ∩₁ R_t'⦘ ≡ WCore.rf_delta_R e l w).
+      arewrite (rf_t' ⨾ ⦗eq e ∩₁ R_t'⦘ ≡ WCore.rf_delta_R e w).
       { rewrite (lab_is_rE ADD), id_inter, <- seqA,
                 (rf_delta_RE (rsr_Gt_wf CORR) ADD).
-        basic_solver. }
+        admit. }
       rewrite (add_event_to_rf_complete ADD).
       all: try now apply CORR.
       now rewrite collect_rel_empty, union_false_r. }
-    { arewrite (⦗eq e ∩₁ W_t'⦘ ⨾ co_t' ≡ (eq e ∩₁ WCore.lab_is_w l) × W1).
+    { arewrite (⦗eq e ∩₁ W_t'⦘ ⨾ co_t' ≡ eq e × W1).
       { rewrite (lab_is_wE ADD), set_interC, id_inter,
                 seqA, (co_deltaE1 (rsr_Gt_wf CORR) ADD).
-        basic_solver. }
-      arewrite (co_t' ⨾ ⦗eq e ∩₁ W_t'⦘ ≡ W2 × (eq e ∩₁ WCore.lab_is_w l)).
+        admit. }
+      arewrite (co_t' ⨾ ⦗eq e ∩₁ W_t'⦘ ≡ W2 × eq e).
       { rewrite (lab_is_wE ADD), id_inter, <- seqA,
                 (co_deltaE2 (rsr_Gt_wf CORR) ADD).
-        basic_solver. }
+        admit. }
       unfold mapper'.
       rewrite co_delta_union_W1, <- mapped_co_delta,
               upds, <- EXEQ.
       rewrite add_max_disjoint.
-      all: basic_solver 11. }
+      all: admit. }
     { rewrite <- mapped_rmw_delta, (WCore.add_event_rmw ADD),
               collect_rel_union.
       arewrite (mapper' ↑ rmw_t ≡ mapper ↑ rmw_t).
       { apply collect_rel_eq_dom' with (s := E_t); ins.
         apply (wf_rmwE (rsr_Gt_wf CORR)). }
       now rewrite (rsr_rmw SIMREL). }
-    unfold sb at 1. ins. rewrite NEWSB.
-    unfold mapper'. now rupd. }
+    { unfold sb at 1. ins. rewrite NEWSB.
+      unfold mapper'. now rupd. }
+    { rewrite (rsr_ctrl SIMREL), <- (WCore.add_event_ctrl ADD).
+    apply ADD. }
+    eapply G_s_wf with (X_s := X_s') (X_t := X_t'); eauto. }
   { eapply G_s_rfc; eauto. }
   admit.
 Admitted.

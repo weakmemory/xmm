@@ -5,7 +5,7 @@ From imm Require Import imm_bob.
 From imm Require Import SubExecution.
 
 Require Import Program.Basics.
-Require Import AuxRel AuxDef Core StepOps.
+Require Import AuxRel AuxDef Core.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.

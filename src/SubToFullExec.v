@@ -431,7 +431,7 @@ Proof using.
       { rewrite RMW. basic_solver. }
       rewrite (wf_rmwl WF). basic_solver. }
     eapply eq_dom_mori with (x := E); eauto. }
-  { intros x y (SOME & EQE & ISW). subst y.
+  { intros x y (SOME & EQE). subst y.
     destruct r as [r| ]; ins. subst x.
     assert (IMM : immediate sb' r e).
     { apply (wf_rmwi WF). unfolder in RMW.
@@ -445,9 +445,9 @@ Proof using.
       now right. }
     intros c L R. eapply IMM; unfold sb in *.
     { unfolder in L. unfolder. ins.
-      splits; try basic_solver. }
+      splits; basic_solver. }
     unfolder in R. unfolder. ins.
-    splits; try basic_solver. }
+    splits; basic_solver. }
   { apply eq_dom_is_w with (lab := lab').
     { rewrite (wf_coD WF). basic_solver. }
     eapply eq_dom_mori with (x := E); eauto. }
@@ -492,36 +492,48 @@ Proof using.
     unfold flip. basic_solver. }
   { apply (prf_init PFX). }
   { now apply (prf_threads PFX), WF. }
+  { destruct w as [w|]; ins. exfalso.
+    apply NR. enough (ISR : R' e).
+    { unfold delta_lab, is_r in *. now rupd. }
+    rewrite (wf_rfD WF), !seqA in RF.
+    destruct RF as (_ & RF). unfolder in RF.
+    now apply RF with (x := w) (y := e). }
+  { split; [| basic_solver].
+    unfolder. intros r' (e' & EQ & RF' & RINE).
+    subst e'. apply NW. enough (ISR : W' e).
+    { unfold delta_lab, is_w in *. now rupd. }
+    apply (wf_rfD WF) in RF'. unfolder in RF'.
+    apply RF'. }
+  { destruct r as [r|]; ins. exfalso.
+    apply NW. enough (ISR : W' e).
+    { unfold delta_lab, is_w in *. now rupd. }
+    rewrite (wf_rmwD WF), !seqA in RMW.
+    destruct RMW as (_ & RMW). unfolder in RMW.
+    now apply RMW with (x := r) (y := e). }
+  { split; [| basic_solver].
+    unfolder. intros w' (e' & EQ & CO' & WINE).
+    subst e'. apply NW. enough (ISR : W' e).
+    { unfold delta_lab, is_w in *. now rupd. }
+    apply (wf_coD WF) in CO'. unfolder in CO'.
+    apply CO'. }
+  { split; [| basic_solver].
+    unfolder. intros w' (e' & EQ & CO' & WINE).
+    subst e'. apply NW. enough (ISR : W' e).
+    { unfold delta_lab, is_w in *. now rupd. }
+    apply (wf_coD WF) in CO'. unfolder in CO'.
+    apply CO'. }
   { rewrite restr_set_union, (prf_rf PFX).
     rewrite restr_irrefl_eq by now apply rf_irr.
     rewrite union_false_r.
     unfold WCore.rf_delta_R, WCore.rf_delta_W.
-    arewrite (eq e ∩₁ WCore.lab_is_r (lab' e) ≡₁ eq e ∩₁ R').
-    { unfold WCore.lab_is_r, is_r. unfolder. split.
-      all: ins; desf. }
-    arewrite (eq e ∩₁ WCore.lab_is_w (lab' e) ≡₁ eq e ∩₁ W').
-    { unfold WCore.lab_is_w, is_w. unfolder. split.
-      all: ins; desf. }
     repeat apply union_more; ins.
-    { rewrite cross_inter_r.
-      rewrite <- RF, (wf_rfD WF), !seqA. seq_rewrite <- !id_inter.
-      arewrite (R' ∩₁ (eq e ∩₁ R') ≡₁ R' ∩₁ eq e); ins.
-      basic_solver. }
-    rewrite cross_inter_l.
-    rewrite (wf_rfD WF), !seqA. seq_rewrite <- !id_inter.
-    basic_solver 12. }
+    clear; basic_solver 12. }
   { rewrite restr_set_union, (prf_co PFX).
     rewrite restr_irrefl_eq by now apply co_irr.
     rewrite union_false_r. unfold WCore.co_delta.
-    arewrite (eq e ∩₁ WCore.lab_is_w (lab' e) ≡₁ eq e ∩₁ W').
-    { unfold WCore.lab_is_w, is_w. unfolder. split.
-      all: ins; desf. }
-    rewrite cross_inter_r, cross_inter_l, unionA.
-    rewrite unionC with (r1 := ⦗E⦘ ⨾ co' ⨾ ⦗eq e⦘).
+    rewrite unionC with (r1 := eq e × _), <- unionA.
     repeat apply union_more; ins.
-    all: rewrite (wf_coD WF), !seqA.
-    all: seq_rewrite <- !id_inter.
-    all: basic_solver 12. }
+    all: clear; basic_solver 12. }
   { rewrite restr_set_union, (prf_rmw PFX).
     rewrite restr_irrefl_eq by now apply rmw_irr.
     rewrite union_false_r. rewrite unionA.
@@ -529,14 +541,7 @@ Proof using.
     { split; [| basic_solver].
       now rewrite (wf_rmwi WF), immediate_in. }
     rewrite union_false_r. unfold WCore.rmw_delta.
-    arewrite (eq e ∩₁ WCore.lab_is_w (lab' e) ≡₁ eq e ∩₁ W').
-    { unfold WCore.lab_is_w, is_w. unfolder. split.
-      all: ins; desf. }
-    repeat apply union_more; ins.
-    rewrite cross_inter_r, <- RMW,
-            (wf_rmwD WF), !seqA.
-    seq_rewrite <- !id_inter.
-    basic_solver 12. }
+    apply union_more; ins. }
   unfold delta_G, delta_E, sb at 1. ins.
   rewrite <- restr_relE, restr_set_union, restr_relE.
   change (⦗E⦘ ⨾ ext_sb ⨾ ⦗E⦘) with sb.
