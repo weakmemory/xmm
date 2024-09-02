@@ -1348,10 +1348,10 @@ Proof using INV INV'.
     acts_set := E_s ∪₁ eq e';
     threads_set := threads_set G_s;
     lab := upd lab_s e' l;
-    rf := rf_s ∪ mapper' ↑ (rf_t' ⨾ ⦗eq e ∩₁ R_t'⦘);
+    rf := rf_s ∪ mapper' ↑ (rf_t' ⨾ ⦗eq e⦘);
     co := co_s ∪
-          mapper' ↑ (⦗eq e ∩₁ W_t'⦘ ⨾ co_t') ∪
-          mapper' ↑ (co_t' ⨾ ⦗eq e ∩₁ W_t'⦘) ∪
+          mapper' ↑ (⦗eq e⦘ ⨾ co_t') ∪
+          mapper' ↑ (co_t' ⨾ ⦗eq e⦘) ∪
           add_max (eq e' ∩₁ WCore.lab_is_w l)
             (extra_a X_t' a_t b_t a_s ∩₁ W_s ∩₁ Loc_s_ (WCore.lab_loc l));
     rmw := mapper' ↑ rmw_t';
@@ -1379,14 +1379,14 @@ Proof using INV INV'.
     { rewrite seq_union_l.
       assert (EEQ : mapper' e = e').
       { unfold mapper'. now rupd. }
-      arewrite_false (mapper' ↑ (rf_t' ⨾ ⦗eq e ∩₁ R_t'⦘) ⨾ ⦗E_s⦘); [| basic_solver].
+      arewrite_false (mapper' ↑ (rf_t' ⨾ ⦗eq e⦘) ⨾ ⦗E_s⦘); [| basic_solver].
       unfolder. ins. desf. congruence. }
     { rewrite !seq_union_l, !seq_union_r.
       assert (EEQ : mapper' e = e').
       { unfold mapper'. now rupd. }
-      arewrite_false (⦗E_s⦘ ⨾ mapper' ↑ (⦗eq e ∩₁ W_t'⦘ ⨾ co_t')).
+      arewrite_false (⦗E_s⦘ ⨾ mapper' ↑ (⦗eq e⦘ ⨾ co_t')).
       { unfolder. ins. desf. congruence. }
-      arewrite_false (mapper' ↑ (co_t' ⨾ ⦗eq e ∩₁ W_t'⦘) ⨾ ⦗E_s⦘).
+      arewrite_false (mapper' ↑ (co_t' ⨾ ⦗eq e⦘) ⨾ ⦗E_s⦘).
       { unfolder. ins. desf. congruence. }
       arewrite_false (⦗E_s⦘ ⨾ add_max
         (eq e' ∩₁ WCore.lab_is_w l)
@@ -1508,10 +1508,7 @@ Proof using INV INV'.
       arewrite (⦗E_s⦘ ⨾ ⦗extra_a X_t a_t b_t a_s ∩₁ R_s⦘ ≡
                       ⦗extra_a X_t a_t b_t a_s ∩₁ R_s⦘).
       { basic_solver 11. }
-      arewrite (rf_t' ⨾ ⦗eq e ∩₁ R_t'⦘ ≡ WCore.rf_delta_R e w).
-      { rewrite (lab_is_rE ADD), id_inter, <- seqA,
-                (rf_delta_RE (rsr_Gt_wf CORR) ADD).
-        admit. }
+      rewrite (rf_delta_RE (rsr_Gt_wf CORR) ADD).
       rewrite (rsr_rf SIMREL), (WCore.add_event_rf ADD),
               !collect_rel_union.
       arewrite (mapper' ↑ rf_t ≡ mapper ↑ rf_t).
@@ -1521,14 +1518,8 @@ Proof using INV INV'.
       all: try now apply CORR.
       rewrite collect_rel_empty, !union_false_r.
       basic_solver 12. }
-    arewrite (⦗eq e ∩₁ W_t'⦘ ⨾ co_t' ≡ (eq e ∩₁ WCore.lab_is_w l) × W1).
-    { rewrite (lab_is_wE ADD), set_interC, id_inter, seqA,
-              (co_deltaE1 (rsr_Gt_wf CORR) ADD).
-      basic_solver. }
-    { arewrite (co_t' ⨾ ⦗eq e ∩₁ W_t'⦘ ≡ W2 × (eq e ∩₁ WCore.lab_is_w l)).
-      { rewrite (lab_is_wE ADD), id_inter, <- seqA,
-                (co_deltaE2 (rsr_Gt_wf CORR) ADD).
-        basic_solver. }
+    { rewrite (co_deltaE1 (rsr_Gt_wf CORR) ADD),
+            (co_deltaE2 (rsr_Gt_wf CORR) ADD).
       rewrite (WCore.add_event_co ADD), !collect_rel_union,
               (rsr_co SIMREL).
       arewrite (mapper' ↑ co_t ≡ mapper ↑ co_t).
@@ -1541,12 +1532,12 @@ Proof using INV INV'.
       rewrite extra_co_eq, upds.
       rewrite !add_max_disjoint with (A := eq e' ∩₁ _) by basic_solver.
       rewrite !add_max_disjoint with (A := eq e' ∩₁ _ ∩₁ _) by basic_solver.
-      rewrite <- unionA. unfold extra_a; desf; [| admit].
+      rewrite <- unionA. unfold extra_a; desf; [| basic_solver 12].
       arewrite (loc (upd lab_s e' l) a_s = loc lab_s a_s).
       { unfold loc. rupd. intro FALSO. subst e'.
         apply ETID; ins. rewrite <- TID. symmetry. apply AS_TID.
         unfold extra_a. desf. exfalso. eauto. }
-      admit. }
+      basic_solver 12. }
     { rewrite (WCore.add_event_threads ADD). apply SIMREL. }
     { rewrite (WCore.add_event_ctrl ADD). apply SIMREL. }
     { rewrite (WCore.add_event_data ADD). apply SIMREL. }
@@ -1585,7 +1576,8 @@ Proof using INV INV'.
   constructor.
   { exists (option_map mapper' r), (mapper' ↑₁ R1),
            (option_map mapper' w),
-           (extra_a X_t' a_t b_t a_s ∩₁ W_s ∩₁ Loc_s_ (WCore.lab_loc l) ∪₁ mapper' ↑₁ W1),
+           ((extra_a X_t' a_t b_t a_s ∩₁ W_s ∩₁ Loc_s_ (WCore.lab_loc l) ∩₁ WCore.lab_is_w l)
+            ∪₁ mapper' ↑₁ W1),
            (mapper' ↑₁ W2).
     apply add_event_to_wf; ins.
     { eapply rsr_init_acts_s with (X_s := X_s) (X_t := X_t); eauto. }
@@ -1596,26 +1588,21 @@ Proof using INV INV'.
     { subst mapper'. now rupd. }
     { rewrite <- mapped_rf_delta_R,
               <- mapped_rf_delta_W.
-      arewrite (rf_t' ⨾ ⦗eq e ∩₁ R_t'⦘ ≡ WCore.rf_delta_R e w).
-      { rewrite (lab_is_rE ADD), id_inter, <- seqA,
-                (rf_delta_RE (rsr_Gt_wf CORR) ADD).
-        admit. }
-      rewrite (add_event_to_rf_complete ADD).
+      rewrite (rf_delta_RE (rsr_Gt_wf CORR) ADD),
+              (add_event_to_rf_complete ADD).
       all: try now apply CORR.
       now rewrite collect_rel_empty, union_false_r. }
-    { arewrite (⦗eq e ∩₁ W_t'⦘ ⨾ co_t' ≡ eq e × W1).
-      { rewrite (lab_is_wE ADD), set_interC, id_inter,
-                seqA, (co_deltaE1 (rsr_Gt_wf CORR) ADD).
-        admit. }
-      arewrite (co_t' ⨾ ⦗eq e ∩₁ W_t'⦘ ≡ W2 × eq e).
-      { rewrite (lab_is_wE ADD), id_inter, <- seqA,
-                (co_deltaE2 (rsr_Gt_wf CORR) ADD).
-        admit. }
-      unfold mapper'.
-      rewrite co_delta_union_W1, <- mapped_co_delta,
-              upds, <- EXEQ.
-      rewrite add_max_disjoint.
-      all: admit. }
+    { rewrite (co_deltaE1 (rsr_Gt_wf CORR) ADD),
+              (co_deltaE2 (rsr_Gt_wf CORR) ADD).
+      rewrite co_delta_union_W1, <- mapped_co_delta.
+      unfold WCore.co_delta. rewrite collect_rel_union.
+      rewrite <- !unionA. repeat apply union_more; ins.
+      destruct classic with (WCore.lab_is_w l ≡₁ ∅) as [EMP|NEMP].
+      { now rewrite EMP, !set_inter_empty_r, add_max_empty_l, cross_false_r. }
+      unfold WCore.lab_is_w in *. desf.
+      rewrite !set_inter_full_r. ins.
+      unfold mapper'. rewrite upds, add_max_disjoint; ins.
+      rewrite <- EXEQ. basic_solver. }
     { rewrite <- mapped_rmw_delta, (WCore.add_event_rmw ADD),
               collect_rel_union.
       arewrite (mapper' ↑ rmw_t ≡ mapper ↑ rmw_t).
