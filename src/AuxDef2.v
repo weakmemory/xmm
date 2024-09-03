@@ -108,22 +108,29 @@ Proof using.
   basic_solver.
 Qed.
 
-Lemma swap_rel_imm {T : Type} (r : relation T) A B x y
-    (XNA : ~A x)
-    (XNB : ~B x)
-    (YNA : ~A y)
-    (YNB : ~B y)
-    (IN : singl_rel x y ⊆ immediate r) :
-  singl_rel x y ⊆ immediate (swap_rel r A B).
+Lemma swap_rel_imm {T : Type} (r1 r2 : relation T) A B
+    (NIN : r1 ⊆ (set_compl B × set_compl (A ∪₁ B)))
+    (IN : r1 ⊆ immediate r2) :
+  r1 ⊆ immediate (swap_rel r2 A B).
 Proof using.
+  rewrite set_compl_union in NIN.
   unfold swap_rel. rewrite immediateE in *.
-  intros x' y' EQ. unfolder in EQ. desf.
-  split.
-  { assert (IN' : r x y) by now apply IN.
-    unfolder. left; split; eauto using or_not_and. }
-  assert (IN' : ~ (r ⨾ r) x y) by now apply IN.
-  unfolder. intros FALSO. desf.
-  apply IN'. basic_solver.
+  intros x y REL. split; unfolder in *.
+  { unfolder in *. left; split; [now apply IN|].
+    apply or_not_and. right. apply (NIN x y REL). }
+  intro F. desf.
+  { apply (IN x y); eauto. }
+  { enough (~ B x); [eauto | apply (NIN x y REL)]. }
+  { enough (~ A y); [eauto | apply (NIN x y REL)]. }
+  enough (~ A y); [eauto | apply (NIN x y REL)].
+Qed.
+
+Lemma collect_rel_swap {S T : Type} (f : S -> T) A B r :
+  swap_rel (f ↑ r) (f ↑₁ A) (f ↑₁ B) ⊆ f ↑ (swap_rel r A B).
+Proof using.
+  unfold swap_rel.
+  now rewrite collect_rel_union, <- collect_rel_minus,
+          !collect_rel_cross.
 Qed.
 
 Lemma immediate_union_ignore {T : Type} (r1 r2 r3 : relation T)
