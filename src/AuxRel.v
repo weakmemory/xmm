@@ -86,44 +86,6 @@ Proof using.
   ins. now apply U2V.
 Qed.
 
-Lemma seq_absorb_l {A} s s' (r : relation A)
-    (SUB : s ⊆₁ s') :
-  ⦗s⦘ ⨾ ⦗s'⦘ ⨾ r ≡ ⦗s⦘ ⨾ r.
-Proof using.
-  now rewrite <- seqA, <- id_inter, set_inter_absorb_r.
-Qed.
-
-Lemma seq_absorb_r {A} s s' (r : relation A)
-    (SUB : s ⊆₁ s') :
-  (r ⨾ ⦗s'⦘) ⨾ ⦗s⦘ ≡  r ⨾ ⦗s⦘.
-Proof using.
-  now rewrite seqA, <- id_inter, set_inter_absorb_l.
-Qed.
-
-Lemma seq_absorb {A} s1 s1' s2 s2' (r : relation A)
-    (SUB1 : s1 ⊆₁ s1')
-    (SUB2 : s2 ⊆₁ s2') :
-  ⦗s1⦘ ⨾ (⦗s1'⦘ ⨾ r ⨾ ⦗s2'⦘) ⨾ ⦗s2⦘ ≡ ⦗s1⦘ ⨾ r ⨾ ⦗s2⦘.
-Proof using.
-  rewrite seqA, seq_absorb_l, seq_absorb_r; ins.
-Qed.
-
-Lemma seq_restr_eq_prod {A} s s' (r : relation A) :
-  ⦗s⦘ ⨾ r ⨾ ⦗s'⦘ ≡ r ∩ s × s'.
-Proof using.
-  basic_solver.
-Qed.
-
-Lemma seq_restr_helper {A} s1 s1' s2 s2' (r : relation A)
-    (SUB1 : s1 ⊆₁ s1')
-    (SUB2 : s2 ⊆₁ s2') :
-  ⦗s1⦘ ⨾ r ⨾ ⦗s2⦘ ⊆ ⦗s1'⦘ ⨾ r ⨾ ⦗s2'⦘.
-Proof using.
-  red in SUB1, SUB2. rewrite !seq_restr_eq_prod.
-  intros x y (REL & L & R). repeat (red; split; ins).
-  all: eauto.
-Qed.
-
 Lemma upd_compose (A B C : Type) a b
     (f : B -> C)
     (g : A -> B)
@@ -222,34 +184,6 @@ Proof using.
   unfolder in IMM. desc.
   destruct (TOTAL x X y Y NEQ).
   all: auto || exfalso; eauto.
-Qed.
-
-Lemma nsame_loc_nrmw G x y
-    (WF : Wf G)
-    (NLOC : ~same_loc (lab G) x y) :
-  ~rmw G x y.
-Proof using.
-  intro F. now apply (wf_rmwl WF) in F.
-Qed.
-
-Lemma rsrw_a_b_nrmw_dep G x y
-    (IS_W : is_w (lab G) x)
-    (WF : Wf G) :
-  ~rmw_dep G x y.
-Proof using.
-  intro F. apply (wf_rmw_depD WF) in F.
-  unfolder in F. destruct F as (IS_R & _ & _ ).
-  unfold is_r, is_w in *. desf.
-Qed.
-
-Lemma w_nrmwdep G y
-    (IS_W : is_w (lab G) y)
-    (WF : Wf G) :
-  ~codom_rel (rmw_dep G) y.
-Proof using.
-  intros [x F]. apply (wf_rmw_depD WF) in F.
-  unfolder in F. destruct F as (_ & _ & IS_R).
-  unfold R_ex, is_w in *. desf.
 Qed.
 
 Lemma new_event_plus e G G'
