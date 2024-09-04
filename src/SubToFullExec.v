@@ -1,10 +1,7 @@
 Require Import Lia Setoid Program.Basics.
-Require Import AuxDef.
+Require Import AuxDef AuxRel.
 Require Import ExecEquiv.
-Require Import ThreadTrace.
 Require Import Core.
-Require Import TraceSwap.
-Require Import AuxRel.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
