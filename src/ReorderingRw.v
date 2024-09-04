@@ -1474,7 +1474,8 @@ Proof using INV INV'.
       unfold WCore.sb_delta.
       arewrite (E_s ≡₁ E_s ∪₁ is_init).
       { symmetry. apply set_union_absorb_r.
-        eapply rsr_init_acts_s; try red; eauto. }
+        eapply rsr_init_acts_s with (X_t := X_t).
+        all: try red; eauto. }
       clear. basic_solver 11. }
     arewrite (vf G_s'' ⨾ ⦗E_s⦘ ≡ vf_s ⨾ ⦗E_s⦘).
     { apply (vf_add_event X_s X_s''); ins.
