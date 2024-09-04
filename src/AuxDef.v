@@ -1,13 +1,6 @@
 From imm Require Import Events Execution.
-From imm Require Import imm_s_hb.
-
-Require Import Lia Program.Basics.
-
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
-From PromisingLib Require Import Language Basic.
-
-Open Scope program_scope.
 
 Set Implicit Arguments.
 

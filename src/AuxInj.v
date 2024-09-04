@@ -13,15 +13,12 @@ Lemma set_collect_minus s s'
     (INJ : inj_dom (s ∪₁ s') f) :
   f ↑₁ (s \₁ s') ≡₁ f ↑₁ s \₁ f ↑₁ s'.
 Proof using.
-  unfolder. split; intros x HSET.
-  { destruct HSET as (y & (HSET & HMINUS) & XEQ).
-    split; eauto.
-    intros (y' & INS & XEQ'). apply HMINUS.
-    rewrite INJ with (x := y) (y := y'); eauto.
-    all: try congruence.
-    all: basic_solver. }
-  destruct HSET as ((y & HSET & XEQ) & NOTIN).
-  exists y; splits; eauto.
+  unfolder in *. split; intros x HSET.
+  all: desf; splits.
+  all: try (eexists; splits; eauto).
+  intros (y' & IN & FALSO). apply INJ in FALSO.
+  all: eauto.
+  congruence.
 Qed.
 
 Lemma set_collect_interE s s'
@@ -29,10 +26,9 @@ Lemma set_collect_interE s s'
   f ↑₁ (s ∩₁ s') ≡₁ f ↑₁ s ∩₁ f ↑₁ s'.
 Proof using.
   split; [apply set_collect_inter |].
-  unfolder; intros x SET; desf.
-  apply INJ in SET1; ins; desf.
-  { exists y0; splits; ins. }
-  all: basic_solver.
+  unfolder in *; intros x SET; desf.
+  eexists; splits; eauto.
+  erewrite INJ; eauto.
 Qed.
 
 Lemma collect_rel_restr s r
@@ -41,7 +37,7 @@ Lemma collect_rel_restr s r
 Proof using.
   rewrite !restr_relE, !collect_rel_seq, collect_rel_eqv; ins.
   all: eapply inj_dom_mori; eauto.
-  all: unfold flip; basic_solver.
+  all: red; clear; basic_solver.
 Qed.
 
 Lemma map_rel_eqvE d
@@ -59,10 +55,11 @@ Lemma collect_rel_interE r r'
   f ↑ (r ∩ r') ≡ f ↑ r ∩ f ↑ r'.
 Proof using.
   split; [apply collect_rel_inter |].
-  unfolder; intros x y REL; desf.
-  apply INJ in REL1, REL2; ins; desf.
-  { exists x'0, y'0; splits; ins. }
-  all: basic_solver 11.
+  unfolder; intros x y (REL & REL'); desf.
+  do 2 eexists; splits; eauto.
+  rewrite <- 2!INJ; eauto.
+  all: clear - REL REL'.
+  all: basic_solver 7.
 Qed.
 
 Lemma collect_set_disjoint s1 s2
@@ -79,12 +76,10 @@ Lemma collect_rel_minusE r1 r2
   f ↑ (r1 \ r2) ≡ f ↑ r1 \ f ↑ r2.
 Proof using.
   split; [| apply collect_rel_minus].
-  unfolder. intros x y (x' & y' & (R1 & R2) & XEQ & YEQ).
-  split; eauto. intros (x'' & y'' & R2' & XEQ' & YEQ').
-  apply R2.
-  rewrite FINJ with x' x'', FINJ with y' y''.
-  all: try congruence.
-  all: basic_solver 11.
+  unfolder. ins. desf; splits; eauto.
+  intros (x'0 & y'0 & F & XEQ & YEQ).
+  erewrite (FINJ x'0), (FINJ y'0) in F; eauto.
+  all: basic_solver 7.
 Qed.
 
 Lemma collect_rel_immediate r
@@ -95,7 +90,8 @@ Proof using.
   rewrite collect_rel_minusE, collect_rel_seq; ins.
   { now rewrite set_unionC. }
   rewrite dom_seq, codom_seq.
-  eapply inj_dom_mori; eauto. unfold flip. basic_solver.
+  eapply inj_dom_mori; eauto. unfold flip.
+  clear. basic_solver.
 Qed.
 
 End AuxInj.
