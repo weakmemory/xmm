@@ -8,7 +8,7 @@ From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 From PromisingLib Require Import Basic.
 
-Require Import AuxDef.
+Require Import AuxDef AuxRel.
 Require Import Core.
 
 Require Import Program.Basics.

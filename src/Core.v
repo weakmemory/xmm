@@ -1,22 +1,20 @@
-Require Import Lia Setoid Program.Basics.
-Require Import AuxDef AuxRel.
 
+Require Import Lia Setoid Program.Basics.
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
-From hahn Require Import HahnTrace.
 From hahn Require Import HahnSorted.
 From hahnExt Require Import HahnExt.
-From imm Require Import Events Execution Execution_eco imm_s_hb.
-From imm Require Import imm_s_ppo.
+From imm Require Import Events Execution Execution_eco.
 From imm Require Import imm_s_hb.
-From imm Require Import imm_bob.
-From imm Require Import imm_s.
+From imm Require Import imm_s_hb.
 From imm Require Import SubExecution.
-From imm Require Import FinExecution.
-From imm Require Import FinThreads.
+From imm Require Import imm_s.
 
 From RecordUpdate Require Import RecordSet.
 (* Import RecordSetNotations. *)
+
+Require Import AuxDef Rhb.
+
 Open Scope program_scope.
 
 Import ListNotations.
@@ -49,8 +47,6 @@ Notation "'same_loc'" := (same_loc lab).
 Notation "'mod'" := (mod lab).
 Notation "'W'" := (is_w lab).
 Notation "'hb'" := (hb G).
-Notation "'ppo'" := (ppo G).
-Notation "'bob'" := (bob G).
 Notation "'rf'" := (rf G).
 Notation "'sb'" := (sb G).
 Notation "'eco'" := (eco G).

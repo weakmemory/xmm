@@ -4,15 +4,11 @@ Require Import ThreadTrace.
 Require Import Core.
 Require Import TraceSwap.
 Require Import SubToFullExec.
-(* Require Import ReorderingCommon. *)
 Require Import AuxRel.
-(* Require Import ExecEquiv.
-Require Import ExecOps.
-Require Import CfgOps.
-Require Import Steps. *)
 Require Import AuxDef2.
 Require Import StepOps.
-Require Import SrfProps.
+Require Import Srf Rhb SrfProps.
+Require Import AuxInj.
 Require Import Instructions.
 Require Import Setoid Morphisms.
 

@@ -9,7 +9,7 @@ From imm Require Import imm_s_hb.
 From imm Require Import imm_bob.
 From imm Require Import SubExecution.
 
-Require Import AuxDef.
+Require Import AuxRel.
 
 Definition seq_set (n : nat) : nat -> Prop := fun x => x < n.
 Definition thread_seq_set t n : actid -> Prop :=

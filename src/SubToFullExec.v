@@ -1,5 +1,5 @@
 Require Import Lia Setoid Program.Basics.
-Require Import AuxDef AuxRel.
+Require Import AuxDef HahnTotalListEx AuxRel. (* needs wf_rmwff *)
 Require Import ExecEquiv.
 Require Import Core.
 

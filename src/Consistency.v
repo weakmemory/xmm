@@ -1,18 +1,17 @@
 Require Import Lia Setoid Program.Basics.
-Require Import AuxDef.
+Require Import AuxDef AuxInj.
 Require Import Core.
-Require Import AuxRel.
+Require Import Rhb Srf.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
 From hahn Require Import HahnTrace.
 From hahn Require Import HahnSorted.
 From hahnExt Require Import HahnExt.
-From imm Require Import Events Execution Execution_eco imm_s_hb.
+From imm Require Import Events Execution Execution_eco.
 From imm Require Import imm_s_ppo.
 From imm Require Import imm_s_hb.
 From imm Require Import imm_bob.
-From imm Require Import SubExecution.
 From imm Require Import CombRelations.
 
 Module Consistency.

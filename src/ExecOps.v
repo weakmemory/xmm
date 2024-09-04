@@ -1,15 +1,12 @@
-From imm Require Import Events Execution imm_s_hb.
-From imm Require Import imm_s_ppo.
-From imm Require Import imm_s_hb.
-From imm Require Import imm_bob.
+From imm Require Import Events Execution.
 From imm Require Import SubExecution.
 
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 From PromisingLib Require Import Basic.
 
-Require Import AuxDef.
-Require Import ThreadTrace.
+Require Import AuxDef AuxInj.
+Require Import ThreadTrace. (* Only for `contigious actids` *)
 
 Require Import Program.Basics.
 
