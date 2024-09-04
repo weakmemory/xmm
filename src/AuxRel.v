@@ -21,6 +21,8 @@ From imm Require Import CombRelations.
 
 Set Implicit Arguments.
 
+Open Scope program_scope.
+
 Section Thrdle.
 
 Variable G : execution.
