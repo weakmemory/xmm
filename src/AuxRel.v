@@ -78,14 +78,6 @@ Proof using.
   apply Relation_Operators.tn1_trans with y; eauto.
 Qed.
 
-Lemma same_lab_u2v_compose {A} lab1 lab2 (f : A -> actid)
-    (U2V : same_lab_u2v lab1 lab2) :
-  same_lab_u2v (lab1 ∘ f) (lab2 ∘ f).
-Proof using.
-  unfold same_lab_u2v, same_lab_u2v_dom in *.
-  ins. now apply U2V.
-Qed.
-
 Lemma upd_compose (A B C : Type) a b
     (f : B -> C)
     (g : A -> B)
@@ -97,36 +89,6 @@ Proof using.
   { now rewrite !upds. }
   rewrite !updo; ins.
   intro F. apply INJ in F; ins.
-Qed.
-
-(* Lemma conjugate_sub {A} r (f : A -> option A)
-    (m m' : A -> A)
-    (MINJ : inj_dom ⊤₁ m)
-    (MSURJ : surj_dom ⊤₁ m)
-    (INV : m' ∘ m = id) :
-  Some ↓ ((option_map m ∘ f ∘ m') ↑ (m ↑ r)) ⊆
-    m ↑ (Some ↓ (f ↑ r)).
-Proof using.
-  rewrite <- !collect_rel_compose, Combinators.compose_assoc.
-  rewrite INV, Combinators.compose_id_right.
-  unfold compose. unfolder; ins; desf.
-  destruct MSURJ with x as [x'0 XEQ].
-  destruct MSURJ with y as [y'0 YEQ].
-  subst; exists x'0, y'0; splits; ins.
-  exists x', y'. splits; ins.
-  { destruct (f x') eqn:HEQ; ins.
-    f_equal. apply MINJ; ins. congruence. }
-  destruct (f y') eqn:HEQ; ins.
-  f_equal. apply MINJ; ins. congruence.
-Qed. *)
-
-Lemma restr_irr A (x : A) s r
-    (IRR : irreflexive r) :
-  restr_rel (s ∩₁ eq x) r ≡ ∅₂.
-Proof using.
-  destruct (classic (s x)) as [HIN|HIN]; [| basic_solver].
-  arewrite (s ∩₁ eq x ≡₁ eq x) by basic_solver.
-  now apply restr_irrefl_eq.
 Qed.
 
 (* TODO: move to HahnExt/SetSize.v *)
@@ -171,21 +133,6 @@ Proof using.
   splits; try apply HH; basic_solver.
 Qed.
 
-Lemma immediate_total {A} (x y z : A) (s : A -> Prop) (r : relation A)
-  (X : s x)
-  (Y : s y)
-  (Z : s z)
-  (TOTAL : is_total s r)
-  (FIRST : r x z)
-  (IMM : immediate r y z)
-  (NEQ : x <> y) :
-  r x y.
-Proof using.
-  unfolder in IMM. desc.
-  destruct (TOTAL x X y Y NEQ).
-  all: auto || exfalso; eauto.
-Qed.
-
 Lemma new_event_plus e G G'
     (NEW : ~ acts_set G e)
     (ADD : acts_set G' ≡₁ acts_set G ∪₁ eq e) :
@@ -226,25 +173,6 @@ Proof using.
   unfolder; ins; desf.
 Qed.
 
-Lemma rmw_dep_irr G
-    (WF : Wf G) :
-  irreflexive (rmw_dep G).
-Proof using.
-  eapply irreflexive_inclusion, sb_irr.
-  apply WF.
-Qed.
-
-Lemma rmw_dense G x y
-    (WF : Wf G)
-    (IN : (acts_set G) y)
-    (RMW : (rmw G) x y) :
-  (acts_set G) x.
-Proof using.
-  apply wf_rmwi, immediate_in in RMW; eauto.
-  unfold sb in RMW. unfolder in RMW.
-  desf.
-Qed.
-
 Lemma nodup_not_in A (e h : A) t
     (NODUP : NoDup (h :: t))
     (IN : In e t) :
@@ -252,19 +180,6 @@ Lemma nodup_not_in A (e h : A) t
 Proof using.
   inv NODUP.
   now destruct (classic (h = e)); subst.
-Qed.
-
-Lemma equiv_seq_eq {A} (s : A -> Prop)
-  (r : relation A) :
-  ⦗s⦘ ⨾ (⦗s⦘ ⨾ r ⨾ ⦗s⦘) ⨾ ⦗s⦘ ≡ ⦗s⦘ ⨾ r ⨾ ⦗s⦘.
-Proof using.
-  basic_solver.
-Qed.
-
-Lemma seq_eq_prod {A} (a : A) r :
-  ⦗eq a⦘ ⨾ r ≡ eq a × codom_rel (⦗eq a⦘ ⨾ r).
-Proof using.
-  basic_solver.
 Qed.
 
 Lemma in_restr_acts G e :
