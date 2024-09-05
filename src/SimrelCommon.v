@@ -222,4 +222,14 @@ Proof using.
   all: eauto 11.
 Qed.
 
+Lemma sico_mapper_swap_set e e' s
+    (NINE : ~E_t e)
+    (SET : s ⊆₁ E_t) :
+  (upd mapper e e') ↑₁ s ≡₁ mapper ↑₁ s.
+Proof using.
+  apply set_collect_eq_dom. rewrite SET.
+  unfolder. intros.
+  now rewrite updo by congruence.
+Qed.
+
 End SimRel.

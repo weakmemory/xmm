@@ -11,6 +11,7 @@ Require Import Srf Rhb SrfProps.
 Require Import AuxInj.
 (* Require Import Instructions. *)
 Require Import Setoid Morphisms.
+Require Import SimrelCommon.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -175,15 +176,13 @@ Record reord_simrel_gen a_s : Prop := {
 
 Definition reord_simrel := exists a_s, reord_simrel_gen a_s.
 
-Lemma rsr_init_acts_s
-    (PRED : reord_step_pred)
+Lemma rsr_common
     (SIMREL : reord_simrel) :
-  is_init ⊆₁ E_s.
+  simrel_common X_s X_t mapper.
 Proof using.
   red in SIMREL. destruct SIMREL as (a_s & SIMREL).
-  rewrite (rsr_acts SIMREL), <- (rsr_init_acts PRED).
-  rewrite <- (fixset_set_fixpoint (rsr_init SIMREL)).
-  basic_solver.
+  constructor; try now apply SIMREL.
+  rewrite (rsr_acts SIMREL). clear. basic_solver.
 Qed.
 
 Lemma rsr_as_ninit a_s
@@ -196,19 +195,8 @@ Proof using.
     apply HSET. }
   assert (NTID : tid b_t <> tid_init).
   { rewrite <- (rsr_at_bt_tid PRED). apply PRED. }
-  unfold same_tid, is_init. basic_solver.
-Qed.
-
-Lemma rsr_map_inits
-    (PRED : reord_step_pred)
-    (SIMREL : reord_simrel) :
-  mapper ↑₁ E_t \₁ is_init ≡₁ mapper ↑₁ (E_t \₁ is_init).
-Proof using.
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
-  rewrite set_collect_minus, <- (fixset_set_fixpoint (rsr_init SIMREL)).
-  all: ins.
-  eapply inj_dom_mori; ins; try now apply SIMREL.
-  rewrite (rsr_init_acts PRED). red. basic_solver.
+  unfold same_tid, is_init. clear - NTID.
+  basic_solver.
 Qed.
 
 Lemma rsr_fin_s
@@ -216,77 +204,8 @@ Lemma rsr_fin_s
     (SIMREL : reord_simrel) :
   set_finite (E_s \₁ is_init).
 Proof using.
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
-  rewrite (rsr_acts SIMREL). rewrite set_minus_union_l.
-  arewrite (extra_a a_s \₁ is_init ⊆₁ eq a_s).
-  { unfold extra_a. desf; clear; basic_solver. }
-  apply set_finite_union. split; [| apply set_finite_eq].
-  arewrite (mapper ↑₁ E_t \₁ is_init ≡₁ mapper ↑₁ (E_t \₁ is_init)).
-  { apply rsr_map_inits; try red; eauto. }
-  apply set_finite_set_collect, PRED.
-Qed.
-
-(* Lemma rsr_sub_e s
-    (SIMREL : reord_simrel)
-    (SUB : s ⊆₁ E_t) :
-  mapper ↑₁ s ⊆₁ E_s.
-Proof using.
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
-  rewrite (rsr_acts SIMREL). apply set_subset_union_r.
-  left. now apply set_collect_mori.
-Qed.
-
-Lemma rsr_is_w s
-    (SIMREL : reord_simrel)
-    (SUB : s ⊆₁ E_t ∩₁ W_t) :
-  mapper ↑₁ s ⊆₁ W_s.
-Proof using.
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
-  unfolder. intros x (y & YIN & XEQ).
-  subst x. unfold is_w.
-  change (lab_s (mapper y))
-    with ((lab_s ∘ mapper) y).
-  rewrite (rsr_lab SIMREL); now apply SUB.
-Qed.
-
-Lemma rsr_is_r s
-    (SIMREL : reord_simrel)
-    (SUB : s ⊆₁ E_t ∩₁ R_t) :
-  mapper ↑₁ s ⊆₁ R_s.
-Proof using.
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
-  unfolder. intros x (y & YIN & XEQ).
-  subst x. unfold is_r.
-  change (lab_s (mapper y))
-    with ((lab_s ∘ mapper) y).
-  rewrite (rsr_lab SIMREL); now apply SUB.
-Qed.
-
-Lemma rsr_loc s l
-    (SIMREL : reord_simrel)
-    (SUB : s ⊆₁ E_t ∩₁ Loc_t_ l) :
-  mapper ↑₁ s ⊆₁ Loc_s_ l.
-Proof using.
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
-  unfolder. intros x (y & YIN & XEQ).
-  subst x. unfold loc.
-  change (lab_s (mapper y))
-    with ((lab_s ∘ mapper) y).
-  rewrite (rsr_lab SIMREL); now apply SUB.
-Qed.
-
-Lemma rsr_val s v
-    (SIMREL : reord_simrel)
-    (SUB : s ⊆₁ E_t ∩₁ Val_t_ v) :
-  mapper ↑₁ s ⊆₁ Val_s_ v.
-Proof using.
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
-  unfolder. intros x (y & YIN & XEQ).
-  subst x. unfold val.
-  change (lab_s (mapper y))
-    with ((lab_s ∘ mapper) y).
-  rewrite (rsr_lab SIMREL); now apply SUB.
-Qed. *)
+  admit.
+Admitted.
 
 Lemma rsr_tid' e
     (SIMREL : reord_simrel)
@@ -295,15 +214,6 @@ Lemma rsr_tid' e
 Proof using.
   destruct SIMREL as (a_s & SIMREL).
   rewrite <- (rsr_tid SIMREL); ins.
-Qed.
-
-Lemma rsr_lab' e
-    (SIMREL : reord_simrel)
-    (INE : E_t e) :
-  lab_t e = lab_s (mapper e).
-Proof using.
-  destruct SIMREL as (a_s & SIMREL).
-  rewrite <- (rsr_lab SIMREL); ins.
 Qed.
 
 Lemma rsr_same_tid' t
@@ -456,18 +366,10 @@ Proof using.
                   (mapper ↑₁ E_t ∩₁ W_s ∩₁ Loc_s_ ol)
                   (mapper ↑ co_t)
   ).
-  { rewrite !set_interA. unfolder.
-    intros x ((x' & XINE & XEQ) & XW & XL)
-           y ((y' & YINE & YEQ) & YW & YL)
-           NEQ.
-    subst x. subst y.
-    assert (NEQ' : x' <> y') by congruence.
-    destruct (wf_co_total WF) with (ol := ol) (a := x') (b := y').
-    all: unfold is_w, loc in *; unfolder.
-    all: rewrite ?(rsr_lab' _ SIMREL); eauto 11. }
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
+  { apply sico_co_total; auto using rsr_common. }
   assert (MAPIN : mapper ↑₁ E_t ⊆₁ E_s).
-  { rewrite (rsr_acts SIMREL). basic_solver. }
+  { auto using rsr_common, sico_codom. }
+  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   rewrite (rsr_acts SIMREL), (rsr_co SIMREL).
   unfold extra_a; desf.
   all: try now (rewrite set_union_empty_r, set_inter_empty_l,
@@ -497,13 +399,11 @@ Lemma G_s_rff
 Proof using.
   assert (WF : Wf G_t) by apply PRED.
   red in SIMREL. destruct SIMREL as (a_s & SIMREL).
-  rewrite (rsr_rf SIMREL), transp_union, (wf_rfE WF).
+  rewrite (rsr_rf SIMREL), transp_union.
+  rewrite (wf_rfE WF).
   apply functional_union.
-  { rewrite <- collect_rel_transp,
-            <- restr_relE, <- restr_transp.
-    apply functional_collect_rel_inj; [apply SIMREL|].
-    rewrite restr_transp, restr_relE, <- (wf_rfE WF).
-    apply WF. }
+  { rewrite <- (wf_rfE WF).
+    eapply sico_rff, rsr_common; try red; eauto. }
   { rewrite transp_seq, transp_eqv_rel.
     apply functional_seq; [basic_solver |].
     apply wf_srff'.
@@ -520,16 +420,11 @@ Lemma G_s_rfE
 Proof using.
   red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   assert (WF : Wf G_t) by apply PRED.
-  assert (SUB : E_s \₁ extra_a a_s ⊆₁ E_s) by basic_solver.
-  rewrite <- restr_relE, (rsr_rf SIMREL),
-          restr_union.
-  apply union_more.
-  { split; [| basic_solver 11].
-    rewrite <- SUB, <- (rsr_codom SIMREL).
-    rewrite (wf_rfE WF), <- restr_relE.
-    clear. basic_solver. }
-  rewrite restr_seq_eqv_r. apply seq_more; ins.
-  rewrite restr_relE. apply wf_srfE.
+  apply dom_helper_3. rewrite (rsr_rf SIMREL).
+  apply inclusion_union_l.
+  { eapply sico_rfE, rsr_common; try red; eauto. }
+  rewrite inclusion_seq_eqv_r.
+  apply dom_helper_3, wf_srfE.
 Qed.
 
 Lemma G_s_co_trans
@@ -551,12 +446,7 @@ Proof using.
   red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   rewrite (rsr_co SIMREL).
   apply expand_transitive.
-  { arewrite (co_t ≡ restr_rel E_t co_t).
-    { rewrite restr_relE. apply WF. }
-    apply transitive_collect_rel_inj.
-    { apply SIMREL. }
-    rewrite restr_relE, <- (wf_coE WF).
-    apply WF. }
+  { eapply sico_co_trans, rsr_common; try red; eauto. }
   { unfold upward_closed in *. intros x y REL XIN.
     apply (extra_co_DE SIMREL).
     apply (extra_co_DE SIMREL) in XIN.
@@ -582,12 +472,7 @@ Proof using.
   red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   rewrite (rsr_co SIMREL).
   apply irreflexive_union. split.
-  { arewrite (co_t ≡ restr_rel E_t co_t).
-    { rewrite restr_relE. apply WF. }
-    apply collect_rel_irr_inj.
-    { apply SIMREL. }
-    rewrite restr_relE, <- (wf_coE WF).
-    apply WF. }
+  { eapply sico_co_irr, rsr_common; try red; eauto. }
   unfold add_max. clear. basic_solver.
 Qed.
 
@@ -600,10 +485,7 @@ Proof using.
   red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   rewrite (rsr_co SIMREL).
   apply inclusion_union_l.
-  { rewrite (wf_coE WF), (wf_col WF). unfolder.
-    ins. desf. unfold same_loc, loc in *.
-    rewrite <- !rsr_lab'.
-    all: try red; eauto. }
+  { eapply sico_col, rsr_common; try red; eauto. }
   unfold extra_a. desf.
   { clear. basic_solver. }
   rewrite set_inter_empty_l, add_max_empty_r.
@@ -618,13 +500,14 @@ Proof using.
   assert (WF : Wf G_t) by apply PRED.
   apply dom_helper_3.
   red in SIMREL. destruct SIMREL as (a_s & SIMREL).
-  rewrite (rsr_co SIMREL), (rsr_acts SIMREL).
+  rewrite (rsr_co SIMREL).
   apply inclusion_union_l.
-  { rewrite (wf_coE WF). clear. basic_solver. }
+  { eapply sico_coE, rsr_common; try red; eauto. }
+  rewrite (rsr_acts SIMREL).
   unfold extra_a. desf.
   { basic_solver. }
   rewrite set_inter_empty_l, add_max_empty_r.
-  basic_solver.
+  clear. basic_solver.
 Qed.
 
 Lemma G_s_coD
@@ -635,16 +518,13 @@ Proof using.
   assert (WF : Wf G_t) by apply PRED.
   red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   apply dom_helper_3.
-  rewrite (rsr_co SIMREL), (wf_coD WF),
-          (wf_coE WF).
+  rewrite (rsr_co SIMREL).
   apply inclusion_union_l.
-  { unfolder. ins. desf. unfold is_w in *.
-    rewrite <- !rsr_lab'.
-    all: try red; eauto. }
+  { eapply sico_coD, rsr_common; try red; eauto. }
   unfold extra_a. desf.
-  { basic_solver. }
+  { clear. basic_solver. }
   rewrite set_inter_empty_l, add_max_empty_r.
-  basic_solver.
+  clear. basic_solver.
 Qed.
 
 Lemma G_s_wf
@@ -673,28 +553,23 @@ Proof using.
     exfalso. apply NINIT, rsr_ninit_acts_s; ins.
     red; eauto. }
   { rewrite (rsr_data SIMREL), (rsr_ndata PRED).
-    basic_solver. }
+    clear. basic_solver. }
   { rewrite (rsr_data SIMREL), (rsr_ndata PRED).
-    basic_solver. }
+    clear. basic_solver. }
   { rewrite (rsr_addr SIMREL), (rsr_naddr PRED).
-    basic_solver. }
+    clear. basic_solver. }
   { rewrite (rsr_addr SIMREL), (rsr_naddr PRED).
-    basic_solver. }
+    clear. basic_solver. }
   { rewrite (rsr_ctrl SIMREL), (rsr_nctrl PRED).
-    basic_solver. }
+    clear. basic_solver. }
   { rewrite (rsr_ctrl SIMREL), (rsr_nctrl PRED).
-    basic_solver. }
+    clear. basic_solver. }
   { rewrite (rsr_ctrl SIMREL), (rsr_nctrl PRED).
-    basic_solver. }
-  { apply dom_helper_3.
-    rewrite (rsr_rmw SIMREL), (wf_rmwD WF), (wf_rmwE WF).
-    unfolder. ins. desf. unfold is_w, is_r in *.
-    rewrite <- !rsr_lab'.
-    all: try red; eauto. }
-  { rewrite (rsr_rmw SIMREL), (wf_rmwE WF), (wf_rmwl WF).
-    unfolder. ins. desf. unfold same_loc, loc in *.
-    rewrite <- !rsr_lab'.
-    all: try red; eauto. }
+    clear. basic_solver. }
+  { apply dom_helper_3. rewrite (rsr_rmw SIMREL).
+    eapply sico_rmwD, rsr_common; try red; eauto. }
+  { rewrite (rsr_rmw SIMREL).
+    eapply sico_rmwl, rsr_common; try red; eauto. }
   { rewrite (rsr_rmw SIMREL), (rsr_sb SIMREL).
     apply immediate_union_ignore.
     { rewrite (wf_rmwE WF), NEXA.
@@ -712,36 +587,25 @@ Proof using.
     all: ins; desf; eapply NEXA; eauto. }
   { apply G_s_rfE; ins. red; eauto. }
   { apply dom_helper_3.
-    rewrite (rsr_rf SIMREL), (wf_rfE WF), (wf_rfD WF).
+    rewrite (rsr_rf SIMREL).
     apply inclusion_union_l.
-    { unfolder. ins. desf. unfold is_w, is_r in *.
-      rewrite <- !rsr_lab'.
-      all: try red; eauto. }
-    transitivity srf_s; [basic_solver |].
+    { eapply sico_rfD, rsr_common; try red; eauto. }
+    rewrite inclusion_seq_eqv_r.
     apply dom_helper_3, wf_srfD. }
-  { rewrite (rsr_rf SIMREL), (wf_rfE WF), (wf_rfl WF).
+  { rewrite (rsr_rf SIMREL).
     apply inclusion_union_l.
-    { unfolder. ins. desf. unfold same_loc, loc in *.
-      rewrite <- !rsr_lab'.
-      all: try red; eauto. }
-    transitivity srf_s; [basic_solver |].
+    { eapply sico_rfl, rsr_common; try red; eauto. }
+    rewrite inclusion_seq_eqv_r.
     apply wf_srf_loc. }
-  { rewrite (rsr_rf SIMREL), (wf_rfE WF).
+  { rewrite (rsr_rf SIMREL).
     apply funeq_union.
-    { unfolder. ins. desf. unfold val in *.
-      rewrite <- !rsr_lab'.
-      all: try red; eauto.
-      now apply (wf_rfv WF). }
-    rewrite (rsr_as_val SIMREL).
-    clear. basic_solver. }
+    { eapply sico_rfv, rsr_common; try red; eauto. }
+    apply (rsr_as_val SIMREL). }
   { rewrite (rsr_rf SIMREL), transp_union, (wf_rfE WF).
     apply functional_union.
-    { rewrite <- restr_relE, <- collect_rel_transp,
-              <- restr_transp.
-      apply functional_collect_rel_inj; eauto using rsr_inj.
-      rewrite restr_transp, restr_relE, <- (wf_rfE WF).
-      apply WF. }
-    { apply functional_mori with srf_s⁻¹; [red; basic_solver |].
+    { rewrite <- (wf_rfE WF).
+      eapply sico_rff, rsr_common; try red; eauto. }
+    { rewrite transp_seq, transp_eqv_rel, inclusion_seq_eqv_l.
       apply wf_srff'. intros ol.
       apply G_s_co_total with (ol := ol); ins.
       red; eauto. }
@@ -754,10 +618,14 @@ Proof using.
   { ins; apply G_s_co_total with (ol := ol); ins.
     red; eauto. }
   { apply G_s_co_irr; ins. red; eauto. }
-  { ins. apply rsr_init_acts_s; ins. red; eauto. }
+  { intros. eapply sico_init_acts_s.
+    { eapply rsr_common; try red; eauto. }
+    { apply PRED. }
+    easy. }
   { intros l. rewrite <- (rsr_init SIMREL); ins.
-    rewrite <- rsr_lab'.
-    all: try now (try red; eauto using wf_init_lab).
+    erewrite <- sico_lab' with (X_t := X_t).
+    { apply (wf_init_lab WF). }
+    { apply rsr_common. red. eauto. }
     now apply (rsr_init_acts PRED). }
   { rewrite (rsr_rmw_dep SIMREL), (rsr_nrmw_dep PRED).
     clear. basic_solver. }
@@ -782,15 +650,12 @@ Proof using.
   assert (WF : Wf G_t) by apply PRED.
   assert (RFC : rf_complete G_t) by apply PRED.
   red in SIMREL. destruct SIMREL as (a_s & SIMREL).
-  unfold rf_complete in *.
+  unfold rf_complete.
   rewrite (rsr_acts SIMREL), set_inter_union_l,
-          (rsr_rf SIMREL), codom_union,
-          <- set_collect_codom.
+          (rsr_rf SIMREL), codom_union.
   apply set_union_mori.
-  { rewrite <- RFC. clear - SIMREL. unfolder. ins. desf.
-    eexists; splits; eauto.
-    unfold is_r in *. rewrite rsr_lab'.
-    all: try red; eauto. }
+  { eapply sico_partial_rfc; [| assumption].
+    apply rsr_common. red. eauto. }
   clear RFC. unfolder.
   intros r. ins. desf.
   assert (WF_S : Wf G_s).
@@ -805,7 +670,10 @@ Proof using.
   all: eauto 11.
   { apply (rsr_acts SIMREL). now right. }
   { eapply rsr_as_ninit; eauto. }
-  { apply rsr_init_acts_s; try red; eauto. }
+  { eapply sico_init_acts_s.
+    { eapply rsr_common; try red; eauto. }
+    { apply PRED. }
+    easy. }
   apply rsr_fin_s; try red; eauto.
 Qed.
 
@@ -997,6 +865,7 @@ Proof using INV INV'.
   destruct ADD as (r & R1 & w & W1 & W2 & ADD).
   (* Asserts *)
   set (mapper' := upd mapper e e').
+  assert (WF : Wf G_t) by now apply INV.
   assert (ENINIT : ~is_init e) by apply ADD.
   assert (ENOTIN : ~E_t e) by apply ADD.
   assert (EQACTS : E_t' ≡₁ E_t ∪₁ eq e) by apply ADD.
@@ -1005,7 +874,7 @@ Proof using INV INV'.
     apply (rsr_ninit_acts CORR'). split; ins.
     apply EQACTS. now right. }
   assert (WF' : Wf G_t').
-  { eapply WCore.add_event_wf; eauto. apply CORR. }
+  { eapply WCore.add_event_wf; eauto. }
   assert (MAPEQ : eq_dom E_t mapper' mapper).
   { subst mapper'. unfolder. intros x XINE.
     rupd. congruence. }
@@ -1098,11 +967,8 @@ Proof using INV INV'.
     { clear - NOTIN'. basic_solver. }
     { clear - NOTIN NOTIN'. basic_solver 7. }
     rewrite (WCore.add_event_rmw ADD), (rsr_rmw SIMREL).
-    arewrite (mapper ↑ rmw_t ≡ mapper' ↑ rmw_t).
-    { symmetry. apply collect_rel_eq_dom.
-      eapply eq_dom_mori; eauto.
-      unfold flip. rewrite (wf_rmwE (rsr_Gt_wf CORR)).
-      clear. basic_solver. }
+    rewrite collect_rel_union. unfold mapper'.
+    rewrite sico_mapper_swap; eauto; [| apply (wf_rmwE WF)].
     clear - NOTIN' NOTIN. basic_solver 7. }
   assert (SRF'' : srf G_s' ⨾ ⦗extra_a X_t a_t b_t a_s ∩₁ R_s⦘ ≡
                   srf G_s ⨾ ⦗extra_a X_t a_t b_t a_s ∩₁ R_s⦘).
@@ -1180,23 +1046,17 @@ Proof using INV INV'.
       { clear - E_NOT_A ENOTIN. split; [basic_solver 11 |].
         unfolder. ins. desf; splits; eauto using or_not_and. }
       rewrite collect_rel_union.
-      arewrite (mapper' ↑₁ dom_rel (sb_t ⨾ ⦗eq b_t⦘) ≡₁
-                mapper ↑₁ dom_rel (sb_t ⨾ ⦗eq b_t⦘)).
-      { apply set_collect_eq_dom. eapply eq_dom_mori with (x := E_t).
-        all: eauto.
-        unfold sb, flip. clear. basic_solver. }
-      arewrite (mapper' ↑ swap_rel sb_t (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t) ≡
-                mapper ↑ swap_rel sb_t (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t)).
-      { apply collect_rel_eq_dom. eapply eq_dom_mori with (x := E_t).
-        all: eauto.
-        unfold sb, flip. clear. basic_solver. }
       unfold WCore.sb_delta. rewrite collect_rel_cross, set_collect_eq.
       rewrite set_collect_eq_dom with (g := mapper) (f := mapper'),
               set_collect_union, <- (fixset_set_fixpoint (rsr_init SIMREL)),
               rsr_same_tid, TIDACTS, <- SAMETID.
       all: eauto.
       unfold mapper'. rewrite upds.
-      clear. basic_solver 20. }
+      rewrite sico_mapper_swap, sico_mapper_swap_set.
+      { clear. basic_solver 20. }
+      all: eauto.
+      { rewrite wf_sbE. clear. basic_solver. }
+      rewrite wf_sbE at 1. basic_solver 11. }
     { arewrite (extra_a X_t' a_t b_t a_s ∩₁ is_r (upd lab_s e' l) ≡₁
                 extra_a X_t a_t b_t a_s ∩₁ R_s).
       { rewrite <- EXEQ. apply same_lab_u2v_dom_is_r.
@@ -1204,20 +1064,17 @@ Proof using INV INV'.
       rewrite SRF'', (rf_delta_RE (rsr_Gt_wf CORR) ADD).
       rewrite (rsr_rf SIMREL), (WCore.add_event_rf ADD),
               !collect_rel_union.
-      arewrite (mapper' ↑ rf_t ≡ mapper ↑ rf_t).
-      { apply collect_rel_eq_dom' with (s := E_t); ins.
-        apply (wf_rfE (rsr_Gt_wf CORR)). }
-      rewrite (add_event_to_rf_complete ADD).
-      all: try now apply CORR.
-      rewrite collect_rel_empty, !union_false_r.
+      rewrite (add_event_to_rf_complete ADD); try now apply CORR.
+      rewrite collect_rel_empty, union_false_r.
+      unfold mapper'. rewrite sico_mapper_swap with (r := rf_t).
+      all: eauto using wf_rfE.
       clear. basic_solver 12. }
     { rewrite (co_deltaE1 (rsr_Gt_wf CORR) ADD),
             (co_deltaE2 (rsr_Gt_wf CORR) ADD).
       rewrite (WCore.add_event_co ADD), !collect_rel_union,
               (rsr_co SIMREL).
-      arewrite (mapper' ↑ co_t ≡ mapper ↑ co_t).
-      { apply collect_rel_eq_dom' with (s := E_t); ins.
-        apply (wf_coE (rsr_Gt_wf CORR)). }
+      unfold mapper'. rewrite sico_mapper_swap with (r := co_t).
+      all: eauto using wf_coE.
       rewrite <- EXEQ, extra_co_D_union, add_max_union.
       rewrite extra_co_D_eq_dom with (ll1 := upd lab_s e' l),
               same_lab_u2v_dom_is_w with (lab1 := upd lab_s e' l).
@@ -1230,7 +1087,7 @@ Proof using INV INV'.
       { unfold loc. rupd. intro FALSO. desf.
         apply ENEXA, extra_a_some; auto. }
       clear. basic_solver 12. }
-    { clear. ins. }
+    { clear. reflexivity. }
     { rewrite (WCore.add_event_threads ADD). apply SIMREL. }
     { rewrite (WCore.add_event_ctrl ADD). apply SIMREL. }
     { rewrite (WCore.add_event_data ADD). apply SIMREL. }
@@ -1275,7 +1132,8 @@ Proof using INV INV'.
             ∪₁ mapper' ↑₁ W1),
            (mapper' ↑₁ W2).
     apply add_event_to_wf; ins.
-    { eapply rsr_init_acts_s with (X_s := X_s) (X_t := X_t); eauto. }
+    { eapply sico_init_acts_s; [| apply CORR].
+      eapply rsr_common; red; eauto. }
     { subst mapper'. now rupd. }
     { subst mapper'. rupd. congruence. }
     { subst mapper'. now rupd. }
@@ -1470,8 +1328,8 @@ Proof using INV INV'.
       unfold WCore.sb_delta.
       arewrite (E_s ≡₁ E_s ∪₁ is_init).
       { symmetry. apply set_union_absorb_r.
-        eapply rsr_init_acts_s with (X_t := X_t).
-        all: try red; eauto. }
+        eapply sico_init_acts_s; [| apply INV].
+        eapply rsr_common; red; eauto. }
       clear. basic_solver 11. }
     arewrite (vf G_s'' ⨾ ⦗E_s⦘ ≡ vf_s ⨾ ⦗E_s⦘).
     { apply (vf_add_event X_s X_s''); ins.
@@ -1607,8 +1465,8 @@ Proof using INV INV'.
       unfolder in RF. destruct RF as (y & RF).
       apply (wf_rfE WF_S) in RF.
       unfolder in SRF. unfolder in RF. desf. }
-    { eapply rsr_init_acts_s with (X_t := X_t); eauto.
-      red; eauto. }
+    { eapply sico_init_acts_s; [| apply INV].
+      eapply rsr_common; red; eauto. }
     { rewrite TID. now apply (rsr_threads SIMREL). }
     { now rewrite (rsr_ctrl SIMREL), (rsr_nctrl INV). }
     { enough (EMP : eq_opt w ⊆₁ ∅).
@@ -1664,8 +1522,8 @@ Proof using INV INV'.
       all: ins.
       all: try now apply WF_S'.
       { now right. }
-      { left. eapply (rsr_init_acts_s INV); ins.
-        red; eauto. }
+      { left. eapply sico_init_acts_s; [| apply INV | easy].
+        eapply rsr_common; red; eauto. }
       { rewrite set_minus_union_l.
         apply set_finite_union. split.
         { eapply (rsr_fin_s INV); eauto.
@@ -2041,7 +1899,8 @@ Proof using.
     apply add_event_to_wf; ins.
     { rewrite (WCore.add_event_acts ADD').
       apply set_subset_union_r. left.
-      eapply rsr_init_acts_s with (X_s := X_s) (X_t := X_t); eauto. }
+      eapply sico_init_acts_s; [| apply INV].
+      eapply rsr_common; red; eauto. }
     { rewrite <- MAPE.
       intro FALSO. apply (WCore.add_event_acts ADD') in FALSO.
       eauto. }
@@ -2368,8 +2227,9 @@ Proof using INV INV'.
   { assert (DT : dtrmt' ∩₁ E_s ≡₁ dtrmt').
     { unfold dtrmt'. basic_solver. }
     assert (INIT : is_init ⊆₁ dtrmt').
-    { unfold dtrmt'. erewrite <- (rsr_init_acts_s INV).
-      all: try red; eauto.
+    { unfold dtrmt'.
+      rewrite <- sico_init_acts_s; [| | apply INV].
+      all: try now (eapply rsr_common; red; eauto).
       unfolder. intros x XNIT.
       splits; ins.
       all: intro FALSO; subst x.
