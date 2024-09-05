@@ -97,6 +97,17 @@ Proof using SICO.
   unfold compose. reflexivity.
 Qed.
 
+Lemma sico_partial_rfc
+    (RFC : rf_complete G_t) :
+  mapper ↑₁ E_t ∩₁ R_s ⊆₁ mapper ↑₁ codom_rel rf_t.
+Proof using SICO.
+  unfold rf_complete in RFC.
+  rewrite <- RFC.
+  unfolder. intros x ((x' & INE & XEQ) & ISR).
+  exists x'. splits; auto. subst x.
+  unfold is_r in *. rewrite sico_lab'; auto.
+Qed.
+
 Lemma sico_rfD :
   mapper ↑ rf_t ⊆ W_s × R_s.
 Proof using SICO WF_T.
