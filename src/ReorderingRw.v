@@ -212,10 +212,8 @@ Proof using.
       rewrite (rsr_init SIMREL) in *; auto. }
     apply set_finite_set_collect, PRED. }
   unfold extra_a; desf.
-  { eapply set_finite_mori; [| apply set_finite_eq].
-    unfold flip. clear. basic_solver. }
-  eapply set_finite_mori; [| apply set_finite_empty].
-  unfold flip. clear. basic_solver.
+  all: eapply set_finite_mori with (x := eq a_s); auto with hahn.
+  all: clear; unfold flip; basic_solver.
 Qed.
 
 Lemma rsr_tid' e
@@ -875,63 +873,54 @@ Proof using INV INV'.
   destruct ADD as (r & R1 & w & W1 & W2 & ADD).
   (* Asserts *)
   set (mapper' := upd mapper e e').
-  assert (WF : Wf G_t) by now apply INV.
+  assert (WF : Wf G_t) by apply INV.
   assert (ENINIT : ~is_init e) by apply ADD.
   assert (ENOTIN : ~E_t e) by apply ADD.
   assert (EQACTS : E_t' ≡₁ E_t ∪₁ eq e) by apply ADD.
   assert (E_TID : tid e <> tid_init).
   { intro FALSO. apply ENINIT.
     apply (rsr_ninit_acts CORR'). split; ins.
-    apply EQACTS. now right. }
-  assert (WF' : Wf G_t').
-  { eapply WCore.add_event_wf; eauto. }
+    apply EQACTS. clear. now right. }
+  assert (WF' : Wf G_t') by apply INV'.
   assert (MAPEQ : eq_dom E_t mapper' mapper).
   { subst mapper'. unfolder. intros x XINE.
-    rupd. congruence. }
+    clear - ENOTIN XINE. rewrite updo.
+    all: congruence. }
   assert (MAPSUB : mapper' ↑₁ E_t ≡₁ mapper ↑₁ E_t).
-  { split; unfolder; intros x (y & YINE & HEQ).
-    { exists y; split; ins. rewrite <- MAPEQ; ins. }
-    exists y. split; ins. subst mapper'. rupd; ins.
-    congruence. }
+  { clear - MAPEQ. now apply set_collect_eq_dom. }
   assert (LABSUB : eq_dom E_t lab_t' lab_t).
-  { rewrite (WCore.add_event_lab ADD). unfolder.
-    intros x XINE. rupd. congruence. }
+  { rewrite (WCore.add_event_lab ADD). clear - ENOTIN.
+    unfold eq_dom. intros x XINE. rewrite updo.
+    all: congruence. }
   assert (MAPNEQ : forall x (IN : E_t x), mapper x <> e').
   { intros x XINE FALSO. apply NOTIN, (rsr_codom SIMREL).
-    basic_solver. }
+    red. exists x; split; [exact XINE | exact FALSO]. }
   assert (A_PRESERVED : E_t' a_t <-> E_t a_t).
-  { split; intros INA.
+  { clear - ADD E_NOT_A EQACTS. split; intros INA.
     { apply ADD in INA. destruct INA; congruence. }
-    apply ADD. basic_solver. }
+    apply ADD. now left. }
   assert (B_PRESERVED : E_t' b_t <-> E_t b_t).
-  { split; intros INB.
+  { clear - ADD E_NOT_B EQACTS. split; intros INB.
     { apply ADD in INB. destruct INB; congruence. }
-    apply ADD. basic_solver. }
+    apply ADD. now left. }
   assert (ETID : forall (WITHA : tid e = tid b_t), ~(~E_t a_t /\ E_t b_t)).
   { intros ETID (NINA & INB).
-    eapply (rsr_bt_max CORR') with b_t e; try tauto.
-    enough (HIN : singl_rel b_t e ⊆ ⦗eq b_t ∩₁ E_t'⦘ ⨾ sb_t') by now apply HIN.
-    rewrite (WCore.add_event_sb ADD), seq_union_r.
-    transitivity (⦗eq b_t ∩₁ E_t'⦘ ⨾ WCore.sb_delta X_t e).
-    all: basic_solver 12. }
+    enough (FSB : (⦗eq b_t ∩₁ E_t'⦘ ⨾ sb_t') b_t e).
+    { eapply (rsr_bt_max CORR' _ _ FSB). }
+    enough (FSB : sb_t' b_t e).
+    { clear - FSB INB B_PRESERVED. basic_solver. }
+    apply (WCore.add_event_sb ADD). clear - INB ETID.
+    right. unfold WCore.sb_delta, same_tid.
+    basic_solver. }
   assert (MAPER_E : mapper' ↑₁ eq e ≡₁ eq e').
   { subst mapper'. rewrite set_collect_eq. now rupd. }
   assert (EXEQ : extra_a X_t a_t b_t a_s ≡₁ extra_a X_t' a_t b_t a_s).
-  { unfold extra_a; do 2 desf; exfalso; eauto.
-    all: apply n; split; try intro FALSO.
-    { apply a. apply EQACTS in FALSO.
-      destruct FALSO; congruence. }
-    { apply EQACTS. basic_solver. }
-    { apply a, EQACTS. basic_solver. }
-    apply EQACTS in a0. destruct a0; congruence. }
+  { clear - A_PRESERVED B_PRESERVED.
+    unfold extra_a; do 2 desf; exfalso; tauto. }
   assert (EXIN : extra_a X_t a_t b_t a_s ⊆₁ E_s).
-  { rewrite (rsr_acts SIMREL). basic_solver. }
+  { rewrite (rsr_acts SIMREL). auto with hahn. }
   assert (LABEQ : eq_dom E_s (upd lab_s e' l) lab_s).
-  { unfolder. ins. rupd. congruence. }
-  assert (NEWCODOM : mapper' ↑₁ E_t' ⊆₁ (E_s ∪₁ eq e') \₁ extra_a X_t a_t b_t a_s).
-  { rewrite (WCore.add_event_acts ADD), set_collect_union, MAPSUB,
-            (rsr_codom SIMREL), MAPER_E.
-    basic_solver. }
+  { unfold eq_dom. intros. rupd. congruence. }
   assert (U2V : same_lab_u2v_dom E_s (upd lab_s e' l) lab_s).
   { unfold same_lab_u2v_dom. ins. rewrite LABEQ; ins.
     unfold same_label_u2v. desf. }
@@ -967,12 +956,13 @@ Proof using INV INV'.
   { clear - EXEQ NOTIN EXIN.
     intro FALSO. now apply EXEQ, EXIN in FALSO. }
   assert (ASTID : forall (AS : ~ E_t a_t /\ E_t b_t), same_tid b_t a_s).
-  { ins. eapply eba_tid, (rsr_as SIMREL). now apply extra_a_some. }
+  { intros. eapply eba_tid, (rsr_as SIMREL). now apply extra_a_some. }
   assert (SRF' : srf G_s' ⨾ ⦗E_s⦘ ≡ srf G_s ⨾ ⦗E_s⦘).
-  { apply (srf_add_event X_s X_s'); ins.
+  { apply (srf_add_event X_s X_s'); simpl.
     { eapply G_s_wf with (X_t := X_t); eauto. }
-    { clear. basic_solver. }
-    { unfold sb at 1. ins. rewrite NEWSB.
+    { clear. auto with hahn. }
+    { exact LABEQ. }
+    { unfold sb at 1. simpl. rewrite NEWSB.
       clear - NOTIN. rewrite seq_union_l. basic_solver. }
     { clear - NOTIN'. basic_solver. }
     { clear - NOTIN NOTIN'. basic_solver 7. }
@@ -1024,11 +1014,16 @@ Proof using INV INV'.
       clear - NOTIN. unfolder. ins. desf.
       unfold same_val, val in *.
       now rewrite !updo by congruence. }
-    { rewrite <- EXEQ. ins. }
-    { unfolder. unfold mapper'. ins. rupd; [| congruence].
+    { rewrite (WCore.add_event_acts ADD),
+              set_collect_union, set_collect_eq.
+      rewrite set_collect_eq_dom; [| eassumption].
+      unfold mapper'. rewrite upds, (rsr_codom SIMREL), EXEQ.
+      clear - ENEXA. basic_solver. }
+    { unfold fixset, mapper'. intros.
+      rupd; [| congruence].
       now apply (rsr_init SIMREL). }
     { rewrite EQACTS. apply eq_dom_union. split.
-      all: unfolder; unfold compose.
+      all: unfold compose, eq_dom.
       { intros x XIN. rewrite MAPEQ; ins. now apply SIMREL. }
       now subst mapper'; ins; desf; rupd. }
     { rewrite EQACTS, (WCore.add_event_lab ADD).
@@ -1122,8 +1117,9 @@ Proof using INV INV'.
     { rewrite <- id_inter, set_inter_absorb_l with (s' := E_s).
       all: ins. }
     arewrite (rpo G_s' ⨾ ⦗E_s⦘ ≡ rpo_s ⨾ ⦗E_s⦘).
-    { apply (add_event_rpo X_s X_s'); ins.
+    { apply (add_event_rpo X_s X_s'); simpl.
       { eapply G_s_wf with (X_t := X_t); eauto. }
+      { exact LABEQ. }
       unfold sb at 1. ins. rewrite NEWSB.
       rewrite seq_union_l. clear - NOTIN.
       basic_solver 11. }
@@ -1134,26 +1130,29 @@ Proof using INV INV'.
   { now exists a_s. }
   (* Actual proof *)
   exists mapper', X_s'.
-  split; red; ins.
+  split; red; [exact SIMREL'' |].
   constructor.
   { exists (option_map mapper' r), (mapper' ↑₁ R1),
            (option_map mapper' w),
            ((extra_a X_t' a_t b_t a_s ∩₁ W_s ∩₁ Loc_s_ (WCore.lab_loc l) ∩₁ WCore.lab_is_w l)
             ∪₁ mapper' ↑₁ W1),
            (mapper' ↑₁ W2).
-    apply add_event_to_wf; ins.
+    apply add_event_to_wf; simpl.
     { eapply sico_init_acts_s; [| apply CORR].
       eapply rsr_common; red; eauto. }
-    { subst mapper'. now rupd. }
-    { subst mapper'. rupd. congruence. }
-    { subst mapper'. now rupd. }
-    { subst mapper'. now rupd. }
+    { unfold mapper'. rewrite upds. exact NOTIN. }
+    { unfold mapper'. rewrite upds. exact NINIT. }
+    { unfold mapper'. rewrite upds, TID. exact E_TID. }
+    { unfold mapper'. rewrite upds. reflexivity. }
+    { reflexivity. }
+    { unfold mapper'. rewrite upds. reflexivity. }
     { rewrite <- mapped_rf_delta_R,
               <- mapped_rf_delta_W.
       rewrite (rf_delta_RE (rsr_Gt_wf CORR) ADD),
               (add_event_to_rf_complete ADD).
       all: try now apply CORR.
-      now rewrite collect_rel_empty, union_false_r. }
+      rewrite collect_rel_empty, union_false_r.
+      reflexivity. }
     { rewrite (co_deltaE1 (rsr_Gt_wf CORR) ADD),
               (co_deltaE2 (rsr_Gt_wf CORR) ADD).
       rewrite co_delta_union_W1, <- mapped_co_delta.
@@ -1172,10 +1171,15 @@ Proof using INV INV'.
       { apply collect_rel_eq_dom' with (s := E_t); ins.
         apply (wf_rmwE (rsr_Gt_wf CORR)). }
       now rewrite (rsr_rmw SIMREL). }
-    { unfold sb at 1. ins. rewrite NEWSB.
-      unfold mapper'. now rupd. }
+    { reflexivity. }
+    { reflexivity. }
+    { reflexivity. }
+    { reflexivity. }
+    { unfold sb at 1. unfold mapper'.
+      simpl. rewrite NEWSB, upds.
+      reflexivity. }
     { rewrite (rsr_ctrl SIMREL), <- (WCore.add_event_ctrl ADD).
-    apply ADD. }
+      apply ADD. }
     eapply G_s_wf with (X_s := X_s') (X_t := X_t'); eauto. }
   { eapply G_s_rfc; eauto. }
   admit.
