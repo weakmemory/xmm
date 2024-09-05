@@ -129,6 +129,14 @@ Proof using SICO WF_T.
   rewrite <- !sico_lab'; auto.
 Qed.
 
+Lemma sico_rfl :
+  mapper ↑ rf_t ⊆ same_loc_s.
+Proof using SICO WF_T.
+  rewrite (wf_rfE WF_T), (wf_rfl WF_T).
+  unfolder. ins. desf. unfold same_loc, loc in *.
+  rewrite <- !sico_lab'; auto.
+Qed.
+
 Lemma sico_rmwl :
   mapper ↑ rmw_t ⊆ same_loc_s.
 Proof using SICO WF_T.
