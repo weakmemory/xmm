@@ -135,8 +135,7 @@ Record reord_step_pred : Prop := {
   rsr_at_bt_ord : forall (INA : E_t a_t), E_t b_t;
   rsr_bt_max : forall (INB : E_t b_t) (NINA : ~E_t a_t),
                     ⦗eq b_t ∩₁ E_t⦘ ⨾ sb_t ⊆ ∅₂;
-  rsr_at_nrmw : eq a_t ⊆₁ set_compl (dom_rel rmw_t ∪₁ codom_rel rmw_t);
-  rsr_bt_nrmw : eq b_t ⊆₁ set_compl (dom_rel rmw_t ∪₁ codom_rel rmw_t);
+  rsr_nrmw : rmw_t ⊆ (E_t \₁ eq a_t \₁ eq b_t) × (E_t \₁ eq a_t \₁ eq b_t);
   rsr_at_neq_bt : a_t <> b_t;
   rsr_nctrl : ctrl_t ≡ ∅₂;
   rsr_ndata : data_t ≡ ∅₂;
@@ -540,10 +539,8 @@ Proof using.
     immediate (mapper ↑ swap_rel sb_t (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t))).
   { rewrite collect_rel_immediate; [apply collect_rel_mori; ins|].
     { apply swap_rel_imm; [| apply WF].
-      rewrite (rsr_at_nrmw PRED), (rsr_bt_nrmw PRED),
-              !set_compl_union, !set_compl_inter.
-      rewrite !set_compl_compl, (wf_rmwE WF).
-      clear. basic_solver 11. }
+      rewrite (rsr_nrmw PRED), set_compl_union. clear.
+      unfolder. ins. desf. splits; tauto. }
     eapply inj_dom_mori; eauto using rsr_inj.
     unfold flip. rewrite wf_sbE. clear. basic_solver 11. }
   constructor.
@@ -574,17 +571,18 @@ Proof using.
     apply immediate_union_ignore.
     { rewrite (wf_rmwE WF), NEXA.
       clear. basic_solver. }
-    { unfold extra_a. desf; [| clear; basic_solver].
+    { apply set_disjointE; split; [| clear; basic_solver].
+      unfold extra_a. desf; [| clear; basic_solver].
       rewrite codom_cross; [| apply set_nonemptyE; eauto].
-      rewrite <- set_collect_codom, <- set_collect_eq.
-      apply collect_set_disjoint; [| rewrite (rsr_bt_nrmw PRED); basic_solver].
+      rewrite (rsr_nrmw PRED), <- set_collect_codom, <- set_collect_eq.
+      rewrite <- set_collect_interE.
+      { clear. basic_solver. }
       eapply inj_dom_mori; eauto using rsr_inj.
-      unfold flip. rewrite (wf_rmwE WF). basic_solver. }
+      unfold flip. basic_solver. }
     apply immediate_union_ignore_alt; ins.
     all: apply set_disjointE; split; [| clear; basic_solver].
-    all: rewrite 1?(wf_rmwE WF), 1?wf_sbE.
-    all: clear - NEXA; unfolder in *.
-    all: ins; desf; eapply NEXA; eauto. }
+    all: rewrite 1?(rsr_nrmw PRED), NEXA, wf_sbE.
+    all: clear; basic_solver. }
   { apply G_s_rfE; ins. red; eauto. }
   { apply dom_helper_3.
     rewrite (rsr_rf SIMREL).
@@ -1721,10 +1719,8 @@ Proof using.
       apply (wf_rmwE (rsr_Gt_wf CORR)). }
     arewrite_false (WCore.rmw_delta b_t r).
     { destruct r as [r|]; [| clear; basic_solver].
-      exfalso. apply (rsr_bt_nrmw CORR') with b_t; ins.
-      right. apply set_subset_single_l.
-      rewrite (WCore.add_event_rmw ADD).
-      clear. basic_solver. }
+      exfalso. eapply (rsr_nrmw CORR') with (x := r) (y := b_t); auto.
+      apply ADD. right. clear. basic_solver. }
     now rewrite <- (rsr_rmw SIMREL), collect_rel_empty, seq_false_l,
                 union_false_r. }
   assert (SIMREL'' : reord_simrel_gen X_s' X_t' a_t b_t mapper' a_s).
