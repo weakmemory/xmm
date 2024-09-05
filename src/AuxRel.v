@@ -1,23 +1,10 @@
 From imm Require Import Events Execution imm_s_hb.
-From imm Require Import imm_s_ppo.
-From imm Require Import imm_s_hb.
-From imm Require Import imm_bob.
-From imm Require Import SubExecution.
 
 Require Import Program.Basics.
 Require Import AuxDef.
 
-From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
-From hahn Require Import HahnTrace.
-From hahn Require Import HahnSorted.
 From hahnExt Require Import HahnExt.
-From imm Require Import Events Execution Execution_eco imm_s_hb.
-From imm Require Import imm_s_ppo.
-From imm Require Import imm_s_hb.
-From imm Require Import imm_bob.
-From imm Require Import SubExecution.
-From imm Require Import CombRelations.
 
 Set Implicit Arguments.
 
@@ -54,7 +41,7 @@ Proof.
     { apply INIT_LEAST. intro F.
       apply INIT_MIN with zt. congruence. }
     desf. }
-  basic_solver.
+  clear. basic_solver.
 Qed.
 
 End Thrdle.
@@ -76,19 +63,6 @@ Proof using.
   all: intros HIN.
   { apply tn1_step. eauto. }
   apply Relation_Operators.tn1_trans with y; eauto.
-Qed.
-
-Lemma upd_compose (A B C : Type) a b
-    (f : B -> C)
-    (g : A -> B)
-    (INJ : inj_dom ⊤₁ g) :
-  upd (f ∘ g) a b = (upd f (g a) b) ∘ g.
-Proof using.
-  unfold compose. apply functional_extensionality. intro x.
-  tertium_non_datur (x = a) as [HEQA|NEQA]; subst.
-  { now rewrite !upds. }
-  rewrite !updo; ins.
-  intro F. apply INJ in F; ins.
 Qed.
 
 (* TODO: move to HahnExt/SetSize.v *)
@@ -168,9 +142,8 @@ Lemma rmw_irr G
     (WF : Wf G) :
   irreflexive (rmw G).
 Proof using.
-  rewrite wf_rmwD; auto.
-  unfold is_r, is_w.
-  unfolder; ins; desf.
+  unfold irreflexive. intros x RMW.
+  now apply (wf_rmwi WF), immediate_in, sb_irr in RMW.
 Qed.
 
 Lemma nodup_not_in A (e h : A) t
@@ -185,7 +158,8 @@ Qed.
 Lemma in_restr_acts G e :
   acts_set G e <-> (acts_set G ∩₁ same_tid e) e.
 Proof using.
-  unfolder; split; ins; desf.
+  unfold same_tid, set_inter.
+  split; intro HIN; auto || easy.
 Qed.
 
 Lemma wf_rmwff G
@@ -207,10 +181,8 @@ Qed.
 Lemma set_minus_union_r A (s1 s2 s3 : A -> Prop) :
   s1 \₁ (s2 ∪₁ s3) ≡₁ s1 \₁ s2 \₁ s3.
 Proof using.
-  split; unfolder; ins; desf.
-  { splits; auto. }
-  splits; auto.
-  apply and_not_or; auto.
+  red. unfold set_minus, set_union, set_subset.
+  split; intros; tauto.
 Qed.
 
 Lemma eq_dom_is_r lab lab' (s : actid -> Prop)
@@ -253,7 +225,7 @@ Lemma wf_rfv' G
     (WF : Wf G) :
   rf G ⊆ same_val (lab G).
 Proof using.
-  unfolder. intros x y RF. unfold same_val.
+  intros x y RF. unfold same_val.
   now apply (wf_rfv WF).
 Qed.
 
@@ -261,11 +233,11 @@ Lemma collect_rel_eq_dom {A B : Type} (f g : A -> B) r
     (EQ : eq_dom (dom_rel r ∪₁ codom_rel r) f g) :
   f ↑ r ≡ g ↑ r.
 Proof using.
-  unfolder. split; intros x' y' (x & y & R & XEQ & YEQ).
+  split; intros x' y' (x & y & R & XEQ & YEQ).
   all: subst x'; subst y'.
   all: exists x, y; splits; ins.
   all: rewrite EQ; ins.
-  all: basic_solver.
+  all: clear - R; basic_solver.
 Qed.
 
 Lemma collect_rel_eq_dom' {A B : Type} (f g : A -> B) r s
@@ -275,7 +247,8 @@ Lemma collect_rel_eq_dom' {A B : Type} (f g : A -> B) r s
 Proof using.
   apply collect_rel_eq_dom.
   eapply eq_dom_mori with (x := s); eauto.
-  unfold flip. rewrite RESTR. basic_solver.
+  unfold flip. rewrite RESTR.
+  clear. basic_solver.
 Qed.
 
 Lemma same_lab_u2v_dom_eq_loc {A : Type} l
@@ -285,9 +258,10 @@ Lemma same_lab_u2v_dom_eq_loc {A : Type} l
     (DOM : same_lab_u2v_dom s lab1 lab2) :
   s ∩₁ (fun e => loc lab1 e = l) ≡₁ s ∩₁ (fun e => loc lab2 e = l).
 Proof using.
-  unfolder. split; intros x (XIN & LOC); splits; ins.
+  unfold set_inter.
+  split; intros x (XIN & LOC); splits; auto.
   all: rewrite same_lab_u2v_dom_loc with (s := s) (lab2 := lab2) in *.
-  all: ins.
+  all: assumption.
 Qed.
 
 Lemma expand_transitive {A : Type} (r : relation A) s s'
@@ -296,16 +270,21 @@ Lemma expand_transitive {A : Type} (r : relation A) s s'
     (NOTIN : s' ⊆₁ set_compl (dom_rel r)) :
   transitive (r ∪ s × s').
 Proof using.
-  unfolder. intros x y z.
+  unfold union, cross_rel.
+  intros x y z.
   intros [R1 | [INS1 EQE1]] [R2 | [INS2 EQE2]].
   all: eauto.
-  exfalso. eapply NOTIN.
-  all: unfolder; eauto.
+  exfalso. apply NOTIN with y; [exact EQE1|].
+  exists z. exact R2.
 Qed.
 
 Lemma collect_rel_id {A : Type} (r : relation A) :
   id ↑ r ≡ r.
 Proof using.
-  unfold id. unfolder. split; intros x y HREL; ins.
-  all: desf; eauto.
+  red.
+  unfold id, collect_rel, inclusion.
+  split; intros x y HREL.
+  { destruct HREL as (x' & y' & REL & XEQ & YEQ).
+    subst. exact REL. }
+  exists x, y. splits; auto.
 Qed.
