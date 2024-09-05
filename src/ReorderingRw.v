@@ -203,8 +203,20 @@ Lemma rsr_fin_s
     (SIMREL : reord_simrel) :
   set_finite (E_s \₁ is_init).
 Proof using.
-  admit.
-Admitted.
+  destruct SIMREL as (a_s & SIMREL).
+  rewrite (rsr_acts SIMREL), set_minus_union_l.
+  apply set_finite_union. split.
+  { eapply set_finite_mori with (x := mapper ↑₁ (E_t \₁ is_init)).
+    { unfold flip. unfolder. ins. desf.
+      eexists; splits; eauto. intro FAL.
+      rewrite (rsr_init SIMREL) in *; auto. }
+    apply set_finite_set_collect, PRED. }
+  unfold extra_a; desf.
+  { eapply set_finite_mori; [| apply set_finite_eq].
+    unfold flip. clear. basic_solver. }
+  eapply set_finite_mori; [| apply set_finite_empty].
+  unfold flip. clear. basic_solver.
+Qed.
 
 Lemma rsr_tid' e
     (SIMREL : reord_simrel)
