@@ -1212,58 +1212,65 @@ Proof using INV INV'.
   red in SIMREL. destruct SIMREL as (a_s' & SIMREL).
   desf.
   assert (WF_S : Wf G_s).
-  { eapply G_s_wf with (X_t := X_t); eauto.
-    red; eauto. }
+  { eapply G_s_wf with (X_t := X_t); try red; eauto. }
   set (sb_s' := ⦗E_s ∪₁ eq a_s⦘ ⨾ ext_sb ⨾ ⦗E_s ∪₁ eq a_s⦘).
   set (srf_s' := (⦗Loc_s_ (WCore.lab_loc l_a)⦘ ⨾ vf_s ⨾ sb_s') \ (co_s ⨾ vf_s ⨾ sb_s')).
+  assert (VFE : vf_s ⊆ ⦗E_s⦘ ⨾ vf_s).
+  { rewrite (wf_vfE WF_S) at 1.
+    rewrite inclusion_seq_eqv_r. reflexivity. }
   assert (SRFE : srf_s' ⊆ ⦗E_s⦘ ⨾ srf_s').
   { unfold srf_s'. rewrite <- seq_eqv_minus_ll.
-    apply minus_rel_mori; ins.
-    rewrite (wf_vfE WF_S).
-    clear. basic_solver 10. }
+    apply minus_rel_mori; [| red; auto with hahn].
+    seq_rewrite seq_eqvC. rewrite VFE at 1.
+    rewrite 2!seqA. reflexivity. }
   assert (SRFD : srf_s' ⊆ ⦗W_s⦘ ⨾ srf_s').
   { unfold srf_s'. rewrite <- seq_eqv_minus_ll.
-    apply minus_rel_mori; ins.
-    rewrite vf_d_left.
-    clear. basic_solver. }
+    apply minus_rel_mori; [| red; auto with hahn].
+    seq_rewrite seq_eqvC. rewrite vf_d_left at 1.
+    rewrite 2!seqA. reflexivity. }
   assert (SRFL : srf_s' ⊆ ⦗Loc_s_ (WCore.lab_loc l_a)⦘ ⨾ srf_s').
   { unfold srf_s'. rewrite <- seq_eqv_minus_ll.
-    apply minus_rel_mori; ins.
-    clear. basic_solver. }
+    apply minus_rel_mori; [| red; auto with hahn].
+    seq_rewrite seq_eqvK. reflexivity. }
   assert (SRFVF : srf_s' ⊆ vf_s ⨾ sb_s').
-  { unfold srf_s'. clear. basic_solver. }
+  { unfold srf_s'. clear.
+    rewrite inclusion_minus_rel, inclusion_seq_eqv_l.
+    reflexivity. }
   assert (FUN : functional srf_s'⁻¹).
-  { rewrite SRFE, SRFD, SRFL.
+  { rewrite SRFE, SRFD, SRFL. clear - WF_S SRFVF.
     unfolder. intros x y z (((YINE & YW) & YL) & SRF1) (((ZINE & ZW) & ZL) & SRF2).
     destruct (classic (y = z)) as [EQ|NEQ]; ins.
     destruct (wf_co_total WF_S) with (a := y) (b := z)
                         (ol := WCore.lab_loc l_a) as [CO|CO].
-    { unfolder; splits; ins. }
-    { unfolder; splits; ins. }
+    { unfold set_inter; splits; assumption. }
+    { unfold set_inter; splits; assumption. }
     { exact NEQ. }
     { exfalso. apply SRF1. apply SRFVF in SRF2.
-      clear - CO SRF2. basic_solver. }
+      clear - CO SRF2. red; eauto. }
     exfalso. apply SRF2. apply SRFVF in SRF1.
-    clear - CO SRF1. basic_solver. }
+    clear - CO SRF1. red; eauto. }
   assert (SRF_W : exists w,
     eq_opt w ≡₁ dom_rel (srf_s' ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘)).
-  { destruct classic
+  { clear - FUN.
+    destruct classic
         with (dom_rel (srf_s' ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘) ≡₁ ∅)
           as [EMP|NEMP].
-    { exists None. rewrite EMP. clear. basic_solver. }
+    { exists None. rewrite EMP. clear. auto with hahn. }
     apply set_nonemptyE in NEMP. destruct NEMP as (x & DOM).
     exists (Some x). rewrite eq_opt_someE.
-    clear - DOM FUN. unfolder in *.
-    basic_solver. }
+    split; red; [congruence|]. intros x' DOM'.
+    apply FUN with a_s; red.
+    { clear - DOM. unfolder in DOM. desf. }
+    clear - DOM'. unfolder in DOM'. desf. }
   destruct SRF_W as (w & SRF_W).
   assert (ALAB : exists l_a',
     << U2V : same_label_u2v l_a' l_a >> /\
     << VAL : dom_rel (srf_s' ⨾ ⦗eq a_s ∩₁ WCore.lab_is_r l_a⦘) ⊆₁ Val_s_ (WCore.lab_val l_a') >>
-  ); desf.
+  ); [| desf].
   { destruct w as [w|].
     { assert (ISR : WCore.lab_is_r l_a a_s).
       { unfolder in SRF_W. destruct SRF_W as [ISR _].
-        destruct ISR with w; desf. }
+        clear - ISR. destruct ISR with w; desf. }
       assert (ISW : W_s w).
       { unfold srf_s', vf in SRF_W.
         unfolder in SRF_W. destruct SRF_W as [ISW _].
