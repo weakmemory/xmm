@@ -239,21 +239,17 @@ Qed.
 
 Lemma sw_in_ar0 :
   sw ⊆
-     ⦗Rel⦘ ⨾ (⦗F⦘ ⨾ sb)^? ⨾ ⦗W⦘ ⨾ (rfe ∪ ar_int)⁺
-     ∪ sb.
+      ⦗Rel⦘ ⨾ (⦗F⦘ ⨾ sb)^? ⨾ ⦗W⦘ ⨾ (sb ∩ same_loc)^? ⨾ ⦗W⦘ ⨾ (rfe ∪ ar_int)⁺
+      ∪ sb.
 Proof using WF.
-  admit.
-  (* remember (rfe ∪ ar_int) as ax.
-  unfold xmm_s_hb.sw, xmm_s_hb.release, xmm_s_hb.rs.
-  arewrite_id ⦗Rlx⦘. rewrite !seq_id_l.
-  rewrite rt_rf_rmw.
-  rewrite !seqA.
-  arewrite (⦗W⦘ ⨾ (rfi ⨾ rmw)＊ ⊆ (⦗W⦘ ⨾ (rfi ⨾ rmw)＊ ⨾ ⦗W⦘)).
-  { rewrite (dom_r (wf_rmwD WF)).
-    rewrite rtE. rewrite seq_union_r. unionL; [basic_solver|]. 
-    rewrite seq_union_l. hahn_frame_l. 
-    rewrite <- seqA. rewrite ct_seq_eqv_r at 1.
-    basic_solver. }
+  remember (rfe ∪ ar_int) as ax.
+  unfold sw, release, rs.
+  rewrite rt_rf_rmw. arewrite (⦗W⦘ ⨾ ⦗Rlx⦘ ⊆ ⦗W⦘) by basic_solver.
+  arewrite (⦗W⦘ ⨾ (rfi ⨾ rmw)＊ ⊆ ⦗W⦘ ⨾ (sb ∩ same_loc)^? ⨾ ⦗W⦘).
+  { rewrite (dom_r (wf_rmwD WF)). sin_rewrite (rfi_rmw_in_sb_loc WF).
+    rewrite rtE. rewrite inclusion_ct_seq_eqv_r.
+    generalize (@sb_same_loc_trans G); intros HH.
+    rewrite ct_of_trans; auto. generalize HH; basic_solver 10. }
   arewrite (⦗W⦘ ⨾ (rfe ⨾ rmw ⨾ (rfi ⨾ rmw)＊)＊ ⊆ ⦗W⦘ ⨾ (ax⁺ ⨾ ⦗W_ex⦘)^?).
   { rewrite crE.
     rewrite rtE at 1. rewrite seq_union_r. unionL.
@@ -271,10 +267,11 @@ Proof using WF.
       basic_solver. }
     arewrite_id ⦗W_ex⦘ at 1. rewrite seq_id_l.
     sin_rewrite ar_int_rfe_ct_rfrmw_rt_in_ar_int_rfe_ct; auto.
-    subst ax. basic_solver. }
+    subst ax. basic_solver. } 
+  arewrite_id ⦗Rlx⦘. rels.
   arewrite ((ax⁺ ⨾ ⦗W_ex⦘)^? ⨾ rf ⨾ (sb ⨾ ⦗F⦘)^? ⨾ ⦗Acq⦘ ⊆ ax⁺ ∪ sb).
   2: { rewrite !seq_union_r. unionL; eauto with hahn.
-       generalize (@sb_trans G). basic_solver. }
+      generalize (@sb_trans G). basic_solver. }
   rewrite rfi_union_rfe.
   assert ((sb ⨾ ⦗F⦘)^? ⨾ ⦗Acq⦘ ⊆ ax^? ⨾ ⦗Acq⦘) as AA.
   { rewrite !crE, !seq_union_l. apply union_mori; [done|].
@@ -283,9 +280,9 @@ Proof using WF.
     rewrite sb_to_f_in_bob. rewrite bob_in_ar_int. subst ax. eauto with hahn. }
   rewrite !seq_union_l, !seq_union_r. unionL.
   2: { arewrite (rfe ⊆ ax) by subst ax; eauto with hahn.
-       rewrite AA. arewrite_id ⦗W_ex⦘. rewrite seq_id_r.
-       rewrite cr_of_ct. seq_rewrite <- ct_end.
-       seq_rewrite ct_cr. basic_solver. }
+      rewrite AA. arewrite_id ⦗W_ex⦘. rewrite seq_id_r.
+      rewrite cr_of_ct. seq_rewrite <- ct_end.
+      seq_rewrite ct_cr. basic_solver. }
   rewrite crE at 1. rewrite !seq_union_l, seq_id_l. unionL.
   { arewrite (rfi ⊆ sb). generalize (@sb_trans G). basic_solver. }
   rewrite seqA. rewrite crE at 1. rewrite !seq_union_l, !seq_union_r, !seq_id_l.
@@ -296,10 +293,10 @@ Proof using WF.
   arewrite_id ⦗W_ex⦘. rewrite seq_id_l.
   arewrite (rfi ⨾ sb ⨾ ⦗F⦘ ⨾ ⦗Acq⦘ ⊆ sb ⨾ ⦗F ∩₁ Acq/Rel⦘).
   2: { rewrite sb_to_f_in_bob. rewrite bob_in_ar_int. 
-       arewrite (ar_int ⊆ ax) by subst ax; eauto with hahn.
-       rewrite ct_unit. eauto with hahn. }
-  arewrite (rfi ⊆ sb). generalize (@sb_trans G). mode_solver 10. *)
-Admitted.
+      arewrite (ar_int ⊆ ax) by subst ax; eauto with hahn.
+      rewrite ct_unit. eauto with hahn. }
+  arewrite (rfi ⊆ sb). generalize (@sb_trans G). mode_solver 10.
+Qed.
 
 Lemma sw_in_ar1 :
   sw ⊆ (⦗F ∩₁ Rel⦘ ⨾ sb ∪ ⦗W ∩₁ Rel⦘ ⨾ (sb ∩ same_loc⨾ ⦗W⦘)^?) ⨾ 
