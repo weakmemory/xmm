@@ -12,6 +12,7 @@ Require Import AuxInj.
 (* Require Import Instructions. *)
 Require Import Setoid Morphisms.
 Require Import SimrelCommon.
+Require Import AddEvent.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -714,6 +715,17 @@ Proof using.
   unfold flip, swap_rel. rewrite wf_sbE. basic_solver 11.
 Qed.
 
+Lemma rsr_init_acts_s
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel) :
+  is_init ⊆₁ E_s.
+Proof using.
+  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
+  rewrite (fixset_set_fixpoint (rsr_init SIMREL)).
+  rewrite (rsr_init_acts PRED), (rsr_codom SIMREL).
+  clear. basic_solver.
+Qed.
+
 End SimRel.
 
 Module ReordRwSimRelProps.
@@ -856,31 +868,31 @@ Lemma simrel_exec_not_a_not_b e l
     << STEP : WCore.exec_inst X_s X_s' (mapper' e) l >>.
 Proof using INV INV'.
   subst a_t'. subst b_t'.
-  (* Generate new actid *)
+  destruct STEP as [ADD RFC CONS].
+  destruct ADD as (r & R1 & w & W1 & W2 & ADD).
+  assert (CORR : reord_step_pred X_t a_t b_t); ins.
+  assert (CORR' : reord_step_pred X_t' a_t b_t); ins.
+  assert (ENINIT : ~is_init e) by apply ADD.
+  assert (EQACTS : E_t' ≡₁ E_t ∪₁ eq e) by apply ADD.
+  assert (E_TID : tid e <> tid_init).
+  { intro FALSO. apply ENINIT.
+    apply (rsr_ninit_acts CORR'). split; ins.
+    apply EQACTS. clear. now right. }
   assert (NEWE : exists e',
   << NINIT : ~is_init e' >> /\
   << NOTIN : ~E_s e' >> /\
   << TID : tid e' = tid e >> /\
   << NEWSB : ⦗E_s ∪₁ eq e'⦘ ⨾ ext_sb ⨾ ⦗E_s ∪₁ eq e'⦘ ≡
           sb_s ∪ WCore.sb_delta X_s e' >>).
-  { admit. }
-  assert (CORR : reord_step_pred X_t a_t b_t); ins.
-  assert (CORR' : reord_step_pred X_t' a_t b_t); ins.
-  (* unfold hypotheses *)
+  { apply add_sb_max_event; auto.
+    { eapply rsr_init_acts_s with (X_t := X_t); eauto. }
+    eapply rsr_fin_s with (X_t := X_t); eauto. }
   red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   desf.
-  destruct STEP as [ADD RFC CONS].
-  destruct ADD as (r & R1 & w & W1 & W2 & ADD).
   (* Asserts *)
   set (mapper' := upd mapper e e').
   assert (WF : Wf G_t) by apply INV.
-  assert (ENINIT : ~is_init e) by apply ADD.
   assert (ENOTIN : ~E_t e) by apply ADD.
-  assert (EQACTS : E_t' ≡₁ E_t ∪₁ eq e) by apply ADD.
-  assert (E_TID : tid e <> tid_init).
-  { intro FALSO. apply ENINIT.
-    apply (rsr_ninit_acts CORR'). split; ins.
-    apply EQACTS. clear. now right. }
   assert (WF' : Wf G_t') by apply INV'.
   assert (MAPEQ : eq_dom E_t mapper' mapper).
   { subst mapper'. unfolder. intros x XINE.
@@ -1207,7 +1219,10 @@ Proof using INV INV'.
   << TID : tid a_s = tid b_t >> /\
   << NEWSB : ⦗E_s ∪₁ eq a_s⦘ ⨾ ext_sb ⨾ ⦗E_s ∪₁ eq a_s⦘ ≡
           sb_s ∪ WCore.sb_delta X_s a_s >>).
-  { admit. }
+  { apply add_sb_max_event.
+    { eapply rsr_init_acts_s with (X_t := X_t); eauto. }
+    { rewrite <- (rsr_at_bt_tid INV). apply INV. }
+    eapply rsr_fin_s with (X_t := X_t); eauto. }
   (* unfold hypotheses *)
   red in SIMREL. destruct SIMREL as (a_s' & SIMREL).
   desf.
@@ -1603,7 +1618,21 @@ Proof using.
   << TID : tid b_s = tid b_t >> /\
   << NEWSB : ⦗E_s ∪₁ eq a_s ∪₁ eq b_s⦘ ⨾ ext_sb ⨾ ⦗E_s ∪₁ eq a_s ∪₁ eq b_s⦘ ≡
           sb (WCore.G X_s'') ∪ WCore.sb_delta X_s'' b_s >>).
-  { admit. }
+  { destruct add_sb_max_event
+        with (X := X_s'') (t := tid b_t)
+          as (b_s & EVENT).
+    { rewrite (WCore.add_event_acts ADD').
+      transitivity E_s; [| auto with hahn].
+      eapply rsr_init_acts_s with (X_t := X_t); eauto. }
+    { rewrite <- (rsr_at_bt_tid INV). apply INV. }
+    { rewrite (WCore.add_event_acts ADD').
+      rewrite set_minus_union_l. apply set_finite_union.
+      split; [eapply rsr_fin_s with (X_t := X_t); eauto |].
+      apply set_finite_mori with (x := eq a_s); auto with hahn.
+      unfold flip. clear. basic_solver. }
+    desf. exists b_s; splits; auto.
+    { intro FALSO. apply NOTIN, (WCore.add_event_acts ADD'). auto. }
+    now rewrite <- SB, (WCore.add_event_acts ADD'). }
   red in SIMREL. destruct SIMREL as (a_s' & SIMREL).
   desf.
   set (mapper' := upd mapper b_t b_s).
@@ -2603,6 +2632,51 @@ Proof using INV INV'.
   now rewrite (rsr_rmw_dep SIMREL), (rsr_nrmw_dep CORR).
 Admitted.
 
+Record reexec_acts_pred_gen a_s E X d a b m : Prop := {
+  rap_eq : eq_dom d m mapper;
+  rap_inj : inj_dom E m;
+  rap_as : extra_a X a b a_s ⊆₁ same_tid b;
+  rap_codom : m ↑₁ (acts_set (WCore.G X)) ⊆₁ E \₁ extra_a X a b a_s;
+  rap_init : fixset is_init m;
+  rap_tid : eq_dom (acts_set (WCore.G X)) (tid ∘ m) tid;
+  rap_acts : E ≡₁ m ↑₁ (acts_set (WCore.G X)) ∪₁ extra_a X a b a_s;
+  rap_sb : ⦗E⦘ ⨾ ext_sb ⨾ ⦗E⦘ ≡
+          m ↑ swap_rel (sb (WCore.G X)) (eq b ∩₁ acts_set (WCore.G X)) (eq a ∩₁ acts_set (WCore.G X)) ∪
+          (m ↑₁ dom_rel (sb (WCore.G X) ⨾ ⦗eq b⦘)) × (extra_a X a b a_s) ∪
+          (extra_a X a b a_s) × eq (m b);
+}.
+
+Lemma simrel_reexec_acts_mapper a_s' d l cmt
+    (ENUM : SubToFullExecInternal.enumd_diff
+            (WCore.X_start X_t d)
+            X_t'
+            cmt
+            l)
+    (INJ : inj_dom d mapper)
+    (SUB : d ⊆₁ E_t') :
+  exists mapper' E_s',
+    << EQ : eq_dom d mapper mapper' >> /\
+    << INJ : inj_dom E_t' mapper' >> /\
+    << AS : extra_a X_t' a_t' b_t' a_s' ⊆₁ same_tid b_t' >> /\
+    << CODOM : mapper' ↑₁ E_t' ⊆₁ E_s' \₁ extra_a X_t' a_t' b_t' a_s' >> /\
+    << INIT : fixset is_init mapper' >> /\
+    << TID : eq_dom E_t' (tid ∘ mapper') tid >> /\
+    << ACTS : E_s' ≡₁ mapper' ↑₁ E_t' ∪₁ extra_a X_t' a_t' b_t' a_s' >> /\
+    << SB : ⦗E_s'⦘ ⨾ ext_sb ⨾ ⦗E_s'⦘ ≡
+            mapper' ↑ swap_rel sb_t' (eq b_t' ∩₁ E_t') (eq a_t' ∩₁ E_t') ∪
+            (mapper' ↑₁ dom_rel (sb_t' ⨾ ⦗eq b_t'⦘)) × (extra_a X_t' a_t' b_t' a_s') ∪
+            (extra_a X_t' a_t' b_t' a_s') × eq (mapper' b_t') >>.
+Proof using.
+  generalize INJ SUB. clear INJ SUB.
+  induction l as [| h t IHl].
+  { admit. }
+  admit.
+Admitted.
+
+Definition extra_b :=
+  ifP ~E_t a_t /\ E_t b_t then eq (mapper b_t)
+  else ∅.
+
 Lemma simrel_reexec dtrmt cmt
     (PRESERVATION : a_t' = a_t <-> b_t' = b_t)
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
@@ -2611,6 +2685,27 @@ Lemma simrel_reexec dtrmt cmt
     << SIMREL : reord_simrel X_s' X_t' a_t' b_t' mapper' >> /\
     << STEP : WCore.reexec X_s X_s' dtrmt' (mapper' ↑₁ cmt) >>.
 Proof using INV INV'.
+  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
+  set (G_s' := {|
+    acts_set := mapper ↑₁ E_t' ∪₁ extra_a X_t a_t b_t a_s;
+    threads_set := threads_set G_s;
+    lab := lab_t' ∘ mapper;
+    rf := mapper ↑ rf_t' ∪
+          srf_s ⨾ ⦗extra_a X_t a_t b_t a_s ∩₁ R_s⦘;
+    co := mapper ↑ co_t' ∪
+          add_max
+            (extra_co_D (mapper ↑₁ E_t') lab_s (loc_s a_s))
+            (extra_a X_t a_t b_t a_s ∩₁ W_s);
+    rmw := mapper ↑ rmw_t';
+    rmw_dep := rmw_dep_s;
+    ctrl := ctrl_s;
+    data := data_s;
+    addr := addr_s;
+  |}).
+  set (X_s' := {|
+    WCore.sc := WCore.sc X_s;
+    WCore.G := G_s';
+  |}).
   admit.
 Admitted.
 
