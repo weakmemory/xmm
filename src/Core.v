@@ -290,8 +290,8 @@ Definition lab_is_w : actid -> Prop :=
   | _ => ∅
   end.
 
-Definition sb_delta : relation actid :=
-  (is_init ∪₁ E ∩₁ same_tid e) × eq e.
+Definition sb_delta s : relation actid :=
+  (is_init ∪₁ s ∩₁ same_tid e) × eq e.
 
 Definition rf_delta_R w : relation actid :=
   eq_opt w × eq e.
@@ -360,7 +360,7 @@ Record add_event_gen r R1 w W1 W2 : Prop := {
   add_event_addr : addr' ≡ addr;
   add_event_ctrl : ctrl' ≡ ctrl;
   add_event_rmw_dep : rmw_dep' ≡ rmw_dep;
-  add_event_sb : sb' ≡ sb ∪ sb_delta;
+  add_event_sb : sb' ≡ sb ∪ sb_delta E;
 }.
 
 Definition add_event :=

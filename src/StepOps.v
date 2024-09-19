@@ -66,7 +66,7 @@ Notation "'Val_' v" := (fun e => val e = v) (at level 1).
 Lemma mapped_sb_delta
     (INIT : fixset is_init m)
     (TID : m ↑₁ (E ∩₁ same_tid e) ≡₁ m ↑₁ E ∩₁ same_tid (m e)) :
-  m ↑ WCore.sb_delta X e ≡
+  m ↑ WCore.sb_delta e E ≡
     (is_init ∪₁ m ↑₁ E ∩₁ same_tid (m e)) × eq (m e).
 Proof using.
   unfold WCore.sb_delta.
@@ -118,7 +118,7 @@ Qed.
 
 Lemma sb_deltaE r R1 w W1 W2
     (ADD : WCore.add_event_gen X X' e l r R1 w W1 W2) :
-  sb' ⨾ ⦗eq e⦘ ≡ WCore.sb_delta X e.
+  sb' ⨾ ⦗eq e⦘ ≡ WCore.sb_delta e E.
 Proof using.
   rewrite (WCore.add_event_sb ADD), seq_union_l.
   arewrite (sb ⨾ ⦗eq e⦘ ≡ ∅₂); [| basic_solver 11].
@@ -285,7 +285,7 @@ Lemma add_event_to_wf r R1 w W1 W2
     (ADDR : addr' ≡ addr)
     (CTRL : ctrl' ≡ ctrl)
     (RMWDEP : rmw_dep' ≡ rmw_dep)
-    (SB : sb' ≡ sb ∪ WCore.sb_delta X e)
+    (SB : sb' ≡ sb ∪ WCore.sb_delta e E)
     (NCTRL : ctrl' ⊆ ∅₂)
     (WF : Wf G') :
   WCore.add_event_gen X X' e l r R1 w W1 W2.

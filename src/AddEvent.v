@@ -23,7 +23,7 @@ Lemma add_sb_max_event t
     << NOTIN : ~E e >> /\
     << TID : tid e = t >> /\
     << SB : ⦗E ∪₁ eq e⦘ ⨾ ext_sb ⨾ ⦗E ∪₁ eq e⦘ ≡
-            sb ∪ WCore.sb_delta X e >>.
+            sb ∪ WCore.sb_delta e E >>.
 Proof using.
   unfold NW.
   destruct classic with (E ∩₁ Tid_ t ≡₁ ∅) as [EMP | NEMP].
@@ -124,3 +124,17 @@ Proof using.
 Qed.
 
 End AddEvent.
+
+Lemma add_sb_max_event_to_set t E
+    (INIT : is_init ⊆₁ E)
+    (NTID : t <> tid_init)
+    (FIN : set_finite (E \₁ is_init)) :
+  exists e,
+    << NINIT : ~is_init e >> /\
+    << NOTIN : ~E e >> /\
+    << TID : tid e = t >> /\
+    << SB : ⦗E ∪₁ eq e⦘ ⨾ ext_sb ⨾ ⦗E ∪₁ eq e⦘ ≡
+            ⦗E⦘ ⨾ ext_sb ⨾ ⦗E⦘ ∪ WCore.sb_delta e E >>.
+Proof using.
+  admit.
+Admitted.

@@ -883,7 +883,7 @@ Proof using INV INV'.
   << NOTIN : ~E_s e' >> /\
   << TID : tid e' = tid e >> /\
   << NEWSB : ⦗E_s ∪₁ eq e'⦘ ⨾ ext_sb ⨾ ⦗E_s ∪₁ eq e'⦘ ≡
-          sb_s ∪ WCore.sb_delta X_s e' >>).
+          sb_s ∪ WCore.sb_delta e' E_s >>).
   { apply add_sb_max_event; auto.
     { eapply rsr_init_acts_s with (X_t := X_t); eauto. }
     eapply rsr_fin_s with (X_t := X_t); eauto. }
@@ -1058,8 +1058,8 @@ Proof using INV INV'.
       arewrite (eq b_t ∩₁ E_t' ≡₁ eq b_t ∩₁ E_t).
       { clear - B_PRESERVED. basic_solver. }
       rewrite (WCore.add_event_sb ADD), swap_rel_unionE.
-      arewrite (WCore.sb_delta X_t e \ (eq b_t ∩₁ E_t) × (eq a_t ∩₁ E_t) ≡
-                WCore.sb_delta X_t e).
+      arewrite (WCore.sb_delta e E_t \ (eq b_t ∩₁ E_t) × (eq a_t ∩₁ E_t) ≡
+                WCore.sb_delta e E_t).
       { clear - E_NOT_A ENOTIN. split; [basic_solver 11 |].
         unfolder. ins. desf; splits; eauto using or_not_and. }
       rewrite collect_rel_union.
@@ -1218,7 +1218,7 @@ Proof using INV INV'.
   << NOTIN : ~E_s a_s >> /\
   << TID : tid a_s = tid b_t >> /\
   << NEWSB : ⦗E_s ∪₁ eq a_s⦘ ⨾ ext_sb ⨾ ⦗E_s ∪₁ eq a_s⦘ ≡
-          sb_s ∪ WCore.sb_delta X_s a_s >>).
+          sb_s ∪ WCore.sb_delta a_s E_s >>).
   { apply add_sb_max_event.
     { eapply rsr_init_acts_s with (X_t := X_t); eauto. }
     { rewrite <- (rsr_at_bt_tid INV). apply INV. }
@@ -1617,7 +1617,7 @@ Proof using.
   << NOTIN : ~(E_s ∪₁ eq a_s) b_s >> /\
   << TID : tid b_s = tid b_t >> /\
   << NEWSB : ⦗E_s ∪₁ eq a_s ∪₁ eq b_s⦘ ⨾ ext_sb ⨾ ⦗E_s ∪₁ eq a_s ∪₁ eq b_s⦘ ≡
-          sb (WCore.G X_s'') ∪ WCore.sb_delta X_s'' b_s >>).
+          sb (WCore.G X_s'') ∪ WCore.sb_delta b_s (acts_set (WCore.G X_s'')) >>).
   { destruct add_sb_max_event
         with (X := X_s'') (t := tid b_t)
           as (b_s & EVENT).
@@ -1742,10 +1742,10 @@ Proof using.
       all: intros x XIN; rupd; ins; try congruence.
       intro FALSO. apply NOTIN. left; congruence. }
     { unfold sb at 1. ins. rewrite NEWSB.
-      rewrite (WCore.add_event_sb ADD'),
-              (WCore.add_event_acts ADD').
+      rewrite (WCore.add_event_sb ADD').
+      unfold WCore.sb_delta.
+      rewrite (WCore.add_event_acts ADD').
       rewrite seq_union_l at 1.
-      unfold WCore.sb_delta at 2.
       rewrite <- cross_inter_r.
       arewrite (eq b_s ∩₁ (E_s ∪₁ eq a_s) ≡₁ ∅).
       { generalize NOTIN. clear. basic_solver. }
@@ -2632,7 +2632,9 @@ Proof using INV INV'.
   now rewrite (rsr_rmw_dep SIMREL), (rsr_nrmw_dep CORR).
 Admitted.
 
-Record reexec_acts_pred_gen a_s E X d a b m : Prop := {
+Record reexec_acts_pred_gen a_s E X d d_s a b m : Prop := {
+  rap_sub : d_s ⊆₁ E_s;
+  rap_dtrmt : d ⊆₁ acts_set (WCore.G X);
   rap_eq : eq_dom d m mapper;
   rap_inj : inj_dom E m;
   rap_as : extra_a X a b a_s ⊆₁ same_tid b;
@@ -2646,30 +2648,35 @@ Record reexec_acts_pred_gen a_s E X d a b m : Prop := {
           (extra_a X a b a_s) × eq (m b);
 }.
 
-Lemma simrel_reexec_acts_mapper a_s' d l cmt
+Definition reexec_acts_pred E X d d_s a b m :=
+  exists a_s, reexec_acts_pred_gen a_s E X d d_s a b m.
+
+Lemma simrel_reexec_acts_mapper d d_s l cmt X
     (ENUM : SubToFullExecInternal.enumd_diff
-            (WCore.X_start X_t d)
+            X
             X_t'
             cmt
             l)
-    (INJ : inj_dom d mapper)
-    (SUB : d ⊆₁ E_t') :
+    (START : reexec_acts_pred E_s X d d_s a_t b_t mapper) :
   exists mapper' E_s',
-    << EQ : eq_dom d mapper mapper' >> /\
-    << INJ : inj_dom E_t' mapper' >> /\
-    << AS : extra_a X_t' a_t' b_t' a_s' ⊆₁ same_tid b_t' >> /\
-    << CODOM : mapper' ↑₁ E_t' ⊆₁ E_s' \₁ extra_a X_t' a_t' b_t' a_s' >> /\
-    << INIT : fixset is_init mapper' >> /\
-    << TID : eq_dom E_t' (tid ∘ mapper') tid >> /\
-    << ACTS : E_s' ≡₁ mapper' ↑₁ E_t' ∪₁ extra_a X_t' a_t' b_t' a_s' >> /\
-    << SB : ⦗E_s'⦘ ⨾ ext_sb ⨾ ⦗E_s'⦘ ≡
-            mapper' ↑ swap_rel sb_t' (eq b_t' ∩₁ E_t') (eq a_t' ∩₁ E_t') ∪
-            (mapper' ↑₁ dom_rel (sb_t' ⨾ ⦗eq b_t'⦘)) × (extra_a X_t' a_t' b_t' a_s') ∪
-            (extra_a X_t' a_t' b_t' a_s') × eq (mapper' b_t') >>.
+    reexec_acts_pred E_s' X_t' d d_s a_t b_t mapper'.
 Proof using.
-  generalize INJ SUB. clear INJ SUB.
-  induction l as [| h t IHl].
+  generalize X cmt ENUM START. clear START ENUM X cmt.
+  induction l as [| h t IHl]; intros.
+  { exists mapper, E_s.
+    arewrite (X_t' = X); auto.
+    admit. }
+  destruct classic with (h = b_t) as [EQB|NEQB].
   { admit. }
+  destruct classic with (h = a_t) as [EQA|NEQA].
+  { admit. }
+  (* assert (NEWE : exists e,
+  << NINIT : ~is_init e >> /\
+  << NOTIN : ~E_s e >> /\
+  << TID : tid e = tid h >> /\
+  << NEWSB : ⦗E_s ∪₁ eq e⦘ ⨾ ext_sb ⨾ ⦗E_s ∪₁ eq e⦘ ≡
+          sb_s ∪ WCore.sb_delta X_s e >>); desf.
+  { admit. } *)
   admit.
 Admitted.
 
