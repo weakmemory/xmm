@@ -451,4 +451,11 @@ Proof using.
   clear - NW. basic_solver.
 Qed.
 
+Lemma dom_sb_delta s :
+  dom_rel (WCore.sb_delta e s) ≡₁
+    is_init ∪₁ s ∩₁ same_tid e.
+Proof using.
+  basic_solver 11.
+Qed.
+
 End DeltaOps.
