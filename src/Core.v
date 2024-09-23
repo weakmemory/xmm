@@ -9,6 +9,7 @@ From imm Require Import imm_s_hb.
 From imm Require Import imm_s_hb.
 From imm Require Import SubExecution.
 From imm Require Import imm_s.
+Require Import Setoid Morphisms.
 
 From RecordUpdate Require Import RecordSet.
 (* Import RecordSetNotations. *)
@@ -811,3 +812,13 @@ Definition reexec : Prop :=
 End ReexecStep.
 
 End WCore.
+
+Add Parametric Morphism : WCore.sb_delta with signature
+  eq ==> set_equiv ==> same_relation as sb_delta_more.
+Proof using.
+  intros A E1 E2 EEQ. unfold WCore.sb_delta.
+  now rewrite EEQ.
+Qed.
+
+#[export]
+Instance sb_delta_Propere : Proper (_ ==> _ ==> _) _ := sb_delta_more.
