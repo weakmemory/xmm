@@ -458,4 +458,11 @@ Proof using.
   basic_solver 11.
 Qed.
 
+Lemma sb_delta_union s1 s2 :
+  WCore.sb_delta e (s1 ∪₁ s2) ≡
+    WCore.sb_delta e s1 ∪ WCore.sb_delta e s2.
+Proof using.
+  basic_solver 11.
+Qed.
+
 End DeltaOps.
