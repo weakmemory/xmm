@@ -148,23 +148,23 @@ Record reord_step_pred : Prop := {
   rsr_at_bt_imm : (eq b_t ∩₁ E_t) × (eq a_t ∩₁ E_t) ⊆ immediate sb_t;
 }.
 
-Record reord_simrel_gen a_s : Prop := {
+Record reord_simrel : Prop := {
   rsr_inj : inj_dom E_t mapper;
-  rsr_as : extra_a a_s ⊆₁ extra_a_pred;
-  rsr_codom : mapper ↑₁ E_t ⊆₁ E_s \₁ extra_a a_s;
+  rsr_as : extra_a b_t ⊆₁ extra_a_pred;
+  rsr_codom : mapper ↑₁ E_t ⊆₁ E_s \₁ extra_a b_t;
   rsr_init : fixset is_init mapper;
   rsr_tid : eq_dom E_t (tid ∘ mapper) tid;
   rsr_lab : eq_dom E_t (lab_s ∘ mapper) lab_t;
-  rsr_acts : E_s ≡₁ mapper ↑₁ E_t ∪₁ extra_a a_s;
+  rsr_acts : E_s ≡₁ mapper ↑₁ E_t ∪₁ extra_a b_t;
   rsr_sb : sb_s ≡
     mapper ↑ swap_rel sb_t (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t) ∪
-    (mapper ↑₁ dom_rel (sb_t ⨾ ⦗eq b_t⦘)) × (extra_a a_s) ∪
-    (extra_a a_s) × eq b_s;
-  rsr_rf : rf_s ≡ mapper ↑ rf_t ∪ srf_s ⨾ ⦗extra_a a_s ∩₁ R_s⦘;
+    (mapper ↑₁ dom_rel (sb_t ⨾ ⦗eq b_t⦘)) × (extra_a b_t) ∪
+    (extra_a b_t) × eq b_s;
+  rsr_rf : rf_s ≡ mapper ↑ rf_t ∪ srf_s ⨾ ⦗extra_a b_t ∩₁ R_s⦘;
   rsr_co : co_s ≡ mapper ↑ co_t ∪
     add_max
-      (extra_co_D E_s lab_s (loc_s a_s))
-      (extra_a a_s ∩₁ W_s);
+      (extra_co_D E_s lab_s (loc_s b_t))
+      (extra_a b_t ∩₁ W_s);
   rsr_rmw : rmw_s ≡ mapper ↑ rmw_t;
   rsr_threads : threads_set G_s ≡₁ threads_set G_t;
   rsr_ctrl : ctrl_s ≡ ctrl_t;
@@ -177,21 +177,18 @@ Record reord_simrel_gen a_s : Prop := {
   rsr_at : mapper ↑₁ (eq a_t ∩₁ E_t) ⊆₁ eq b_t;
 }.
 
-Definition reord_simrel := exists a_s, reord_simrel_gen a_s.
-
 Lemma rsr_common
     (SIMREL : reord_simrel) :
   simrel_common X_s X_t mapper.
 Proof using.
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   constructor; try now apply SIMREL.
   rewrite (rsr_acts SIMREL). clear. basic_solver.
 Qed.
 
-Lemma rsr_as_ninit a_s
+Lemma rsr_as_ninit
     (PRED : reord_step_pred)
-    (SIMREL : reord_simrel_gen a_s) :
-  extra_a a_s ⊆₁ set_compl is_init.
+    (SIMREL : reord_simrel) :
+  extra_a b_t ⊆₁ set_compl is_init.
 Proof using.
   transitivity (same_tid b_t).
   { rewrite (rsr_as SIMREL). intros x HSET.
@@ -207,7 +204,6 @@ Lemma rsr_fin_s
     (SIMREL : reord_simrel) :
   set_finite (E_s \₁ is_init).
 Proof using.
-  destruct SIMREL as (a_s & SIMREL).
   rewrite (rsr_acts SIMREL), set_minus_union_l.
   apply set_finite_union. split.
   { eapply set_finite_mori with (x := mapper ↑₁ (E_t \₁ is_init)).
@@ -216,7 +212,7 @@ Proof using.
       rewrite (rsr_init SIMREL) in *; auto. }
     apply set_finite_set_collect, PRED. }
   unfold extra_a; desf.
-  all: eapply set_finite_mori with (x := eq a_s); auto with hahn.
+  all: eapply set_finite_mori with (x := eq b_t); auto with hahn.
   all: clear; unfold flip; basic_solver.
 Qed.
 
@@ -225,7 +221,6 @@ Lemma rsr_tid' e
     (INE : E_t e) :
   tid e = tid (mapper e).
 Proof using.
-  destruct SIMREL as (a_s & SIMREL).
   rewrite <- (rsr_tid SIMREL); ins.
 Qed.
 
@@ -248,10 +243,10 @@ Proof using.
   rewrite <- (rsr_at_bt_tid PRED). apply PRED.
 Qed.
 
-Lemma rsr_ninit_exa_tid a_s
+Lemma rsr_ninit_exa_tid
     (PRED : reord_step_pred)
-    (SIMREL : reord_simrel_gen a_s) :
-  extra_a a_s ∩₁ Tid_ tid_init ⊆₁ ∅.
+    (SIMREL : reord_simrel) :
+  extra_a b_t ∩₁ Tid_ tid_init ⊆₁ ∅.
 Proof using.
   rewrite (rsr_as SIMREL).
   transitivity (same_tid b_t ∩₁ Tid_ tid_init).
@@ -268,9 +263,8 @@ Lemma rsr_ninit_acts_s
     (SIMREL : reord_simrel) :
   E_s ∩₁ Tid_ tid_init ⊆₁ is_init.
 Proof using.
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   rewrite (rsr_acts SIMREL), set_inter_union_l.
-  rewrite <- rsr_same_tid'; [| red; eauto].
+  rewrite <- rsr_same_tid'; [| auto].
   rewrite rsr_ninit_exa_tid; ins.
   rewrite (rsr_ninit_acts PRED),
           <- (fixset_set_fixpoint (rsr_init SIMREL)).
@@ -327,12 +321,12 @@ Proof using.
   unfold extra_co_D. now rewrite !set_inter_minus_l.
 Qed.
 
-Lemma extra_co_DE a_s
-    (GSIM : reord_simrel_gen a_s) :
-  extra_co_D E_s lab_s (loc_s a_s) \₁ extra_a a_s ∩₁ W_s ≡₁
-    mapper ↑₁ (E_t ∩₁ W_t ∩₁ Loc_t_ (loc_s a_s)).
+Lemma extra_co_DE
+    (GSIM : reord_simrel) :
+  extra_co_D E_s lab_s (loc_s b_t) \₁ extra_a b_t ∩₁ W_s ≡₁
+    mapper ↑₁ (E_t ∩₁ W_t ∩₁ Loc_t_ (loc_s b_t)).
 Proof using.
-  assert (DISJ : set_disjoint (mapper ↑₁ E_t) (extra_a a_s)).
+  assert (DISJ : set_disjoint (mapper ↑₁ E_t) (extra_a b_t)).
   { apply set_disjointE. split; [| basic_solver].
     rewrite (rsr_codom GSIM). basic_solver. }
   rewrite extra_co_D_minus. unfold extra_co_D.
@@ -360,9 +354,9 @@ Qed.
 #[export]
 Instance extra_co_D_Propere : Proper (_ ==> _ ==> _ ==> _) _ := extra_co_D_more.
 
-Lemma rsr_as_val a_s
-    (SIMREL : reord_simrel_gen a_s) :
-  srf_s ⨾ ⦗extra_a a_s ∩₁ R_s⦘ ⊆ same_val_s.
+Lemma rsr_as_val
+    (SIMREL : reord_simrel) :
+  srf_s ⨾ ⦗extra_a b_t ∩₁ R_s⦘ ⊆ same_val_s.
 Proof using.
   unfolder. ins. desf. splits; ins.
   eapply eba_val; [| basic_solver].
@@ -382,7 +376,6 @@ Proof using.
   { apply sico_co_total; auto using rsr_common. }
   assert (MAPIN : mapper ↑₁ E_t ⊆₁ E_s).
   { auto using rsr_common, sico_codom. }
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   rewrite (rsr_acts SIMREL), (rsr_co SIMREL).
   unfold extra_a; desf.
   all: try now (rewrite set_union_empty_r, set_inter_empty_l,
@@ -411,7 +404,6 @@ Lemma G_s_rff
   functional rf_s⁻¹.
 Proof using.
   assert (WF : Wf G_t) by apply PRED.
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   rewrite (rsr_rf SIMREL), transp_union.
   rewrite (wf_rfE WF).
   apply functional_union.
@@ -419,9 +411,7 @@ Proof using.
     eapply sico_rff, rsr_common; try red; eauto. }
   { rewrite transp_seq, transp_eqv_rel.
     apply functional_seq; [basic_solver |].
-    apply wf_srff'.
-    intros ol. apply (@G_s_co_total ol PRED).
-    now exists a_s. }
+    apply wf_srff'. auto using G_s_co_total. }
   clear - SIMREL. unfolder in *. ins. desf.
   eapply (rsr_codom SIMREL); basic_solver.
 Qed.
@@ -431,7 +421,6 @@ Lemma G_s_rfE
     (SIMREL : reord_simrel) :
   rf_s ≡ ⦗E_s⦘ ⨾ rf_s ⨾ ⦗E_s⦘.
 Proof using.
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   assert (WF : Wf G_t) by apply PRED.
   apply dom_helper_3. rewrite (rsr_rf SIMREL).
   apply inclusion_union_l.
@@ -456,7 +445,6 @@ Proof using.
   assert (COD : upward_closed co_t W_t).
   { unfold upward_closed. intros x y CO YD.
     apply (wf_coD WF) in CO. unfolder in CO; desf. }
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   rewrite (rsr_co SIMREL).
   apply expand_transitive.
   { eapply sico_co_trans, rsr_common; try red; eauto. }
@@ -469,7 +457,7 @@ Proof using.
     { unfolder. eauto 11. }
     clear - CO WF.
     apply (wf_coE WF) in CO. unfolder in CO. desf. }
-  arewrite (extra_a a_s ∩₁ W_s ⊆₁ set_compl (mapper ↑₁ E_t)).
+  arewrite (extra_a b_t ∩₁ W_s ⊆₁ set_compl (mapper ↑₁ E_t)).
   { rewrite (rsr_codom SIMREL). clear.
     unfolder. ins. desf. tauto. }
   rewrite (wf_coE WF). apply set_compl_mori.
@@ -482,7 +470,6 @@ Lemma G_s_co_irr
   irreflexive co_s.
 Proof using.
   assert (WF : Wf G_t) by apply PRED.
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   rewrite (rsr_co SIMREL).
   apply irreflexive_union. split.
   { eapply sico_co_irr, rsr_common; try red; eauto. }
@@ -495,7 +482,6 @@ Lemma G_s_co_l
   co_s ⊆ same_loc_s.
 Proof using.
   assert (WF : Wf G_t) by apply PRED.
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   rewrite (rsr_co SIMREL).
   apply inclusion_union_l.
   { eapply sico_col, rsr_common; try red; eauto. }
@@ -512,7 +498,6 @@ Lemma G_s_coE
 Proof using.
   assert (WF : Wf G_t) by apply PRED.
   apply dom_helper_3.
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   rewrite (rsr_co SIMREL).
   apply inclusion_union_l.
   { eapply sico_coE, rsr_common; try red; eauto. }
@@ -529,7 +514,6 @@ Lemma G_s_coD
   co_s ≡ ⦗W_s⦘ ⨾ co_s ⨾ ⦗W_s⦘.
 Proof using.
   assert (WF : Wf G_t) by apply PRED.
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   apply dom_helper_3.
   rewrite (rsr_co SIMREL).
   apply inclusion_union_l.
@@ -546,8 +530,7 @@ Lemma G_s_wf
   Wf G_s.
 Proof using.
   assert (WF : Wf G_t) by apply PRED.
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
-  assert (NEXA : extra_a a_s ⊆₁ set_compl (mapper ↑₁ E_t)).
+  assert (NEXA : extra_a b_t ⊆₁ set_compl (mapper ↑₁ E_t)).
   { rewrite (rsr_codom SIMREL), set_compl_minus. basic_solver. }
   assert (IMM : mapper ↑ rmw_t ⊆
     immediate (mapper ↑ swap_rel sb_t (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t))).
@@ -561,8 +544,7 @@ Proof using.
   { intros x y (XIN & YIN & NEQ & TID & NINIT).
     destruct x as [xl | xt xn], y as [yl | yt yn]; try now ins.
     all: try now (ins; congruence).
-    exfalso. apply NINIT, rsr_ninit_acts_s; ins.
-    red; eauto. }
+    exfalso. apply NINIT, rsr_ninit_acts_s; ins. }
   { rewrite (rsr_data SIMREL), (rsr_ndata PRED).
     clear. basic_solver. }
   { rewrite (rsr_data SIMREL), (rsr_ndata PRED).
@@ -597,47 +579,45 @@ Proof using.
     all: apply set_disjointE; split; [| clear; basic_solver].
     all: rewrite 1?(rsr_nrmw PRED), NEXA, wf_sbE.
     all: clear; basic_solver. }
-  { apply G_s_rfE; ins. red; eauto. }
+  { apply G_s_rfE; ins. }
   { apply dom_helper_3.
     rewrite (rsr_rf SIMREL).
     apply inclusion_union_l.
-    { eapply sico_rfD, rsr_common; try red; eauto. }
+    { eapply sico_rfD, rsr_common; eauto. }
     rewrite inclusion_seq_eqv_r.
     apply dom_helper_3, wf_srfD. }
   { rewrite (rsr_rf SIMREL).
     apply inclusion_union_l.
-    { eapply sico_rfl, rsr_common; try red; eauto. }
+    { eapply sico_rfl, rsr_common; eauto. }
     rewrite inclusion_seq_eqv_r.
     apply wf_srf_loc. }
   { rewrite (rsr_rf SIMREL).
     apply funeq_union.
-    { eapply sico_rfv, rsr_common; try red; eauto. }
+    { eapply sico_rfv, rsr_common; eauto. }
     apply (rsr_as_val SIMREL). }
   { rewrite (rsr_rf SIMREL), transp_union, (wf_rfE WF).
     apply functional_union.
     { rewrite <- (wf_rfE WF).
-      eapply sico_rff, rsr_common; try red; eauto. }
+      eapply sico_rff, rsr_common; eauto. }
     { rewrite transp_seq, transp_eqv_rel, inclusion_seq_eqv_l.
       apply wf_srff'. intros ol.
-      apply G_s_co_total with (ol := ol); ins.
-      red; eauto. }
+      apply G_s_co_total with (ol := ol); ins. }
     clear - NEXA. unfolder in *.
     ins; desf; eapply NEXA; eauto. }
-  { apply G_s_coE; ins. red; eauto. }
-  { apply G_s_coD; ins. red; eauto. }
-  { apply G_s_co_l; ins. red; eauto. }
-  { apply G_s_co_trans; ins. red; eauto. }
-  { ins; apply G_s_co_total with (ol := ol); ins.
-    red; eauto. }
-  { apply G_s_co_irr; ins. red; eauto. }
+  { apply G_s_coE; ins. }
+  { apply G_s_coD; ins. }
+  { apply G_s_co_l; ins. }
+  { apply G_s_co_trans; ins. }
+  { ins; apply G_s_co_total with (ol := ol); ins. }
+  { apply G_s_co_irr; ins. }
   { intros. eapply sico_init_acts_s.
-    { eapply rsr_common; try red; eauto. }
+    { eapply rsr_common; eauto. }
     { apply PRED. }
     easy. }
   { intros l. rewrite <- (rsr_init SIMREL); ins.
     erewrite <- sico_lab' with (X_t := X_t).
     { apply (wf_init_lab WF). }
-    { apply rsr_common. red. eauto. }
+    { now apply rsr_common. }
     now apply (rsr_init_acts PRED). }
   { rewrite (rsr_rmw_dep SIMREL), (rsr_nrmw_dep PRED).
     clear. basic_solver. }
@@ -650,8 +630,7 @@ Proof using.
     all: try now (try red; eauto using wf_init_lab).
     now apply (wf_threads WF). }
   unfold extra_a in EQ; desf.
-  arewrite (tid x = tid b_t); [| now apply WF].
-  symmetry. now apply eba_tid, SIMREL, extra_a_some.
+  now apply WF.
 Qed.
 
 Lemma G_s_rfc
@@ -661,13 +640,12 @@ Lemma G_s_rfc
 Proof using.
   assert (WF : Wf G_t) by apply PRED.
   assert (RFC : rf_complete G_t) by apply PRED.
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   unfold rf_complete.
   rewrite (rsr_acts SIMREL), set_inter_union_l,
           (rsr_rf SIMREL), codom_union.
   apply set_union_mori.
   { eapply sico_partial_rfc; [| assumption].
-    apply rsr_common. red. eauto. }
+    now apply rsr_common. }
   clear RFC. unfolder.
   intros r. ins. desf.
   assert (WF_S : Wf G_s).
@@ -723,7 +701,6 @@ Lemma rsr_init_acts_s
     (SIMREL : reord_simrel) :
   is_init ⊆₁ E_s.
 Proof using.
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   rewrite (fixset_set_fixpoint (rsr_init SIMREL)).
   rewrite (rsr_init_acts PRED), (rsr_codom SIMREL).
   clear. basic_solver.
@@ -731,7 +708,7 @@ Qed.
 
 Lemma rsr_map_bt
     (IN : E_t b_t)
-    (SIMREL : reord_simrel_gen b_t) :
+    (SIMREL : reord_simrel) :
   mapper b_t = a_t.
 Proof using.
   symmetry. apply (rsr_bt SIMREL).
@@ -740,7 +717,7 @@ Qed.
 
 Lemma rsr_map_at
     (IN : E_t a_t)
-    (SIMREL : reord_simrel_gen b_t) :
+    (SIMREL : reord_simrel) :
   mapper a_t = b_t.
 Proof using.
   symmetry. apply (rsr_at SIMREL).
@@ -749,7 +726,7 @@ Qed.
 
 Lemma rsr_actsE
     (CORR : reord_step_pred)
-    (SIMREL : reord_simrel_gen b_t) :
+    (SIMREL : reord_simrel) :
   E_s ≡₁ E_t ∪₁ extra_a a_t.
 Proof using.
   rewrite (rsr_acts SIMREL).
@@ -802,58 +779,6 @@ Proof using.
   rewrite set_collect_eq_dom with (g := id); [| apply SIMREL].
   basic_solver 11.
 Qed.
-
-Definition extra_sb (a_s : actid) :=
-  ifP ~E_t a_t /\ E_t b_t then (
-    WCore.sb_delta a_s (E_t \₁ eq b_t) ∪
-    eq b_t × eq a_t
-  )
-  else ∅₂.
-
-Lemma extra_sb_some a_s
-    (NINA : ~E_t a_t)
-    (INB : E_t b_t) :
-  extra_sb a_s ≡ WCore.sb_delta a_s (E_t \₁ eq b_t) ∪
-    eq b_t × eq a_t.
-Proof using.
-  unfold extra_sb; desf. exfalso; eauto.
-Qed.
-
-Lemma extra_sb_none_l a_s
-    (INA : E_t a_t) :
-  extra_sb a_s ≡ ∅₂.
-Proof using.
-  unfold extra_sb; desf. exfalso; desf.
-Qed.
-
-Lemma extra_sb_none_r a_s
-    (INA : ~E_t b_t) :
-  extra_sb a_s ≡ ∅₂.
-Proof using.
-  unfold extra_sb; desf. exfalso; desf.
-Qed.
-
-Lemma rsr_swap_relE
-    (CORR : reord_step_pred)
-    (SIMREL : reord_simrel_gen b_t) :
-  swap_rel sb_t (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t) ≡
-    mapper ↑ sb_t.
-Proof using.
-  split; intros x y HREL.
-  destruct classic with (x = a_t) as [XEQA|XNQA],
-          classic with (x = b_t) as [XEQB|XNQB],
-          classic with (y = a_t) as [YEQA|YNQA],
-          classic with (y = b_t) as [YEQB|YNQB].
-Admitted.
-
-Lemma rsr_sbE
-    (CORR : reord_step_pred)
-    (SIMREL : reord_simrel_gen b_t) :
-  sb_s ≡ sb_t ∪ extra_sb b_t.
-Proof using.
-  rewrite (rsr_sb SIMREL).
-  admit.
-Admitted.
 
 End SimRel.
 
@@ -964,7 +889,7 @@ Proof using.
   { now apply WCore.wf_init_exec. }
   assert (AI : eq a_t ∩₁ is_init ≡₁ ∅) by basic_solver.
   assert (BI : eq b_t ∩₁ is_init ≡₁ ∅) by basic_solver.
-  split; red; [exists a_t |].
+  split; red.
   all: constructor; ins.
   all: rewrite ?extra_a_none_r by ins.
   { clear; basic_solver. }
@@ -1027,9 +952,6 @@ Proof using INV INV'.
     right. unfold WCore.sb_delta, same_tid.
     basic_solver. }
   assert (ENOTIN : ~E_t e) by apply ADD.
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
-  assert (EQA : a_s = b_t); try subst a_s.
-  { admit. }
   assert (NEWE :
   << NINIT : ~is_init e >> /\
   << NOTIN : ~E_s e >> /\
@@ -1137,8 +1059,6 @@ Proof using INV INV'.
   |}).
   assert (SAMETID : same_tid e ≡₁ same_tid e).
   { unfold same_tid. reflexivity. }
-  assert (OLDSIMREL : reord_simrel X_s X_t a_t b_t mapper).
-  { exists b_t. ins. }
   assert (AS_TID : extra_a X_t a_t b_t b_t ⊆₁ same_tid b_t).
   { rewrite (rsr_as SIMREL). unfolder. intros x XIN. apply XIN. }
   assert (NOTIN' : ~ E_s (mapper' e)).
@@ -1179,7 +1099,7 @@ Proof using INV INV'.
   { eapply eq_dom_mori; eauto.
     unfold flip. rewrite (rsr_init_acts CORR).
     clear. basic_solver. }
-  assert (SIMREL' : reord_simrel_gen X_s' X_t' a_t b_t mapper' b_t).
+  assert (SIMREL' : reord_simrel X_s' X_t' a_t b_t mapper').
   { constructor; simpl.
     { rewrite (WCore.add_event_acts ADD). apply inj_dom_union.
       { clear - SIMREL MAPEQ.
@@ -1335,11 +1255,9 @@ Proof using INV INV'.
     { apply SIMREL. }
     eapply eq_dom_mori with (x := E_t); eauto.
     red. clear. basic_solver. }
-  assert (SIMREL'' : reord_simrel X_s' X_t' a_t b_t mapper').
-  { now exists b_t. }
   (* Actual proof *)
   exists mapper', X_s'.
-  split; red; [exact SIMREL'' |].
+  split; red; [exact SIMREL' |].
   constructor.
   { exists (option_map mapper' r), (mapper' ↑₁ R1),
            (option_map mapper' w),
@@ -1348,7 +1266,7 @@ Proof using INV INV'.
            (mapper' ↑₁ W2).
     apply add_event_to_wf; simpl.
     { eapply sico_init_acts_s; [| apply CORR].
-      eapply rsr_common; red; eauto. }
+      eapply rsr_common; eauto. }
     { unfold mapper'. rewrite upds. exact NOTIN. }
     { unfold mapper'. rewrite upds. exact NINIT. }
     { unfold mapper'. rewrite upds. exact E_TID. }
@@ -1410,10 +1328,6 @@ Lemma simrel_exec_b_step_1 l_a
                 (eq b_t ∩₁ WCore.lab_is_w l_a) >> /\
     << RMW : rmw (WCore.G X_s'') ≡ rmw_s >>.
 Proof using INV INV'.
-  red in SIMREL; desf.
-  assert (EQA : a_s = b_t).
-  { admit. }
-  subst a_s.
   (* Generate new actid *)
   assert (NEWE :
   << NINIT : ~is_init b_t >> /\
@@ -1573,7 +1487,7 @@ Proof using INV INV'.
       arewrite (E_s ≡₁ E_s ∪₁ is_init).
       { symmetry. apply set_union_absorb_r.
         eapply sico_init_acts_s; [| apply INV].
-        eapply rsr_common; red; eauto. }
+        eapply rsr_common; eauto. }
       clear. basic_solver 11. }
     arewrite (vf G_s'' ⨾ ⦗E_s⦘ ≡ vf_s ⨾ ⦗E_s⦘).
     { apply (vf_add_event X_s X_s''); ins.
@@ -1681,8 +1595,7 @@ Proof using INV INV'.
     { rewrite <- LOCEQ.
       basic_solver. }
     { apply expand_transitive.
-      { eapply G_s_co_trans with (X_t := X_t); eauto.
-        red; eauto. }
+      { eapply G_s_co_trans with (X_t := X_t); eauto. }
       { unfold upward_closed. intros x y REL XIN.
         destruct XIN as ((YINE & ISW) & HLOC).
         unfolder.
@@ -1700,8 +1613,7 @@ Proof using INV INV'.
       all: eauto; try now (red; eauto).
       unfolder. ins. desf. intro FALSO; desf. }
     { rewrite transp_union. apply functional_union.
-      { eapply G_s_rff with (X_t := X_t); eauto.
-        red; eauto. }
+      { eapply G_s_rff with (X_t := X_t); eauto. }
       { rewrite SRF'. apply functional_mori with (x := (srf G_s'')⁻¹).
         { unfold flip; basic_solver. }
         apply wf_srff'; ins. }
@@ -1710,7 +1622,7 @@ Proof using INV INV'.
       apply (wf_rfE WF_S) in RF.
       unfolder in SRF. unfolder in RF. desf. }
     { eapply sico_init_acts_s; [| apply INV].
-      eapply rsr_common; red; eauto. }
+      eapply rsr_common; eauto. }
     { now apply (rsr_threads SIMREL). }
     { now rewrite (rsr_ctrl SIMREL), (rsr_nctrl INV). }
     { enough (EMP : eq_opt w ⊆₁ ∅).
@@ -1744,8 +1656,7 @@ Proof using INV INV'.
   splits; ins.
   { constructor; ins.
     { assert (RFC_S : rf_complete G_s).
-      { eapply G_s_rfc with (X_t := X_t); eauto.
-        red; eauto. }
+      { eapply G_s_rfc with (X_t := X_t); eauto. }
       unfold rf_complete. unfold G_s''; ins.
       rewrite set_inter_union_l, SRF', codom_union.
       apply set_union_mori.
@@ -1767,11 +1678,10 @@ Proof using INV INV'.
       all: try now apply WF_S'.
       { now right. }
       { left. eapply sico_init_acts_s; [| apply INV | easy].
-        eapply rsr_common; red; eauto. }
+        eapply rsr_common; eauto. }
       { rewrite set_minus_union_l.
         apply set_finite_union. split.
-        { eapply (rsr_fin_s INV); eauto.
-          red; eauto. }
+        { eapply (rsr_fin_s INV); eauto. }
         apply set_finite_mori with (x := eq b_t).
         { unfold flip; basic_solver. }
         apply set_finite_eq. }
@@ -1816,13 +1726,9 @@ Proof using.
   { apply simrel_exec_b_step_1; ins.
     all: apply ADD. }
   subst a_t'. subst b_t'. desf.
-  destruct SIMREL as (a_s' & SIMREL).
   exists l_a', b_t, X_s''.
   destruct STEPA as [ADD' RFC' CONS'].
   destruct ADD' as (r' & R1' & w' & W1' & W2' & ADD').
-  assert (EQA : a_s' = b_t).
-  { admit. }
-  subst a_s'.
   (* Generate new actid *)
   assert (NEWE :
   << NINIT : ~is_init a_t >> /\
@@ -1874,8 +1780,7 @@ Proof using.
     apply CORR. }
   assert (WF_S'' : Wf (WCore.G X_s'')).
   { apply (WCore.add_event_wf ADD').
-    eapply G_s_wf with (X_t := X_t); eauto.
-    red; eauto. }
+    eapply G_s_wf with (X_t := X_t); eauto. }
   assert (ENINIT : ~is_init b_t) by apply ADD.
   assert (ENOTIN : ~E_t b_t) by apply ADD.
   assert (EQACTS : E_t' ≡₁ E_t ∪₁ eq b_t) by apply ADD.
@@ -1929,8 +1834,6 @@ Proof using.
   { unfold extra_a; do 2 desf; exfalso; eauto.
     apply n; split; ins. apply (WCore.add_event_acts ADD).
     basic_solver. }
-  assert (OLDSIMREL : reord_simrel X_s X_t a_t b_t mapper).
-  { exists b_t. ins. }
   assert (LABEQ : eq_dom E_s (lab (WCore.G X_s'')) lab_s).
   { rewrite (WCore.add_event_lab ADD'). unfolder.
     intros x XINE. rupd; ins. congruence. }
@@ -1984,7 +1887,7 @@ Proof using.
       apply ADD. right. clear. basic_solver. }
     now rewrite <- (rsr_rmw SIMREL), collect_rel_empty, seq_false_l,
                 union_false_r. }
-  assert (SIMREL'' : reord_simrel_gen X_s' X_t' a_t b_t mapper' b_t).
+  assert (SIMREL' : reord_simrel X_s' X_t' a_t b_t mapper').
   { constructor; ins.
     { rewrite (WCore.add_event_acts ADD). apply inj_dom_union.
       { unfolder. intros x y XINE YINE. rewrite !MAPEQ; ins.
@@ -2155,8 +2058,6 @@ Proof using.
     { rewrite set_inter_union_r. clear - NEQ ANOTIN.
       basic_solver. }
     rewrite set_collect_empty. auto with hahn. }
-  assert (SIMREL' : reord_simrel X_s' X_t' a_t b_t mapper').
-  { now exists b_t. }
   (* The proof *)
   exists mapper', X_s'.
   splits; ins.
@@ -2169,7 +2070,7 @@ Proof using.
     { rewrite (WCore.add_event_acts ADD').
       apply set_subset_union_r. left.
       eapply sico_init_acts_s; [| apply INV].
-      eapply rsr_common; red; eauto. }
+      eapply rsr_common; eauto. }
     { rewrite <- MAPE.
       intro FALSO. apply (WCore.add_event_acts ADD') in FALSO.
       eauto. }
@@ -2240,11 +2141,7 @@ Proof using INV INV'.
   assert (CORR : reord_step_pred X_t a_t b_t); ins.
   assert (CORR' : reord_step_pred X_t' a_t b_t); ins.
   (* Setup vars *)
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   destruct STEP as [ADD RFC CONS].
-  assert (EQ : a_s = b_t).
-  { admit. }
-  subst a_s.
   destruct ADD as (r & R1 & w & W1 & W2 & ADD).
   set (mapper' := upd mapper a_t b_t).
   set (G_s' := {|
@@ -2386,7 +2283,7 @@ Proof using INV INV'.
       eapply eq_dom_mori; eauto. unfold flip.
       unfold sb. basic_solver 11. }
     basic_solver 12. }
-  assert (SIMREL' : reord_simrel_gen X_s' X_t' a_t b_t mapper' b_t).
+  assert (SIMREL' : reord_simrel X_s' X_t' a_t b_t mapper').
   { constructor; ins.
     { rewrite NOEXA. basic_solver. }
     { rewrite (WCore.add_event_acts ADD), set_collect_union,
@@ -2511,7 +2408,7 @@ Proof using INV INV'.
     assert (INIT : is_init ⊆₁ dtrmt').
     { unfold dtrmt'.
       rewrite <- sico_init_acts_s; [| | apply INV].
-      all: try now (eapply rsr_common; red; eauto).
+      all: try now (eapply rsr_common; eauto).
       unfolder. intros x XNIT.
       splits; ins.
       all: intro FALSO; subst x.
@@ -2620,8 +2517,7 @@ Proof using INV INV'.
       { rewrite (rsr_addr SIMREL), (rsr_naddr INV). basic_solver. }
       { rewrite (rsr_ctrl SIMREL), (rsr_nctrl INV). basic_solver. }
       { rewrite (rsr_rmw_dep SIMREL), (rsr_nrmw_dep INV). basic_solver. }
-      eapply G_s_wf with (X_s := X_s') (X_t := X_t'); eauto.
-      red; eauto. }
+      eapply G_s_wf with (X_s := X_s') (X_t := X_t'); eauto. }
     { apply prefix_exec_restr_eq; ins.
       basic_solver. }
     { unfold rf_complete, G_s', cmt'. ins.
@@ -2642,11 +2538,9 @@ Proof using INV INV'.
       seq_rewrite seq_eqvK. unfolder.
       intros x ((XINE & NEQ) & ISR).
       assert (RFC_S : rf_complete G_s).
-      { eapply G_s_rfc with (X_t := X_t); eauto.
-        red; eauto. }
+      { eapply G_s_rfc with (X_t := X_t); eauto. }
       assert (WF_S : Wf G_s).
-      { eapply G_s_wf with (X_t := X_t); eauto.
-        red; eauto. }
+      { eapply G_s_wf with (X_t := X_t); eauto. }
       destruct RFC_S with x
             as (xw & RF); [split; ins|].
       exists xw; splits; ins.
@@ -2724,7 +2618,6 @@ Proof using INV INV'.
   (* The proof *)
   exists mapper', X_s', dtrmt', cmt'.
   split; red; ins.
-  { now exists b_t. }
   red. exists id, thrdle'.
   constructor; ins.
   { subst dtrmt' cmt'. basic_solver. }
@@ -2832,8 +2725,7 @@ Proof using INV INV'.
     unfold mapper'. now rupd. }
   { admit. (* TODO: cons *) }
   apply sub_to_full_exec_listless with (thrdle := thrdle'); ins.
-  { eapply G_s_rfc with (X_s := X_s'); eauto.
-    unfold reord_simrel; eauto 11. }
+  { eapply G_s_rfc with (X_s := X_s'); eauto. }
   { arewrite (E_s \₁ dtrmt' ∩₁ E_s ≡₁ eq b_t ∪₁ eq (mapper b_t)).
     { rewrite set_minus_inter_r, set_minusK, set_union_empty_r.
       subst dtrmt'.
@@ -2841,8 +2733,7 @@ Proof using INV INV'.
       rewrite !set_inter_absorb_l; ins; [| basic_solver].
       rewrite (rsr_acts SIMREL). basic_solver. }
     apply set_finite_union. split; apply set_finite_eq. }
-  { eapply G_s_wf with (X_s := X_s'); eauto.
-    red; eauto. }
+  { eapply G_s_wf with (X_s := X_s'); eauto. }
   { unfold dtrmt'.
     rewrite set_inter_absorb_r; [| basic_solver].
     rewrite !set_minus_minus_r, set_minusK, set_union_empty_l.
@@ -2851,8 +2742,7 @@ Proof using INV INV'.
       eapply rsr_as_ninit with (x := b_t) (X_t := X_t); eauto.
       { apply extra_a_some; ins. }
       eapply rsr_ninit_acts_s with (X_t := X_t); eauto.
-      { red; eauto. }
-      split; ins. }
+      red; eauto. }
     unfolder. intros x (INE & XEQ) FALSO. subst x.
     assert (INIT : is_init b_t).
     { change (tid (mapper b_t)) with ((tid ∘ mapper) b_t) in FALSO.
@@ -2878,17 +2768,16 @@ Lemma simrel_reexec dtrmt cmt
     << SIMREL : reord_simrel X_s' X_t' a_t' b_t' mapper' >> /\
     << STEP : WCore.reexec X_s X_s' dtrmt' (mapper' ↑₁ cmt) >>.
 Proof using INV INV'.
-  red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   set (G_s' := {|
-    acts_set := mapper ↑₁ E_t' ∪₁ extra_a X_t a_t b_t a_s;
+    acts_set := mapper ↑₁ E_t' ∪₁ extra_a X_t a_t b_t b_t;
     threads_set := threads_set G_s;
     lab := lab_t' ∘ mapper;
     rf := mapper ↑ rf_t' ∪
-          srf_s ⨾ ⦗extra_a X_t a_t b_t a_s ∩₁ R_s⦘;
+          srf_s ⨾ ⦗extra_a X_t a_t b_t b_t ∩₁ R_s⦘;
     co := mapper ↑ co_t' ∪
           add_max
-            (extra_co_D (mapper ↑₁ E_t') lab_s (loc_s a_s))
-            (extra_a X_t a_t b_t a_s ∩₁ W_s);
+            (extra_co_D (mapper ↑₁ E_t') lab_s (loc_s b_t))
+            (extra_a X_t a_t b_t b_t ∩₁ W_s);
     rmw := mapper ↑ rmw_t';
     rmw_dep := rmw_dep_s;
     ctrl := ctrl_s;
