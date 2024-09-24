@@ -146,6 +146,7 @@ Record reord_step_pred : Prop := {
   rsr_at_nacq : eq a_t ∩₁ E_t ⊆₁ set_compl Acq_t;
   rsr_bt_nrel : eq b_t ∩₁ E_t ⊆₁ set_compl Rel_t;
   rsr_at_bt_imm : (eq b_t ∩₁ E_t) × (eq a_t ∩₁ E_t) ⊆ immediate sb_t;
+  rsr_bt_at_ord : ext_sb b_t a_t;
 }.
 
 Record reord_simrel : Prop := {
@@ -874,7 +875,8 @@ Lemma sim_rel_init threads
     (NINB : ~is_init b_t)
     (TIDAB : tid a_t = tid b_t)
     (NEQ : a_t <> b_t)
-    (INIT : threads tid_init) :
+    (INIT : threads tid_init)
+    (ABSB : ext_sb b_t a_t) :
   << SIMREL : reord_simrel
     (WCore.Build_t (WCore.init_exec threads) ∅₂)
     (WCore.Build_t (WCore.init_exec threads) ∅₂)
@@ -967,10 +969,11 @@ Proof using INV INV'.
       unfold extra_a in EQEXA; desf. }
     destruct classic with (tid e = tid b_t)
           as [EQT|NQT].
-    { rewrite (rsr_actsE CORR SIMREL).
+    { unfold sb.
+      rewrite (rsr_actsE CORR SIMREL).
       unfold extra_a; desf; [exfalso; now apply ETID|].
       rewrite set_union_empty_r.
-      admit. (* sb_s = sb_t *) }
+      rewrite <- EQACTS. apply ADD. }
     unfold sb.
     rewrite rsr_actsE
       with (X_s := X_s) (X_t := X_t)
@@ -1315,6 +1318,7 @@ Admitted.
 Lemma simrel_exec_b_step_1 l_a
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
     (THREADS : threads_set G_t (tid b_t))
+    (TACTS : E_t' ≡₁ E_t ∪₁ eq b_t)
     (TSTEP : sb_t' ≡ sb_t ∪ WCore.sb_delta b_t E_t)
     (BNOTIN : ~E_t b_t) :
   exists l_a' X_s'',
@@ -1343,10 +1347,11 @@ Proof using INV INV'.
       rewrite extra_a_none_r in FALSO by assumption.
       rewrite set_union_empty_r in FALSO.
       now apply -> set_subset_single_l in FALSO. }
+    unfold sb.
     erewrite (rsr_actsE INV); eauto.
     rewrite extra_a_none_r by assumption.
-    rewrite set_union_empty_r.
-    admit. (* sb_s = sb_t *) }
+    rewrite set_union_empty_r, <- TACTS.
+    apply TSTEP. }
   (* unfold hypotheses *)
   assert (WF_S : Wf G_s).
   { eapply G_s_wf with (X_t := X_t); try red; eauto. }
@@ -1745,11 +1750,20 @@ Proof using.
       destruct FALSO as [INE | EQB].
       { now apply (WCore.add_event_new ADD), (rsr_at_bt_ord INV). }
       apply (rsr_at_neq_bt INV). auto. }
-    rewrite (WCore.add_event_sb ADD').
-    erewrite (rsr_actsE INV); eauto.
-    rewrite extra_a_none_r, set_union_empty_r by apply ADD.
+    rewrite id_union, !seq_union_l, !seq_union_r, <- unionA.
+    arewrite_false (⦗eq a_t⦘ ⨾ ext_sb ⨾ ⦗eq a_t⦘).
+    { clear. unfolder. ins. desf. eapply ext_sb_irr; eauto. }
+    arewrite_false (⦗eq a_t⦘ ⨾ ext_sb ⨾ ⦗E_s ∪₁ eq b_t⦘).
+    { admit. }
+    unfold sb.
     rewrite (WCore.add_event_acts ADD').
-    admit. }
+    arewrite (⦗E_s ∪₁ eq b_t⦘ ⨾ ext_sb ⨾ ⦗eq a_t⦘ ≡
+      WCore.sb_delta a_t (E_s ∪₁ eq b_t)).
+    { rewrite rsr_actsE with (X_t := X_t); eauto.
+      rewrite extra_a_none_r, set_union_empty_r; auto.
+      admit. }
+    rewrite !union_false_r.
+    reflexivity. }
   desf.
   set (mapper' := upd mapper b_t a_t).
   set (G_s' := {|
