@@ -1023,8 +1023,7 @@ Proof using INV INV'.
     basic_solver. }
   assert (ENOTIN : ~E_t e) by apply ADD.
   red in SIMREL. destruct SIMREL as (a_s & SIMREL).
-  desf.
-  assert (EQA : a_s = b_t); desf.
+  assert (EQA : a_s = b_t); try subst a_s.
   { admit. }
   assert (NEWE :
   << NINIT : ~is_init e >> /\
@@ -1080,7 +1079,8 @@ Proof using INV INV'.
       all: basic_solver 11. }
     rewrite !set_union_empty_r.
     rewrite <- EQACTS. apply ADD. }
-  desf.
+  unfold NW in NEWE.
+  destruct NEWE as (NINIT & NOTIN & TID & NEWSB).
   (* Asserts *)
   set (mapper' := upd mapper e e).
   assert (WF : Wf G_t) by apply INV.
@@ -1154,7 +1154,7 @@ Proof using INV INV'.
     { clear - NOTIN NOTIN'. basic_solver 7. }
     rewrite (WCore.add_event_rmw ADD), (rsr_rmw SIMREL).
     rewrite collect_rel_union. unfold mapper'.
-    rewrite sico_mapper_swap; eauto; [| apply (wf_rmwE WF)].
+    rewrite sico_mapper_swap with (X_t := X_t); eauto; [| apply (wf_rmwE WF)].
     clear - NOTIN' NOTIN. basic_solver 7. }
   assert (SRF'' : srf G_s' ⨾ ⦗extra_a X_t a_t b_t b_t ∩₁ R_s⦘ ≡
                   srf G_s ⨾ ⦗extra_a X_t a_t b_t b_t ∩₁ R_s⦘).
@@ -1240,7 +1240,8 @@ Proof using INV INV'.
               rsr_same_tid, TIDACTS.
       all: eauto.
       unfold mapper'. rewrite upds.
-      rewrite sico_mapper_swap, sico_mapper_swap_set.
+      rewrite sico_mapper_swap with (X_t := X_t),
+              sico_mapper_swap_set with (X_t := X_t).
       { clear. basic_solver 20. }
       all: eauto.
       { rewrite wf_sbE. clear. basic_solver. }
@@ -1254,14 +1255,16 @@ Proof using INV INV'.
               !collect_rel_union.
       rewrite (add_event_to_rf_complete ADD); try now apply CORR.
       rewrite collect_rel_empty, union_false_r.
-      unfold mapper'. rewrite sico_mapper_swap with (r := rf_t).
+      unfold mapper'.
+      rewrite sico_mapper_swap with (X_t := X_t) (r := rf_t).
       all: eauto using wf_rfE.
       clear. basic_solver 12. }
     { rewrite (co_deltaE1 (rsr_Gt_wf CORR) ADD),
             (co_deltaE2 (rsr_Gt_wf CORR) ADD).
       rewrite (WCore.add_event_co ADD), !collect_rel_union,
               (rsr_co SIMREL).
-      unfold mapper'. rewrite sico_mapper_swap with (r := co_t).
+      unfold mapper'.
+      rewrite sico_mapper_swap with (r := co_t) (X_t := X_t).
       all: eauto using wf_coE.
       rewrite <- EXEQ, extra_co_D_union, add_max_union.
       rewrite extra_co_D_eq_dom with (ll1 := upd lab_s e l),
