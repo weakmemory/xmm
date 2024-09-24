@@ -2242,15 +2242,18 @@ Proof using INV INV'.
   (* Setup vars *)
   red in SIMREL. destruct SIMREL as (a_s & SIMREL).
   destruct STEP as [ADD RFC CONS].
+  assert (EQ : a_s = b_t).
+  { admit. }
+  subst a_s.
   destruct ADD as (r & R1 & w & W1 & W2 & ADD).
-  set (mapper' := upd mapper a_t a_s).
+  set (mapper' := upd mapper a_t b_t).
   set (G_s' := {|
     acts_set := E_s;
     threads_set := threads_set G_s;
-    lab := upd lab_s a_s l;
-    rf := rf_s ⨾ ⦗E_s \₁ eq a_s⦘ ∪
+    lab := upd lab_s b_t l;
+    rf := rf_s ⨾ ⦗E_s \₁ eq b_t⦘ ∪
           mapper' ↑ (rf_t' ⨾ ⦗eq a_t⦘);
-    co := restr_rel (E_s \₁ eq a_s) co_s ∪
+    co := restr_rel (E_s \₁ eq b_t) co_s ∪
           mapper' ↑ (⦗eq a_t⦘ ⨾ co_t') ∪
           mapper' ↑ (co_t' ⨾ ⦗eq a_t⦘);
     rmw := mapper' ↑ rmw_t';
@@ -2263,12 +2266,12 @@ Proof using INV INV'.
     WCore.sc := WCore.sc X_s;
     WCore.G := G_s';
   |}).
-  set (cmt' := E_s \₁ eq a_s).
-  set (dtrmt' := E_s \₁ eq a_s \₁ eq (mapper b_t)).
+  set (cmt' := E_s \₁ eq b_t).
+  set (dtrmt' := E_s \₁ eq b_t \₁ eq (mapper b_t)).
   set (thrdle' := fun x y =>
     << YNINIT : y <> tid_init >> /\
-    << XNOTA : x <> tid a_s >> /\
-    << XYVAL : x = tid_init \/ y = tid a_s >>
+    << XNOTA : x <> tid b_t >> /\
+    << XYVAL : x = tid_init \/ y = tid b_t >>
   ).
   assert (INB' : E_t' b_t).
   { apply (rsr_at_bt_ord CORR'), (WCore.add_event_acts ADD).
@@ -2295,21 +2298,21 @@ Proof using INV INV'.
     { exists y; split; ins. rewrite <- MAPEQ; ins. }
     exists y. split; ins. subst mapper'. rupd; ins.
     congruence. }
-  assert (AINS : E_s a_s).
+  assert (AINS : E_s b_t).
   { apply (rsr_acts SIMREL). unfold extra_a. desf.
     { basic_solver. }
     exfalso; eauto. }
-  assert (NOEXA : extra_a X_t' a_t b_t a_s ≡₁ ∅).
+  assert (NOEXA : extra_a X_t' a_t b_t b_t ≡₁ ∅).
   { unfold extra_a; desf. desf. }
-  assert (OLDEXA : extra_a X_t a_t b_t a_s ≡₁ eq a_s).
+  assert (OLDEXA : extra_a X_t a_t b_t b_t ≡₁ eq b_t).
   { unfold extra_a; desf. exfalso; eauto. }
-  assert (MAPER_E : mapper' ↑₁ eq a_t ≡₁ eq a_s).
+  assert (MAPER_E : mapper' ↑₁ eq a_t ≡₁ eq b_t).
   { subst mapper'. rewrite set_collect_eq. now rupd. }
-  assert (ANCODOM : ~ (mapper ↑₁ E_t) a_s).
+  assert (ANCODOM : ~ (mapper ↑₁ E_t) b_t).
   { intro FALSO. apply (rsr_codom SIMREL) in FALSO.
     now apply FALSO, OLDEXA. }
-  assert (MAPNEQ : forall x (IN : E_t x), mapper x <> a_s).
-  { intros x XIN EQ. apply (rsr_codom SIMREL) with (x := a_s).
+  assert (MAPNEQ : forall x (IN : E_t x), mapper x <> b_t).
+  { intros x XIN EQ. apply (rsr_codom SIMREL) with (x := b_t).
     { basic_solver. }
     now apply OLDEXA. }
   assert (FMAP : fixset is_init mapper').
@@ -2383,7 +2386,7 @@ Proof using INV INV'.
       eapply eq_dom_mori; eauto. unfold flip.
       unfold sb. basic_solver 11. }
     basic_solver 12. }
-  assert (SIMREL' : reord_simrel_gen X_s' X_t' a_t b_t mapper' a_s).
+  assert (SIMREL' : reord_simrel_gen X_s' X_t' a_t b_t mapper' b_t).
   { constructor; ins.
     { rewrite NOEXA. basic_solver. }
     { rewrite (WCore.add_event_acts ADD), set_collect_union,
@@ -2411,11 +2414,11 @@ Proof using INV INV'.
     { rewrite NOEXA, set_inter_empty_l,
               (rsr_rf SIMREL), seq_union_l, OLDEXA.
       rewrite (rf_delta_RE (rsr_Gt_wf CORR) ADD).
-      arewrite_false ((srf_s ⨾ ⦗eq a_s ∩₁ R_s⦘) ⨾ ⦗E_s \₁ eq a_s⦘).
+      arewrite_false ((srf_s ⨾ ⦗eq b_t ∩₁ R_s⦘) ⨾ ⦗E_s \₁ eq b_t⦘).
       { clear. basic_solver. }
       rewrite eqv_empty, seq_false_r, !union_false_r,
               (WCore.add_event_rf ADD), !collect_rel_union.
-      arewrite (mapper ↑ rf_t ⨾ ⦗E_s \₁ eq a_s⦘ ≡ mapper ↑ rf_t).
+      arewrite (mapper ↑ rf_t ⨾ ⦗E_s \₁ eq b_t⦘ ≡ mapper ↑ rf_t).
       { split; [clear; basic_solver 7|].
         rewrite (wf_rfE WF), <- OLDEXA, <- (rsr_codom SIMREL).
         clear. basic_solver. }
@@ -2433,7 +2436,7 @@ Proof using INV INV'.
       rewrite !collect_rel_union, <- !unionA.
       repeat apply union_more; ins.
       rewrite (rsr_co SIMREL), restr_union.
-      arewrite (restr_rel (E_s \₁ eq a_s) (mapper ↑ co_t) ≡ mapper ↑ co_t).
+      arewrite (restr_rel (E_s \₁ eq b_t) (mapper ↑ co_t) ≡ mapper ↑ co_t).
       { split; [clear; basic_solver 11 |].
         rewrite <- OLDEXA, <- (rsr_codom SIMREL),
                 collect_rel_restr, restr_relE.
@@ -2441,7 +2444,7 @@ Proof using INV INV'.
         eapply inj_dom_mori with (x := E_t); eauto; [| apply SIMREL].
         unfold flip. rewrite (wf_coE WF). clear. basic_solver. }
       rewrite restr_add_max, OLDEXA.
-      arewrite (eq a_s ∩₁ W_s ∩₁ (E_s \₁ eq a_s) ≡₁ ∅).
+      arewrite (eq b_t ∩₁ W_s ∩₁ (E_s \₁ eq b_t) ≡₁ ∅).
       { clear. basic_solver. }
       rewrite add_max_empty_r, union_false_r.
       apply collect_rel_eq_dom' with (s := E_t); ins.
@@ -2491,7 +2494,17 @@ Proof using INV INV'.
         rewrite (rsr_lab SIMREL); ins. }
       intro FALSO. apply (rsr_bt_nrel CORR') with b_t.
       all: try split; ins. }
-    unfolder in RPOIMM. desf. }
+    unfolder in RPOIMM. desf.
+    { arewrite (E_t' \₁ eq a_t \₁ eq b_t ≡₁ E_t \₁ eq a_t \₁ eq b_t).
+      { rewrite (WCore.add_event_acts ADD). clear. basic_solver. }
+      clear - MAPEQ SIMREL. unfolder. intros x XIN.
+      rewrite MAPEQ; [rewrite (rsr_mid SIMREL) |]; desf. }
+    { arewrite (eq b_t ∩₁ E_t' ≡₁ eq b_t ∩₁ E_t).
+      { clear - INB' INB. basic_solver. }
+      rewrite set_collect_eq_dom with (g := mapper); [apply SIMREL |].
+      eapply eq_dom_mori; eauto. unfold flip. clear. basic_solver. }
+    rewrite (WCore.add_event_acts ADD), set_inter_absorb_r by (clear; basic_solver).
+    unfold mapper'. now rewrite set_collect_eq, upds. }
   assert (PFX : SubToFullExec.prefix (WCore.X_start X_s dtrmt') X_s').
   { assert (DT : dtrmt' ∩₁ E_s ≡₁ dtrmt').
     { unfold dtrmt'. basic_solver. }
@@ -2518,7 +2531,7 @@ Proof using INV INV'.
     { unfolder. ins. rupd. congruence. }
     { rewrite DT, restr_union, restr_relE,
               !seqA, <- id_inter.
-      arewrite ((E_s \₁ eq a_s) ∩₁ dtrmt' ≡₁ dtrmt').
+      arewrite ((E_s \₁ eq b_t) ∩₁ dtrmt' ≡₁ dtrmt').
       { unfold dtrmt'. basic_solver. }
       arewrite_false (restr_rel dtrmt' (mapper' ↑ (rf_t' ⨾ ⦗eq a_t⦘))).
       { unfold dtrmt', mapper'. unfolder. ins; desf.
@@ -2529,7 +2542,7 @@ Proof using INV INV'.
               !seqA, <- !id_inter.
       seq_rewrite <- !id_inter.
       rewrite set_interC.
-      arewrite ((E_s \₁ eq a_s) ∩₁ dtrmt' ≡₁ dtrmt').
+      arewrite ((E_s \₁ eq b_t) ∩₁ dtrmt' ≡₁ dtrmt').
       { unfold dtrmt'. clear. basic_solver. }
       arewrite_false (⦗dtrmt'⦘ ⨾ mapper' ↑ (⦗eq a_t⦘ ⨾ co_t')).
       { unfold dtrmt', mapper'. unfolder. ins; desf.
@@ -2612,16 +2625,16 @@ Proof using INV INV'.
     { apply prefix_exec_restr_eq; ins.
       basic_solver. }
     { unfold rf_complete, G_s', cmt'. ins.
-      arewrite ((E_s \₁ eq a_s) ∩₁ E_s ≡₁ E_s \₁ eq a_s).
+      arewrite ((E_s \₁ eq b_t) ∩₁ E_s ≡₁ E_s \₁ eq b_t).
       { basic_solver. }
-      arewrite ((E_s \₁ eq a_s) ∩₁ is_r (upd lab_s a_s l) ≡₁
-                (E_s \₁ eq a_s) ∩₁ R_s).
+      arewrite ((E_s \₁ eq b_t) ∩₁ is_r (upd lab_s b_t l) ≡₁
+                (E_s \₁ eq b_t) ∩₁ R_s).
       { unfolder. split; ins; desf; splits; ins.
         all: unfold is_r in *.
         all: rewrite updo in *; congruence. }
       rewrite seq_union_l, seq_union_r, !seqA.
       rewrite codom_union.
-      arewrite_false (mapper' ↑ (rf_t' ⨾ ⦗eq a_t⦘) ⨾ ⦗E_s \₁ eq a_s⦘).
+      arewrite_false (mapper' ↑ (rf_t' ⨾ ⦗eq a_t⦘) ⨾ ⦗E_s \₁ eq b_t⦘).
       { unfolder. intros x y HREL. desf.
         unfold mapper' in *.
         now rewrite upds in *. }
@@ -2662,11 +2675,11 @@ Proof using INV INV'.
     { constructor; unfolder; subst thrdle'.
       { ins; desf. }
       ins; desf. splits; ins; eauto. }
-    arewrite (E_s \₁ cmt' ≡₁ eq a_s).
+    arewrite (E_s \₁ cmt' ≡₁ eq b_t).
     { subst cmt'. rewrite set_minus_minus_r.
       basic_solver. }
     rewrite seq_union_l.
-    arewrite ((rf_s ⨾ ⦗E_s \₁ eq a_s⦘) ⨾ ⦗eq a_s⦘ ≡ ∅₂).
+    arewrite ((rf_s ⨾ ⦗E_s \₁ eq b_t⦘) ⨾ ⦗eq b_t⦘ ≡ ∅₂).
     { basic_solver. }
     rewrite union_false_l. unfolder.
     intros x y ((x' & y' & RF & XEQ & YEQ) & EQ).
@@ -2677,7 +2690,7 @@ Proof using INV INV'.
       apply ADD in RF. destruct RF; ins.
       exfalso. apply (rf_irr WF') with x'.
       congruence. }
-    destruct classic with (tid x' = tid a_s) as [TID | NTID].
+    destruct classic with (tid x' = tid b_t) as [TID | NTID].
     { left.
       enough (IN : singl_rel (mapper' x') (mapper' a_t) ⊆ sb G_s').
       { now apply IN. }
@@ -2711,7 +2724,7 @@ Proof using INV INV'.
   (* The proof *)
   exists mapper', X_s', dtrmt', cmt'.
   split; red; ins.
-  { now exists a_s. }
+  { now exists b_t. }
   red. exists id, thrdle'.
   constructor; ins.
   { subst dtrmt' cmt'. basic_solver. }
@@ -2723,9 +2736,9 @@ Proof using INV INV'.
       arewrite (restr_rel cmt' (rpo_imm G_s')⁺ ⊆ (restr_rel cmt' (rpo_imm G_s'))⁺).
       { apply restr_rel_ct. unfold upward_closed, cmt'.
         intros x y RPOIMM CMT.
-        assert (RPNEQ : forall (EQA : x = a_s) (EQB : y = mapper' b_t), False).
+        assert (RPNEQ : forall (EQA : x = b_t) (EQB : y = mapper' b_t), False).
         { intros FALSO1 FALSO2; subst x; subst y.
-          eapply (rsr_nrpo SIMREL') with a_s (mapper' b_t).
+          eapply (rsr_nrpo SIMREL') with b_t (mapper' b_t).
           unfold X_s'. ins.
           unfolder. splits; eauto.
           { exists a_t; splits; ins.
@@ -2821,7 +2834,7 @@ Proof using INV INV'.
   apply sub_to_full_exec_listless with (thrdle := thrdle'); ins.
   { eapply G_s_rfc with (X_s := X_s'); eauto.
     unfold reord_simrel; eauto 11. }
-  { arewrite (E_s \₁ dtrmt' ∩₁ E_s ≡₁ eq a_s ∪₁ eq (mapper b_t)).
+  { arewrite (E_s \₁ dtrmt' ∩₁ E_s ≡₁ eq b_t ∪₁ eq (mapper b_t)).
     { rewrite set_minus_inter_r, set_minusK, set_union_empty_r.
       subst dtrmt'.
       rewrite !set_minus_minus_r, set_minusK, set_union_empty_l.
@@ -2835,7 +2848,7 @@ Proof using INV INV'.
     rewrite !set_minus_minus_r, set_minusK, set_union_empty_l.
     apply set_subset_union_l. split.
     { unfolder. intros x (INE & XEQ) FALSO. subst x.
-      eapply rsr_as_ninit with (x := a_s) (X_t := X_t); eauto.
+      eapply rsr_as_ninit with (x := b_t) (X_t := X_t); eauto.
       { apply extra_a_some; ins. }
       eapply rsr_ninit_acts_s with (X_t := X_t); eauto.
       { red; eauto. }
