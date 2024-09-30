@@ -2753,16 +2753,19 @@ Proof using INV INV'.
       unfolder. intros x y ((x' & y' & (CO & EQ) & XEQ & YEQ) & CX & CY).
       exfalso. apply CY. rewrite <- YEQ, <- EQ.
       unfold mapper'. now rupd. }
-    rewrite collect_rel_id, (WCore.add_event_rmw ADD), collect_rel_union,
-            restr_union.
-    apply inclusion_union_l.
-    { arewrite (mapper' ↑ rmw_t ≡ mapper ↑ rmw_t).
-      { apply collect_rel_eq_dom' with (s := E_t); ins.
-        apply (wf_rmwE (rsr_Gt_wf CORR)). }
-      rewrite (rsr_rmw SIMREL). basic_solver 11. }
-    unfolder. intros x y ((x' & y' & (RO & EQ) & XEQ & YEQ) & CX & CY).
-    exfalso. apply CY. rewrite <- YEQ, <- EQ.
-    unfold mapper'. now rupd. }
+    { rewrite collect_rel_id, (WCore.add_event_rmw ADD), collect_rel_union,
+              restr_union.
+      apply inclusion_union_l.
+      { arewrite (mapper' ↑ rmw_t ≡ mapper ↑ rmw_t).
+        { apply collect_rel_eq_dom' with (s := E_t); ins.
+          apply (wf_rmwE (rsr_Gt_wf CORR)). }
+        rewrite (rsr_rmw SIMREL). basic_solver 11. }
+      unfolder. intros x y ((x' & y' & (RO & EQ) & XEQ & YEQ) & CX & CY).
+      exfalso. apply CY. rewrite <- YEQ, <- EQ.
+      unfold mapper'. now rupd. }
+    arewrite (id ↑₁ cmt' ≡₁ cmt').
+    { clear. basic_solver. }
+    unfold cmt'. clear. basic_solver. }
   { admit. (* TODO: cons *) }
   apply sub_to_full_exec_listless with (thrdle := thrdle'); ins.
   { eapply G_s_rfc with (X_s := X_s'); eauto. }
@@ -2927,7 +2930,7 @@ Proof using INV INV'.
   constructor; ins; unfold dtrmt', cmt'.
   { rewrite set_collect_compose.
     rewrite <- set_collect_compose with (f := mapper').
-     }
+    admit. }
   { rewrite (WCore.reexec_embd_dom STEP).
     unfold extra_b, extra_a; desf.
     all: rewrite ?set_union_empty_r.

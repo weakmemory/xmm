@@ -792,7 +792,8 @@ Record commit_embedded f : Prop :=
   reexec_embd_rpo : f ↑ restr_rel cmt rpo' ⊆ rpo;
   reexec_embd_rf : f ↑ restr_rel cmt rf' ⊆ rf;
   reexec_embd_co : f ↑ restr_rel cmt co' ⊆ co;
-  reexec_embd_rmw : f ↑ restr_rel cmt rmw' ⊆ rmw; }.
+  reexec_embd_rmw : f ↑ restr_rel cmt rmw' ⊆ rmw;
+  reexec_embd_acts : f ↑₁ cmt ⊆₁ E }.
 
 Record reexec_gen f thrdle dtrmt : Prop :=
 { (* Correct start *)
