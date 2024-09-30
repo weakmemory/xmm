@@ -2804,8 +2804,8 @@ Definition extra_b :=
   else eq b_t' ∩₁ E_t'.
 
 Lemma simrel_reexec f dtrmt cmt
-    (ACMT : (f ↑₁ cmt) a_t -> a_t = a_t')
-    (BCMT : (f ↑₁ cmt) b_t -> b_t = b_t')
+    (ACMT : dtrmt a_t -> a_t = a_t')
+    (BCMT : dtrmt b_t -> b_t = b_t')
     (PRESERVATION : b_t' = b_t <-> a_t' = a_t)
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
     (STEP : WCore.reexec X_t X_t' f dtrmt cmt) :
@@ -2839,26 +2839,7 @@ Proof using INV INV'.
     WCore.G := G_s';
   |}).
   assert (MAPEQ : eq_dom dtrmt mapper mapper').
-  { unfolder. unfold mapper', id. intros x XIN.
-    destruct classic with (x = a_t) as [XEQA|XNQA],
-              classic with (x = b_t) as [XEQB|XNQB].
-    all: try subst x.
-    { exfalso; now apply (rsr_at_neq_bt INV). }
-    { apply STEP in XIN.
-      assert (EQA : a_t' = a_t) by (symmetry; auto).
-      assert (EQB : b_t' = b_t) by now apply PRESERVATION.
-      rewrite EQA, EQB, updo, upds by auto.
-      symmetry. apply (rsr_at SIMREL).
-      apply STEP in XIN.
-      clear - XIN. basic_solver. }
-    { apply STEP in XIN.
-      assert (EQA : b_t' = b_t) by (symmetry; auto).
-      assert (EQB : a_t' = a_t) by now apply PRESERVATION.
-      rewrite EQA, EQB, upds.
-      symmetry. apply (rsr_bt SIMREL).
-      apply STEP in XIN.
-      clear - XIN. basic_solver. }
-    admit. }
+  { admit. }
   assert (MAPINJ : inj_dom E_t' mapper').
   { unfold inj_dom, mapper'. intros x y XIN YIN FEQ.
       destruct classic with (x = a_t') as [XEQA|XNQA],
