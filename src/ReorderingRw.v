@@ -2830,15 +2830,41 @@ Proof using INV INV'.
     WCore.sc := WCore.sc X_s;
     WCore.G := G_s';
   |}).
+  assert (MAPINJ : inj_dom E_t' mapper').
+  { unfold inj_dom, mapper'. intros x y XIN YIN FEQ.
+      destruct classic with (x = a_t') as [XEQA|XNQA],
+               classic with (x = b_t') as [XEQB|XNQB],
+               classic with (y = a_t') as [YEQA|YNQA],
+               classic with (y = b_t') as [YEQB|YNQB].
+      all: try subst x; try subst y.
+      all: try congruence.
+      all: try now (exfalso; apply (rsr_at_neq_bt INV'); congruence).
+      all: rewrite ?upds in FEQ.
+      all: rewrite 1?updo in FEQ; try congruence.
+      all: rewrite ?upds in FEQ; try congruence.
+      all: unfold id in FEQ.
+      all: rewrite 2?updo in FEQ; try congruence.
+      all: rewrite ?upds in FEQ; try congruence.
+      rewrite updo in FEQ; try congruence. }
   assert (SIMREL' : reord_simrel X_s' X_t' a_t' b_t' mapper').
   { constructor; ins.
-    { admit. }
     { unfold extra_a; desf. intros x XEQ. subst x.
       constructor; ins.
       admit. }
-    { admit }
-
-    }
+    { rewrite set_minus_union_l, set_minusK, set_union_empty_r.
+      rewrite set_minus_disjoint; [reflexivity |].
+      apply set_disjointE. split; [| basic_solver].
+      unfold extra_a; desf; [| clear; basic_solver].
+      unfold mapper', id. unfolder.
+      intros x ((y & YINE & MAP) & XEQ). subst x.
+      destruct classic with (y = b_t') as [YEQB | YNQB].
+      { subst y. rewrite upds in XEQ. apply (rsr_at_neq_bt INV').
+        congruence. }
+      rewrite updo in XEQ; [| congruence].
+      destruct classic with (y = a_t') as [YEQA | YNQA].
+      { subst y. desf. }
+      rewrite updo in XEQ; congruence. }
+    admit. }
   admit.
 Admitted.
 
