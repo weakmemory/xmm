@@ -2864,7 +2864,44 @@ Proof using INV INV'.
       destruct classic with (y = a_t') as [YEQA | YNQA].
       { subst y. desf. }
       rewrite updo in XEQ; congruence. }
-    admit. }
+    { unfolder. unfold mapper', id. intros x INIT.
+      rewrite !updo; auto.
+      all: intro FALSO; subst x.
+      { now apply (rsr_at_ninit INV'). }
+      now apply (rsr_bt_ninit INV'). }
+    { unfold mapper', id, compose. unfolder.
+      intros x XIN.
+      destruct classic with (x = a_t') as [XEQA|XNQA],
+               classic with (x = b_t') as [XEQB|XNQB].
+      all: try subst x.
+      all: rupd; try now apply INV'.
+      all: symmetry; apply INV'. }
+    { unfold mapper', id, compose. unfolder.
+      intros x _.
+      destruct classic with (x = a_t') as [XEQA|XNQA],
+               classic with (x = b_t') as [XEQB|XNQB].
+      all: try subst x.
+      all: try now (exfalso; try now apply (rsr_at_neq_bt INV')).
+      { rewrite updo with (c := a_t'); [| apply INV'].
+        now rewrite !upds. }
+      { rewrite upds, updo with (c := a_t'); [| apply INV'].
+        now rewrite upds. }
+      rewrite !updo with (c := x); auto. }
+    { admit. }
+    { admit. }
+    { admit. }
+    { admit. }
+    { admit. }
+    { admit. }
+    { admit. }
+    { admit. }
+    { unfold mapper', id. clear. unfolder.
+      ins. desf. rewrite !updo; congruence. }
+    { unfold mapper', id. clear. unfolder.
+      ins. desf. now rewrite upds. }
+    unfold mapper', id. clear - INV'. unfolder.
+    ins. desf. rewrite updo, upds; auto.
+    apply INV'. }
   admit.
 Admitted.
 
