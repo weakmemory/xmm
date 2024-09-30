@@ -2797,19 +2797,23 @@ Proof using INV INV'.
 Admitted.
 
 Definition extra_b :=
-  ifP ~E_t a_t /\ E_t b_t then eq (mapper b_t)
-  else ∅.
+  ifP ~E_t' a_t' /\ E_t' b_t' then ∅
+  else eq b_t' ∩₁ E_t'.
 
 Lemma simrel_reexec dtrmt cmt
-    (CMT : cmt b_t -> b_t = b_t')
+    (ACMT : cmt a_t -> a_t = a_t')
+    (BCMT : cmt b_t -> b_t = b_t')
     (PRESERVATION : b_t' = b_t <-> a_t' = a_t)
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
     (STEP : WCore.reexec X_t X_t' dtrmt cmt) :
-  exists mapper' X_s' dtrmt',
+  exists mapper' X_s' dtrmt' cmt',
     << SIMREL : reord_simrel X_s' X_t' a_t' b_t' mapper' >> /\
-    << STEP : WCore.reexec X_s X_s' dtrmt' (mapper' ↑₁ cmt) >>.
+    << STEP : WCore.reexec X_s X_s' dtrmt' cmt' >>.
 Proof using INV INV'.
+  destruct STEP as (f & thrdle & STEP).
   set (mapper' :=  upd (upd id a_t' b_t') b_t' a_t').
+  set (cmt' := mapper' ↑₁ (cmt ∪₁ extra_b)).
+  set (dtrmt' := mapper' ↑₁ (dtrmt \₁ extra_b)).
   set (G_s' := {|
     acts_set := mapper' ↑₁ E_t' ∪₁ extra_a X_t' a_t' b_t' b_t';
     threads_set := threads_set G_t';
@@ -2830,6 +2834,20 @@ Proof using INV INV'.
     WCore.sc := WCore.sc X_s;
     WCore.G := G_s';
   |}).
+  assert (MAPEQ : eq_dom cmt mapper mapper').
+  { unfolder. unfold mapper', id. intros x XIN.
+    destruct classic with (x = a_t) as [XEQA|XNQA],
+              classic with (x = b_t) as [XEQB|XNQB].
+    all: try subst x.
+    { exfalso; now apply (rsr_at_neq_bt INV). }
+    { assert (EQA : a_t' = a_t) by (symmetry; auto).
+      assert (EQB : b_t' = b_t) by now apply PRESERVATION.
+      rewrite EQA, EQB, updo, upds by auto.
+      symmetry. apply (rsr_at SIMREL).
+      apply (WCore.reexec_embd_dom STEP) in XIN.
+      admit. }
+    { admit. }
+    admit. }
   assert (MAPINJ : inj_dom E_t' mapper').
   { unfold inj_dom, mapper'. intros x y XIN YIN FEQ.
       destruct classic with (x = a_t') as [XEQA|XNQA],
@@ -2902,6 +2920,27 @@ Proof using INV INV'.
     unfold mapper', id. clear - INV'. unfolder.
     ins. desf. rewrite updo, upds; auto.
     apply INV'. }
+  exists mapper', X_s', dtrmt', cmt'.
+  unfold NW; split; auto.
+  red.
+  exists (mapper' ∘ f ∘ mapper'), thrdle.
+  constructor; ins; unfold dtrmt', cmt'.
+  { rewrite set_collect_compose.
+    rewrite <- set_collect_compose with (f := mapper').
+     }
+  { rewrite (WCore.reexec_embd_dom STEP).
+    unfold extra_b, extra_a; desf.
+    all: rewrite ?set_union_empty_r.
+    { auto with hahn. }
+    destruct classic
+        with (E_t' b_t')
+          as [INB|NINB].
+    { rewrite set_union_absorb_r; auto with hahn.
+      clear. basic_solver. }
+    arewrite (eq b_t' ∩₁ E_t' ≡₁ ∅).
+    { clear - NINB. basic_solver. }
+    clear. basic_solver. }
+  { admit. }
   admit.
 Admitted.
 
