@@ -2851,7 +2851,13 @@ Proof using INV INV'.
       symmetry. apply (rsr_at SIMREL).
       apply STEP in XIN.
       clear - XIN. basic_solver. }
-    { admit. }
+    { apply STEP in XIN.
+      assert (EQA : b_t' = b_t) by (symmetry; auto).
+      assert (EQB : a_t' = a_t) by now apply PRESERVATION.
+      rewrite EQA, EQB, upds.
+      symmetry. apply (rsr_bt SIMREL).
+      apply STEP in XIN.
+      clear - XIN. basic_solver. }
     admit. }
   assert (MAPINJ : inj_dom E_t' mapper').
   { unfold inj_dom, mapper'. intros x y XIN YIN FEQ.
