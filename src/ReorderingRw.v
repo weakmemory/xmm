@@ -2173,9 +2173,9 @@ Lemma simrel_exec_a l
     (EQB : b_t = b_t')
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
     (STEP : WCore.exec_inst X_t X_t' a_t l) :
-  exists mapper' X_s' dtrmt' cmt',
+  exists mapper' X_s' f' dtrmt' cmt',
     << SIMREL : reord_simrel X_s' X_t' a_t' b_t' mapper' >> /\
-    << STEP : WCore.reexec X_s X_s' dtrmt' cmt' >>.
+    << STEP : WCore.reexec X_s X_s' f' dtrmt' cmt' >>.
 Proof using INV INV'.
   subst a_t'. subst b_t'.
   assert (CORR : reord_step_pred X_t a_t b_t); ins.
@@ -2656,9 +2656,9 @@ Proof using INV INV'.
       apply ADD. now left. }
     right. congruence. }
   (* The proof *)
-  exists mapper', X_s', dtrmt', cmt'.
+  exists mapper', X_s', id, dtrmt', cmt'.
   split; red; ins.
-  red. exists id, thrdle'.
+  red. exists thrdle'.
   constructor; ins.
   { subst dtrmt' cmt'. basic_solver. }
   { subst cmt'. basic_solver. }
@@ -2803,20 +2803,21 @@ Definition extra_b :=
   ifP ~E_t' a_t' /\ E_t' b_t' then ∅
   else eq b_t' ∩₁ E_t'.
 
-Lemma simrel_reexec dtrmt cmt
-    (ACMT : cmt a_t -> a_t = a_t')
-    (BCMT : cmt b_t -> b_t = b_t')
+Lemma simrel_reexec f dtrmt cmt
+    (ACMT : (f ↑₁ cmt) a_t -> a_t = a_t')
+    (BCMT : (f ↑₁ cmt) b_t -> b_t = b_t')
     (PRESERVATION : b_t' = b_t <-> a_t' = a_t)
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
-    (STEP : WCore.reexec X_t X_t' dtrmt cmt) :
-  exists mapper' X_s' dtrmt' cmt',
+    (STEP : WCore.reexec X_t X_t' f dtrmt cmt) :
+  exists mapper' X_s' f' dtrmt' cmt',
     << SIMREL : reord_simrel X_s' X_t' a_t' b_t' mapper' >> /\
-    << STEP : WCore.reexec X_s X_s' dtrmt' cmt' >>.
+    << STEP : WCore.reexec X_s X_s' f' dtrmt' cmt' >>.
 Proof using INV INV'.
-  destruct STEP as (f & thrdle & STEP).
+  destruct STEP as (thrdle & STEP).
   set (mapper' :=  upd (upd id a_t' b_t') b_t' a_t').
   set (cmt' := mapper' ↑₁ (cmt ∪₁ extra_b)).
   set (dtrmt' := mapper' ↑₁ (dtrmt \₁ extra_b)).
+  set (f' := mapper' ∘ f ∘ mapper').
   set (G_s' := {|
     acts_set := mapper' ↑₁ E_t' ∪₁ extra_a X_t' a_t' b_t' b_t';
     threads_set := threads_set G_t';
@@ -2837,18 +2838,19 @@ Proof using INV INV'.
     WCore.sc := WCore.sc X_s;
     WCore.G := G_s';
   |}).
-  assert (MAPEQ : eq_dom cmt mapper mapper').
+  assert (MAPEQ : eq_dom dtrmt mapper mapper').
   { unfolder. unfold mapper', id. intros x XIN.
     destruct classic with (x = a_t) as [XEQA|XNQA],
               classic with (x = b_t) as [XEQB|XNQB].
     all: try subst x.
     { exfalso; now apply (rsr_at_neq_bt INV). }
-    { assert (EQA : a_t' = a_t) by (symmetry; auto).
+    { apply STEP in XIN.
+      assert (EQA : a_t' = a_t) by (symmetry; auto).
       assert (EQB : b_t' = b_t) by now apply PRESERVATION.
       rewrite EQA, EQB, updo, upds by auto.
       symmetry. apply (rsr_at SIMREL).
-      apply (WCore.reexec_embd_dom STEP) in XIN.
-      admit. }
+      apply STEP in XIN.
+      clear - XIN. basic_solver. }
     { admit. }
     admit. }
   assert (MAPINJ : inj_dom E_t' mapper').
@@ -2923,10 +2925,10 @@ Proof using INV INV'.
     unfold mapper', id. clear - INV'. unfolder.
     ins. desf. rewrite updo, upds; auto.
     apply INV'. }
-  exists mapper', X_s', dtrmt', cmt'.
+  exists mapper', X_s', f', dtrmt', cmt'.
   unfold NW; split; auto.
   red.
-  exists (mapper' ∘ f ∘ mapper'), thrdle.
+  exists thrdle.
   constructor; ins; unfold dtrmt', cmt'.
   { rewrite set_collect_compose.
     rewrite <- set_collect_compose with (f := mapper').

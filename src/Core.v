@@ -755,6 +755,7 @@ End ExecuteStep.
 Section ReexecStep.
 
 Variables X X' : t.
+Variable f : actid -> actid.
 Variable dtrmt cmt : actid -> Prop.
 
 Notation "'G''" := (G X').
@@ -785,7 +786,7 @@ Record stable_uncmt_reads_gen thrdle : Prop :=
     surg_order : strict_partial_order thrdle;
     surg_uncmt : rf' ⨾ ⦗E' \₁ cmt⦘ ⊆ sb' ∪ tid ↓ thrdle; }.
 
-Record commit_embedded f : Prop :=
+Record commit_embedded : Prop :=
 { reexec_embd_inj : inj_dom cmt f;
   reexec_embd_tid : forall e (CMT : cmt e), tid (f e) = tid e;
   reexec_embd_lab : forall e (CMT : cmt e), lab' (f e) = lab e;
@@ -795,20 +796,20 @@ Record commit_embedded f : Prop :=
   reexec_embd_rmw : f ↑ restr_rel cmt rmw' ⊆ rmw;
   reexec_embd_acts : f ↑₁ cmt ⊆₁ E }.
 
-Record reexec_gen f thrdle dtrmt : Prop :=
+Record reexec_gen thrdle dtrmt : Prop :=
 { (* Correct start *)
   dtrmt_cmt : dtrmt ⊆₁ f ↑₁ cmt;
   reexec_embd_dom : cmt ⊆₁ E';
   reexec_sur : stable_uncmt_reads_gen thrdle;
   (* Correct embedding *)
-  reexec_embd_corr : commit_embedded f;
+  reexec_embd_corr : commit_embedded;
   (* Reproducable steps *)
   reexec_start_wf : wf (X_start dtrmt) X' cmt;
   rexec_final_cons : is_cons G' sc;
   reexec_steps : (guided_step cmt X')＊ (X_start dtrmt) X'; }.
 
 Definition reexec : Prop :=
-  exists f thrdle, reexec_gen f thrdle dtrmt.
+  exists thrdle, reexec_gen thrdle dtrmt.
 
 End ReexecStep.
 
