@@ -5,8 +5,10 @@ From hahn Require Import Hahn.
 From hahn Require Import HahnSorted.
 From hahnExt Require Import HahnExt.
 From imm Require Import Events Execution Execution_eco.
-From imm Require Import imm_s_hb.
-From imm Require Import imm_s_hb.
+From imm Require Import imm_s_ppo.
+Require Import xmm_s_hb.
+From imm Require Import imm_bob.
+Require Import xmm_s.
 From imm Require Import SubExecution.
 From imm Require Import imm_s.
 Require Import Setoid Morphisms.

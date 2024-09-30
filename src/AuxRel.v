@@ -1,4 +1,10 @@
-From imm Require Import Events Execution imm_s_hb.
+From imm Require Import Events Execution.
+Require Import xmm_s_hb.
+From imm Require Import imm_s_ppo.
+From imm Require Import imm_bob.
+From imm Require Import SubExecution.
+From imm Require Import Events Execution Execution_eco.
+Require Import xmm_comb_rel.
 
 Require Import Program.Basics.
 Require Import AuxDef.
@@ -16,8 +22,17 @@ Variable G : execution.
 Notation "'E'" := (acts_set G).
 Notation "'sb'" := (sb G).
 
-(* Definition ppo_alt := (sb ∩ same_loc ∪ bob)⁺.
-Definition hb_alt := (ppo_alt ∪ rf)⁺. *)
+Definition ppo_alt := (sb ∩ same_loc ∪ bob)⁺.
+Definition hb_alt := (ppo_alt ∪ rf)⁺.
+Definition rpo_imm :=
+  ⦗R ∩₁ is_rlx⦘ ⨾ sb ⨾ ⦗F ∩₁ is_acq⦘ ∪
+  ⦗is_acq⦘ ⨾ sb ∪
+  sb ⨾ ⦗is_rel⦘ ∪
+  ⦗F ∩₁ is_rel⦘ ⨾ sb ⨾ ⦗W ∩₁ is_rlx⦘.
+Definition rpo := rpo_imm⁺.
+Definition rhb := (sb ∩ same_loc ∪ rpo ∪ sw)⁺.
+Definition vf := ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf^? ⨾ hb^?.
+Definition srf := (vf ∩ same_loc) ⨾ ⦗R⦘ \ (co ⨾ vf).
 
 Lemma thrdle_sb_closed thrdle
     (INIT_MIN : min_elt thrdle tid_init)
@@ -63,6 +78,18 @@ Proof using.
   all: intros HIN.
   { apply tn1_step. eauto. }
   apply Relation_Operators.tn1_trans with y; eauto.
+Qed . 
+
+Lemma rpo_imm_in_sb : rpo_imm ⊆ sb.
+Proof using.
+  unfold rpo_imm.
+  basic_solver.
+Qed.
+
+Lemma rpo_in_sb : rpo ⊆ sb.
+Proof using.
+  unfold rpo. rewrite rpo_imm_in_sb.
+  apply ct_of_trans. apply sb_trans.
 Qed.
 
 (* TODO: move to HahnExt/SetSize.v *)
@@ -288,3 +315,216 @@ Proof using.
     subst. exact REL. }
   exists x, y. splits; auto.
 Qed.
+
+Lemma wf_rpoE
+    (WF : Wf G) :
+  rpo ≡ ⦗E⦘ ⨾ rpo ⨾ ⦗E⦘.
+Proof using.
+  split; [| basic_solver].
+  unfolder. intros x y REL.
+  splits; ins.
+  all: apply rpo_in_sb in REL.
+  all: unfold sb in REL; unfolder in REL; desf.
+Qed.
+
+Lemma wf_vfE
+    (WF : Wf G) :
+  vf ≡ ⦗E⦘ ⨾ vf ⨾ ⦗E⦘.
+Proof using.
+  split; [| basic_solver].
+  unfold vf.
+  rewrite (wf_hbE WF), (wf_rfE WF).
+  basic_solver 12.
+Qed.
+
+Lemma vf_dom : dom_rel vf ⊆₁ W.
+Proof using.
+  unfold vf. basic_solver.
+Qed.
+
+Lemma wf_srfE
+    (WF : Wf G) :
+  srf ≡ ⦗E⦘ ⨾ srf ⨾ ⦗E⦘.
+Proof using.
+  split; [| basic_solver]. unfold srf.
+  rewrite wf_vfE at 1 by auto.
+  unfolder. ins. desf. splits; eauto.
+Qed.
+
+Lemma wf_srfD : srf ≡ ⦗W⦘ ⨾ srf ⨾ ⦗R⦘.
+Proof using.
+  split; [| basic_solver]. unfold srf.
+  intros x y SRF. unfolder in SRF. desf.
+  unfolder; ins; desf; splits; ins.
+  { apply vf_dom. now exists y. }
+  exists y; ins.
+Qed.
+
+Lemma wf_srf_loc : srf ⊆ same_loc.
+Proof using.
+  unfold srf. intros x y SRF.
+  unfolder in SRF; desf.
+Qed.
+
+Lemma wf_rhbE
+    (WF : Wf G) :
+  rhb ≡ ⦗E⦘ ⨾ rhb ⨾ ⦗E⦘.
+Proof using.
+  unfold rhb. rewrite wf_swE, wf_rpoE, wf_sbE; auto.
+  assert (SB_SAMELOC : (⦗E⦘ ⨾ sb ⨾ ⦗E⦘) ∩ same_loc ≡ ⦗E⦘ ⨾ sb ∩ same_loc ⨾ ⦗E⦘).
+  { basic_solver 10. }
+  rewrite SB_SAMELOC.
+  rewrite <- !seq_union_r, <- !seq_union_l.
+  seq_rewrite <- ct_seq_eqv_l. rewrite <- seqA.
+  now seq_rewrite <- ct_seq_eqv_r.
+Qed.
+
+Lemma rf_sub_vf (WF : Wf G) : rf ⊆ vf.
+Proof using.
+  rewrite WF.(wf_rfD), WF.(wf_rfE).
+  unfold vf; unfolder; ins; desf.
+  splits; eauto.
+Qed.
+
+Lemma wf_srff'
+    (CO_TOT : forall ol,
+      is_total (E ∩₁ W ∩₁ (fun x => loc x = ol)) co
+    ) :
+  functional srf⁻¹.
+Proof using.
+  unfolder; unfold srf. intros x y z (VF1 & CO1) (VF2 & CO2).
+  tertium_non_datur (y = z) as [EQ|NEQ]; ins; exfalso.
+  destruct CO_TOT with (a := y) (b := z)
+                       (ol := loc x) as [CO|CO].
+  all: ins; unfolder in *; desf; splits; eauto.
+  all: try now (apply vf_dom; eexists; eauto).
+  { unfold vf in VF1. unfolder in VF1; desf. }
+  unfold vf in VF2. unfolder in VF2; desf.
+Qed.
+
+Lemma wf_srff (WF : Wf G) : functional srf⁻¹.
+Proof using.
+  apply wf_srff', WF.
+Qed.
+
+Lemma srf_exists b
+    (HIN : E b)
+    (FIN_ACTS : set_finite (E \₁ is_init))
+    (WF : Wf G)
+    (IS_R : R b) :
+  exists a, srf a b.
+Proof using.
+  assert (HLOC : exists l, loc b = Some l); desf.
+  { unfold is_r in IS_R. unfold loc. desf. eauto. }
+  assert (HINIT : E (InitEvent l)).
+  { apply WF; eauto. }
+  assert (INILAB : lab (InitEvent l) = Astore Xpln Opln l 0).
+  { apply WF. }
+  assert (INILOC : loc (InitEvent l) = Some l).
+  { unfold loc. now rewrite (wf_init_lab WF). }
+  assert (INIW : W (InitEvent l)).
+  { unfold is_w, loc. desf. }
+  assert (INISB : sb (InitEvent l) b).
+  { eapply init_ninit_sb, read_or_fence_is_not_init; eauto. }
+  assert (INIVF : vf (InitEvent l) b).
+  { unfold vf. exists (InitEvent l).
+    splits; ins.
+    hahn_rewrite <- sb_in_hb.
+    basic_solver 21. }
+  assert (ACT_LIST : exists El, E ∩₁ Loc_ l ≡₁ (fun x => In x El)); desf.
+  { apply set_finiteE in FIN_ACTS. desf.
+    exists (InitEvent l :: filterP (Loc_ l) findom). split; intros x HSET.
+    { destruct HSET as [EX LX].
+      ins. destruct x as [xl | xt xn]; ins; eauto.
+      { unfold loc in LX. rewrite (wf_init_lab WF) in LX.
+        desf. eauto. }
+      right.
+      apply in_filterP_iff; split; try now apply LX.
+      apply FIN_ACTS0. split; ins. }
+    ins. desf. apply in_filterP_iff in HSET.
+    destruct HSET as [INX LX]. split; ins.
+    now apply FIN_ACTS0. }
+  forward (eapply last_exists with (s:= co ⨾ ⦗fun x => vf x b⦘)
+                                   (dom := filterP W El)
+                                   (a := InitEvent l)).
+  { eapply acyclic_mon.
+    apply trans_irr_acyclic; [apply co_irr | apply co_trans]; eauto.
+    basic_solver. }
+  { ins.
+    assert (A: (co ⨾ ⦗fun x : actid => vf x b⦘)^? (InitEvent l) c).
+    { apply rt_of_trans; try done.
+      apply transitiveI.
+      arewrite_id ⦗fun x : actid => vf x b⦘ at 1.
+      rewrite seq_id_l.
+      arewrite (co ⨾ co ⊆ co); [|done].
+      apply transitiveI.
+      eapply co_trans; eauto. }
+    unfolder in A; desf.
+    { apply in_filterP_iff; split; auto.
+      by apply ACT_LIST. }
+    apply in_filterP_iff.
+    hahn_rewrite WF.(wf_coE) in A.
+    hahn_rewrite WF.(wf_coD) in A.
+    hahn_rewrite WF.(wf_col) in A.
+    unfold same_loc in *; unfolder in *; desf; splits; eauto.
+    apply ACT_LIST. split; ins.
+    rewrite <- A3. unfold loc.
+    now rewrite (wf_init_lab WF). }
+  ins; desc.
+  assert (A: (co ⨾ ⦗fun x : actid => vf x b⦘)^? (InitEvent l) b0).
+  { apply rt_of_trans; [|by subst].
+    apply transitiveI.
+    arewrite_id ⦗fun x : actid => vf x b⦘ at 1.
+    rewrite seq_id_l.
+    arewrite (co ⨾ co ⊆ co); [|done].
+    apply transitiveI.
+    eapply co_trans; eauto. }
+  assert (loc b0 = Some l).
+  { unfolder in A; desf.
+    hahn_rewrite WF.(wf_col) in A.
+    unfold same_loc in *; desf; unfolder in *; congruence. }
+  exists b0; red; split.
+  { unfold urr, same_loc.
+    unfolder in A; desf; unfolder; ins; desf; splits; try basic_solver 21; congruence. }
+  unfold max_elt in *.
+  unfolder in *; ins; desf; intro; desf; basic_solver 11.
+Qed.
+
+Lemma srf_in_sb_rf :
+  srf ⊆ (sb ∪ rf)⁺.
+Proof using.
+  admit.
+Admitted.
+
+Lemma ct_unit_left A (r : relation A) :
+    r ⨾ r⁺ ⊆ r⁺.
+Proof.
+  arewrite (r ⊆ r⁺) at 1. apply ct_ct.
+Qed.
+
+Lemma trans_helper_swapped A (r r' : relation A)
+        (TRANS : transitive r) :
+    r ⨾ (r' ∪ r)⁺ ⊆ r ∪ (r ⨾ r'⁺)⁺ ⨾ r^?.
+Proof using.
+  rewrite path_union2. rewrite !seq_union_r.
+  arewrite (r ⨾ r＊ ⊆ r⁺).
+  arewrite (r ⨾ r⁺ ⊆ r⁺) by apply ct_unit_left.
+  arewrite (r⁺ ⊆ r).
+  arewrite (r'⁺ ⊆ r'＊).
+  rels.
+  rewrite rtE at 1. rewrite seq_union_r, seq_id_r.
+  unionL; eauto with hahn.
+  all: unionR right.
+  { rewrite <- ct_step with (r := r ;; r'⁺).
+    basic_solver 10. }
+  rewrite ct_rotl, <- !seqA.
+  rewrite <- ct_begin.
+  rewrite !seqA.
+  rewrite rtE, !seq_union_r, seq_id_r.
+  arewrite ((r ⨾ r'⁺)⁺ ⨾ r ⨾ r'⁺ ⊆ (r ⨾ r'⁺)⁺).
+  { now rewrite ct_unit. }
+  rewrite crE, seq_union_r, seq_id_r.
+  eauto with hahn.
+Qed.
+
+End AuxRel.

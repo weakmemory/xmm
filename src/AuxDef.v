@@ -1,4 +1,11 @@
 From imm Require Import Events Execution.
+From imm Require Import imm_s_ppo.
+Require Import xmm_s_hb.
+From imm Require Import imm_bob.
+From imm Require Import SubExecution.
+
+Require Import Lia Program.Basics.
+
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 
