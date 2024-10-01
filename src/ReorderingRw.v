@@ -782,6 +782,23 @@ Proof using.
   basic_solver 11.
 Qed.
 
+Lemma rsr_mapper
+    (SIMREL : reord_simrel) :
+  eq_dom E_t mapper (upd (upd id a_t b_t) b_t a_t).
+Proof using.
+  unfolder. intros x XIN.
+  destruct classic with (x = b_t) as [XEQB|XNQB].
+  { subst x. rewrite upds. symmetry.
+    apply (rsr_bt SIMREL). basic_solver. }
+  rewrite updo by exact XNQB.
+  destruct classic with (x = a_t) as [XEQA|XNQA].
+  { subst x. rewrite upds. symmetry.
+    apply (rsr_at SIMREL). basic_solver. }
+  rewrite updo by exact XNQA.
+  rewrite (rsr_mid SIMREL); [reflexivity |].
+  basic_solver.
+Qed.
+
 End SimRel.
 
 Module ReordRwSimRelProps.
@@ -2804,9 +2821,10 @@ Definition extra_b :=
   else eq b_t' ∩₁ E_t'.
 
 Lemma simrel_reexec f dtrmt cmt
+    (ADTRMT : dtrmt a_t <-> dtrmt a_t')
+    (BDTRMT : dtrmt b_t <-> dtrmt b_t')
     (ACMT : dtrmt a_t -> a_t = a_t')
     (BCMT : dtrmt b_t -> b_t = b_t')
-    (PRESERVATION : b_t' = b_t <-> a_t' = a_t)
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
     (STEP : WCore.reexec X_t X_t' f dtrmt cmt) :
   exists mapper' X_s' f' dtrmt' cmt',
@@ -2839,7 +2857,27 @@ Proof using INV INV'.
     WCore.G := G_s';
   |}).
   assert (MAPEQ : eq_dom dtrmt mapper mapper').
-  { admit. }
+  { assert (DTRMT : dtrmt ⊆₁ E_t).
+    { rewrite (WCore.dtrmt_cmt STEP), WCore.reexec_embd_acts.
+      all: eauto using WCore.reexec_embd_corr. }
+    unfold mapper'.
+    destruct classic with (dtrmt a_t) as [DA|NDA],
+             classic with (dtrmt b_t) as [DB|NDB].
+    all: unfolder; intros x XIN.
+    all: try rewrite <- ACMT by auto.
+    all: try rewrite <- BCMT by auto.
+    all: rewrite (rsr_mapper SIMREL)
+         by (apply DTRMT in XIN; exact XIN).
+    { reflexivity. }
+    { exfalso. apply NDB. admit. (* false, dtrmt clos *) }
+    { destruct classic with (x = b_t) as [EQB|NQB].
+      { subst x. rewrite !upds. admit. (* weird *) }
+      rewrite !updo with (a := b_t) by exact NQB.
+      rewrite !updo; try congruence.
+      intro FALSO. subst x. now apply NDA, ADTRMT. }
+    rewrite !updo; try congruence.
+    { intro FALSO. subst x. now apply NDA, ADTRMT. }
+    intro FALSO. subst x. now apply NDB, BDTRMT. }
   assert (MAPINJ : inj_dom E_t' mapper').
   { unfold inj_dom, mapper'. intros x y XIN YIN FEQ.
       destruct classic with (x = a_t') as [XEQA|XNQA],
