@@ -2825,6 +2825,7 @@ Lemma simrel_reexec f dtrmt cmt
     (BDTRMT : dtrmt b_t <-> dtrmt b_t')
     (ACMT : dtrmt a_t -> a_t = a_t')
     (BCMT : dtrmt b_t -> b_t = b_t')
+    (PRESERVATION : b_t = b_t' -> a_t = a_t')
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
     (STEP : WCore.reexec X_t X_t' f dtrmt cmt) :
   exists mapper' X_s' f' dtrmt' cmt',
@@ -2871,7 +2872,7 @@ Proof using INV INV'.
     { reflexivity. }
     { exfalso. apply NDB. admit. (* false, dtrmt clos *) }
     { destruct classic with (x = b_t) as [EQB|NQB].
-      { subst x. rewrite !upds. admit. (* weird *) }
+      { subst x. rewrite !upds. auto. }
       rewrite !updo with (a := b_t) by exact NQB.
       rewrite !updo; try congruence.
       intro FALSO. subst x. now apply NDA, ADTRMT. }
