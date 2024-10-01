@@ -148,6 +148,7 @@ Record reord_step_pred : Prop := {
   rsr_at_bt_imm : (eq b_t ∩₁ E_t) × (eq a_t ∩₁ E_t) ⊆ immediate sb_t;
   rsr_nat_spot : forall (NINA : ~E_t a_t),
                     ⦗eq a_t⦘ ⨾ ext_sb ⨾ ⦗E_t⦘ ⊆ ∅₂;
+  rsr_at_bt_sb : ext_sb b_t a_t;
 }.
 
 Record reord_simrel : Prop := {
@@ -2679,6 +2680,8 @@ Proof using INV INV'.
   constructor; ins.
   { subst dtrmt' cmt'. basic_solver. }
   { subst cmt'. basic_solver. }
+  { unfold dtrmt'. admit. }
+  { admit. }
   { constructor; ins.
     { unfold id; ins. rupd. intro FALSO.
       now apply CMT. }
@@ -2870,7 +2873,11 @@ Proof using INV INV'.
     all: rewrite (rsr_mapper SIMREL)
          by (apply DTRMT in XIN; exact XIN).
     { reflexivity. }
-    { exfalso. apply NDB. admit. (* false, dtrmt clos *) }
+    { exfalso. apply NDB. apply (WCore.reexec_dtrmt_sb_closed STEP).
+      unfolder. exists a_t, a_t; splits; auto.
+      apply DTRMT in DA.
+      unfold sb. unfolder. splits; auto; try now apply INV.
+      now apply (rsr_at_bt_ord INV). }
     { destruct classic with (x = b_t) as [EQB|NQB].
       { subst x. rewrite !upds. auto. }
       rewrite !updo with (a := b_t) by exact NQB.
