@@ -1,7 +1,13 @@
 Require Import Lia Setoid Program.Basics.
 Require Import AuxDef AuxInj.
-Require Import Core.
 Require Import Rhb Srf.
+Require Import ThreadTrace.
+Require Import Core.
+Require Import TraceSwap.
+Require Import SubToFullExec.
+Require Import AuxRel.
+Require Import ExecEquiv.
+Require Import StepOps.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -54,11 +60,11 @@ Lemma hb_eco_irr
         (CONS : WCore.is_cons G sc) :
     irreflexive (hb ⨾ eco).
 Proof using.
-    destruct CONS. apply irreflexive_inclusion
+    destruct CONS. apply irreflexive_inclusion 
                         with (r' := hb ⨾ eco^?); eauto.
     apply inclusion_seq_mon; basic_solver.
 Qed.
-
+    
 Lemma vf_hb_irr
         (WF  : Wf G)
         (CONS : WCore.is_cons G sc) :
@@ -72,12 +78,18 @@ Proof using.
     by rotate 1; apply CONS.
 Qed.
 
+Lemma srf_sub_vf :
+    srf ⊆ vf.
+Proof using.
+    unfold srf. basic_solver.
+Qed.
+
 Lemma srf_hb_irr
         (WF  : Wf G)
         (CONS : WCore.is_cons G sc) :
     irreflexive (srf ⨾ hb).
 Proof using.
-    rewrite srf_in_vf; try apply vf_hb_irr; eauto.
+    rewrite srf_sub_vf; try apply vf_hb_irr; eauto.
 Qed.
 
 Lemma rhb_in_hb :
@@ -188,7 +200,7 @@ Proof using.
           unfold seq. exists x. split; vauto.
           assert (EQ : (fun x4 y0 : actid =>
                 exists z0 : actid, rpo x4 z0 /\ sw＊ z0 y0)⁺ ≡ (rpo ⨾ sw＊)⁺).
-          { unfold seq. basic_solver. }
+          { unfold seq. basic_solver. } 
           apply EQ.
           apply inclusion_t_t with (r := rpo ⨾ sw⁺); vauto.
           apply inclusion_seq_mon; vauto.
@@ -198,10 +210,10 @@ Proof using.
       right. apply ct_unionE. right. apply IN. unfold seq. exists x. split; vauto.
       assert (EQ : (fun x4 y0 : actid =>
             exists z0 : actid, rpo x4 z0 /\ sw＊ z0 y0)⁺ ≡ (rpo ⨾ sw＊)⁺).
-      { unfold seq. basic_solver. }
+      { unfold seq. basic_solver. } 
       apply EQ.
       apply inclusion_t_t with (r := rpo ⨾ sw⁺); basic_solver. }
-    { assert (RPO : rpo y z).
+    { assert (RPO : rpo y z). 
       { apply rpo_sb_end with (x := x); eauto. }
       right. apply ct_ct. unfold seq. exists y. split; vauto. apply ct_step; vauto. } 
     right. apply ct_ct. unfold seq. exists y. split; auto.
@@ -211,8 +223,12 @@ Qed.
 Lemma hb_locs :
     hb ∩ same_loc ≡ rhb ∩ same_loc.
 Proof using.
-  admit.
-Admitted.
+    rewrite hb_helper; eauto; split.
+    2: { basic_solver. }
+    rewrite inter_union_l. rewrite inclusion_union_l with (r := sb ∩ same_loc)
+        (r' := rhb ∩ same_loc) (r'' := rhb ∩ same_loc); try basic_solver.
+    unfold rhb. rewrite <- ct_step. unfold rpo. basic_solver 8.
+Qed.
 
 Lemma sb_in_hb :
     sb ⊆ hb.
@@ -227,17 +243,17 @@ Proof using.
     generalize (@hb_trans G); basic_solver 21.
 Qed.
 
-Lemma rf_rhb_sub_vf
+Lemma rf_rhb_sub_vf 
         (WF  : Wf G):
     ⦗W⦘ ⨾ rf^? ⨾ rhb ⊆ vf.
 Proof using.
     unfold vf. rewrite rhb_in_hb; eauto.
-    assert (EQ1 : rf ≡ ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf).
+    assert (EQ1 : rf ≡ ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf). 
     { rewrite wf_rfD; eauto. rewrite wf_rfE; eauto. basic_solver. }
-    case_refl _.
+    case_refl _. 
     { rewrite <- inclusion_id_cr with (r := rf).
       rewrite <- inclusion_step_cr with (r := hb) (r' := hb). 2 : basic_solver.
-      rels. assert (EQ2 : hb ≡ ⦗E⦘ ⨾ hb ⨾ ⦗E⦘).
+      rels. assert (EQ2 : hb ≡ ⦗E⦘ ⨾ hb ⨾ ⦗E⦘). 
       { rewrite wf_hbE; eauto. basic_solver. }
       rewrite EQ2. basic_solver. }
     rewrite <- inclusion_step_cr with (r := hb) (r' := hb). 2 : basic_solver.
@@ -273,9 +289,11 @@ End Additional.
 
 Section Consistencies. 
 
+Open Scope program_scope.
+
 Variable G_s G_t : execution.
 Variable sc_s sc_t : relation actid.
-Variable a : actid.
+Variable a : actid. 
 
 Notation "'lab_s'" := (lab G_s).
 Notation "'val_s'" := (val lab_s).
@@ -505,7 +523,7 @@ Lemma read_fr_sub (m : actid -> actid)
 Proof using.
     unfold fr. rewrite RF_MAP. rewrite transp_union.
     rewrite seq_union_l. rewrite CO_MAP. rewrite transp_seq, seqA.
-    rewrite <- collect_rel_transp.
+    rewrite <- collect_rel_transp. 
     assert (EQ : m ↑ (rf_t⁻¹ ⨾ co_t) ≡ m ↑ rf_t⁻¹ ⨾ m ↑ co_t).
     { eapply collect_rel_seq. assert (IN1 : codom_rel rf_t⁻¹ ⊆₁ E_t).
       { rewrite codom_transp. induction 1 as (y & COND). apply wf_rfE in COND; eauto.
@@ -1069,7 +1087,7 @@ Proof using.
     basic_solver.
 Qed.
 
-Lemma empty_codom_irr (A : Type) (r r' : relation A)
+Lemma empty_codom_irr (A : Type) (r r' : relation A) 
         (EMP : codom_rel r ≡₁ ∅) :
     irreflexive (r ⨾ r').
 Proof using.
@@ -1087,7 +1105,7 @@ Proof using.
     destruct H. destruct H. destruct EMP.
     assert (IN : codom_rel r x1).
     { exists x0; eauto. }
-    assert (F : ∅ x1).
+    assert (F : ∅ x1). 
     { apply H1 in IN; eauto. }
     basic_solver.
 Qed.
@@ -2471,5 +2489,4 @@ Admitted.
 
 End Consistencies.
 
-End Consistency.
-
+End Consistency. 

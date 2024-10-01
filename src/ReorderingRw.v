@@ -13,6 +13,7 @@ Require Import AuxInj.
 Require Import Setoid Morphisms.
 Require Import SimrelCommon.
 Require Import AddEvent.
+Require Import Consistency.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -1693,7 +1694,8 @@ Proof using INV INV'.
       exists w'. unfolder; splits; ins.
       unfold is_r, WCore.lab_is_r in *.
       rewrite upds in ISR. desf. }
-    admit. (* Cons *) }
+    destruct l_a'.
+    all : admit. (* Cons *) }
   { apply union_more; ins. }
   { now rewrite set_interC with (s := E_s). }
   subst X_s''. subst G_s''. ins.

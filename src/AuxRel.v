@@ -22,18 +22,6 @@ Variable G : execution.
 Notation "'E'" := (acts_set G).
 Notation "'sb'" := (sb G).
 
-Definition ppo_alt := (sb ∩ same_loc ∪ bob)⁺.
-Definition hb_alt := (ppo_alt ∪ rf)⁺.
-Definition rpo_imm :=
-  ⦗R ∩₁ is_rlx⦘ ⨾ sb ⨾ ⦗F ∩₁ is_acq⦘ ∪
-  ⦗is_acq⦘ ⨾ sb ∪
-  sb ⨾ ⦗is_rel⦘ ∪
-  ⦗F ∩₁ is_rel⦘ ⨾ sb ⨾ ⦗W ∩₁ is_rlx⦘.
-Definition rpo := rpo_imm⁺.
-Definition rhb := (sb ∩ same_loc ∪ rpo ∪ sw)⁺.
-Definition vf := ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf^? ⨾ hb^?.
-Definition srf := (vf ∩ same_loc) ⨾ ⦗R⦘ \ (co ⨾ vf).
-
 Lemma thrdle_sb_closed thrdle
     (INIT_MIN : min_elt thrdle tid_init)
     (INIT_LEAST : least_elt thrdle tid_init) :
@@ -80,17 +68,7 @@ Proof using.
   apply Relation_Operators.tn1_trans with y; eauto.
 Qed . 
 
-Lemma rpo_imm_in_sb : rpo_imm ⊆ sb.
-Proof using.
-  unfold rpo_imm.
-  basic_solver.
-Qed.
 
-Lemma rpo_in_sb : rpo ⊆ sb.
-Proof using.
-  unfold rpo. rewrite rpo_imm_in_sb.
-  apply ct_of_trans. apply sb_trans.
-Qed.
 
 (* TODO: move to HahnExt/SetSize.v *)
 Lemma set_size_inf_minus_finite {A} (s s' : A -> Prop)
@@ -314,6 +292,54 @@ Proof using.
   { destruct HREL as (x' & y' & REL & XEQ & YEQ).
     subst. exact REL. }
   exists x, y. splits; auto.
+Qed.
+
+Section AuxRel.
+
+Variable G : execution.
+Notation "'lab'" := (lab G).
+Notation "'E'" := (acts_set G).
+Notation "'loc'" := (loc lab).
+Notation "'same_loc'" := (same_loc lab).
+Notation "'is_acq'" := (is_acq lab).
+Notation "'is_rel'" := (is_rel lab).
+Notation "'is_rlx'" := (is_rlx lab).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'rmw'" := (rmw G).
+Notation "'ppo'" := (ppo G).
+Notation "'hb'" := (hb G).
+Notation "'psc'" := (imm.psc G).
+Notation "'sw'" := (sw G).
+Notation "'W'" := (is_w lab).
+Notation "'R'" := (is_r lab).
+Notation "'F'" := (is_f lab).
+Notation "'bob'" := (bob G).
+Notation "'Loc_' l" := (fun x => loc x = Some l) (at level 1).
+
+Definition ppo_alt := (sb ∩ same_loc ∪ bob)⁺.
+Definition hb_alt := (ppo_alt ∪ rf)⁺.
+Definition rpo_imm :=
+  ⦗R ∩₁ is_rlx⦘ ⨾ sb ⨾ ⦗F ∩₁ is_acq⦘ ∪
+  ⦗is_acq⦘ ⨾ sb ∪
+  sb ⨾ ⦗is_rel⦘ ∪
+  ⦗F ∩₁ is_rel⦘ ⨾ sb ⨾ ⦗W ∩₁ is_rlx⦘.
+Definition rpo := rpo_imm⁺.
+Definition rhb := (sb ∩ same_loc ∪ rpo ∪ sw)⁺.
+Definition vf := ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf^? ⨾ hb^?.
+Definition srf := (vf ∩ same_loc) ⨾ ⦗R⦘ \ (co ⨾ vf).
+
+Lemma rpo_imm_in_sb : rpo_imm ⊆ sb.
+Proof using.
+  unfold rpo_imm.
+  basic_solver.
+Qed.
+
+Lemma rpo_in_sb : rpo ⊆ sb.
+Proof using.
+  unfold rpo. rewrite rpo_imm_in_sb.
+  apply ct_of_trans. apply sb_trans.
 Qed.
 
 Lemma wf_rpoE

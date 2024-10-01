@@ -1,6 +1,7 @@
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
-From imm Require Import Events Execution imm_s_hb.
+From imm Require Import Events Execution.
+Require Import xmm_s_hb.
 Require Import Program.Basics.
 
 Set Implicit Arguments.

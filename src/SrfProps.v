@@ -1,6 +1,6 @@
-From imm Require Import Events Execution imm_s_hb.
+From imm Require Import Events Execution.
 From imm Require Import imm_s_ppo.
-From imm Require Import imm_s_hb.
+Require Import xmm_s_hb.
 From imm Require Import imm_bob.
 From imm Require Import SubExecution.
 
@@ -124,17 +124,11 @@ Proof using.
     rewrite <- seqA, (ct_seq_eqv_r E (rf ⨾ rmw)).
     arewrite ((rf ⨾ rmw) ⨾ ⦗E⦘ ≡ rf ⨾ rmw); ins.
     rewrite (wf_rmwE WF). basic_solver 11. }
-  seq_rewrite EQW. rewrite !seqA.
-  arewrite ((sb' ∩ same_loc')^? ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ (sb ∩ same_loc)^?).
-  { rewrite !crE, seq_union_l, seq_union_r.
-    apply union_more; [basic_solver |].
-    rewrite <- seq_eqv_inter_lr, SB, <- seq_eqv_inter_ll.
-    arewrite (sb ⨾ ⦗E⦘ ≡ sb) by (unfold sb; basic_solver).
-    arewrite (⦗E⦘ ⨾ sb ≡ sb) by (unfold sb; basic_solver).
-    unfold sb, same_loc, loc. unfolder.
-    split; intros x y ((XINE & ESB & YINE) & EQ).
-    all: splits; ins.
-    all: rewrite 2!EQL in *; ins. }
+  arewrite (⦗Rlx'⦘ ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ ⦗Rlx⦘).
+  { rewrite <- !id_inter, set_interC. apply eqv_rel_more.
+    unfold is_rlx. unfolder. split; intros x (XINE & LAB).
+    { splits; ins. unfold mod in *. rewrite EQL in LAB; eauto. }
+    splits; ins. unfold mod in *. rewrite EQL; eauto. }
   seq_rewrite EQW. rewrite !seqA.
   rewrite (wf_rsE WF), seq_union_l, !seqA.
   unfold rs. basic_solver 20.
@@ -153,7 +147,7 @@ Proof using.
   arewrite (rs ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ rs ⨾ ⦗E⦘).
   { rewrite (wf_rsE WF) at 1. rewrite seq_union_l.
     split; [| basic_solver 7].
-    arewrite (⦗W⦘ ⨾ ⦗E⦘ ⊆ ⦗E⦘ ⨾ rs ⨾ ⦗E⦘); [| basic_solver].
+    arewrite (⦗W ∩₁ Rlx⦘ ⨾ ⦗E⦘ ⊆ ⦗E⦘ ⨾ rs ⨾ ⦗E⦘); [| basic_solver].
     unfold rs. basic_solver 11. }
   rewrite crE.
   seq_rewrite seq_union_l.
@@ -175,16 +169,19 @@ Proof using.
     all: splits; ins.
     all: rewrite EQL in *; ins. }
   arewrite (release ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ release ⨾ ⦗E⦘).
-  { rewrite (wf_releaseE WF) at 1.  rewrite seq_union_l.
-    split; [| basic_solver 7].
-    arewrite (⦗W ∩₁ Rel⦘ ⨾ ⦗E⦘ ⊆ ⦗E⦘ ⨾ release ⨾ ⦗E⦘); [| basic_solver].
-    unfold release. rewrite <- inclusion_id_cr, seq_id_l.
-    unfold rs. rewrite <- cr_of_ct, <- !inclusion_id_cr.
-    seq_rewrite !seq_id_r. basic_solver 11. }
+  { unfold release. rewrite !seqA.
+    arewrite (rs ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ rs ⨾ ⦗E⦘) at 1.
+    { unfold rs. rewrite !seqA. 
+      arewrite ((rf ⨾ rmw)＊ ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ (rf ⨾ rmw)＊ ⨾ ⦗E⦘) at 1.
+      { admit. }
+      arewrite (⦗W⦘ ⨾ ⦗Rlx⦘ ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ ⦗W⦘ ⨾ ⦗Rlx⦘) by type_solver. }
+    arewrite ((⦗F⦘ ⨾ sb)^? ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ (⦗F⦘ ⨾ sb)^?).
+    { admit. }
+    arewrite (⦗Rel⦘ ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ ⦗Rel⦘) by type_solver. }
   unfold release.
   rewrite crE, !seq_union_l, seq_id_l.
   unfold sb. basic_solver 42.
-Qed.
+Admitted.
 
 Lemma sw_add_event
     (WF : Wf G)
@@ -213,6 +210,11 @@ Proof using.
     seq_rewrite <- !id_inter.
     now rewrite set_interK. }
   seq_rewrite <- seq_union_r.
+  arewrite (⦗Rlx'⦘ ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ ⦗Rlx⦘).
+  { rewrite <- !id_inter, set_interC. apply eqv_rel_more.
+    unfold is_rlx. unfolder. split; intros x (XINE & LAB).
+    { splits; ins. unfold mod in *. rewrite EQL in LAB; eauto. }
+    splits; ins. unfold mod in *. rewrite EQL; eauto. }
   seq_rewrite RF.
   arewrite (rf ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ rf).
   { rewrite (wf_rfE WF). basic_solver. }
@@ -222,7 +224,7 @@ Proof using.
     basic_solver 11. }
   arewrite (⦗Acq⦘ ∪ sb ⨾ ⦗F⦘ ⨾ ⦗Acq⦘ ≡ (sb ⨾ ⦗F⦘)^? ⨾ ⦗Acq⦘).
   { now rewrite crE, seq_union_l, seq_id_l, !seqA. }
-  replace (release ⨾ rf ⨾ (sb ⨾ ⦗F⦘)^? ⨾ ⦗Acq⦘)
+  replace (release ⨾ rf ⨾ ⦗Rlx⦘ ⨾ (sb ⨾ ⦗F⦘)^? ⨾ ⦗Acq⦘)
     with sw; ins.
   rewrite (wf_swE WF). basic_solver.
 Qed.
