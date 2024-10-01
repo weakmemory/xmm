@@ -801,6 +801,8 @@ Record reexec_gen thrdle dtrmt : Prop :=
   dtrmt_cmt : dtrmt ⊆₁ f ↑₁ cmt;
   reexec_embd_dom : cmt ⊆₁ E';
   reexec_sur : stable_uncmt_reads_gen thrdle;
+  reexec_dtrmt_sb_closed : dom_rel (sb ⨾ ⦗dtrmt⦘) ⊆₁ dtrmt;
+  reexec_dtrmt_rpo : dom_rel (rpo ⨾ ⦗E \₁ dtrmt⦘) ⊆₁ dtrmt;
   (* Correct embedding *)
   reexec_embd_corr : commit_embedded;
   (* Reproducable steps *)
