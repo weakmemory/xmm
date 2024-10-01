@@ -2955,9 +2955,7 @@ Proof using INV INV'.
   red.
   exists thrdle.
   constructor; ins; unfold dtrmt', cmt'.
-  { rewrite set_collect_compose.
-    rewrite <- set_collect_compose with (f := mapper').
-    admit. }
+  { admit. }
   { rewrite (WCore.reexec_embd_dom STEP).
     unfold extra_b, extra_a; desf.
     all: rewrite ?set_union_empty_r.
