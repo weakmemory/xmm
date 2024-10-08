@@ -374,12 +374,6 @@ Proof using.
   apply PP. basic_solver.
 Qed.
 
-Lemma hb_in_swsb_t1n :
-  clos_trans_1n actid (fun x y => sb x y \/ sw x y) ⊆ hb.
-Proof using.
-  admit.
-Admitted.
-
 Lemma prf_hb e
     (PP : VfPrefixInternal.prf_pred G G' e) :
   hb' ⨾ ⦗eq e⦘ ⊆ hb ⨾ ⦗eq e⦘.
@@ -416,7 +410,9 @@ Proof using.
   all: clear IHHB'.
   { left.
     assert (E2IN : E e2).
-    { admit. }
+    { apply clos_trans_t1n_iff in IHHB.
+      apply (wf_hbE (VfPrefixInternal.prfp_wfG PP)) in IHHB.
+      unfolder in IHHB. desf. }
     assert (XIN' : E' e1).
     { apply wf_sbE in SB. unfolder in SB. desf. }
     assert (INE : E e1).
@@ -425,7 +421,8 @@ Proof using.
       exfalso. eapply HBIRR.
       apply hb_trans with e2; eauto.
       apply hb_trans with e.
-      { admit. }
+      { apply clos_trans_t1n_iff in HB.
+        apply HB. }
       enough (SB' : (⦗eq e⦘ ⨾ hb') e e1).
       { forward apply SB'. clear. basic_solver. }
       apply (VfPrefixInternal.prfp_sbp PP). basic_solver. }
@@ -433,7 +430,9 @@ Proof using.
     unfolder; splits; auto || apply PP. }
   right.
   assert (E2IN : E e2).
-  { admit. }
+  { apply clos_trans_t1n_iff in IHHB.
+    apply (wf_hbE (VfPrefixInternal.prfp_wfG PP)) in IHHB.
+    unfolder in IHHB. desf. }
   assert (XIN' : E' e1).
   { apply (wf_swE (VfPrefixInternal.prfp_wf PP)) in SW. unfolder in SW. desf. }
   assert (INE : E e1).
@@ -442,7 +441,8 @@ Proof using.
     exfalso. eapply HBIRR.
     apply hb_trans with e2; eauto.
     apply hb_trans with e.
-    { admit. }
+    { apply clos_trans_t1n_iff in HB.
+      apply HB. }
     enough (SB' : (⦗eq e⦘ ⨾ hb') e e1).
     { forward apply SB'. clear. basic_solver. }
     apply (VfPrefixInternal.prfp_sbp PP). basic_solver. }
@@ -450,7 +450,14 @@ Proof using.
   { forward apply SW'. clear. basic_solver. }
   apply prf_sw; [| basic_solver].
   constructor; auto; try now apply PP.
-  admit.
-Admitted.
+  unfolder. intros x y (XEQ & YIN & YNIN).
+  subst x. split; auto.
+  apply hb_trans with e.
+  { apply clos_trans_t1n_iff in HB.
+    apply HB. }
+  enough (SB' : (⦗eq e⦘ ⨾ hb') e y).
+  { forward apply SB'. clear. basic_solver. }
+  apply PP. basic_solver.
+Qed.
 
 End VfPrefix.
