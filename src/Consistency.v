@@ -8,6 +8,8 @@ Require Import SubToFullExec.
 Require Import AuxRel.
 Require Import ExecEquiv.
 Require Import StepOps.
+Require Import Srf.
+Require Import Rhb.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -23,7 +25,7 @@ Require Import xmm_comb_rel.
 
 Module Consistency.
 
-Section Additional. 
+Section Additional.
 
 Open Scope program_scope.
 
@@ -78,18 +80,12 @@ Proof using.
     by rotate 1; apply CONS.
 Qed.
 
-Lemma srf_sub_vf :
-    srf ⊆ vf.
-Proof using.
-    unfold srf. basic_solver.
-Qed.
-
 Lemma srf_hb_irr
         (WF  : Wf G)
         (CONS : WCore.is_cons G sc) :
     irreflexive (srf ⨾ hb).
 Proof using.
-    rewrite srf_sub_vf; try apply vf_hb_irr; eauto.
+    rewrite srf_in_vf; try apply vf_hb_irr; eauto.
 Qed.
 
 Lemma rhb_in_hb :
@@ -509,6 +505,7 @@ Lemma read_fr_sub (m : actid -> actid)
         (INJ : inj_dom E_t m)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
         (IS_R : is_r lab_s a)
+        (IS_ACQ : ~(is_acq lab_s a))
         (NIN : set_disjoint (m ↑₁ E_t) (eq a))
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
@@ -539,6 +536,7 @@ Lemma read_eco_sub (m : actid -> actid)
         (INJ : inj_dom E_t m)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
         (IS_R : is_r lab_s a)
+        (IS_ACQ : ~(is_acq lab_s a))
         (NIN : set_disjoint (m ↑₁ E_t) (eq a))
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
@@ -625,6 +623,7 @@ Lemma read_codom_sw (m : actid -> actid)
         (INJ : inj_dom E_t m)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
         (IS_R : is_r lab_s a)
+        (IS_ACQ : ~(is_acq lab_s a))
         (NIN : set_disjoint (m ↑₁ E_t) (eq a))
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
@@ -661,6 +660,7 @@ Lemma read_sw_helper_rf_rmw (m : actid -> actid)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
         (LABS : eq_dom E_t (lab_s ∘ m) lab_t)
         (IS_R : is_r lab_s a)
+        (IS_ACQ : ~(is_acq lab_s a))
         (NIN : set_disjoint (m ↑₁ E_t) (eq a))
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
@@ -696,6 +696,7 @@ Lemma read_sw_helper_release (m : actid -> actid)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
         (LABS : eq_dom E_t (lab_s ∘ m) lab_t)
         (IS_R : is_r lab_s a)
+        (IS_ACQ : ~(is_acq lab_s a))
         (NIN : set_disjoint (m ↑₁ E_t) (eq a))
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
@@ -899,6 +900,7 @@ Lemma read_sw_helper_rf (m : actid -> actid)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
         (LABS : eq_dom E_t (lab_s ∘ m) lab_t)
         (IS_R : is_r lab_s a)
+        (IS_ACQ : ~(is_acq lab_s a))
         (NIN : set_disjoint (m ↑₁ E_t) (eq a))
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
@@ -1002,6 +1004,7 @@ Lemma read_sw_sub_helper (m : actid -> actid)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
         (LABS : eq_dom E_t (lab_s ∘ m) lab_t)
         (IS_R : is_r lab_s a)
+        (IS_ACQ : ~(is_acq lab_s a))
         (NIN : set_disjoint (m ↑₁ E_t) (eq a))
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
@@ -1051,6 +1054,7 @@ Lemma read_sw_sub (m : actid -> actid)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
         (LABS : eq_dom E_t (lab_s ∘ m) lab_t)
         (IS_R : is_r lab_s a)
+        (IS_ACQ : ~(is_acq lab_s a))
         (NIN : set_disjoint (m ↑₁ E_t) (eq a))
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
@@ -1061,18 +1065,24 @@ Lemma read_sw_sub (m : actid -> actid)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
-    sw_s ⊆ m ↑ sw_t ∪ sw_s ⨾ ⦗eq a⦘.
+    sw_s ⊆ m ↑ sw_t.
 Proof using.
     rewrite <- read_sw_sub_helper; eauto.
-    rewrite wf_swE; eauto. rewrite !seqA.
-    rewrite <- !seq_union_r.
-    do 2 hahn_frame_l. intros x y INE.
-    destruct INE as (z & INE); subst.
-    unfold seq. exists y; eauto.
-    split; vauto. unfold union.
-    destruct classic with (P := eq y a); vauto.
-    left. unfold set_minus. split; vauto.
-    split; vauto. basic_solver.
+    arewrite (sw_s ⊆ sw_s ⨾ ⦗E_s⦘) at 1.
+    { rewrite wf_swE; eauto. basic_solver. }
+    rewrite E_MAP at 1. rewrite id_union.
+    rewrite seq_union_r.
+    apply inclusion_union_l.
+    { hahn_frame. rewrite E_MAP.
+      apply eqv_rel_mori. rewrite set_minus_union_l.
+      arewrite (m ↑₁ E_t ⊆₁ m ↑₁ E_t \₁ eq a).
+      { unfold set_minus.
+        intros x SET. split; vauto.
+        intros EQ. destruct NIN with x; vauto. }
+      basic_solver 12. }
+    arewrite (sw_s ⊆ sw_s ⨾ ⦗Acq_s⦘).
+    { rewrite wf_swD; eauto. basic_solver. }
+    unfold is_acq in *. basic_solver 21.
 Qed.
 
 Lemma codom_ct_alt (A : Type) (r r' : relation A)
@@ -1114,6 +1124,7 @@ Lemma read_rhb_codom (m : actid -> actid)
         (INJ : inj_dom E_t m)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
         (IS_R : is_r lab_s a)
+        (IS_ACQ : ~(is_acq lab_s a))
         (NIN : set_disjoint (m ↑₁ E_t) (eq a))
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
@@ -1156,6 +1167,7 @@ Lemma read_rhb_start (m : actid -> actid)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
         (LABS : eq_dom E_t (lab_s ∘ m) lab_t)
         (IS_R : is_r lab_s a)
+        (IS_ACQ : ~(is_acq lab_s a))
         (NIN : set_disjoint (m ↑₁ E_t) (eq a))
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
@@ -1207,6 +1219,7 @@ Lemma read_rhb_imm_start (m : actid -> actid)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
         (LABS : eq_dom E_t (lab_s ∘ m) lab_t)
         (IS_R : is_r lab_s a)
+        (IS_ACQ : ~(is_acq lab_s a))
         (NIN : set_disjoint (m ↑₁ E_t) (eq a))
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
@@ -1258,6 +1271,7 @@ Lemma rhb_fin (m : actid -> actid)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
         (LABS : eq_dom E_t (lab_s ∘ m) lab_t)
         (IS_R : is_r lab_s a)
+        (IS_ACQ : ~(is_acq lab_s a))
         (NIN : set_disjoint (m ↑₁ E_t) (eq a))
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
@@ -1285,6 +1299,7 @@ Lemma read_rhb_sub (m : actid -> actid)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
         (LABS : eq_dom E_t (lab_s ∘ m) lab_t)
         (IS_R : is_r lab_s a)
+        (IS_ACQ : ~(is_acq lab_s a))
         (NIN : set_disjoint (m ↑₁ E_t) (eq a))
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
@@ -1348,6 +1363,7 @@ Lemma read_extent (m : actid -> actid)
         (E_MAP : E_s ≡₁ m ↑₁ E_t ∪₁ eq a)
         (LABS : eq_dom E_t (lab_s ∘ m) lab_t)
         (IS_R : is_r lab_s a)
+        (IS_ACQ : ~(is_acq lab_s a))
         (NIN : set_disjoint (m ↑₁ E_t) (eq a))
         (CODOM_RPO : codom_rel (⦗eq a⦘ ⨾ rpo_s) ≡₁ ∅)
         (RPO_MAP : rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rpo_t)
@@ -1468,10 +1484,29 @@ Proof using.
           destruct Q. }
         assert (IN' : rhb_s ⨾ (srf_s ⨾ ⦗eq a⦘)⁻¹ ⨾ co_s ⨾ rf_s^? ⊆ rhb_s ⨾ (srf_s ⨾ ⦗eq a⦘)⁻¹ ⨾ co_s ⨾ ⦗W_s⦘ ⨾ rf_s^? ).
         { rewrite wf_coD; eauto. basic_solver 21. } rewrite IN'.
-        rotate 3. assert (IN : co_s ⨾ ⦗W_s⦘ ⨾ rf_s^? ⨾ rhb_s ⨾ (srf_s ⨾ ⦗eq a⦘)⁻¹
+        rotate 3. rewrite transp_seq. rewrite transp_eqv_rel.
+        arewrite (rhb_s ⊆ rhb_s^? ⨾ (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s)).
+        { unfold rhb. rewrite ct_end at 1. hahn_frame.
+          basic_solver. }
+        assert (IN : co_s ⨾ ⦗W_s⦘ ⨾ rf_s^? ⨾ rhb_s ⨾ (srf_s ⨾ ⦗eq a⦘)⁻¹
                                 ⊆ co_s ⨾ vf_s ⨾ (srf_s ⨾ ⦗eq a⦘)⁻¹).
           { rewrite <- rf_rhb_sub_vf; basic_solver. }
-        rewrite IN. arewrite_id ⦗eq a⦘. rels. unfold srf. basic_solver 21. }
+        rewrite rhb_in_hb. arewrite (co_s ⊆ co_s ⨾ ⦗E_s⦘).
+        { rewrite wf_coE; eauto. basic_solver. }
+        arewrite (⦗E_s⦘ ⨾ ⦗W_s⦘ ⨾ rf_s^? ⨾ hb_s^? ⊆ vf_s).
+        rewrite rpo_in_sb. rewrite !seq_union_l.
+        rewrite !seq_union_r. apply irreflexive_union.
+        split.
+        { apply irreflexive_union. split.
+          { unfold srf. basic_solver 12. }
+          unfold srf. basic_solver 12. }
+        rewrite read_sw_sub; eauto.
+        arewrite (m ↑ sw_t ⊆ m ↑ sw_t ⨾ ⦗m ↑₁ E_t⦘).
+        { rewrite wf_swE; eauto. basic_solver. }
+        arewrite (⦗m ↑₁ E_t⦘ ⨾ ⦗eq a⦘ ⊆ ∅₂).
+        { intros x y (z & (EQ1 & COND1) & (EQ2 & COND2)); subst.
+          destruct NIN with y; vauto. }
+        basic_solver 21. }
     { split; try basic_solver. rewrite RMW_MAP; eauto.
       rewrite read_fr_sub; eauto. rewrite seq_union_l. rewrite inter_union_r.
       apply inclusion_union_l.

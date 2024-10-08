@@ -1695,7 +1695,75 @@ Proof using INV INV'.
       unfold is_r, WCore.lab_is_r in *.
       rewrite upds in ISR. desf. }
     destruct l_a'.
-    all : admit. (* Cons *) }
+    { apply Consistency.read_extent with (G_t := G_t)
+                  (sc_t := WCore.sc X_s) (a := b_t) (m := mapper); eauto.
+      { destruct SIMREL; vauto. }
+      { unfold G_s''; ins. destruct SIMREL.
+        rewrite rsr_acts0. unfold extra_a. basic_solver 12. }
+      { unfold G_s''. ins. unfold upd. unfold eq_dom; ins.
+        unfold compose. destruct INV. admit. }
+      { unfold G_s''; ins. unfold upd.
+        unfold is_r. basic_solver. }
+      { admit. (*???*) }
+      { destruct SIMREL.
+        rewrite rsr_codom0. basic_solver 21. }
+      { unfold rpo. unfold rpo_imm.
+        split; [| basic_solver]. destruct SIMREL.
+        
+        unfold G_s''; ins.
+        admit. }
+      { unfold G_s'' at 2; ins.
+        unfold rpo. unfold rpo_imm.
+        admit. }
+      { admit. }
+      { admit. }
+      { unfold G_s'' at 1; ins. unfold WCore.lab_is_r.
+        desf. rewrite set_inter_full_r.
+        destruct SIMREL. rewrite rsr_rf0.
+        unfold extra_a. desf.
+        { exfalso. eapply BNOTIN. apply a. }
+        rewrite set_inter_empty_l; rels.
+        apply union_more; eauto.
+        unfold WCore.lab_is_r in SRF'.
+        rewrite set_inter_full_r in SRF'.
+        rewrite SRF'; vauto. }
+      { unfold G_s''; ins. unfold WCore.lab_is_w.
+        desf. rewrite set_inter_empty_r. rels.
+        destruct SIMREL. rewrite rsr_co0.
+        unfold add_max. unfold extra_a at 2. desf.
+        { exfalso. eapply BNOTIN. apply a. }
+        rewrite set_inter_empty_l; rels. }
+      { admit. }
+      destruct INV; eauto. }
+    { apply Consistency.write_extent with (G_t := G_t)
+                  (sc_t := WCore.sc X_s) (a := b_t) (m := mapper); eauto.
+      { destruct SIMREL; vauto. }
+      { unfold G_s''; ins. destruct SIMREL.
+        rewrite rsr_acts0. unfold extra_a. basic_solver 12. }
+      { unfold G_s''. ins. unfold upd. unfold eq_dom; ins.
+        unfold compose. admit. } 
+      { admit. }
+      { destruct SIMREL.
+        rewrite rsr_codom0. basic_solver 21. }
+      { unfold rpo. unfold rpo_imm.
+        admit. }
+      { admit. }
+      { admit. }
+      { admit. }
+      { unfold G_s'' at 1; ins. unfold WCore.lab_is_r.
+        desf. rewrite set_inter_empty_r. rels.
+        destruct SIMREL. rewrite rsr_rf0.
+        split; vauto. apply inclusion_union_l; vauto.
+        unfold extra_a. desf.
+        { exfalso. eapply BNOTIN. apply a. }
+        rewrite set_inter_empty_l; rels. }
+      { unfold G_s''; ins. unfold WCore.lab_is_w.
+        desf. rewrite set_inter_full_r.
+        destruct SIMREL. rewrite rsr_co0.
+        admit. }
+      { admit. }
+      destruct INV; eauto. }
+    admit. (*fence*) }
   { apply union_more; ins. }
   { now rewrite set_interC with (s := E_s). }
   subst X_s''. subst G_s''. ins.
@@ -2121,7 +2189,16 @@ Proof using.
     { now rewrite (rsr_ctrl SIMREL), (rsr_nctrl CORR). }
     eapply G_s_wf with (X_s := X_s') (X_t := X_t'); eauto. }
   { eapply G_s_rfc with (X_s := X_s') (X_t := X_t'); eauto. }
-  admit. (* is_cons *)
+  destruct l_a'.
+  { apply Consistency.read_extent with (G_t := G_t')
+              (sc_t := WCore.sc X_t') (a := a_t) (m := mapper); eauto.
+    { admit. }
+    { unfold G_s'; ins. destruct SIMREL.
+      rewrite rsr_acts0. rewrite OLDEXA.
+      rewrite EQACTS. rewrite set_collect_union.
+      admit. }
+    all : admit. }
+  all : admit. (* is_cons *)
 Admitted.
 
 Lemma prefix_exec_restr_eq X X' d
@@ -2739,7 +2816,29 @@ Proof using INV INV'.
     unfolder. intros x y ((x' & y' & (RO & EQ) & XEQ & YEQ) & CX & CY).
     exfalso. apply CY. rewrite <- YEQ, <- EQ.
     unfold mapper'. now rupd. }
-  { admit. (* TODO: cons *) }
+  { apply Consistency.monoton_cons with (G_t := G_t')
+                (sc_t := WCore.sc X_t') (m := mapper'); eauto.
+    { unfold G_s'; ins. destruct SIMREL.
+      rewrite rsr_acts0. rewrite OLDEXA.
+      rewrite <- MAPSUB. rewrite <- MAPER_E.
+      admit. }
+    { admit. }
+    { unfold G_s'; ins. apply inclusion_union_l.
+      { destruct SIMREL. rewrite rsr_rf0. rewrite OLDEXA.
+        rewrite seq_union_l. apply inclusion_union_l.
+        { admit. }
+        basic_solver 21. }
+      basic_solver 21. }
+    { unfold G_s'; ins. apply inclusion_union_l; [| basic_solver 21].
+      apply inclusion_union_l; [| basic_solver 21].
+      destruct SIMREL. rewrite rsr_co0.
+      unfold add_max. rewrite OLDEXA.
+      rewrite restr_union. apply inclusion_union_l.
+      { admit. }
+      basic_solver 21. }
+    { unfold G_s'; ins. }
+    { unfold hb. admit. }
+    admit. }
   apply sub_to_full_exec_listless with (thrdle := thrdle'); ins.
   { eapply G_s_rfc with (X_s := X_s'); eauto. }
   { arewrite (E_s \₁ dtrmt' ∩₁ E_s ≡₁ eq b_t ∪₁ eq (mapper b_t)).

@@ -31,7 +31,7 @@ Definition rpo_imm :=
   sb ⨾ ⦗Rel⦘ ∪
   ⦗F ∩₁ Rel⦘ ⨾ sb ⨾ ⦗W ∩₁ Rlx⦘.
 Definition rpo := rpo_imm⁺.
-Definition rhb := (rpo ∪ sw)⁺.
+Definition rhb := (sb ∩ same_loc ∪ rpo ∪ sw)⁺.
 
 Lemma rpo_imm_in_sb : rpo_imm ⊆ sb.
 Proof using.
@@ -60,10 +60,12 @@ Lemma wf_rhbE
     (WF : Wf G) :
   rhb ≡ ⦗E⦘ ⨾ rhb ⨾ ⦗E⦘.
 Proof using.
-  unfold rhb. rewrite wf_swE, wf_rpoE; auto.
-  rewrite <- seq_union_r, <- seq_union_l.
-  seq_rewrite <- ct_seq_eqv_l.
-  rewrite <- seqA.
+  unfold rhb. rewrite wf_swE, wf_rpoE, wf_sbE; auto.
+  assert (SB_SAMELOC : (⦗E⦘ ⨾ sb ⨾ ⦗E⦘) ∩ same_loc ≡ ⦗E⦘ ⨾ sb ∩ same_loc ⨾ ⦗E⦘).
+  { basic_solver 10. }
+  rewrite SB_SAMELOC.
+  rewrite <- !seq_union_r, <- !seq_union_l.
+  seq_rewrite <- ct_seq_eqv_l. rewrite <- seqA.
   now seq_rewrite <- ct_seq_eqv_r.
 Qed.
 
