@@ -528,4 +528,19 @@ Proof using.
   constructor; auto.
 Qed.
 
+Lemma prf_vf e
+    (WF : Wf G')
+    (INE : E e)
+    (SUB : sub_execution G' G ∅₂ ∅₂)
+    (COH : irreflexive (hb' ⨾ eco'^?))
+    (SBP : eq e × (E' \₁ E) ⊆ ⦗eq e⦘ ⨾ hb')
+    (INI : E' ∩₁ is_init ⊆₁ E) :
+  vf' ⨾ ⦗eq e⦘ ≡ vf ⨾ ⦗eq e⦘.
+Proof using.
+  split.
+  { apply prf_vf'; auto. }
+  rewrite sub_vf_in; eauto.
+  reflexivity.
+Qed.
+
 End VfPrefix.

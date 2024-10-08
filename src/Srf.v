@@ -1,12 +1,13 @@
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
-From imm Require Import Events Execution imm_s_hb.
+From imm Require Import Events Execution SubExecution imm_s_hb.
 Require Import Program.Basics.
 
 Set Implicit Arguments.
 
 Section Srf.
 Variable G : execution.
+
 Notation "'lab'" := (lab G).
 Notation "'E'" := (acts_set G).
 Notation "'loc'" := (loc lab).
@@ -214,3 +215,60 @@ Proof using.
 Admitted.
 
 End Srf.
+
+Section SubSrf.
+
+Variable G G' : execution.
+Notation "'lab''" := (lab G').
+Notation "'E''" := (acts_set G').
+Notation "'loc''" := (loc lab').
+Notation "'same_loc''" := (same_loc lab').
+Notation "'Acq''" := (fun e => is_true (is_acq lab' e)).
+Notation "'Rel''" := (fun e => is_true (is_rel lab' e)).
+Notation "'Rlx''" := (fun e => is_true (is_rlx lab' e)).
+Notation "'sb''" := (sb G').
+Notation "'rf''" := (rf G').
+Notation "'co''" := (co G').
+Notation "'rmw''" := (rmw G').
+Notation "'hb''" := (hb G').
+Notation "'sw''" := (sw G').
+Notation "'W''" := (fun e => is_true (is_w lab' e)).
+Notation "'R''" := (fun e => is_true (is_r lab' e)).
+Notation "'F''" := (fun e => is_true (is_f lab' e)).
+Notation "'Loc_'' l" := (fun x => loc' x = Some l) (at level 1).
+Notation "'vf''" := (vf G').
+Notation "'srf''" := (srf G').
+
+Notation "'lab'" := (lab G).
+Notation "'E'" := (acts_set G).
+Notation "'loc'" := (loc lab).
+Notation "'same_loc'" := (same_loc lab).
+Notation "'Acq'" := (fun e => is_true (is_acq lab e)).
+Notation "'Rel'" := (fun e => is_true (is_rel lab e)).
+Notation "'Rlx'" := (fun e => is_true (is_rlx lab e)).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'rmw'" := (rmw G).
+Notation "'hb'" := (hb G).
+Notation "'sw'" := (sw G).
+Notation "'W'" := (fun e => is_true (is_w lab e)).
+Notation "'R'" := (fun e => is_true (is_r lab e)).
+Notation "'F'" := (fun e => is_true (is_f lab e)).
+Notation "'Loc_' l" := (fun x => loc x = Some l) (at level 1).
+Notation "'vf'" := (vf G).
+Notation "'srf'" := (srf G).
+
+Lemma sub_vf_in sc sc'
+    (SUB : sub_execution G G' sc sc') :
+  vf' ⊆ vf.
+Proof using.
+  unfold vf.
+  rewrite (sub_lab SUB),
+          (sub_rf_in SUB),
+          (sub_hb_in SUB),
+          (sub_E SUB).
+  reflexivity.
+Qed.
+
+End SubSrf.
