@@ -72,9 +72,15 @@ Record prf_pred : Prop := {
   prfp_ini : E' ∩₁ is_init ⊆₁ E;
 }.
 
-Lemma prfp_sc_per_loc : sc_per_loc G'.
+Lemma prfp_sc_per_loc
+    (PP : prf_pred) :
+  sc_per_loc G'.
 Proof using.
-Admitted.
+  unfold sc_per_loc. rewrite sb_in_hb.
+  rewrite inclusion_step_cr with (r := eco') (r' := eco').
+  { apply PP. }
+  auto with hahn.
+Qed.
 
 Lemma prfp_sbp'
     (PP : prf_pred) :
@@ -458,6 +464,71 @@ Proof using.
   enough (SB' : (⦗eq e⦘ ⨾ hb') e y).
   { forward apply SB'. clear. basic_solver. }
   apply PP. basic_solver.
+Qed.
+
+Lemma prf_vf e
+    (WF : Wf G')
+    (INE : E e)
+    (SUB : sub_execution G' G ∅₂ ∅₂)
+    (COH : irreflexive (hb' ⨾ eco'^?))
+    (SBP : eq e × (E' \₁ E) ⊆ ⦗eq e⦘ ⨾ sb')
+    (INI : E' ∩₁ is_init ⊆₁ E) :
+  vf' ⨾ ⦗eq e⦘ ⊆ vf ⨾ ⦗eq e⦘.
+Proof using.
+  assert (WF' : Wf G).
+  { eapply sub_WF; eauto.
+    rewrite <- INI. clear. basic_solver. }
+  unfold vf.
+  rewrite (sub_lab SUB).
+  rewrite crE with (r := hb'),
+          crE with (r := hb).
+  rewrite !seq_union_r, !seq_union_l.
+  apply union_mori.
+  all: rewrite ?seq_id_r, !seqA.
+  { rewrite crE with (r := rf'),
+            crE with (r := rf).
+    rewrite !seq_union_l, seq_id_l.
+    rewrite !seq_union_r.
+    apply union_mori; [basic_solver |].
+    unfolder. intros x y ((XIN' & XW) & RF & YEQ).
+    subst y.
+    assert (XIN : E x).
+    { destruct classic with (E x) as [XIN|XNN]; auto.
+      exfalso. apply COH with e.
+      exists x. split.
+      { apply sb_in_hb.
+        enough (RR : (⦗eq e⦘ ⨾ sb') e x).
+        { forward apply RR. clear. basic_solver. }
+        apply SBP. basic_solver. }
+      now apply r_step, rf_in_eco. }
+    splits; auto.
+    apply (sub_rf SUB). basic_solver. }
+  rewrite prf_hb.
+  { rewrite crE with (r := rf'),
+            crE with (r := rf).
+    rewrite !seq_union_l, seq_id_l.
+    rewrite !seq_union_r.
+    apply union_mori; [rewrite (wf_hbE WF'); basic_solver |].
+    unfolder. intros x y ((XIN' & XW) & z & RF & HB & YEQ).
+    subst y.
+    assert (XIN : E x).
+    { destruct classic with (E x) as [XIN|XNN]; auto.
+      exfalso. apply COH with z.
+      exists x. split.
+      { apply (sub_hb_in SUB) in HB.
+        apply hb_trans with e; auto.
+        apply sb_in_hb.
+        enough (RR : (⦗eq e⦘ ⨾ sb') e x).
+        { forward apply RR. clear. basic_solver. }
+        apply SBP. basic_solver. }
+      now apply r_step, rf_in_eco. }
+    assert (ZIN : E z).
+    { apply (wf_hbE WF') in HB.
+      unfolder in HB. desf. }
+    splits; auto. exists z; splits; auto.
+    apply (sub_rf SUB). basic_solver. }
+  constructor; auto.
+  now rewrite <- sb_in_hb.
 Qed.
 
 End VfPrefix.
