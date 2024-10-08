@@ -466,12 +466,12 @@ Proof using.
   apply PP. basic_solver.
 Qed.
 
-Lemma prf_vf e
+Lemma prf_vf' e
     (WF : Wf G')
     (INE : E e)
     (SUB : sub_execution G' G ∅₂ ∅₂)
     (COH : irreflexive (hb' ⨾ eco'^?))
-    (SBP : eq e × (E' \₁ E) ⊆ ⦗eq e⦘ ⨾ sb')
+    (SBP : eq e × (E' \₁ E) ⊆ ⦗eq e⦘ ⨾ hb')
     (INI : E' ∩₁ is_init ⊆₁ E) :
   vf' ⨾ ⦗eq e⦘ ⊆ vf ⨾ ⦗eq e⦘.
 Proof using.
@@ -496,8 +496,7 @@ Proof using.
     { destruct classic with (E x) as [XIN|XNN]; auto.
       exfalso. apply COH with e.
       exists x. split.
-      { apply sb_in_hb.
-        enough (RR : (⦗eq e⦘ ⨾ sb') e x).
+      { enough (RR : (⦗eq e⦘ ⨾ hb') e x).
         { forward apply RR. clear. basic_solver. }
         apply SBP. basic_solver. }
       now apply r_step, rf_in_eco. }
@@ -517,8 +516,7 @@ Proof using.
       exists x. split.
       { apply (sub_hb_in SUB) in HB.
         apply hb_trans with e; auto.
-        apply sb_in_hb.
-        enough (RR : (⦗eq e⦘ ⨾ sb') e x).
+        enough (RR : (⦗eq e⦘ ⨾ hb') e x).
         { forward apply RR. clear. basic_solver. }
         apply SBP. basic_solver. }
       now apply r_step, rf_in_eco. }
@@ -528,7 +526,6 @@ Proof using.
     splits; auto. exists z; splits; auto.
     apply (sub_rf SUB). basic_solver. }
   constructor; auto.
-  now rewrite <- sb_in_hb.
 Qed.
 
 End VfPrefix.
