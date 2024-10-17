@@ -1,5 +1,5 @@
 COQMODULE    := xmm
-COQTHEORIES  := src/*.v
+COQTHEORIES  := src/*.v src/reordering/*.v
 
 .PHONY: all theories clean tounicode
 
@@ -9,7 +9,7 @@ build: Makefile.coq
 	$(MAKE) -f Makefile.coq all
 
 vio: Makefile.coq
-	$(MAKE) -f Makefile.coq vio 
+	$(MAKE) -f Makefile.coq vio
 
 checkproofs: Makefile.coq
 	$(MAKE) -f Makefile.coq checkproofs
@@ -33,7 +33,7 @@ clean:
 	rm -f _CoqProject Makefile.coq
 
 tounicode:
-	sed -i 's/<</⟪/g' $(COQTHEORIES) 
+	sed -i 's/<</⟪/g' $(COQTHEORIES)
 	sed -i 's/>>/⟫/g' $(COQTHEORIES)
 	sed -i 's/;;/⨾/g' $(COQTHEORIES)
 	sed -i 's/<|/⦗/g' $(COQTHEORIES)
