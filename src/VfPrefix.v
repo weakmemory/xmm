@@ -466,7 +466,7 @@ Proof using.
   apply PP. basic_solver.
 Qed.
 
-Lemma prf_vf' e
+Lemma prf_vf e
     (WF : Wf G')
     (INE : E e)
     (SUB : sub_execution G' G ∅₂ ∅₂)
@@ -528,17 +528,45 @@ Proof using.
   constructor; auto.
 Qed.
 
-Lemma prf_vf e
+Lemma vf_in_prefix e
     (WF : Wf G')
-    (INE : E e)
+    (INE : E' e)
     (SUB : sub_execution G' G ∅₂ ∅₂)
     (COH : irreflexive (hb' ⨾ eco'^?))
-    (SBP : eq e × (E' \₁ E) ⊆ ⦗eq e⦘ ⨾ hb')
+    (MAX : eq e × (E' \₁ E \₁ eq e) ⊆ ⦗eq e⦘ ⨾ sb')
     (INI : E' ∩₁ is_init ⊆₁ E) :
-  vf' ⨾ ⦗eq e⦘ ≡ vf ⨾ ⦗eq e⦘.
+  vf' ⨾ sb' ⨾ ⦗eq e⦘ ≡ vf ⨾ sb' ⨾ ⦗eq e⦘.
 Proof using.
   split.
-  { apply prf_vf'; auto. }
+  { rewrite <- seqA with (r1 := vf) (r2 := sb').
+    intros x e' (y & VF & e'' & SB & EQ).
+    unfolder in EQ. destruct EQ as (EQ1 & EQ2).
+    subst e'. subst e''.
+    exists e. split; [| basic_solver].
+    exists y. split; auto.
+    enough (RR : (vf ⨾ ⦗eq y⦘) x y).
+    { forward apply RR. clear. basic_solver. }
+    assert (NEQ : y <> e).
+    { intro FALSO. subst y. eapply sb_irr; eauto. }
+    assert (XINE' : E' y).
+    { apply (wf_vfE WF) in VF. unfolder in VF. desf. }
+    assert (XINE : E y).
+    { destruct classic with (E y) as [XINE|NINX]; auto.
+      exfalso. eapply sb_irr.
+      apply sb_trans with e; eauto.
+      enough (RR : (⦗eq e⦘ ⨾ sb') e y).
+      { forward apply RR. clear. basic_solver. }
+      apply MAX. basic_solver. }
+    apply prf_vf; auto; [| basic_solver].
+    rewrite <- sb_in_hb. unfolder.
+    intros x0 z (XEQ & ZIN & ZNIN).
+    subst x0. split; auto.
+    destruct classic with (z = e) as [ZEQ|ZNEQ].
+    { subst z. auto. }
+    apply sb_trans with e; auto.
+    enough (RR : (⦗eq e⦘ ⨾ sb') e z).
+    { forward apply RR. clear. basic_solver. }
+    apply MAX. basic_solver. }
   rewrite sub_vf_in; eauto.
   reflexivity.
 Qed.
