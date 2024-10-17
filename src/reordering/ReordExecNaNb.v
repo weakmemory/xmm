@@ -6,7 +6,7 @@ Require Import Srf Rhb.
 Require Import SimrelCommon.
 Require Import StepOps.
 Require Import AuxInj.
-Require Import SrfProps.
+Require Import PorfPrefix.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -256,7 +256,7 @@ Proof using INV INV'.
   assert (ASTID : forall (AS : ~ E_t a_t /\ E_t b_t), same_tid b_t b_t).
   { intros. eapply eba_tid, (rsr_as SIMREL). now apply extra_a_some. }
   assert (SRF' : srf G_s' ⨾ ⦗E_s⦘ ≡ srf G_s ⨾ ⦗E_s⦘).
-  { apply (srf_add_event X_s X_s'); simpl.
+  { apply (porf_pref_srf X_s X_s'); simpl.
     { eapply G_s_wf with (X_t := X_t); eauto. }
     { clear. auto with hahn. }
     { exact LABEQ. }
@@ -414,7 +414,7 @@ Proof using INV INV'.
       { rewrite <- id_inter, set_inter_absorb_l with (s' := E_s).
         all: ins. }
       arewrite (rpo G_s' ⨾ ⦗E_s⦘ ≡ rpo_s ⨾ ⦗E_s⦘).
-      { apply (add_event_rpo X_s X_s'); simpl.
+      { apply (porf_pref_rpo X_s X_s'); simpl.
         { eapply G_s_wf with (X_t := X_t); eauto. }
         { exact LABEQ. }
         unfold sb at 1. ins. rewrite NEWSB.

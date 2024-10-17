@@ -6,7 +6,7 @@ Require Import Srf Rhb.
 Require Import SimrelCommon.
 Require Import StepOps.
 Require Import AuxInj.
-Require Import SrfProps.
+Require Import PorfPrefix.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -278,7 +278,7 @@ Proof using INV INV'.
         eapply rsr_common; eauto. }
       clear. basic_solver 11. }
     arewrite (vf G_s'' ⨾ ⦗E_s⦘ ≡ vf_s ⨾ ⦗E_s⦘).
-    { apply (vf_add_event X_s X_s''); ins.
+    { apply (porf_pref_vf X_s X_s''); ins.
       { clear. basic_solver. }
       { unfolder. ins; desf. rupd. congruence. }
       { unfold sb at 1. ins. rewrite NEWSB.
@@ -666,7 +666,7 @@ Proof using.
   { unfold mapper'. now rewrite upds. }
   assert (SRF'': srf G_s' ⨾ ⦗acts_set (WCore.G X_s'')⦘ ≡
                 srf (WCore.G X_s'') ⨾ ⦗acts_set (WCore.G X_s'')⦘).
-  { apply (srf_add_event X_s'' X_s'); ins.
+  { apply (porf_pref_srf X_s'' X_s'); ins.
     { rewrite (WCore.add_event_acts ADD').
       basic_solver. }
     { rewrite (WCore.add_event_acts ADD'),

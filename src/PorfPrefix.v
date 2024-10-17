@@ -1,20 +1,14 @@
 From imm Require Import Events Execution imm_s_hb.
-From imm Require Import imm_s_ppo.
 From imm Require Import imm_s_hb.
-From imm Require Import imm_bob.
-From imm Require Import SubExecution.
 
 Require Import Program.Basics.
 Require Import AuxRel AuxDef Core.
 Require Import Srf Rhb.
 
-From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
-From hahn Require Import HahnTrace.
-From hahn Require Import HahnSorted.
 From hahnExt Require Import HahnExt.
 
-Section SrfDelta.
+Section PorfPrefix.
 
 Variable X X' : WCore.t.
 Variable e : actid.
@@ -86,13 +80,7 @@ Proof using.
   desf; splits; eauto.
 Qed.
 
-(*
-Other version:
-
-show that po-rf to E is the same
-*)
-
-Lemma add_event_rs
+Lemma porf_pref_rs
     (WF : Wf G)
     (EQL : eq_dom E lab' lab)
     (SB : sb' ⨾ ⦗E⦘ ≡ sb ⨾ ⦗E⦘)
@@ -140,7 +128,7 @@ Proof using.
   unfold rs. basic_solver 20.
 Qed.
 
-Lemma add_event_release
+Lemma porf_pref_release
     (WF : Wf G)
     (EQL : eq_dom E lab' lab)
     (SB : sb' ⨾ ⦗E⦘ ≡ sb ⨾ ⦗E⦘)
@@ -149,7 +137,7 @@ Lemma add_event_release
   release' ⨾ ⦗E⦘ ≡ release ⨾ ⦗E⦘.
 Proof using.
   unfold release at 1. rewrite !seqA.
-  rewrite (add_event_rs WF); ins.
+  rewrite (porf_pref_rs WF); ins.
   arewrite (rs ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ rs ⨾ ⦗E⦘).
   { rewrite (wf_rsE WF) at 1. rewrite seq_union_l.
     split; [| basic_solver 7].
@@ -186,7 +174,7 @@ Proof using.
   unfold sb. basic_solver 42.
 Qed.
 
-Lemma sw_add_event
+Lemma porf_pref_sw
     (WF : Wf G)
     (EQL : eq_dom E lab' lab)
     (SB : sb' ⨾ ⦗E⦘ ≡ sb ⨾ ⦗E⦘)
@@ -216,7 +204,7 @@ Proof using.
   seq_rewrite RF.
   arewrite (rf ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ rf).
   { rewrite (wf_rfE WF). basic_solver. }
-  seq_rewrite (add_event_release WF); ins.
+  seq_rewrite (porf_pref_release WF); ins.
   arewrite (release ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ release).
   { rewrite (wf_releaseE WF), seq_union_l, seq_union_r.
     basic_solver 11. }
@@ -227,7 +215,7 @@ Proof using.
   rewrite (wf_swE WF). basic_solver.
 Qed.
 
-Lemma hb_add_event
+Lemma porf_pref_hb
     (WF : Wf G)
     (EQL : eq_dom E lab' lab)
     (SB : sb' ⨾ ⦗E⦘ ≡ sb ⨾ ⦗E⦘)
@@ -236,18 +224,18 @@ Lemma hb_add_event
   hb' ⨾ ⦗E⦘ ≡ hb ⨾ ⦗E⦘.
 Proof using.
   assert (DOMA : doma ((sb' ∪ sw') ⨾ ⦗E⦘) E).
-  { rewrite seq_union_l, SB, (sw_add_event WF); ins.
+  { rewrite seq_union_l, SB, (porf_pref_sw WF); ins.
     rewrite (wf_swE WF). unfold sb. basic_solver 11. }
   unfold hb.
   rewrite clos_trans_doma_r_strong; ins.
   rewrite seq_union_l, seq_union_r.
-  rewrite SB, (sw_add_event WF); ins.
+  rewrite SB, (porf_pref_sw WF); ins.
   rewrite <- (wf_swE WF), <- wf_sbE.
   change ((sb ∪ sw)⁺) with hb.
   rewrite (wf_hbE WF). basic_solver.
 Qed.
 
-Lemma vf_add_event
+Lemma porf_pref_vf
     (WF : Wf G)
     (ACTS : E ⊆₁ E')
     (EQL : eq_dom E lab' lab)
@@ -260,7 +248,7 @@ Proof using.
   arewrite (hb'^? ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ hb^? ⨾ ⦗E⦘).
   { rewrite !crE, !seq_union_l, seq_union_r.
     apply union_more; [basic_solver |].
-    rewrite (hb_add_event WF); ins.
+    rewrite (porf_pref_hb WF); ins.
     rewrite (wf_hbE WF) at 1. basic_solver. }
   arewrite (rf'^? ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ rf^?).
   { rewrite !crE, !seq_union_l, seq_union_r.
@@ -275,7 +263,7 @@ Proof using.
   now rewrite set_inter_absorb_l; ins.
 Qed.
 
-Lemma srf_add_event
+Lemma porf_pref_srf
     (WF : Wf G)
     (ACTS : E ⊆₁ E')
     (EQL : eq_dom E lab' lab)
@@ -296,7 +284,7 @@ Proof using.
   rewrite !seqA.
   arewrite (sb' ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ sb).
   { rewrite SB, wf_sbE. basic_solver. }
-  seq_rewrite (vf_add_event WF); ins.
+  seq_rewrite (porf_pref_vf WF); ins.
   arewrite (vf ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ vf).
   { rewrite (wf_vfE WF). basic_solver. }
   arewrite ((⦗E⦘ ⨾ vf ⨾ sb) ∩ same_loc' ≡ (⦗E⦘ ⨾ vf ⨾ sb) ∩ same_loc).
@@ -319,7 +307,7 @@ Proof using.
   rewrite wf_srfE. basic_solver.
 Qed.
 
-Lemma add_event_rpo_imm
+Lemma porf_pref_rpoimm
     (WF : Wf G)
     (EQL : eq_dom E lab' lab)
     (SB : sb' ⨾ ⦗E⦘ ≡ sb ⨾ ⦗E⦘) :
@@ -366,7 +354,7 @@ Proof using.
   now seq_rewrite !SBR.
 Qed.
 
-Lemma add_event_rpo
+Lemma porf_pref_rpo
     (WF : Wf G)
     (EQL : eq_dom E lab' lab)
     (ESB : sb' ⨾ ⦗E⦘ ≡ sb ⨾ ⦗E⦘) :
@@ -374,7 +362,7 @@ Lemma add_event_rpo
 Proof using.
   unfold rpo.
   rewrite !ct_l_upward_closed.
-  { rewrite add_event_rpo_imm; ins. }
+  { rewrite porf_pref_rpoimm; ins. }
   all: apply rpo_imm_upward_closed.
   all: unfold upward_closed.
   { unfold sb. basic_solver. }
@@ -388,4 +376,4 @@ Proof using.
   basic_solver.
 Qed.
 
-End SrfDelta.
+End PorfPrefix.
