@@ -288,3 +288,15 @@ Proof using.
     subst. exact REL. }
   exists x, y. splits; auto.
 Qed.
+
+Lemma seq_eqv_minus_r {A : Type} r1 r2 (s : A -> Prop) :
+  (r1 \ r2) ⨾ ⦗s⦘ ≡ (r1 ⨾ ⦗s⦘) \ (r2 ⨾ ⦗s⦘).
+Proof using.
+  unfold minus_rel, seq, eqv_rel.
+  split; intros x y HREL.
+  { destruct HREL as (y' & (R1 & NR2) & EQ & YIN). subst y'.
+    split; eauto. intros (y' & (R2 & EQ & _)). congruence. }
+  destruct HREL as ((y' & R1 & EQ & YIN) & NEG). subst y'.
+  exists y. splits; auto.
+  intro FALSO. apply NEG. eauto.
+Qed.

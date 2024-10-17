@@ -64,22 +64,6 @@ Notation "'Loc_' l" := (fun x => loc x = Some l) (at level 1).
 Notation "'rpo'" := (rpo G).
 Notation "'rpo_imm'" := (rpo_imm G).
 
-Lemma seq_eqv_minus_r {A : Type} r1 r2 (s : A -> Prop) :
-  (r1 \ r2) ⨾ ⦗s⦘ ≡ (r1 ⨾ ⦗s⦘) \ (r2 ⨾ ⦗s⦘).
-Proof using.
-  unfolder. split; intros x y HREL.
-  { desf; splits; eauto. apply or_not_and; eauto. }
-  desf; splits; eauto.
-Qed.
-
-Lemma seq_eqv_minus_l {A : Type} r1 r2 (s : A -> Prop) :
-  ⦗s⦘ ⨾ (r1 \ r2) ≡ (⦗s⦘ ⨾ r1) \ (⦗s⦘ ⨾ r2).
-Proof using.
-  unfolder. split; intros x y HREL.
-  { desf; splits; eauto. apply or_not_and; eauto. }
-  desf; splits; eauto.
-Qed.
-
 Lemma porf_pref_rs
     (WF : Wf G)
     (EQL : eq_dom E lab' lab)
