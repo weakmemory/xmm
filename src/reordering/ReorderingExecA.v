@@ -1,31 +1,18 @@
 Require Import ReordSimrel.
-Require Import Lia Setoid Program.Basics.
 Require Import AuxDef.
-(* Require Import ThreadTrace. *)
 Require Import Core.
-(* Require Import TraceSwap. *)
-Require Import SubToFullExec.
-Require Import AuxRel.
-Require Import AuxRel2.
-Require Import StepOps.
-Require Import Srf Rhb SrfProps.
-Require Import AuxInj.
-(* Require Import Instructions. *)
-Require Import Setoid Morphisms.
+Require Import AuxRel AuxRel2.
+Require Import Srf Rhb.
 Require Import SimrelCommon.
-Require Import AddEvent.
+Require Import StepOps.
+Require Import AuxInj.
+Require Import SubToFullExec.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
-From hahn Require Import HahnTrace.
-From hahn Require Import HahnSorted.
 From hahnExt Require Import HahnExt.
-From imm Require Import Events Execution Execution_eco imm_s_hb.
-From imm Require Import imm_s_ppo.
-From imm Require Import imm_s_hb.
-From imm Require Import imm_bob.
-(* From imm Require Import SubExecution. *)
-From imm Require Import CombRelations.
+From imm Require Import Events Execution.
+Require Import Setoid Morphisms Program.Basics.
 
 Section ExecA.
 
