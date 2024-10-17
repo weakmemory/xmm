@@ -8,7 +8,6 @@ Require Import StepOps.
 Require Import AuxInj.
 Require Import SubToFullExec.
 
-From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 From imm Require Import Events Execution.
@@ -628,7 +627,7 @@ Proof using INV INV'.
           unfolder. splits; eauto.
           { exists a_t; splits; ins.
             unfold mapper'. now rupd. }
-          unfold rpo. basic_solver. }
+          unfold rpo. apply t_step, RPOIMM. }
         apply rpo_imm_in_sb in RPOIMM. split.
         { unfold sb in RPOIMM; unfolder in RPOIMM; desf. }
         intro FALSO; subst x.

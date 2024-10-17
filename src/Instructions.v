@@ -1,6 +1,6 @@
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
-From imm Require Import Events Execution Execution_eco.
+From imm Require Import Events Execution.
 Require Import Lia Setoid Program.Basics.
 
 Open Scope nat_scope.

@@ -9,7 +9,6 @@ Require Import StepOps.
 Require Import AuxInj.
 Require Import SubToFullExec.
 
-From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 From imm Require Import Events Execution.

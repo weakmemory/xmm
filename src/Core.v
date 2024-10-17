@@ -1,14 +1,10 @@
 
 Require Import Lia Setoid Program.Basics.
-From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
-From hahn Require Import HahnSorted.
 From hahnExt Require Import HahnExt.
 From imm Require Import Events Execution Execution_eco.
-From imm Require Import imm_s_hb.
-From imm Require Import imm_s_hb.
+From imm Require Import imm_s_hb imm_s.
 From imm Require Import SubExecution.
-From imm Require Import imm_s.
 Require Import Setoid Morphisms.
 
 From RecordUpdate Require Import RecordSet.

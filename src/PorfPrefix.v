@@ -1,5 +1,4 @@
 From imm Require Import Events Execution imm_s_hb.
-From imm Require Import imm_s_hb.
 
 Require Import Program.Basics.
 Require Import AuxRel AuxDef Core.

@@ -4,7 +4,6 @@ Require Import Core.
 Require Import AuxRel AuxRel2.
 Require Import Srf Rhb.
 
-From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 From imm Require Import Events Execution.
