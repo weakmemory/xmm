@@ -1,10 +1,7 @@
 From imm Require Import Events Execution Execution_eco imm_s_hb.
-From imm Require Import imm_s_hb.
 From imm Require Import SubExecution.
 
 From hahn Require Import Hahn.
-From hahn Require Import HahnTrace.
-From hahn Require Import HahnSorted.
 From hahnExt Require Import HahnExt.
 
 Require Import Srf.
