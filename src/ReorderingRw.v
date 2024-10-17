@@ -5,7 +5,7 @@ Require Import Core.
 (* Require Import TraceSwap. *)
 Require Import SubToFullExec.
 Require Import AuxRel.
-Require Import AuxDef2.
+Require Import AuxRel2.
 Require Import StepOps.
 Require Import Srf Rhb SrfProps.
 Require Import AuxInj.
