@@ -8,9 +8,9 @@ Require Import Srf.
 
 Set Implicit Arguments.
 
-Module VfPrefixInternal.
+Module HbPrefixInternal.
 
-Section VfPrefixInternal.
+Section HbPrefixInternal.
 
 Variable G G' : execution.
 Variable e : actid.
@@ -60,17 +60,17 @@ Notation "'rs'" := (rs G).
 Notation "'rmw'" := (rmw G).
 Notation "'Loc_' l" := (fun x => loc x = Some l) (at level 1).
 
-Record prf_pred : Prop := {
-  prfp_wf : Wf G';
-  prfp_ine : E e;
-  prfp_sub : sub_execution G' G ∅₂ ∅₂;
-  prfp_coh : irreflexive (hb' ⨾ eco'^?);
-  prfp_sbp : eq e × (E' \₁ E) ⊆ ⦗eq e⦘ ⨾ hb';
-  prfp_ini : E' ∩₁ is_init ⊆₁ E;
+Record hb_pref_pred : Prop := {
+  hb_pref_wf : Wf G';
+  hb_pref_ine : E e;
+  hb_pref_sub : sub_execution G' G ∅₂ ∅₂;
+  hb_pref_coh : irreflexive (hb' ⨾ eco'^?);
+  hb_pref_sbp : eq e × (E' \₁ E) ⊆ ⦗eq e⦘ ⨾ hb';
+  hb_pref_ini : E' ∩₁ is_init ⊆₁ E;
 }.
 
-Lemma prfp_sc_per_loc
-    (PP : prf_pred) :
+Lemma hb_pref_sc_per_loc
+    (PP : hb_pref_pred) :
   sc_per_loc G'.
 Proof using.
   unfold sc_per_loc. rewrite sb_in_hb.
@@ -79,20 +79,20 @@ Proof using.
   auto with hahn.
 Qed.
 
-Lemma prfp_sbp'
-    (PP : prf_pred) :
+Lemma hb_pref_sbp'
+    (PP : hb_pref_pred) :
   E' \₁ E ⊆₁ hb' e.
 Proof using.
   transitivity ((⦗eq e⦘ ⨾ hb') e); [| basic_solver].
-  intros x XIN. apply (prfp_sbp PP). split; auto.
+  intros x XIN. apply (hb_pref_sbp PP). split; auto.
 Qed.
 
-Lemma prf_no_rsa_cyc
-    (PP : prf_pred) :
+Lemma hb_pref_no_rsa_cyc
+    (PP : hb_pref_pred) :
   irreflexive (rs' ⨾ rf' ⨾ hb').
 Proof using.
   rewrite rs_in_co.
-  all: auto using prfp_sc_per_loc, prfp_wf.
+  all: auto using hb_pref_sc_per_loc, hb_pref_wf.
   rotate 1.
   arewrite (⦗W'⦘ ⨾ co'^? ⨾ rf' ⊆ eco').
   { transitivity (co'^? ⨾ rf'); [basic_solver |].
@@ -104,8 +104,8 @@ Proof using.
   auto with hahn.
 Qed.
 
-Lemma prf_sbrfirr
-    (PP : prf_pred) :
+Lemma hb_pref_sbrfirr
+    (PP : hb_pref_pred) :
   irreflexive (rf' ⨾ hb').
 Proof using.
   rotate 1.
@@ -115,8 +115,8 @@ Proof using.
   auto with hahn.
 Qed.
 
-Lemma prf_rs
-    (PP : prf_pred) :
+Lemma hb_pref_rs
+    (PP : hb_pref_pred) :
   rs' ⨾ rf' ⨾ ⦗eq e⦘ ⊆ rs ⨾ rf ⨾ ⦗eq e⦘.
 Proof using.
   rewrite <- 2!seqA with (r3 := ⦗eq e⦘).
@@ -127,28 +127,28 @@ Proof using.
   unfolder in *.
   destruct YREL as (y1 & RS & RF).
   assert (Y1IN' : E' y1).
-  { apply (wf_rfE (prfp_wf PP)) in RF.
+  { apply (wf_rfE (hb_pref_wf PP)) in RF.
     unfolder in RF; desf. }
   assert (Y1IN : E y1).
   { destruct classic with (E y1) as [IN|NIN]; auto.
-    exfalso. apply (prf_sbrfirr PP) with (x := y1).
-    exists e; split; auto. apply (prfp_sbp' PP).
+    exfalso. apply (hb_pref_sbrfirr PP) with (x := y1).
+    exists e; split; auto. apply (hb_pref_sbp' PP).
     split; auto. }
   assert (RF' : rf y1 e).
-  { apply (sub_rf (prfp_sub PP)). basic_solver. }
+  { apply (sub_rf (hb_pref_sub PP)). basic_solver. }
   exists y1; split; auto.
   clear - RS RF PP Y1IN.
   assert (YIN' : E' y).
-  { apply (wf_rsE (prfp_wf PP)) in RS.
+  { apply (wf_rsE (hb_pref_wf PP)) in RS.
     unfolder in RS. desf.
-    apply (wf_rfE (prfp_wf PP)) in RF.
+    apply (wf_rfE (hb_pref_wf PP)) in RF.
     unfolder in RF; desf. }
   assert (YIN : E y).
   { destruct classic with (E y) as [IN|NIN]; auto.
-    exfalso. apply (prf_no_rsa_cyc PP) with (x := y).
+    exfalso. apply (hb_pref_no_rsa_cyc PP) with (x := y).
     exists y1; split; auto. exists e; split; auto.
-    apply (prfp_sbp' PP). split; auto. }
-  unfold rs in *. rewrite (sub_lab (prfp_sub PP)).
+    apply (hb_pref_sbp' PP). split; auto. }
+  unfold rs in *. rewrite (sub_lab (hb_pref_sub PP)).
   hahn_rewrite <- seqA in RS.
   unfold seq in RS at 2.
   destruct RS as (y2 & (y2' & ISW & SB) & RS).
@@ -159,7 +159,7 @@ Proof using.
     apply wf_sbE in SB. unfolder in SB. desf. }
   assert (Y2IN : E y2).
   { destruct classic with (E y2) as [IN|NIN]; auto.
-    exfalso. apply (prf_no_rsa_cyc PP) with (x := y2).
+    exfalso. apply (hb_pref_no_rsa_cyc PP) with (x := y2).
     exists y1; split.
     { enough (RR : singl_rel y2 y1 ⊆ rs') by now apply RR.
       unfold rs.
@@ -167,13 +167,13 @@ Proof using.
       seq_rewrite <- !id_inter. rewrite !set_interK.
       forward apply RS. clear. basic_solver. }
     exists e. split; auto.
-    apply (prfp_sbp' PP). split; auto. }
+    apply (hb_pref_sbp' PP). split; auto. }
   hahn_rewrite <- seqA. exists y2. split.
   { exists y. split; [basic_solver |].
     hahn_rewrite crE in SB. destruct SB as [EQ | (SB & LOC)].
     { unfolder in EQ. desf. apply r_refl. }
     apply r_step. split; auto.
-    apply (sub_sb (prfp_sub PP)). basic_solver. }
+    apply (sub_sb (hb_pref_sub PP)). basic_solver. }
   clear SB ISW YIN.
   destruct RS as (y2' & (EQ & ISW) & RS). subst y2'.
   exists y2. split; [basic_solver |].
@@ -184,14 +184,14 @@ Proof using.
   rename Y2IN into Y3IN. clear Y2IN'.
   unfolder in RS. destruct RS as (y' & RFY & RMWY).
   assert (Y2W : W' y2).
-  { apply (wf_rmwD (prfp_wf PP)) in RMWY.
+  { apply (wf_rmwD (hb_pref_wf PP)) in RMWY.
     unfolder in RMWY. desf. }
   assert (Y2IN' : E' y2).
-  { apply (wf_rmwE (prfp_wf PP)) in RMWY.
+  { apply (wf_rmwE (hb_pref_wf PP)) in RMWY.
     unfolder in RMWY. desf. }
   assert (Y2IN : E y2).
   { destruct classic with (E y2) as [IN|NIN]; auto.
-    exfalso. apply (prf_no_rsa_cyc PP) with (x := y2).
+    exfalso. apply (hb_pref_no_rsa_cyc PP) with (x := y2).
     exists y1; split.
     { enough (RR : singl_rel y2 y1 ⊆ rs') by now apply RR.
       unfold rs.
@@ -201,13 +201,13 @@ Proof using.
       forward apply RST. clear - Y2W.
       unfolder; ins; desf. }
     exists e. split; auto.
-    apply (prfp_sbp' PP). split; auto. }
+    apply (hb_pref_sbp' PP). split; auto. }
   assert (Y'IN' : E' y').
-  { apply (wf_rmwE (prfp_wf PP)) in RMWY.
+  { apply (wf_rmwE (hb_pref_wf PP)) in RMWY.
     unfolder in RMWY. desf. }
   assert (Y'IN : E y').
   { destruct classic with (E y') as [IN|NIN]; auto.
-    exfalso. apply (prf_no_rsa_cyc PP) with (x := y2).
+    exfalso. apply (hb_pref_no_rsa_cyc PP) with (x := y2).
     exists y1; split.
     { enough (RR : singl_rel y2 y1 ⊆ rs') by now apply RR.
       unfold rs.
@@ -218,17 +218,17 @@ Proof using.
       unfolder; ins; desf. }
     exists e. split; auto.
     apply hb_trans with y'.
-    { apply (prfp_sbp' PP). split; auto. }
-    now apply sb_in_hb, (wf_rmwi (prfp_wf PP)). }
+    { apply (hb_pref_sbp' PP). split; auto. }
+    now apply sb_in_hb, (wf_rmwi (hb_pref_wf PP)). }
   apply Relation_Operators.rt1n_trans with y2.
   { exists y'. split.
-    { apply (sub_rf (prfp_sub PP)). basic_solver. }
-    apply (sub_rmw (prfp_sub PP)). basic_solver. }
+    { apply (sub_rf (hb_pref_sub PP)). basic_solver. }
+    apply (sub_rmw (hb_pref_sub PP)). basic_solver. }
   apply IHRS; auto.
 Qed.
 
-Lemma prfp_wfG
-    (PP : prf_pred) :
+Lemma hb_pref_wfG
+    (PP : hb_pref_pred) :
   Wf G.
 Proof using.
   apply sub_WF with (G := G') (sc := ∅₂) (sc' := ∅₂).
@@ -236,12 +236,12 @@ Proof using.
   rewrite set_interC. apply PP.
 Qed.
 
-Lemma prf_release
-    (PP : prf_pred) :
+Lemma hb_pref_release
+    (PP : hb_pref_pred) :
   release' ⨾ rf' ⨾ ⦗eq e⦘ ⊆ release ⨾ rf ⨾ ⦗eq e⦘.
 Proof using.
-  unfold release. rewrite (sub_lab (prfp_sub PP)).
-  rewrite !seqA, (prf_rs PP).
+  unfold release. rewrite (sub_lab (hb_pref_sub PP)).
+  rewrite !seqA, (hb_pref_rs PP).
   hahn_frame_l.
   rewrite <- 3!seqA with (r3 := ⦗eq e⦘).
   intros y e' (e'' & YREL & EQ).
@@ -254,27 +254,27 @@ Proof using.
   red in ISF. destruct ISF as (EQ & ISF). subst y1'.
   apply r_step. exists y. split; [basic_solver |].
   assert (Y1IN : E y1).
-  { hahn_rewrite (wf_rsE (prfp_wfG PP)) in RSRF.
-    hahn_rewrite (wf_rfE (prfp_wfG PP)) in RSRF.
+  { hahn_rewrite (wf_rsE (hb_pref_wfG PP)) in RSRF.
+    hahn_rewrite (wf_rfE (hb_pref_wfG PP)) in RSRF.
     unfolder in RSRF. desf. }
   destruct classic with (E y) as [INY | NIN].
-  { apply (sub_sb (prfp_sub PP)). unfolder.
+  { apply (sub_sb (hb_pref_sub PP)). unfolder.
     splits; auto. }
-  exfalso. apply (prf_no_rsa_cyc PP) with (x := y1).
+  exfalso. apply (hb_pref_no_rsa_cyc PP) with (x := y1).
   hahn_rewrite <- seqA.
   exists e. split.
-  { hahn_rewrite <- (sub_rs_in (prfp_sub PP)).
-    now hahn_rewrite <- (sub_rf_in (prfp_sub PP)). }
+  { hahn_rewrite <- (sub_rs_in (hb_pref_sub PP)).
+    now hahn_rewrite <- (sub_rf_in (hb_pref_sub PP)). }
   apply hb_trans with y; [| now apply sb_in_hb].
-  apply (prfp_sbp' PP). split; auto.
+  apply (hb_pref_sbp' PP). split; auto.
   apply wf_sbE in SB. unfolder in SB. desf.
 Qed.
 
-End VfPrefixInternal.
+End HbPrefixInternal.
 
-End VfPrefixInternal.
+End HbPrefixInternal.
 
-Section VfPrefix.
+Section HbPrefix.
 
 Variable G G' : execution.
 
@@ -324,18 +324,18 @@ Notation "'rmw'" := (rmw G).
 Notation "'Loc_' l" := (fun x => loc x = Some l) (at level 1).
 
 Lemma prf_sw e
-    (PP : VfPrefixInternal.prf_pred G G' e) :
+    (PP : HbPrefixInternal.hb_pref_pred G G' e) :
   sw' ⨾ ⦗eq e⦘ ⊆ sw ⨾ ⦗eq e⦘.
 Proof using.
   unfold sw.
   rewrite 2!crE, !seqA.
   rewrite !seq_union_l, !seq_union_r.
   rewrite !seq_id_l, !seqA.
-  rewrite (sub_lab (VfPrefixInternal.prfp_sub PP)).
+  rewrite (sub_lab (HbPrefixInternal.hb_pref_sub PP)).
   apply union_mori.
   { rewrite !seq_eqvC with (domb := eq e).
     hahn_frame_r.
-    now apply VfPrefixInternal.prf_release. }
+    now apply HbPrefixInternal.hb_pref_release. }
   rewrite !seq_eqvC with (domb := eq e).
   hahn_frame_r.
   rewrite !seq_eqvC with (domb := eq e).
@@ -359,7 +359,7 @@ Proof using.
     { now apply sb_in_hb. }
     unfolder in NSB. desf. }
   assert (SB' : sb e' e).
-  { apply (sub_sb (VfPrefixInternal.prfp_sub PP)). unfolder.
+  { apply (sub_sb (HbPrefixInternal.hb_pref_sub PP)). unfolder.
     splits; auto || apply PP. }
   exists e'; split; [| clear - SB'; basic_solver].
   enough (RELS : (release ⨾ rf ⨾ ⦗eq e'⦘) x e').
@@ -367,18 +367,18 @@ Proof using.
     forward apply RELS. clear. basic_solver. }
   enough (RELS : release' ⨾ rf' ⨾ ⦗eq e'⦘ ⊆ release ⨾ rf ⨾ ⦗eq e'⦘).
   { apply RELS. forward apply RELRF. clear. basic_solver 11. }
-  apply VfPrefixInternal.prf_release.
+  apply HbPrefixInternal.hb_pref_release.
   constructor; auto; try now apply PP.
   unfolder. intros x' y (XEQ & YINE & YNIN). subst x'.
   split; auto. apply hb_trans with e.
-  { now apply (sub_hb_in (VfPrefixInternal.prfp_sub PP)), sb_in_hb. }
+  { now apply (sub_hb_in (HbPrefixInternal.hb_pref_sub PP)), sb_in_hb. }
   enough (GOAL : (⦗eq e⦘ ⨾ hb') e y).
   { unfolder in GOAL. desf. }
   apply PP. basic_solver.
 Qed.
 
-Lemma prf_hb e
-    (PP : VfPrefixInternal.prf_pred G G' e) :
+Lemma hb_pref_hb e
+    (PP : HbPrefixInternal.hb_pref_pred G G' e) :
   hb' ⨾ ⦗eq e⦘ ⊆ hb ⨾ ⦗eq e⦘.
 Proof using.
   assert (HBIRR : irreflexive hb').
@@ -402,8 +402,8 @@ Proof using.
         apply hb_trans with e; eauto.
         enough (SB' : (⦗eq e⦘ ⨾ hb') e x).
         { forward apply SB'. clear. basic_solver. }
-        apply (VfPrefixInternal.prfp_sbp PP). basic_solver. }
-      apply (sub_sb (VfPrefixInternal.prfp_sub PP)).
+        apply (HbPrefixInternal.hb_pref_sbp PP). basic_solver. }
+      apply (sub_sb (HbPrefixInternal.hb_pref_sub PP)).
       unfolder; splits; auto || apply PP. }
     enough (SW' : (sw ⨾ ⦗eq e⦘) x e).
     { forward apply SW'. clear. basic_solver. }
@@ -414,7 +414,7 @@ Proof using.
   { left.
     assert (E2IN : E e2).
     { apply clos_trans_t1n_iff in IHHB.
-      apply (wf_hbE (VfPrefixInternal.prfp_wfG PP)) in IHHB.
+      apply (wf_hbE (HbPrefixInternal.hb_pref_wfG PP)) in IHHB.
       unfolder in IHHB. desf. }
     assert (XIN' : E' e1).
     { apply wf_sbE in SB. unfolder in SB. desf. }
@@ -428,16 +428,16 @@ Proof using.
         apply HB. }
       enough (SB' : (⦗eq e⦘ ⨾ hb') e e1).
       { forward apply SB'. clear. basic_solver. }
-      apply (VfPrefixInternal.prfp_sbp PP). basic_solver. }
-    apply (sub_sb (VfPrefixInternal.prfp_sub PP)).
+      apply (HbPrefixInternal.hb_pref_sbp PP). basic_solver. }
+    apply (sub_sb (HbPrefixInternal.hb_pref_sub PP)).
     unfolder; splits; auto || apply PP. }
   right.
   assert (E2IN : E e2).
   { apply clos_trans_t1n_iff in IHHB.
-    apply (wf_hbE (VfPrefixInternal.prfp_wfG PP)) in IHHB.
+    apply (wf_hbE (HbPrefixInternal.hb_pref_wfG PP)) in IHHB.
     unfolder in IHHB. desf. }
   assert (XIN' : E' e1).
-  { apply (wf_swE (VfPrefixInternal.prfp_wf PP)) in SW. unfolder in SW. desf. }
+  { apply (wf_swE (HbPrefixInternal.hb_pref_wf PP)) in SW. unfolder in SW. desf. }
   assert (INE : E e1).
   { apply sw_in_hb in SW.
     destruct classic with (E e1) as [XIN|XNN]; auto.
@@ -448,7 +448,7 @@ Proof using.
       apply HB. }
     enough (SB' : (⦗eq e⦘ ⨾ hb') e e1).
     { forward apply SB'. clear. basic_solver. }
-    apply (VfPrefixInternal.prfp_sbp PP). basic_solver. }
+    apply (HbPrefixInternal.hb_pref_sbp PP). basic_solver. }
   enough (SW' : (sw ⨾ ⦗eq e2⦘) e1 e2).
   { forward apply SW'. clear. basic_solver. }
   apply prf_sw; [| basic_solver].
@@ -463,7 +463,7 @@ Proof using.
   apply PP. basic_solver.
 Qed.
 
-Lemma prf_vf e
+Lemma hb_pref_vf e
     (WF : Wf G')
     (INE : E e)
     (SUB : sub_execution G' G ∅₂ ∅₂)
@@ -499,7 +499,7 @@ Proof using.
       now apply r_step, rf_in_eco. }
     splits; auto.
     apply (sub_rf SUB). basic_solver. }
-  rewrite prf_hb.
+  rewrite hb_pref_hb.
   { rewrite crE with (r := rf'),
             crE with (r := rf).
     rewrite !seq_union_l, seq_id_l.
@@ -525,7 +525,7 @@ Proof using.
   constructor; auto.
 Qed.
 
-Lemma vf_in_prefix e
+Lemma hb_pref_vfsb e
     (WF : Wf G')
     (INE : E' e)
     (SUB : sub_execution G' G ∅₂ ∅₂)
@@ -554,7 +554,7 @@ Proof using.
       enough (RR : (⦗eq e⦘ ⨾ sb') e y).
       { forward apply RR. clear. basic_solver. }
       apply MAX. basic_solver. }
-    apply prf_vf; auto; [| basic_solver].
+    apply hb_pref_vf; auto; [| basic_solver].
     rewrite <- sb_in_hb. unfolder.
     intros x0 z (XEQ & ZIN & ZNIN).
     subst x0. split; auto.
@@ -568,4 +568,4 @@ Proof using.
   reflexivity.
 Qed.
 
-End VfPrefix.
+End HbPrefix.
