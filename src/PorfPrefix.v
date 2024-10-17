@@ -1,7 +1,7 @@
 From imm Require Import Events Execution imm_s_hb.
 
 Require Import Program.Basics.
-Require Import AuxRel AuxDef Core.
+Require Import AuxRel AuxDef.
 Require Import Srf Rhb.
 
 From hahn Require Import Hahn.
@@ -9,11 +9,8 @@ From hahnExt Require Import HahnExt.
 
 Section PorfPrefix.
 
-Variable X X' : WCore.t.
-Variable e : actid.
-Variable l : label.
+Variable G G' : execution.
 
-Notation "'G''" := (WCore.G X').
 Notation "'lab''" := (lab G').
 Notation "'E''" := (acts_set G').
 Notation "'loc''" := (loc lab').
@@ -38,7 +35,6 @@ Notation "'Loc_'' l" := (fun x => loc' x = Some l) (at level 1).
 Notation "'rpo''" := (rpo G').
 Notation "'rpo_imm''" := (rpo_imm G').
 
-Notation "'G'" := (WCore.G X).
 Notation "'lab'" := (lab G).
 Notation "'E'" := (acts_set G).
 Notation "'loc'" := (loc lab).
