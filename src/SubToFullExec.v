@@ -1,7 +1,7 @@
 Require Import Lia Setoid Program.Basics.
 Require Import AuxDef HahnTotalListEx AuxRel. (* needs wf_rmwff *)
 Require Import ExecEquiv.
-Require Import Core.
+Require Import Core AddEventWf.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -589,7 +589,7 @@ Lemma delta_G_wf
 Proof using.
   destruct delta_add_event as (r & R1 & w & W1 & W2 & ADD).
   all: eauto.
-  eapply WCore.add_event_wf
+  eapply add_event_wf
     with (X' := delta_X) (X := X).
   all: eauto.
   eapply prefix_wf; eauto.

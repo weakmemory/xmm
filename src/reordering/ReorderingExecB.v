@@ -7,6 +7,7 @@ Require Import SimrelCommon.
 Require Import StepOps.
 Require Import AuxInj.
 Require Import PorfPrefix.
+Require Import AddEventWf.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -438,7 +439,7 @@ Proof using INV INV'.
     basic_solver 11. }
   assert (WF_S' : Wf G_s'').
   { red in STEP; desf.
-    eapply WCore.add_event_wf with (X' := X_s''); eauto. }
+    eapply add_event_wf with (X' := X_s''); eauto. }
   (* The proof *)
   exists l_a', X_s''.
   splits; ins.
@@ -605,10 +606,10 @@ Proof using.
   set (extra_W2 := extra_a X_t' a_t b_t b_t ∩₁ W_s ∩₁ Loc_s_ (WCore.lab_loc l));
   (* Asserts *)
   assert (WF' : Wf G_t').
-  { eapply WCore.add_event_wf; eauto.
+  { eapply add_event_wf; eauto.
     apply CORR. }
   assert (WF_S'' : Wf (WCore.G X_s'')).
-  { apply (WCore.add_event_wf ADD').
+  { apply (add_event_wf ADD').
     eapply G_s_wf with (X_t := X_t); eauto. }
   assert (ENINIT : ~is_init b_t) by apply ADD.
   assert (EQACTS : E_t' ≡₁ E_t ∪₁ eq b_t) by apply ADD.
