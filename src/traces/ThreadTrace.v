@@ -1,15 +1,11 @@
 Require Import Lia Setoid Program.Basics.
 From hahn Require Import Hahn.
 From hahn Require Import HahnTrace.
-From hahn Require Import HahnSorted.
 From hahnExt Require Import HahnExt.
-From imm Require Import Events Execution Execution_eco imm_s_hb.
-From imm Require Import imm_s_ppo.
-From imm Require Import imm_s_hb.
-From imm Require Import imm_bob.
+From imm Require Import Events Execution.
 From imm Require Import SubExecution.
 
-Require Import AuxDef.
+Require Import AuxRel.
 
 Definition seq_set (n : nat) : nat -> Prop := fun x => x < n.
 Definition thread_seq_set t n : actid -> Prop :=

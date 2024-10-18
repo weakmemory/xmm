@@ -1,22 +1,10 @@
-Require Import Lia Setoid Program.Basics.
-Require Import AuxDef AuxRel.
-Require Import ThreadTrace.
-
-From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
-From hahn Require Import HahnTrace.
-From hahn Require Import HahnSorted.
 From hahnExt Require Import HahnExt.
-From imm Require Import Events Execution Execution_eco imm_s_hb.
-From imm Require Import imm_s_ppo.
-From imm Require Import imm_s_hb.
-From imm Require Import imm_bob.
-From imm Require Import imm_s.
-From imm Require Import SubExecution.
-From imm Require Import FinExecution.
-From imm Require Import FinThreads.
+From imm Require Import Events Execution.
+Require Import Lia Setoid Program.Basics.
 
 Open Scope nat_scope.
+Open Scope program_scope.
 
 Module I2Exec.
 
