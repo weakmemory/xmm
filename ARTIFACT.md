@@ -25,7 +25,7 @@ The overall structure of Coq development in `src` folder is as follows:
 
 ### Soundness of program transformations
 
-* The proofs of all consistency predicate properties: monotonicity (Lm B.7), maximal read extensibility (Lm B.8), maximal write extensibility (Lm B.9), same-read extensibility (Lm B.11) and overwrite extensibility (Lm B.10) -- can be found in `src/xmm/Consistency.v`
+* The proofs of all consistency predicate properties: monotonicity (Lm B.7), maximal read extensibility (Lm B.8), maximal write extensibility (Lm B.9) -- can be found in `src/xmm/Consistency.v`
 * The proof for consistency of the reordering transformation with XMM is located inside the `reordering` directory
     - The simulation relation (Def E.32) is located in `src/reordering/ReordSimrel.v` along with a "Step Invariant" predicate, which is expected to be preserved by the target graph after each step.
     - The proof of simulation relation for init graphs (Lm E.25) is located in `src/reordering/ReordSimrelInit.v` along with the proof that init graphs satisfy the "Step Invariant".
@@ -49,3 +49,16 @@ The overall structure of Coq development in `src` folder is as follows:
     - `src/lib/HbPrefix.v` provides a handy (for avoiding recursive definitions) lemma for computing the view-front relation (`vf`) in smaller graphs by removing some "happens-after events".
     - `src/lib/Instructions.v` provides a weak universal abstraction of program instructions.
     - `src/lib/PorfPrefix.v` provides simpler but more constraining lemmas for computing the `view-front relation in smaller graphs by removing the po-rf suffix.
+
+## List of paper claims planned, but not yet supported by the artifact
+
+The following statements are planned to be supported (in order of priority)
+1. The following statements from the reordering transformation
+    - Reordering reexecution step lemma (Lm E.2.30 )
+    - Reordering simulation relation implying consistency (Lm E.2.31)
+    - The lemma about simulating any sequence of steps from target graph in source graph (Lm E.2.26)
+    - The reordering theorem (Th E.2.5)
+2. Full support for the sequentilisation transformation
+3. Other consistency properties
+    - same-read extensibility (Lm B.11)
+    - overwrite extensibility (Lm B.10)
