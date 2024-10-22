@@ -13,6 +13,8 @@ Open Scope program_scope.
 
 Set Implicit Arguments.
 
+Module XmmCons.
+
 Section ConsistencyCommon.
 
 Variable G : execution.
@@ -71,3 +73,5 @@ Proof using.
 Qed.
 
 End ConsistencyCommon.
+
+End XmmCons.

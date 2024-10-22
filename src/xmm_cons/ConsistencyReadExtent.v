@@ -14,6 +14,8 @@ Open Scope program_scope.
 
 Set Implicit Arguments.
 
+Module XmmCons.
+
 Section ConsistencyReadExtent.
 
 Variable G_s G_t : execution.
@@ -1061,3 +1063,5 @@ Proof using.
 Admitted.
 
 End ConsistencyReadExtent.
+
+End XmmCons.
