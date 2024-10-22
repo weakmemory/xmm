@@ -1,5 +1,5 @@
 COQMODULE    := xmm
-COQTHEORIES  := src/reordering/*.v src/xmm/*.v src/lib/*.v
+COQTHEORIES  := src/reordering/*.v src/xmm/*.v src/lib/*.v src/traces/*.v
 
 .PHONY: all theories clean tounicode
 

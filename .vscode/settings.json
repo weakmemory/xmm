@@ -14,5 +14,8 @@
         "**/*_cp_aux.v": true
     },
     "nixEnvSelector.suggestion": false,
-    "nixEnvSelector.nixFile": "${workspaceFolder}/default.nix"
+    "nixEnvSelector.nixFile": "${workspaceFolder}/default.nix",
+    "vscoq.args": [
+        "-R", "src", "xmm"
+    ]
 }

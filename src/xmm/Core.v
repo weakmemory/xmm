@@ -3,13 +3,13 @@ Require Import Lia Setoid Program.Basics.
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 From imm Require Import Events Execution Execution_eco.
-From imm Require Import imm_s_hb imm_s.
 From imm Require Import SubExecution.
 Require Import Setoid Morphisms.
 
 From RecordUpdate Require Import RecordSet.
 (* Import RecordSetNotations. *)
 
+Require Import xmm_s xmm_s_hb.
 Require Import AuxDef Rhb.
 
 Open Scope program_scope.

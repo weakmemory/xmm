@@ -95,7 +95,7 @@ Proof using.
 Qed.
 
 Lemma prefix_full_sc
-    (WF : imm_s.wf_sc G' sc')
+    (WF : xmm_s.wf_sc G' sc')
     (PFX : prefix)
     (FULL : E ≡₁ E') :
   sc = sc'.
@@ -766,7 +766,7 @@ Notation "'delta_E'" := (SubToFullExecInternal.delta_E X).
 
 Lemma sub_to_full_exec_end_wf l
     (PFX : prefix X X')
-    (SCWF : imm_s.wf_sc G' sc')
+    (SCWF : xmm_s.wf_sc G' sc')
     (WF : Wf G')
     (XWF : WCore.wf X X' cmt)
     (ENUM : SubToFullExecInternal.enumd_diff X X' cmt l) :
@@ -793,7 +793,7 @@ Lemma sub_to_full_exec l
     (WF : Wf (WCore.G X'))
     (XWF : WCore.wf X X' cmt)
     (PFX : prefix X X')
-    (SCWF : imm_s.wf_sc G' sc')
+    (SCWF : xmm_s.wf_sc G' sc')
     (NDATA : data' ⊆ ∅₂)
     (NADDR : addr' ⊆ ∅₂)
     (NCTRL : ctrl' ⊆ ∅₂)
@@ -929,7 +929,7 @@ Lemma sub_to_full_exec_listless
     (PFX : prefix X X')
     (WF : Wf G')
     (NTID : E' \₁ E ⊆₁ (fun x => tid x <> tid_init))
-    (SCWF : imm_s.wf_sc G' sc')
+    (SCWF : xmm_s.wf_sc G' sc')
     (NDATA : data' ⊆ ∅₂)
     (NADDR : addr' ⊆ ∅₂)
     (NCTRL : ctrl' ⊆ ∅₂)

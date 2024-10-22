@@ -99,7 +99,7 @@ Definition acyc_ext sc := acyclic (ar sc).
 
 Definition coh_sc sc := irreflexive (sc ⨾ hb ⨾ (eco ⨾ hb)^?).
 
-Definition imm_consistent sc := 
+Definition imm_consistent sc :=
   ⟪ Wf_sc : wf_sc sc ⟫ /\
   ⟪ Csc   : coh_sc sc ⟫ /\
   ⟪ Comp  : complete G ⟫ /\
@@ -168,16 +168,16 @@ basic_solver 42.
 Qed.
 
 Lemma sc_not_init:
-  sc ≡ ⦗set_compl is_init⦘ ⨾ sc ⨾ ⦗set_compl is_init⦘. 
-Proof using WF WF_SC. 
+  sc ≡ ⦗set_compl is_init⦘ ⨾ sc ⨾ ⦗set_compl is_init⦘.
+Proof using WF WF_SC.
   apply dom_helper_3.
-  rewrite wf_scD, init_pln; eauto. mode_solver. 
+  rewrite wf_scD, init_pln; eauto. mode_solver.
 Qed.
 
 Lemma no_sc_to_init :
  sc ≡ sc ⨾  ⦗fun x => ~ is_init x⦘.
 Proof using WF WF_SC.
-  rewrite sc_not_init. basic_solver. 
+  rewrite sc_not_init. basic_solver.
 Qed.
 
 (******************************************************************************)
@@ -244,7 +244,7 @@ Lemma sw_in_ar0 :
 Proof using WF.
   remember (rfe ∪ ar_int) as ax.
   unfold sw, release, rs.
-  rewrite rt_rf_rmw. arewrite (⦗W⦘ ⨾ ⦗Rlx⦘ ⊆ ⦗W⦘) by basic_solver.
+  rewrite rt_rf_rmw. arewrite (⦗Rlx⦘ ⨾ ⦗W⦘ ⊆ ⦗W⦘) by basic_solver.
   arewrite (⦗W⦘ ⨾ (rfi ⨾ rmw)＊ ⊆ ⦗W⦘ ⨾ (sb ∩ same_loc)^? ⨾ ⦗W⦘).
   { rewrite (dom_r (wf_rmwD WF)). sin_rewrite (rfi_rmw_in_sb_loc WF).
     rewrite rtE. rewrite inclusion_ct_seq_eqv_r.
@@ -267,7 +267,7 @@ Proof using WF.
       basic_solver. }
     arewrite_id ⦗W_ex⦘ at 1. rewrite seq_id_l.
     sin_rewrite ar_int_rfe_ct_rfrmw_rt_in_ar_int_rfe_ct; auto.
-    subst ax. basic_solver. } 
+    subst ax. basic_solver. }
   arewrite_id ⦗Rlx⦘. rels.
   arewrite ((ax⁺ ⨾ ⦗W_ex⦘)^? ⨾ rf ⨾ (sb ⨾ ⦗F⦘)^? ⨾ ⦗Acq⦘ ⊆ ax⁺ ∪ sb).
   2: { rewrite !seq_union_r. unionL; eauto with hahn.
@@ -292,14 +292,14 @@ Proof using WF.
   rewrite ct_unit.
   arewrite_id ⦗W_ex⦘. rewrite seq_id_l.
   arewrite (rfi ⨾ sb ⨾ ⦗F⦘ ⨾ ⦗Acq⦘ ⊆ sb ⨾ ⦗F ∩₁ Acq/Rel⦘).
-  2: { rewrite sb_to_f_in_bob. rewrite bob_in_ar_int. 
+  2: { rewrite sb_to_f_in_bob. rewrite bob_in_ar_int.
       arewrite (ar_int ⊆ ax) by subst ax; eauto with hahn.
       rewrite ct_unit. eauto with hahn. }
   arewrite (rfi ⊆ sb). generalize (@sb_trans G). mode_solver 10.
 Qed.
 
 Lemma sw_in_ar1 :
-  sw ⊆ (⦗F ∩₁ Rel⦘ ⨾ sb ∪ ⦗W ∩₁ Rel⦘ ⨾ (sb ∩ same_loc⨾ ⦗W⦘)^?) ⨾ 
+  sw ⊆ (⦗F ∩₁ Rel⦘ ⨾ sb ∪ ⦗W ∩₁ Rel⦘ ⨾ (sb ∩ same_loc⨾ ⦗W⦘)^?) ⨾
   (rfe ∪ ar_int)⁺ ⨾ sb^? ∪ sb.
 Proof using WF.
   rewrite sw_in_ar0.
@@ -362,14 +362,14 @@ Proof using WF.
   basic_solver.
 Qed.
 
-Lemma f_sc_hb_f_sc_in_ar : 
+Lemma f_sc_hb_f_sc_in_ar :
   ⦗F ∩₁ Sc⦘ ⨾ hb ⨾ ⦗F ∩₁ Sc⦘ ⊆ (ar sc)⁺.
 Proof using WF.
   rewrite f_sc_hb_f_sc_in_rfe_ar_int.
   unfold ar. apply clos_trans_mori. eauto with hahn.
 Qed.
 
-Lemma f_sc_hb_f_sc_in_sc : 
+Lemma f_sc_hb_f_sc_in_sc :
   ⦗F ∩₁ Sc⦘ ⨾ hb ⨾ ⦗F ∩₁ Sc⦘ ⊆ sc.
 Proof using WF WF_SC ACYC_EXT.
 arewrite (⦗F ∩₁ Sc⦘ ⊆ ⦗F ∩₁ Sc⦘ ⨾ ⦗F ∩₁ Sc⦘) by basic_solver.
@@ -537,9 +537,9 @@ eapply hb_trans; eauto.
 Qed.
 
 Proposition coh_helper_alt :
-  irreflexive (hb ⨾ sc^? ∪ hb ⨾ (sc ⨾ hb)^? ⨾ rfe ∪ 
-  hb ⨾ (sc ⨾ hb)^? ⨾ co ∪ hb ⨾ (sc ⨾ hb)^? ⨾ co ⨾ rfe ∪ 
-  hb ⨾ (sc ⨾ hb)^? ⨾ fr ∪ hb ⨾ (sc ⨾ hb)^? ⨾ fr ⨾ rfe) -> 
+  irreflexive (hb ⨾ sc^? ∪ hb ⨾ (sc ⨾ hb)^? ⨾ rfe ∪
+  hb ⨾ (sc ⨾ hb)^? ⨾ co ∪ hb ⨾ (sc ⨾ hb)^? ⨾ co ⨾ rfe ∪
+  hb ⨾ (sc ⨾ hb)^? ⨾ fr ∪ hb ⨾ (sc ⨾ hb)^? ⨾ fr ⨾ rfe) ->
   irreflexive (hb ⨾ (sc ⨾ hb)^? ⨾ eco^?).
 Proof using.
 unfold Execution_eco.eco; relsf.
@@ -585,7 +585,7 @@ Qed.
 
 Lemma rfrmw_in_im_co :
   rf ⨾ rmw ⊆ immediate co.
-Proof using WF IMMCON. 
+Proof using WF IMMCON.
   cdes IMMCON.
   apply rf_rmw_in_coimm; auto using coherence_sc_per_loc.
 Qed.
@@ -632,7 +632,7 @@ Proof using WF.
   apply transitiveI. by apply eco_trans.
 Qed.
 
-Lemma rfrmw_sb_irr : 
+Lemma rfrmw_sb_irr :
   irreflexive (rf ⨾ rmw ⨾ sb).
 Proof using WF IMMCON.
   arewrite (rf ⨾ rmw ⊆ eco).
@@ -642,7 +642,7 @@ Proof using WF IMMCON.
   rewrite sb_in_hb.
   rewrite irreflexive_seqC.
   arewrite (eco ⊆ eco^?).
-  apply IMMCON. 
+  apply IMMCON.
 Qed.
 
 Lemma rfe_rmw_in_ar_ct : rfe ⨾ rmw ⊆ (ar sc)⁺.
@@ -698,12 +698,12 @@ Proof using WF.
   rewrite id_union, seq_union_l.
   unionL.
   { unfold fwbob.
-    unionR right. 
+    unionR right.
     arewrite (sb^? ∩ release G ⨾ sb ∩ Events.same_loc lab ⊆ sb).
     { generalize (@sb_trans G). basic_solver. }
     mode_solver. }
   unfold release.
-  arewrite (⦗W ∩₁ Rel⦘ ⨾ sb^? ∩ (⦗Rel⦘ ⨾ (⦗F⦘ ⨾ sb)^? ⨾ rs G) ⊆
+  arewrite (⦗W ∩₁ Rel⦘ ⨾ sb^? ∩ (⦗Rel⦘ ⨾ (⦗F⦘ ⨾ sb)^? ⨾ ⦗Rlx⦘ ⨾ rs G) ⊆
             ⦗W ∩₁ Rel⦘ ⨾ sb^? ∩ (⦗Rel⦘ ⨾ rs G)).
   { type_solver 10. }
   rewrite rs_in_co; auto.
@@ -949,10 +949,10 @@ Proof using WF.
        { apply tot_ext_irr, AC. }
        apply tot_ext_trans. }
   arewrite (⦗E ∩₁ F ∩₁ Sc⦘ ⊆ ⦗F ∩₁ Sc⦘) by basic_solver.
-  case_refl _. 
+  case_refl _.
   { erewrite f_sc_hb_f_sc_in_rfe_ar_int; eauto.
     apply clos_trans_mori. subst ar'. eauto with hahn. }
-  rewrite !seqA. rewrite <- ct_step. subst ar'. 
+  rewrite !seqA. rewrite <- ct_step. subst ar'.
   unfold psc. eauto with hahn.
 Qed.
 
@@ -966,5 +966,5 @@ Proof using.
 Qed.
 
 Global Add Parametric Morphism: ar with signature
-       eq ==> (@inclusion actid) ==> (@inclusion actid) as ar_mori. 
+       eq ==> (@inclusion actid) ==> (@inclusion actid) as ar_mori.
 Proof using. ins. now unfold ar; rewrite H. Qed.
