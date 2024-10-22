@@ -81,55 +81,6 @@ Proof using.
     rewrite srf_in_vf; try apply vf_hb_irr; eauto.
 Qed.
 
-Lemma vf_hb :
-    vf ⨾ hb ⨾ hb^? ⊆ vf.
-Proof using.
-    unfold vf.
-    generalize (@hb_trans G); basic_solver 21.
-Qed.
-
-Lemma rf_rhb_sub_vf
-        (WF  : Wf G):
-    ⦗W⦘ ⨾ rf^? ⨾ rhb ⊆ vf.
-Proof using.
-    unfold vf. rewrite rhb_in_hb; eauto.
-    assert (EQ1 : rf ≡ ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf).
-    { rewrite wf_rfD; eauto. rewrite wf_rfE; eauto. basic_solver. }
-    case_refl _.
-    { rewrite <- inclusion_id_cr with (r := rf).
-      rewrite <- inclusion_step_cr with (r := hb) (r' := hb). 2 : basic_solver.
-      rels. assert (EQ2 : hb ≡ ⦗E⦘ ⨾ hb ⨾ ⦗E⦘).
-      { rewrite wf_hbE; eauto. basic_solver. }
-      rewrite EQ2. basic_solver. }
-    rewrite <- inclusion_step_cr with (r := hb) (r' := hb). 2 : basic_solver.
-    rewrite <- inclusion_step_cr with (r := rf) (r' := rf). 2 : basic_solver.
-    rewrite EQ1. basic_solver.
-Qed.
-
-Lemma rhb_eco_irr_equiv
-        (WF  : Wf G):
-    irreflexive (rhb ⨾ eco) <-> irreflexive (hb ⨾ eco).
-Proof using.
-    split.
-    { intros HH. unfold irreflexive. intros x PATH.
-      destruct PATH as (x0 & PTH1 & PTH2).
-      assert (SAME_LOC : same_loc x x0). apply loceq_eco in PTH2; eauto.
-      unfold same_loc; eauto. assert (RHB : rhb x x0).
-      { eapply hb_locs. basic_solver. }
-      destruct HH with (x := x). basic_solver. }
-    intros IR. apply irreflexive_inclusion
-                    with (r' := hb ⨾ eco); eauto.
-    apply inclusion_seq_mon. apply rhb_in_hb; eauto. vauto.
-Qed.
-
-Lemma wf_rhb_immE
-        (WF : Wf G) :
-    (sb ∩ same_loc ∪ rpo ∪ sw) ≡ ⦗E⦘ ⨾ (sb ∩ same_loc ∪ rpo ∪ sw) ⨾ ⦗E⦘.
-Proof using.
-    split; [| basic_solver].
-    rewrite wf_sbE, wf_rpoE, wf_swE; eauto. basic_solver 42.
-Qed.
-
 End Additional.
 
 Section Consistencies.

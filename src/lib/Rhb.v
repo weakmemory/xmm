@@ -1,6 +1,6 @@
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
-From imm Require Import Events Execution.
+From imm Require Import Events Execution Execution_eco.
 
 Require Import AuxRel.
 Require Import xmm_s_hb.
@@ -22,6 +22,7 @@ Notation "'co'" := (co G).
 Notation "'rmw'" := (rmw G).
 Notation "'hb'" := (hb G).
 Notation "'sw'" := (sw G).
+Notation "'eco'" := (eco G).
 Notation "'W'" := (fun e => is_true (is_w lab e)).
 Notation "'R'" := (fun e => is_true (is_r lab e)).
 Notation "'F'" := (fun e => is_true (is_f lab e)).
@@ -58,19 +59,21 @@ Proof using.
   all: unfold sb in REL; unfolder in REL; desf.
 Qed.
 
+Lemma wf_rhb_immE
+        (WF : Wf G) :
+    (sb ∩ same_loc ∪ rpo ∪ sw) ≡ ⦗E⦘ ⨾ (sb ∩ same_loc ∪ rpo ∪ sw) ⨾ ⦗E⦘.
+Proof using.
+    split; [| basic_solver].
+    rewrite wf_sbE, wf_rpoE, wf_swE; eauto. basic_solver 42.
+Qed.
+
 Lemma wf_rhbE
     (WF : Wf G) :
   rhb ≡ ⦗E⦘ ⨾ rhb ⨾ ⦗E⦘.
 Proof using.
   apply dom_helper_3.
   unfold rhb.
-  rewrite (wf_swE WF),
-          (wf_rpoE WF),
-          wf_sbE.
-  arewrite ((⦗E⦘ ⨾ sb ⨾ ⦗E⦘) ∩ same_loc ⊆ ⦗E⦘ ⨾ (sb ∩ same_loc) ⨾ ⦗E⦘).
-  { basic_solver. }
-  seq_rewrite <- !seq_union_r.
-  seq_rewrite <- !seq_union_l.
+  rewrite (wf_rhb_immE WF).
   rewrite ct_seq_eqv_l.
   rewrite <- seqA.
   rewrite ct_seq_eqv_r.
@@ -269,6 +272,22 @@ Proof using.
     rewrite inter_union_l. rewrite inclusion_union_l with (r := sb ∩ same_loc)
         (r' := rhb ∩ same_loc) (r'' := rhb ∩ same_loc); try basic_solver.
     unfold rhb. rewrite <- ct_step. unfold rpo. basic_solver 8.
+Qed.
+
+Lemma rhb_eco_irr_equiv
+    (WF  : Wf G):
+  irreflexive (rhb ⨾ eco) <-> irreflexive (hb ⨾ eco).
+Proof using.
+    split.
+    { intros HH. unfold irreflexive. intros x PATH.
+      destruct PATH as (x0 & PTH1 & PTH2).
+      assert (SAME_LOC : same_loc x x0). apply loceq_eco in PTH2; eauto.
+      unfold same_loc; eauto. assert (RHB : rhb x x0).
+      { eapply hb_locs. basic_solver. }
+      destruct HH with (x := x). basic_solver. }
+    intros IR. apply irreflexive_inclusion
+                    with (r' := hb ⨾ eco); eauto.
+    apply inclusion_seq_mon. apply rhb_in_hb; eauto. vauto.
 Qed.
 
 End Rhb.
