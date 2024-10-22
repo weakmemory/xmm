@@ -300,3 +300,42 @@ Proof using.
   exists y. splits; auto.
   intro FALSO. apply NEG. eauto.
 Qed.
+
+Lemma ct_unit_left A (r : relation A) :
+    r ⨾ r⁺ ⊆ r⁺.
+Proof.
+  arewrite (r ⊆ r⁺) at 1. apply ct_ct.
+Qed.
+
+Lemma trans_helper_swapped A (r r' : relation A)
+    (TRANS : transitive r) :
+  r ⨾ (r' ∪ r)⁺ ⊆ r ∪ (r ⨾ r'⁺)⁺ ⨾ r^?.
+Proof using.
+  rewrite path_union2. rewrite !seq_union_r.
+  arewrite (r ⨾ r＊ ⊆ r⁺).
+  arewrite (r ⨾ r⁺ ⊆ r⁺) by apply ct_unit_left.
+  arewrite (r⁺ ⊆ r).
+  arewrite (r'⁺ ⊆ r'＊).
+  rels.
+  rewrite rtE at 1. rewrite seq_union_r, seq_id_r.
+  unionL; eauto with hahn.
+  all: unionR right.
+  { rewrite <- ct_step with (r := r ;; r'⁺).
+    basic_solver 10. }
+  rewrite ct_rotl, <- !seqA.
+  rewrite <- ct_begin.
+  rewrite !seqA.
+  rewrite rtE, !seq_union_r, seq_id_r.
+  arewrite ((r ⨾ r'⁺)⁺ ⨾ r ⨾ r'⁺ ⊆ (r ⨾ r'⁺)⁺).
+  { now rewrite ct_unit. }
+  rewrite crE, seq_union_r, seq_id_r.
+  eauto with hahn.
+Qed.
+
+Lemma trans_helper A (r r' : relation A)
+        (TRANS : transitive r) :
+    r ⨾ (r ∪ r')⁺ ⊆ r ∪ (r ⨾ r'⁺)⁺ ⨾ r^?.
+Proof using.
+    arewrite (r ⨾ (r ∪ r')⁺ ≡ r ⨾ (r' ∪ r)⁺) by now rewrite unionC.
+    apply trans_helper_swapped; vauto.
+Qed.

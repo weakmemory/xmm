@@ -103,8 +103,8 @@ Lemma lsc_nth n d
     (NEQ2 : n <> length l1 + 1 + length l2) :
     nth n b d = nth n a d.
 Proof using SWAPPED.
-    destruct (NPeano.Nat.lt_total n (length l1)).
-    all: destruct (NPeano.Nat.lt_total n (length l1 + 1 + length l2)).
+    destruct (PeanoNat.Nat.lt_total n (length l1)).
+    all: destruct (PeanoNat.Nat.lt_total n (length l1 + 1 + length l2)).
     all: desf; try lia.
     all: eauto using lsc_nth_1, lsc_nth_2.
     rewrite !nth_overflow; auto.

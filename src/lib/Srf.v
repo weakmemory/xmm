@@ -1,7 +1,10 @@
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
-From imm Require Import Events Execution SubExecution imm_s_hb.
+From imm Require Import Events Execution SubExecution.
 Require Import Program.Basics.
+
+Require Import xmm_s_hb.
+Require Import Rhb.
 
 Set Implicit Arguments.
 
@@ -20,6 +23,7 @@ Notation "'rf'" := (rf G).
 Notation "'co'" := (co G).
 Notation "'rmw'" := (rmw G).
 Notation "'hb'" := (hb G).
+Notation "'rhb'" := (rhb G).
 Notation "'sw'" := (sw G).
 Notation "'W'" := (fun e => is_true (is_w lab e)).
 Notation "'R'" := (fun e => is_true (is_r lab e)).
@@ -213,6 +217,31 @@ Lemma srf_in_sb_rf :
 Proof using.
   admit.
 Admitted.
+
+Lemma vf_hb :
+    vf ⨾ hb ⨾ hb^? ⊆ vf.
+Proof using.
+    unfold vf.
+    generalize (@hb_trans G); basic_solver 21.
+Qed.
+
+Lemma rf_rhb_sub_vf
+        (WF  : Wf G):
+    ⦗W⦘ ⨾ rf^? ⨾ rhb ⊆ vf.
+Proof using.
+    unfold vf. rewrite rhb_in_hb; eauto.
+    assert (EQ1 : rf ≡ ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf).
+    { rewrite wf_rfD; eauto. rewrite wf_rfE; eauto. basic_solver. }
+    case_refl _.
+    { rewrite <- inclusion_id_cr with (r := rf).
+      rewrite <- inclusion_step_cr with (r := hb) (r' := hb). 2 : basic_solver.
+      rels. assert (EQ2 : hb ≡ ⦗E⦘ ⨾ hb ⨾ ⦗E⦘).
+      { rewrite wf_hbE; eauto. basic_solver. }
+      rewrite EQ2. basic_solver. }
+    rewrite <- inclusion_step_cr with (r := hb) (r' := hb). 2 : basic_solver.
+    rewrite <- inclusion_step_cr with (r := rf) (r' := rf). 2 : basic_solver.
+    rewrite EQ1. basic_solver.
+Qed.
 
 End Srf.
 

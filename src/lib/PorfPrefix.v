@@ -1,8 +1,8 @@
-From imm Require Import Events Execution imm_s_hb.
+From imm Require Import Events Execution.
 
 Require Import Program.Basics.
 Require Import AuxRel AuxDef.
-Require Import Srf Rhb.
+Require Import Srf Rhb xmm_s_hb.
 
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
@@ -77,6 +77,11 @@ Proof using.
     unfold is_w. unfolder. split; intros x (XINE & LAB).
     all: splits; ins.
     all: rewrite EQL in *; ins. }
+  assert (EQRLX : ⦗Rlx'⦘ ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ ⦗Rlx⦘).
+  { rewrite <- !id_inter, set_interC. apply eqv_rel_more.
+    unfold is_rlx, mod. unfolder. split; intros x (XINE & LAB).
+    all: splits; ins.
+    all: rewrite EQL in *; ins. }
   unfold rs at 1. rewrite !seqA.
   arewrite ((rf' ⨾ rmw')＊ ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ (rf ⨾ rmw)＊ ⨾ ⦗E⦘).
   { rewrite <- !cr_of_ct, !crE, !seq_union_l.
@@ -91,17 +96,6 @@ Proof using.
     rewrite <- seqA, (ct_seq_eqv_r E (rf ⨾ rmw)).
     arewrite ((rf ⨾ rmw) ⨾ ⦗E⦘ ≡ rf ⨾ rmw); ins.
     rewrite (wf_rmwE WF). basic_solver 11. }
-  seq_rewrite EQW. rewrite !seqA.
-  arewrite ((sb' ∩ same_loc')^? ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ (sb ∩ same_loc)^?).
-  { rewrite !crE, seq_union_l, seq_union_r.
-    apply union_more; [basic_solver |].
-    rewrite <- seq_eqv_inter_lr, SB, <- seq_eqv_inter_ll.
-    arewrite (sb ⨾ ⦗E⦘ ≡ sb) by (unfold sb; basic_solver).
-    arewrite (⦗E⦘ ⨾ sb ≡ sb) by (unfold sb; basic_solver).
-    unfold sb, same_loc, loc. unfolder.
-    split; intros x y ((XINE & ESB & YINE) & EQ).
-    all: splits; ins.
-    all: rewrite 2!EQL in *; ins. }
   seq_rewrite EQW. rewrite !seqA.
   rewrite (wf_rsE WF), seq_union_l, !seqA.
   unfold rs. basic_solver 20.
@@ -124,7 +118,13 @@ Proof using.
     unfold rs. basic_solver 11. }
   rewrite crE.
   seq_rewrite seq_union_l.
+  rewrite seq_union_r.
   rewrite seq_id_l, !seqA.
+  arewrite (⦗Rlx'⦘ ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ ⦗Rlx⦘).
+  { rewrite <- !id_inter, set_interC. apply eqv_rel_more.
+    unfold is_rlx, mod. unfolder. split; intros x (XINE & LAB).
+    all: splits; ins.
+    all: rewrite EQL in *; ins. }
   seq_rewrite SB. rewrite !seqA.
   arewrite (sb ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ sb ⨾ ⦗E⦘).
   { unfold sb. rewrite !seqA.
@@ -135,19 +135,22 @@ Proof using.
     unfold is_f. unfolder. split; intros x (XINE & LAB).
     all: splits; ins.
     all: rewrite EQL in *; ins. }
-  rewrite <- seq_union_r.
+  rewrite <- 2!seq_union_r.
   arewrite (⦗Rel'⦘ ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ ⦗Rel⦘).
   { rewrite <- !id_inter, set_interC. apply eqv_rel_more.
     unfold is_rel, mod. unfolder. split; intros x (XINE & LAB).
     all: splits; ins.
     all: rewrite EQL in *; ins. }
   arewrite (release ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ release ⨾ ⦗E⦘).
-  { rewrite (wf_releaseE WF) at 1.  rewrite seq_union_l.
+  { rewrite (wf_releaseE WF) at 1. rewrite seq_union_l.
     split; [| basic_solver 7].
     arewrite (⦗W ∩₁ Rel⦘ ⨾ ⦗E⦘ ⊆ ⦗E⦘ ⨾ release ⨾ ⦗E⦘); [| basic_solver].
     unfold release. rewrite <- inclusion_id_cr, seq_id_l.
     unfold rs. rewrite <- cr_of_ct, <- !inclusion_id_cr.
-    seq_rewrite !seq_id_r. basic_solver 11. }
+    rewrite !seqA. seq_rewrite !seq_id_r.
+    arewrite (Rel ⊆₁ Rlx ∩₁ Rel) at 1; [| basic_solver 11].
+    unfolder. unfold is_rel, is_rlx, mode_le.
+    ins. desf. }
   unfold release.
   rewrite crE, !seq_union_l, seq_id_l.
   unfold sb. basic_solver 42.
@@ -180,6 +183,11 @@ Proof using.
     seq_rewrite <- !id_inter.
     now rewrite set_interK. }
   seq_rewrite <- seq_union_r.
+  arewrite (⦗Rlx'⦘ ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ ⦗Rlx⦘).
+  { rewrite <- !id_inter, set_interC. apply eqv_rel_more.
+    unfold is_rlx, mod. unfolder. split; intros x (XINE & LAB).
+    all: splits; ins.
+    all: rewrite EQL in *; ins. }
   seq_rewrite RF.
   arewrite (rf ⨾ ⦗E⦘ ≡ ⦗E⦘ ⨾ rf).
   { rewrite (wf_rfE WF). basic_solver. }
@@ -189,7 +197,7 @@ Proof using.
     basic_solver 11. }
   arewrite (⦗Acq⦘ ∪ sb ⨾ ⦗F⦘ ⨾ ⦗Acq⦘ ≡ (sb ⨾ ⦗F⦘)^? ⨾ ⦗Acq⦘).
   { now rewrite crE, seq_union_l, seq_id_l, !seqA. }
-  replace (release ⨾ rf ⨾ (sb ⨾ ⦗F⦘)^? ⨾ ⦗Acq⦘)
+  replace (release ⨾ rf ⨾ ⦗Rlx⦘ ⨾ (sb ⨾ ⦗F⦘)^? ⨾ ⦗Acq⦘)
     with sw; ins.
   rewrite (wf_swE WF). basic_solver.
 Qed.
