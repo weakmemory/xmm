@@ -63,7 +63,7 @@ The following statements are planned to be supported (in order of priority)
     - Reordering simulation relation implying consistency (Lm E.2.31)
     - The lemma about simulating any sequence of steps from target graph in source graph (Lm E.2.26)
     - The reordering theorem (Th E.2.5)
-2. Full support for the sequentilisation transformation
+2. Proof of consistency sequentilisation transformation in XMM
 3. Other consistency properties
     - same-read extensibility (Lm B.11)
     - overwrite extensibility (Lm B.10)
