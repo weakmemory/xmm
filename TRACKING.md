@@ -7,9 +7,9 @@
 
 ## Features
 
-- [ ] [@keba4ok] Consistency admit for `src/reordering/ReorderingExecA.v`
-- [ ] [@keba4ok] Consistency admit for `src/reordering/ReorderingExecB.v`
-- [ ] [@keba4ok] Consistency admit for `src/reordering/ReorderingExecNaNb.v`
+- [ ] [@keba4ok](https://www.github.com/keba4ok) Consistency admit for `src/reordering/ReorderingExecA.v`
+- [ ] [@keba4ok](https://www.github.com/keba4ok) Consistency admit for `src/reordering/ReorderingExecB.v`
+- [ ] [@keba4ok](https://www.github.com/keba4ok) Consistency admit for `src/reordering/ReorderingExecNaNb.v`
 - [ ] po-closure proof for `src/reordering/ReorderingExecA.v`
 - [ ] rpo-dom proof for `src/reordering/ReorderingExecA.v`
-- [ ] [@InnocentusLime] Partial proof for `src/reordering/ReorderingExecReexec.v`
+- [ ] [@InnocentusLime](https://www.github.com/InnocentusLime) Partial proof for `src/reordering/ReorderingExecReexec.v`
