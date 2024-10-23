@@ -259,14 +259,6 @@ Proof using INV INV'.
   admit.
 Admitted.
 
-Lemma simrel_implies_cons
-    (CONS : WCore.is_cons G_t (WCore.sc X_t))
-    (SIM : reord_simrel X_s X_t a_t b_t mapper) :
-  WCore.is_cons G_s (WCore.sc X_s).
-Proof using.
-  admit.
-Admitted.
-
 End Reexec.
 
 (* DRAFTS FOR FINAL THEOREM *)
@@ -279,7 +271,17 @@ End Reexec.
   << SIM' : ReordCommon.reord G_s G_t traces traces' a b >>.
 Proof using.
   admit.
-Admitted. *)
+Admitted.
+
+Lemma simrel_implies_cons
+    (CONS : WCore.is_cons G_t (WCore.sc X_t))
+    (SIM : reord_simrel X_s X_t a_t b_t mapper) :
+  WCore.is_cons G_s (WCore.sc X_s).
+Proof using.
+  admit.
+Admitted.
+
+*)
 
 (* Lemma sim_rel_step : about any step *)
 
