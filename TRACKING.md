@@ -13,3 +13,6 @@
 - [ ] [@keba4ok](https://www.github.com/keba4ok) po-closure proof for `src/reordering/ReorderingExecA.v`
 - [ ] [@keba4ok](https://www.github.com/keba4ok) rpo-dom proof for `src/reordering/ReorderingExecA.v`
 - [ ] [@InnocentusLime](https://www.github.com/InnocentusLime) Partial proof for `src/reordering/ReorderingExecReexec.v`
+    * [ ] Consistency proof for the intermediate graph
+    * [ ] Simulation relation for `G_s'`
+    * [ ] Proof of the step
