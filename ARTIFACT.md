@@ -8,6 +8,7 @@ The overall structure of Coq development in `src` folder is as follows:
 * `reordering` contains the proof that reordering transformation is consistent in XMM
 * `traces` contains various properties and definitions for connecting graphs to traces
 * `xmm` contains the basic deifinitions and properties of the model
+* `xmm_cons` contains proofs for the consistency properties
 
 ### Formal model
 
@@ -25,7 +26,11 @@ The overall structure of Coq development in `src` folder is as follows:
 
 ### Soundness of program transformations
 
-* The proofs of all consistency predicate properties: monotonicity (Lm B.7), maximal read extensibility (Lm B.8), maximal write extensibility (Lm B.9) -- can be found in `src/xmm/Consistency.v`
+* The proofs of all consistency predicate properties is located in the `xmm_cons` direcotry
+    - The monotonicity (Lm B.7) is proven in `src/xmm_cons/ConsistencyMonotonicity.v`
+    - The maximal read extensibility (Lm B.8) is proven in `src/xmm_cons/ConsistencyReadExtensibility.v`
+    - The maximal write extensibility (Lm B.9) is proven in `srx/xmm_cons/ConsistencyWriteExtensibility.v`
+    - Some common consistency lemmas are proven in `src/xmm_cons/ConsistencyCommon.v`
 * The proof for consistency of the reordering transformation with XMM is located inside the `reordering` directory
     - The simulation relation (Def E.32) is located in `src/reordering/ReordSimrel.v` along with a "Step Invariant" predicate, which is expected to be preserved by the target graph after each step.
     - The proof of simulation relation for init graphs (Lm E.25) is located in `src/reordering/ReordSimrelInit.v` along with the proof that init graphs satisfy the "Step Invariant".
