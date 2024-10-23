@@ -275,6 +275,13 @@ Definition lab_loc :=
   | Afence _ => None
   end.
 
+Definition lab_mode :=
+  match l with
+  | Aload _ m _ _ => m
+  | Astore _ m _ _ => m
+  | Afence m => m
+  end.
+
 Definition lab_is_r : actid -> Prop :=
   match l with
   | Aload _ _ _ _ => ⊤₁
