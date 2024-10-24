@@ -255,3 +255,16 @@ Proof using.
 Qed.
 
 End FakeSrf.
+
+Lemma fake_srf_u2v G e l_e l_e'
+    (U2V : same_label_u2v l_e l_e') :
+  fake_srf G e l_e ≡ fake_srf G e l_e'.
+Proof using.
+  unfold fake_srf.
+  apply minus_rel_more; auto.
+  repeat apply seq_more; auto.
+  apply eqv_rel_more.
+  unfolder.
+  unfold WCore.lab_loc, loc, same_label_u2v in *.
+  split; ins; do 2 desf.
+Qed.
