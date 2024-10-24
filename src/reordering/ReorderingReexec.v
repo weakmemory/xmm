@@ -332,14 +332,62 @@ Proof using.
   ).
   { apply (rc_step CTX). }
   red in GREEXEC. destruct GREEXEC as (thrdle & GREEXEC).
+  assert (MEQA : mapper' a_t' = b_t').
+  { unfold mapper'.
+    rewrite updo, upds; [done |].
+    apply CTX. }
+  assert (RFSUB :
+    mapper' ↑ rf_t' ⨾ ⦗E_s' \₁ cmt'⦘ ⊆
+    mapper' ↑ rf_t' ⨾ ⦗mapper' ↑₁ E_t' \₁ cmt'⦘
+  ).
+  { rewrite (rsr_acts (reexec_simrel CTX)).
+    rewrite set_minus_union_l, id_union, seq_union_r.
+    arewrite_false (mapper' ↑ rf_t' ⨾ ⦗extra_a X_t' a_t' b_t' b_t' \₁ cmt'⦘).
+    all: try now rewrite union_false_r.
+    unfold extra_a; desf; [| basic_solver].
+    rewrite (wf_rfE (rsr_Gt_wf (rc_inv_end CTX))).
+    rewrite <- MEQA.
+    unfolder.
+    intros x y ((x' & y' & (_ & _ & YIN) & _ & YEQ) & (YEQA & _)).
+    subst y. apply mapinj' in YEQA; try now red.
+    desf. }
+  assert (RFSUB2 :
+    mapper' ↑ rf_t' ⨾ ⦗mapper' ↑₁ E_t' \₁ cmt'⦘ ⊆
+    mapper' ↑ rf_t' ⨾ ⦗mapper' ↑₁ E_t' \₁ mapper' ↑₁ cmt⦘
+  ).
+  { unfold cmt'.
+    apply seq_mori; auto with hahn.
+    apply eqv_rel_mori, set_minus_mori.
+    all: auto with hahn.
+    unfold flip.
+    rewrite set_collect_union. auto with hahn. }
+  assert (RFSUB3 :
+    mapper' ↑ rf_t' ⨾ ⦗mapper' ↑₁ E_t' \₁ mapper' ↑₁ cmt⦘ ⊆
+    mapper' ↑ (rf_t' ⨾ ⦗E_t' \₁ cmt⦘)
+  ).
+  { rewrite <- set_collect_minus,
+            <- collect_rel_eqv,
+            <- collect_rel_seq.
+    { reflexivity. }
+    { eapply inj_dom_mori; [| reflexivity | eapply mapinj'].
+      unfold flip. basic_solver. }
+    eapply inj_dom_mori; [| reflexivity | eapply mapinj'].
+    unfold flip. basic_solver. }
   assert (SURG :
     WCore.stable_uncmt_reads_gen X_s' cmt' thrdle
   ).
-  { admit. }
+  { constructor; try now apply GREEXEC.
+    rewrite (rsr_rf (reexec_simrel CTX)).
+    rewrite seq_union_l.
+    apply inclusion_union_l.
+    { rewrite RFSUB, RFSUB2, RFSUB3.
+      rewrite (WCore.surg_uncmt (WCore.reexec_sur GREEXEC)).
+      admit. (* Refine the bounds on sb *) }
+    admit. (* BIG TODO *) }
   assert (WF_START :
     WCore.wf (WCore.X_start X_s dtrmt') X_s' cmt'
   ).
-  { admit. }
+  { admit. (* TODO *) }
   (**)
   red. exists thrdle.
   constructor.
