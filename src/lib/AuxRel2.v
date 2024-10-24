@@ -81,6 +81,18 @@ Proof using.
   unfolder. split; ins; desf; splits; tauto.
 Qed.
 
+Lemma add_max_seq_r T (A B C : T -> Prop) :
+  add_max A B ⨾ ⦗C⦘ ≡ add_max (A \₁ (B \₁ C)) (B ∩₁ C).
+Proof using.
+  unfold add_max.
+  rewrite <- cross_inter_r.
+  apply cross_more; auto.
+  rewrite set_minus_minus_l.
+  apply set_minus_more; auto.
+  split; [| basic_solver].
+  unfolder. ins. desf. splits; tauto.
+Qed.
+
 Lemma swap_rel_union {T : Type} (r1 r2 : relation T) A B :
   swap_rel (r1 ∪ r2) A B ≡
     swap_rel r1 A B ∪ swap_rel r2 A B.

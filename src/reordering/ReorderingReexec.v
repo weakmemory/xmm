@@ -233,7 +233,13 @@ Proof using.
     { apply CTX; auto. }
     rewrite (rc_co CTX), seq_union_l.
     unfold A_s'. rewrite extra_a_some; auto.
-    admit. (* TODO: add_max_eq_r *) }
+    rewrite add_max_seq_r, set_interC, set_interA.
+    arewrite (eq a_s' ∩₁ mapper' ↑₁ E_t' ≡₁ ∅).
+    { split; [| basic_solver]. unfold a_s'.
+      unfolder. intros x (XEQ & y & YIN & YEQ).
+      subst x. rewrite MAPINV in YIN; auto. }
+    rewrite set_inter_empty_r, add_max_empty_r.
+    now rewrite union_false_r. }
   constructor; ins.
   all: try now apply CTX.
   { apply mapinj. }
