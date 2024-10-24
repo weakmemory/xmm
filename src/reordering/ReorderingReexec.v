@@ -172,13 +172,18 @@ Record reexec_conds : Prop := {
           add_max
             (extra_co_D (mapper' ↑₁ E_t') lab_s (WCore.lab_loc (lab_s' a_s')))
             (A_s' ∩₁ WCore.lab_is_w (lab_s' a_s'));
-  rc_rmw : rmw_s ≡ mapper ↑ rmw_t;
-  rc_threads : threads_set G_s ≡₁ threads_set G_t;
-  rc_ctrl : ctrl_s' ≡ ctrl_s;
-  rc_data : data_s' ≡ data_s;
-  rc_addr : addr_s' ≡ addr_s;
-  rc_rmw_dep : rmw_dep_s' ≡ rmw_dep_s;
+  rc_rmw : rmw_s' ≡ mapper' ↑ rmw_t';
+  rc_threads : threads_set G_s' ≡₁ threads_set G_t';
+  rc_ctrl : ctrl_s' ≡ ctrl_t';
+  rc_data : data_s' ≡ data_t';
+  rc_addr : addr_s' ≡ addr_t';
+  rc_rmw_dep : rmw_dep_s' ≡ rmw_dep_t';
 }.
+
+Lemma mapinj' : inj_dom ⊤₁ mapper'.
+Proof using.
+  admit.
+Admitted.
 
 Lemma mapinj : inj_dom E_t' mapper'.
 Proof using.
@@ -201,6 +206,14 @@ Proof using.
   assert (EXAR : eq b_t' ∩₁ R_s' ≡₁ eq b_t' ∩₁ WCore.lab_is_r (lab_s' a_s')).
   { unfold a_s', is_r, WCore.lab_is_r.
     unfolder; split; ins; desf. }
+  assert (MAPINV : forall x (MEQ : mapper' x = b_t'),
+    x = a_t'
+  ).
+  { intros x XEQ.
+    replace b_t' with (mapper' a_t') in XEQ.
+    { eapply mapinj'; easy. }
+    clear - CTX. unfold mapper'.
+    rupd; [easy | apply CTX]. }
   assert (SRF :
     fake_srf G_s'' a_s' (lab_s' a_s') ⨾ ⦗A_s' ∩₁ WCore.lab_is_r (lab_s' a_s')⦘ ≡
     srf_s' ⨾ ⦗extra_a X_t' a_t' b_t' b_t' ∩₁ R_s'⦘
@@ -211,15 +224,18 @@ Proof using.
     { apply intermediate_graph_wf; auto. }
     { unfold fake_sb, G_s'', sb. ins.
       rewrite (rc_acts CTX), extra_a_some; auto. }
-    { unfold G_s'', mapper'. ins. intro FALSO.
-      admit. (* Invert the mapper *) }
     { unfold G_s''. ins.
-      admit. (* TODO *) }
+      intro FALSO. unfolder in FALSO.
+      destruct FALSO as (x & XIN & XEQ).
+      rewrite MAPINV in XIN; auto. }
+    { unfold G_s''. ins.
+      admit. (* TODO: weaken cond*) }
     { apply CTX; auto. }
     rewrite (rc_co CTX), seq_union_l.
     unfold A_s'. rewrite extra_a_some; auto.
     admit. (* TODO: add_max_eq_r *) }
   constructor; ins.
+  all: try now apply CTX.
   { apply mapinj. }
   { unfolder. unfold extra_a; ins; desf.
     constructor; [red; auto | desf].
@@ -229,24 +245,31 @@ Proof using.
     unfold a_s'. rewrite set_minusK, set_union_empty_r.
     unfold extra_a; desf; [| clear; basic_solver].
     rewrite set_minus_disjoint; auto with hahn.
-    admit. (* a_t' is not in *) }
-  { admit. (* TODO *) }
-  { admit. (* TODO *) }
-  { apply CTX. }
-  { apply CTX. }
+    unfolder. intros x (y & YIN & YEQ) XEQ.
+    subst x. rewrite MAPINV in YIN; auto. desf. }
+  { clear - CTX. unfold mapper'. unfolder.
+    ins. rewrite !updo; [done | |].
+    all: intro FALSO; desf.
+    { now apply (rsr_at_ninit (rc_inv_end CTX)). }
+    now apply (rsr_bt_ninit (rc_inv_end CTX)). }
+  { clear - CTX. unfold mapper', compose.
+    unfolder. ins.
+    destruct classic with (x = b_t') as [EQ | XNB].
+    { subst. rupd. now rewrite <- (rsr_at_bt_tid (rc_inv_end CTX)). }
+    destruct classic with (x = a_t') as [EQ | XNA].
+    { subst. rupd. now rewrite (rsr_at_bt_tid (rc_inv_end CTX)). }
+    rupd. }
   { admit. }
   { rewrite <- SRF, (rc_rf CTX). auto. }
   { rewrite (rc_co CTX). admit. }
-  { admit. }
-  { admit. }
-  { admit. }
-  { admit. }
-  { admit. }
-  { admit. }
   { admit. (* rpo *) }
-  { admit. }
-  { admit. }
-  admit.
+  { clear. unfold mapper'. unfolder.
+    ins. desf. now rewrite !updo by auto. }
+  { clear. unfold mapper'. unfolder.
+    ins. desf. now rewrite upds. }
+  clear - CTX. unfold mapper'. unfolder.
+  ins. desf. rewrite updo, upds; [done |].
+  apply CTX.
 Admitted.
 
 End ReorderingReexecInternal.
