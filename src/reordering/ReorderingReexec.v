@@ -301,6 +301,91 @@ Proof using.
   apply CTX.
 Admitted.
 
+Definition extra_b :=
+  ifP ~E_t' a_t' /\ E_t' b_t' then eq b_t' ∩₁ E_t'
+  else ∅.
+Definition cmt' := mapper' ↑₁ (cmt ∪₁ extra_b).
+Definition dtrmt' := mapper' ↑₁ (dtrmt \₁ extra_b).
+Definition f' := (mapper' ∘ f) ∘ mapper'.
+
+Lemma mapper_self_inv
+    (NEQ : a_t' <> b_t') :
+  mapper' ∘ mapper' = id.
+Proof using.
+  unfold mapper', compose.
+  apply functional_extensionality.
+  intros x.
+  destruct classic with (x = b_t') as [EQ|NBQ].
+  { subst x. now rewrite upds, updo, upds. }
+  destruct classic with (x = a_t') as [EQ|NAQ].
+  { subst x. rewrite updo with (c := a_t'); auto.
+    now rewrite upds, upds. }
+  rewrite !updo with (c := x); auto.
+Qed.
+
+Lemma reexec_step
+    (CTX : reexec_conds) :
+  WCore.reexec X_s X_s' f' dtrmt' cmt'.
+Proof using.
+  assert (GREEXEC :
+    WCore.reexec X_t X_t' f dtrmt cmt
+  ).
+  { apply (rc_step CTX). }
+  red in GREEXEC. destruct GREEXEC as (thrdle & GREEXEC).
+  assert (SURG :
+    WCore.stable_uncmt_reads_gen X_s' cmt' thrdle
+  ).
+  { admit. }
+  assert (WF_START :
+    WCore.wf (WCore.X_start X_s dtrmt') X_s' cmt'
+  ).
+  { admit. }
+  (**)
+  red. exists thrdle.
+  constructor.
+  { unfold dtrmt', f', cmt'.
+    rewrite (WCore.dtrmt_cmt GREEXEC).
+    rewrite set_collect_compose.
+    rewrite <- set_collect_compose with (g := mapper').
+    rewrite mapper_self_inv, set_collect_id; [| apply CTX].
+    rewrite set_collect_compose, set_collect_union.
+    basic_solver 11. }
+  { unfold cmt'.
+    rewrite (rc_acts CTX), (WCore.reexec_embd_dom GREEXEC).
+    rewrite set_collect_union.
+    transitivity (mapper' ↑₁ E_t'); [| basic_solver].
+    apply set_subset_union_l. split; auto.
+    unfold extra_b; desf; [| basic_solver].
+    unfolder.
+    intros x (y & (YEQ & YIN) & XEQ).
+    subst. unfold a_s', mapper', b_s'.
+    exists b_t'. split; auto. }
+  { exact SURG. }
+  { admit. (* sb-clos *) }
+  { admit. (* rpo edges *) }
+  { admit. (* embd *) }
+  { exact WF_START. (* wf start *) }
+  { admit. (* Consistency *) }
+  apply sub_to_full_exec_listless
+   with (thrdle := thrdle).
+  { exact WF_START. }
+  { eapply G_s_rfc with (X_t := X_t').
+    { apply CTX. }
+    now apply reexec_simrel. }
+  { admit. (* difference between acts and dtrmt is fin *) }
+  { admit. (* Prefix. Trivial? *) }
+  { eapply G_s_wf with (X_t := X_t').
+    { apply CTX. }
+    now apply reexec_simrel. }
+  { admit. (* init acts *) }
+  { admit. (* Unprovable SC *) }
+  { now rewrite (rc_data CTX), (rsr_ndata (rc_inv_end CTX)). }
+  { now rewrite (rc_addr CTX), (rsr_naddr (rc_inv_end CTX)). }
+  { now rewrite (rc_ctrl CTX), (rsr_nctrl (rc_inv_end CTX)). }
+  { now rewrite (rc_rmw_dep CTX), (rsr_nrmw_dep (rc_inv_end CTX)). }
+  exact SURG.
+Admitted.
+
 End ReorderingReexecInternal.
 
 End ReorderingReexecInternal.
@@ -411,10 +496,6 @@ Definition b_s := a_t.
 Definition a_s' := b_t'.
 Definition b_s' := a_t'.
 
-Definition extra_b :=
-  ifP ~E_t' a_t' /\ E_t' b_t' then ∅
-  else eq b_t' ∩₁ E_t'.
-
 Definition mapper' := upd (upd id a_t' a_s') b_t' b_s'.
 
 Lemma mapeq : eq_dom dtrmt mapper mapper'.
@@ -422,9 +503,6 @@ Proof using CTX.
   admit.
 Admitted.
 
-Definition cmt' := mapper' ↑₁ (cmt ∪₁ extra_b).
-Definition dtrmt' := mapper' ↑₁ (dtrmt \₁ extra_b).
-Definition f' := mapper' ∘ f ∘ mapper'.
 (* Intermediate graph for locating the srf edge for for a_s *)
 
 Definition A_s' := extra_a X_t' a_t' b_t' a_s'.
