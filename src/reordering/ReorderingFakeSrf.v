@@ -88,61 +88,62 @@ Definition fake_srf :=
     ⦗Loc_s_ (WCore.lab_loc l_e)⦘ ⨾ vf_s ⨾ fake_sb
   ) \ (co_s ⨾ vf_s ⨾ fake_sb).
 
-Lemma fake_srfE_left
-    (WF : Wf G_s) :
+Lemma fake_srfE_left :
   fake_srf ⊆ ⦗E_s⦘ ⨾ fake_srf.
 Proof using.
-  (* { unfold srf_s'. rewrite <- seq_eqv_minus_ll.
-    apply minus_rel_mori; [| red; auto with hahn].
-    seq_rewrite seq_eqvC. rewrite VFE at 1.
-    rewrite 2!seqA. reflexivity. } *)
-Admitted.
+  unfold fake_srf. rewrite <- seq_eqv_minus_ll.
+  apply minus_rel_mori; [| red; auto with hahn].
+  seq_rewrite seq_eqvC.
+  rewrite wf_vfE_left at 1.
+  rewrite 2!seqA. reflexivity.
+Qed.
 
-Lemma fake_srfD_left
-    (WF : Wf G_s) :
+Lemma fake_srfD_left :
   fake_srf ⊆ ⦗W_s⦘ ⨾ fake_srf.
 Proof using.
-  (* { unfold srf_s'. rewrite <- seq_eqv_minus_ll.
-    apply minus_rel_mori; [| red; auto with hahn].
-    seq_rewrite seq_eqvC. rewrite vf_d_left at 1.
-    rewrite 2!seqA. reflexivity. } *)
-Admitted.
+  unfold fake_srf. rewrite <- seq_eqv_minus_ll.
+  apply minus_rel_mori; [| red; auto with hahn].
+  seq_rewrite seq_eqvC. rewrite vf_d_left at 1.
+  rewrite 2!seqA. reflexivity.
+Qed.
 
-Lemma fake_srfl
-    (WF : Wf G_s) :
+Lemma fake_srfl :
   fake_srf ⊆ ⦗Loc_s_ (WCore.lab_loc l_e)⦘ ⨾ fake_srf.
 Proof using.
-  (* { unfold srf_s'. rewrite <- seq_eqv_minus_ll.
-    apply minus_rel_mori; [| red; auto with hahn].
-    seq_rewrite seq_eqvK. reflexivity. } *)
-Admitted.
+  unfold fake_srf. rewrite <- seq_eqv_minus_ll.
+  apply minus_rel_mori; [| red; auto with hahn].
+  seq_rewrite seq_eqvK. reflexivity.
+Qed.
 
-Lemma fake_srf_in_vfsb
-    (WF : Wf G_s) :
-  fake_srf ⊆ vf_s ⨾ sb_s'.
+Lemma fake_srf_in_vfsb :
+  fake_srf ⊆ vf_s ⨾ fake_sb.
 Proof using.
-  (* { unfold srf_s'. clear.
-    rewrite inclusion_minus_rel, inclusion_seq_eqv_l.
-    reflexivity. } *)
-Admitted.
+  unfold fake_srf.
+  rewrite inclusion_minus_rel, inclusion_seq_eqv_l.
+  reflexivity.
+Qed.
 
 Lemma fake_srff
     (WF : Wf G_s) :
   functional fake_srf⁻¹.
 Proof using.
-  (* { rewrite SRFE, SRFD, SRFL. clear - WF_S SRFVF.
-    unfolder. intros x y z (((YINE & YW) & YL) & SRF1) (((ZINE & ZW) & ZL) & SRF2).
-    destruct (classic (y = z)) as [EQ|NEQ]; ins.
-    destruct (wf_co_total WF_S) with (a := y) (b := z)
-                        (ol := WCore.lab_loc l_a) as [CO|CO].
-    { unfold set_inter; splits; assumption. }
-    { unfold set_inter; splits; assumption. }
-    { exact NEQ. }
-    { exfalso. apply SRF1. apply SRFVF in SRF2.
-      clear - CO SRF2. red; eauto. }
-    exfalso. apply SRF2. apply SRFVF in SRF1.
-    clear - CO SRF1. red; eauto. } *)
-Admitted.
+  rewrite fake_srfE_left, fake_srfD_left, fake_srfl.
+  unfolder. intros x y z (((YINE & YW) & YL) & SRF1) (((ZINE & ZW) & ZL) & SRF2).
+  destruct (classic (y = z)) as [EQ|NEQ]; ins.
+  destruct (wf_co_total WF)
+      with (a := y) (b := z)
+           (ol := WCore.lab_loc l_e)
+        as [CO|CO].
+  { unfold set_inter; splits; assumption. }
+  { unfold set_inter; splits; assumption. }
+  { exact NEQ. }
+  { exfalso. apply SRF1.
+    apply fake_srf_in_vfsb in SRF2.
+    red; eauto. }
+  exfalso. apply SRF2.
+  apply fake_srf_in_vfsb in SRF1.
+  red; eauto.
+Qed.
 
 (*
   NOTE:
@@ -154,18 +155,17 @@ Lemma fake_srf_exists
   exists w,
     eq_opt w ≡₁ dom_rel (fake_srf ⨾ ⦗eq e ∩₁ WCore.lab_is_r l_e⦘).
 Proof using.
-  (* { clear - FUN.
-    destruct classic
-        with (dom_rel (srf_s' ⨾ ⦗eq b_t ∩₁ WCore.lab_is_r l_a⦘) ≡₁ ∅)
-          as [EMP|NEMP].
-    { exists None. rewrite EMP. clear. auto with hahn. }
-    apply set_nonemptyE in NEMP. destruct NEMP as (x & DOM).
-    exists (Some x). rewrite eq_opt_someE.
-    split; red; [congruence|]. intros x' DOM'.
-    apply FUN with b_t; red.
-    { clear - DOM. unfolder in DOM. desf. }
-    clear - DOM'. unfolder in DOM'. desf. } *)
-Admitted.
+  destruct classic
+      with (dom_rel (fake_srf ⨾ ⦗eq e ∩₁ WCore.lab_is_r l_e⦘) ≡₁ ∅)
+        as [EMP|NEMP].
+  { exists None. rewrite EMP. auto with hahn. }
+  apply set_nonemptyE in NEMP. destruct NEMP as (x & DOM).
+  exists (Some x). rewrite eq_opt_someE.
+  split; red; [congruence|]. intros x' DOM'.
+  apply (fake_srff WF) with e.
+  { unfolder in DOM. desf. }
+  unfolder in DOM'. desf.
+Qed.
 
 Lemma fake_srf_lab_adjustment
     (WF : Wf G_s) :
@@ -173,42 +173,85 @@ Lemma fake_srf_lab_adjustment
     << U2V : same_label_u2v l_e' l_e >> /\
     << VAL : dom_rel (fake_srf ⨾ ⦗eq e ∩₁ WCore.lab_is_r l_e⦘) ⊆₁ Val_s_ (WCore.lab_val l_e') >>.
 Proof using.
-  (* { destruct w as [w|].
-    { assert (ISR : WCore.lab_is_r l_a b_t).
-      { unfolder in SRF_W. destruct SRF_W as [ISR _].
-        clear - ISR. destruct ISR with w; desf. }
-      assert (ISW : W_s w).
-      { unfold srf_s', vf in SRF_W.
-        unfolder in SRF_W. destruct SRF_W as [ISW _].
-        destruct ISW with w; desf. }
-      red in ISR.
-      destruct l_a
-           as [aex amo al av | axmo amo al av | amo]
-           eqn:HEQA; ins.
-      unfold is_w in ISW.
-      destruct (lab_s w)
-           as [wex wmo wl wv | wxmo wmo wl wv | wmo]
-           eqn:HEQW; ins.
-      exists (Aload aex amo al wv).
-      split; red.
-      { red. desf. }
-      arewrite (dom_rel (srf_s' ⨾ ⦗eq b_t ∩₁ ⊤₁⦘) ⊆₁ Val_s_ (val_s w)).
-      { rewrite <- SRF_W. clear. basic_solver. }
-      unfold val. rewrite HEQW; ins. }
-    exists l_a. split; red.
+  destruct (fake_srf_exists WF)
+        as (w & SRF_W).
+  destruct w as [w|].
+  { assert (ISR : WCore.lab_is_r l_e e).
+    { unfolder in SRF_W. destruct SRF_W as [ISR _].
+      clear - ISR. destruct ISR with w; desf. }
+    assert (ISW : W_s w).
+    { unfold fake_srf, vf in SRF_W.
+      unfolder in SRF_W. destruct SRF_W as [ISW _].
+      destruct ISW with w; desf. }
+    red in ISR.
+    destruct l_e
+          as [aex amo al av | axmo amo al av | amo]
+          eqn:HEQA; ins.
+    unfold is_w in ISW.
+    destruct (lab_s w)
+          as [wex wmo wl wv | wxmo wmo wl wv | wmo]
+          eqn:HEQW; ins.
+    exists (Aload aex amo al wv).
+    split; red.
     { red. desf. }
-    rewrite <- SRF_W. clear. basic_solver. } *)
-Admitted.
+    arewrite (dom_rel (fake_srf ⨾ ⦗eq e ∩₁ ⊤₁⦘) ⊆₁ Val_s_ (val_s w)).
+    { rewrite <- SRF_W. clear. basic_solver. }
+    unfold val. rewrite HEQW; ins. }
+  exists l_e. split; red.
+  { red. desf. }
+  rewrite <- SRF_W. clear. basic_solver.
+Qed.
 
 Lemma fake_srf_is_srf
     (WF : Wf G_s)
     (SB : sb_s' ≡ fake_sb)
+    (NIN : ~E_s e)
+    (LAB : lab_s' = upd lab_s e l_e)
     (VF : vf_s' ⨾ sb_s' ⨾ ⦗eq e⦘ ≡ vf_s ⨾ sb_s' ⨾ ⦗eq e⦘)
     (CO : co_s' ⨾ ⦗E_s⦘ ≡ co_s ⨾ ⦗E_s⦘) :
   fake_srf ⨾ ⦗eq e ∩₁ WCore.lab_is_r l_e⦘ ≡
     srf_s' ⨾ ⦗eq e ∩₁ WCore.lab_is_r l_e⦘.
 Proof using.
-  admit.
-Admitted.
+  unfold fake_srf, srf.
+  rewrite !seq_eqv_minus_r, !seqA, <- id_inter.
+  arewrite (
+    R_s' ∩₁ (eq e ∩₁ WCore.lab_is_r l_e) ≡₁
+    eq e ∩₁ WCore.lab_is_r l_e
+  ).
+  { rewrite LAB. clear. unfold WCore.lab_is_r.
+    unfolder. split; ins; desf.
+    unfold is_r. now rewrite upds. }
+  rewrite id_inter.
+  arewrite (
+    (vf_s' ⨾ sb_s') ∩ same_loc_s' ⨾ ⦗eq e⦘ ≡
+    (vf_s' ⨾ sb_s' ⨾ ⦗eq e⦘) ∩ (same_loc_s' ⨾ ⦗eq e⦘)
+  ).
+  { basic_solver 11. }
+  seq_rewrite <- seq_eqv_inter_rr.
+  rewrite <- SB.
+  seq_rewrite !VF.
+  rewrite !seqA.
+  arewrite (co_s' ⨾ vf_s ≡ co_s ⨾ vf_s).
+  { rewrite wf_vfE_left. seq_rewrite CO.
+    now rewrite seqA. }
+  apply minus_rel_more; auto.
+  transitivity (
+    (⦗Loc_s_ (WCore.lab_loc l_e)⦘ ⨾ (vf_s ⨾ sb_s' ⨾ ⦗eq e⦘)) ⨾ ⦗WCore.lab_is_r l_e⦘
+  ).
+  { now rewrite !seqA. }
+  remember (vf_s ⨾ sb_s' ⨾ ⦗eq e⦘)
+        as vfsb.
+  rewrite <- seqA, seq_eqv_inter_rr.
+  apply seq_more; auto.
+  arewrite (vfsb ≡ ⦗E_s⦘ ⨾ vfsb).
+  { subst vfsb. rewrite wf_vfE_left at 1.
+    clear. basic_solver. }
+  unfold same_loc. rewrite LAB. subst vfsb.
+  clear - NIN.
+  unfolder. split; ins; desf; splits; eauto.
+  all: unfold loc, WCore.lab_loc in *.
+  all: rewrite ?upds in *.
+  all: rewrite ?updo in *; congruence.
+Qed.
 
 End FakeSrf.
