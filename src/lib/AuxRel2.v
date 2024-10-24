@@ -72,6 +72,13 @@ Proof using.
   unfold add_max. now rewrite set_minus_disjoint.
 Qed.
 
+Lemma add_max_a T (A B : T -> Prop) :
+  add_max A B ≡ add_max (A \₁ B) B.
+Proof using.
+  unfold add_max.
+  basic_solver 11.
+Qed.
+
 Lemma restr_add_max T (A B C : T -> Prop) :
   restr_rel C (add_max A B) ≡ add_max (A ∩₁ C) (B ∩₁ C).
 Proof using.

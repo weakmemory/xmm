@@ -170,7 +170,7 @@ Record reexec_conds : Prop := {
   rc_rf : rf_s' ≡ mapper' ↑ rf_t' ∪ fake_srf G_s'' a_s' (lab_s' a_s') ⨾ ⦗A_s' ∩₁ WCore.lab_is_r (lab_s' a_s')⦘;
   rc_co : co_s' ≡ mapper' ↑ co_t' ∪
           add_max
-            (extra_co_D (mapper' ↑₁ E_t') lab_s (WCore.lab_loc (lab_s' a_s')))
+            (extra_co_D (mapper' ↑₁ E_t') lab_s' (WCore.lab_loc (lab_s' a_s')))
             (A_s' ∩₁ WCore.lab_is_w (lab_s' a_s'));
   rc_rmw : rmw_s' ≡ mapper' ↑ rmw_t';
   rc_threads : threads_set G_s' ≡₁ threads_set G_t';
@@ -267,7 +267,30 @@ Proof using.
     rupd. }
   { admit. }
   { rewrite <- SRF, (rc_rf CTX). auto. }
-  { rewrite (rc_co CTX). admit. }
+  { rewrite (rc_co CTX), (rc_acts CTX).
+    apply union_more; auto.
+    change (extra_a X_t' a_t' b_t' b_t')
+      with A_s'.
+    change (extra_a X_t' a_t' b_t' a_s')
+      with A_s'.
+    arewrite (WCore.lab_loc (lab_s' a_s') = loc_s' b_t').
+    arewrite (A_s' ∩₁ W_s' ≡₁
+              A_s' ∩₁ WCore.lab_is_w (lab_s' a_s')).
+    { unfold A_s', extra_a. desf; [| basic_solver].
+      clear. unfold is_w, WCore.lab_is_w.
+      unfolder. split; ins; desf. }
+    destruct classic
+        with (WCore.lab_is_w (lab_s' a_s') ≡₁ ∅)
+          as [EMP | NEMP].
+    { rewrite EMP, set_inter_empty_r.
+      now rewrite !add_max_empty_r. }
+    arewrite (WCore.lab_is_w (lab_s' a_s') ≡₁ ⊤₁).
+    { unfold WCore.lab_is_w in *. desf. }
+    rewrite set_inter_full_r,
+            add_max_a with (A := extra_co_D (mapper' ↑₁ E_t') lab_s' (loc_s' b_t')),
+            add_max_a with (A := extra_co_D (mapper' ↑₁ E_t' ∪₁ A_s') lab_s' (loc_s' b_t')).
+    rewrite !extra_co_D_minus, set_minus_union_l.
+    now rewrite set_minusK, set_union_empty_r. }
   { admit. (* rpo *) }
   { clear. unfold mapper'. unfolder.
     ins. desf. now rewrite !updo by auto. }
