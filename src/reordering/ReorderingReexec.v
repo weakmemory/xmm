@@ -327,6 +327,16 @@ Lemma reexec_step
     (CTX : reexec_conds) :
   WCore.reexec X_s X_s' f' dtrmt' cmt'.
 Proof using.
+  assert (MAPINV : forall x (MEQ : mapper' x = b_t'),
+    x = a_t'
+  ).
+  { intros x XEQ.
+    replace b_t' with (mapper' a_t') in XEQ.
+    { eapply mapinj'; easy. }
+    clear - CTX. unfold mapper'.
+    rupd; [easy | apply CTX]. }
+  assert (NEQ : a_t' <> b_t').
+  { apply CTX. }
   assert (GREEXEC :
     WCore.reexec X_t X_t' f dtrmt cmt
   ).
@@ -411,7 +421,46 @@ Proof using.
   { exact SURG. }
   { admit. (* sb-clos *) }
   { admit. (* rpo edges *) }
-  { admit. (* embd *) }
+  { constructor.
+    { admit. (* Inj *) }
+    { admit. (* TID *) }
+    { admit. (* lab *) }
+    { admit. }
+    { rewrite (rsr_rf (reexec_simrel CTX)),
+              restr_union, collect_rel_union.
+      arewrite_false (restr_rel cmt'
+        (srf_s' ⨾ ⦗extra_a X_t' a_t' b_t' b_t' ∩₁ R_s'⦘)
+      ).
+      { unfold extra_a, cmt', extra_b.
+        desf; [| basic_solver].
+        rewrite restr_relE, seqA.
+        seq_rewrite <- id_inter.
+        transitivity (srf_s' ⨾ ⦗eq b_t' ∩₁ mapper' ↑₁ (cmt ∪₁ eq b_t')⦘).
+        { basic_solver 11. }
+        arewrite_false (⦗eq b_t' ∩₁ mapper' ↑₁ (cmt ∪₁ eq b_t')⦘); [| basic_solver].
+        enough (RR : eq b_t' ∩₁ mapper' ↑₁ (cmt ∪₁ eq b_t') ⊆₁ ∅).
+        { rewrite RR. clear. basic_solver. }
+        rewrite set_collect_union, set_collect_eq.
+        arewrite (mapper' b_t' = a_t').
+        { admit. }
+        arewrite (mapper' ↑₁ cmt ⊆₁ mapper' ↑₁ E_t').
+        { apply set_collect_mori; auto.
+          apply GREEXEC. }
+        clear - NEQ a MAPINV.
+        intros x (EQB & [MAP | EQA]); [| congruence].
+        subst x.
+        destruct MAP as (x & XIN & MAP).
+        apply MAPINV in MAP.
+        red. desf. }
+      rewrite collect_rel_empty, union_false_r.
+      rewrite (rsr_rf (rc_simrel CTX)).
+      transitivity (mapper ↑ rf_t); [| auto with hahn].
+      unfold cmt'.
+      (* rewrite <- (WCore.reexec_embd_rf (WCore.reexec_embd_corr GREEXEC)). *)
+      admit. }
+      { admit. (* Co ordering *) }
+      { admit. (* Rmw *) }
+      admit. (* INE *) }
   { exact WF_START. (* wf start *) }
   { admit. (* Consistency *) }
   apply sub_to_full_exec_listless
