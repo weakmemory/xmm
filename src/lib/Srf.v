@@ -243,6 +243,26 @@ Proof using.
     rewrite EQ1. basic_solver.
 Qed.
 
+Lemma sbvf_as_rhb :
+  vf ⨾ sb ≡ ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf^? ⨾ rhb^? ⨾ sb.
+Proof using.
+  unfold vf. rewrite !seqA.
+  split; [| now rewrite rhb_in_hb].
+  rewrite hb_helper, cr_union_r,
+          seq_union_l.
+  rewrite rewrite_trans by apply sb_trans.
+  basic_solver 11.
+Qed.
+
+Lemma srf_as_rhb :
+  srf ≡
+    ((⦗E⦘ ⨾ ⦗W⦘ ⨾ rf^? ⨾ rhb^? ⨾ sb) ∩ same_loc) ⨾ ⦗R⦘ \
+      (co ⨾ ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf^? ⨾ rhb^? ⨾ sb).
+Proof using.
+  unfold srf.
+  now rewrite sbvf_as_rhb.
+Qed.
+
 End Srf.
 
 Section SubSrf.
