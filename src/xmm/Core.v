@@ -430,7 +430,8 @@ Record stable_uncmt_reads_gen thrdle : Prop :=
   { surg_init_least : least_elt thrdle tid_init;
     surg_init_min : min_elt thrdle tid_init;
     surg_order : strict_partial_order thrdle;
-    surg_uncmt : rf' ⨾ ⦗E' \₁ cmt⦘ ⊆ sb' ∪ tid ↓ thrdle; }.
+    surg_ndtrmt : ⦗E' \₁ dtrmt⦘ ⨾ rf' ⊆ sb' ∪ tid ↓ thrdle; }.
+
 
 Record commit_embedded : Prop :=
 { reexec_embd_inj : inj_dom cmt f;
@@ -442,7 +443,7 @@ Record commit_embedded : Prop :=
   reexec_embd_rmw : f ↑ restr_rel cmt rmw' ⊆ rmw;
   reexec_embd_acts : f ↑₁ cmt ⊆₁ E }.
 
-Record reexec_gen thrdle dtrmt : Prop :=
+Record reexec_gen thrdle : Prop :=
 { (* Correct start *)
   dtrmt_cmt : dtrmt ⊆₁ f ↑₁ cmt;
   reexec_embd_dom : cmt ⊆₁ E';
@@ -457,7 +458,7 @@ Record reexec_gen thrdle dtrmt : Prop :=
   reexec_steps : (guided_step cmt X')＊ (X_start dtrmt) X'; }.
 
 Definition reexec : Prop :=
-  exists thrdle, reexec_gen thrdle dtrmt.
+  exists thrdle, reexec_gen thrdle.
 
 End ReexecStep.
 
