@@ -37,6 +37,7 @@ Notation "'rf_t'" := (rf G_t).
 Notation "'co_t'" := (co G_t).
 Notation "'rmw_t'" := (rmw G_t).
 Notation "'rpo_t'" := (rpo G_t).
+Notation "'rpo_imm_t'" := (rpo_imm G_t).
 Notation "'rmw_dep_t'" := (rmw_dep G_t).
 Notation "'data_t'" := (data G_t).
 Notation "'ctrl_t'" := (ctrl G_t).
@@ -48,6 +49,9 @@ Notation "'Loc_t_' l" := (fun e => loc_t e = l) (at level 1).
 Notation "'Val_t_' l" := (fun e => val_t e = l) (at level 1).
 Notation "'same_loc_t'" := (same_loc lab_t).
 Notation "'same_val_t'" := (same_val lab_t).
+Notation "'Acq_t'" := (fun e => is_true (is_acq lab_t e)).
+Notation "'Rel_t'" := (fun e => is_true (is_rel lab_t e)).
+Notation "'Rlx_t'" := (fun e => is_true (is_rlx lab_t e)).
 
 Notation "'G_s'" := (WCore.G X_s).
 Notation "'lab_s'" := (lab G_s).
@@ -59,6 +63,7 @@ Notation "'rf_s'" := (rf G_s).
 Notation "'co_s'" := (co G_s).
 Notation "'rmw_s'" := (rmw G_s).
 Notation "'rpo_s'" := (rpo G_s).
+Notation "'rpo_imm_s'" := (rpo_imm G_s).
 Notation "'rmw_dep_s'" := (rmw_dep G_s).
 Notation "'data_s'" := (data G_s).
 Notation "'ctrl_s'" := (ctrl G_s).
@@ -72,8 +77,9 @@ Notation "'Loc_s_' l" := (fun e => loc_s e = l) (at level 1).
 Notation "'Val_s_' l" := (fun e => val_s e = l) (at level 1).
 Notation "'same_loc_s'" := (same_loc lab_s).
 Notation "'same_val_s'" := (same_val lab_s).
-Notation "'Acq_t'" := (fun e => is_true (is_acq lab_t e)).
-Notation "'Rel_t'" := (fun e => is_true (is_rel lab_t e)).
+Notation "'Acq_s'" := (fun e => is_true (is_acq lab_s e)).
+Notation "'Rel_s'" := (fun e => is_true (is_rel lab_s e)).
+Notation "'Rlx_s'" := (fun e => is_true (is_rlx lab_s e)).
 
 Notation "'Tid_' t" := (fun e => tid e = t) (at level 1).
 
