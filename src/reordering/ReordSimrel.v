@@ -41,9 +41,9 @@ Notation "'rmw_dep_t'" := (rmw_dep G_t).
 Notation "'data_t'" := (data G_t).
 Notation "'ctrl_t'" := (ctrl G_t).
 Notation "'addr_t'" := (addr G_t).
-Notation "'W_t'" := (is_w lab_t).
-Notation "'R_t'" := (is_r lab_t).
-Notation "'F_t'" := (is_f lab_t).
+Notation "'W_t'" := (fun e => is_true (is_w lab_t e)).
+Notation "'R_t'" := (fun e => is_true (is_r lab_t e)).
+Notation "'F_t'" := (fun e => is_true (is_f lab_t e)).
 Notation "'Loc_t_' l" := (fun e => loc_t e = l) (at level 1).
 Notation "'Val_t_' l" := (fun e => val_t e = l) (at level 1).
 Notation "'same_loc_t'" := (same_loc lab_t).
@@ -63,9 +63,9 @@ Notation "'rmw_dep_s'" := (rmw_dep G_s).
 Notation "'data_s'" := (data G_s).
 Notation "'ctrl_s'" := (ctrl G_s).
 Notation "'addr_s'" := (addr G_s).
-Notation "'W_s'" := (is_w lab_s).
-Notation "'R_s'" := (is_r lab_s).
-Notation "'F_s'" := (is_f lab_s).
+Notation "'W_s'" := (fun e => is_true (is_w lab_s e)).
+Notation "'R_s'" := (fun e => is_true (is_r lab_s e)).
+Notation "'F_s'" := (fun e => is_true (is_f lab_s e)).
 Notation "'b_s'" := (mapper b_t).
 Notation "'srf_s'" := (srf G_s).
 Notation "'Loc_s_' l" := (fun e => loc_s e = l) (at level 1).
