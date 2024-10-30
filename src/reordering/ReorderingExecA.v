@@ -156,8 +156,8 @@ Proof using INV INV'.
   set (dtrmt' := E_s \₁ eq b_t \₁ eq (mapper b_t)).
   set (thrdle' := fun x y =>
     << YNINIT : y <> tid_init >> /\
-    << XNOTA : x <> tid b_t >> /\
-    << XYVAL : x = tid_init \/ y = tid b_t >>
+    << XVAL : x = tid_init \/ x = tid b_t >> /\
+    << XYVAL : y = tid b_t -> x = tid_init >>
   ).
   assert (INB' : E_t' b_t).
   { apply (rsr_at_bt_ord CORR'), (WCore.add_event_acts ADD).
@@ -188,6 +188,8 @@ Proof using INV INV'.
   { apply (rsr_acts SIMREL). unfold extra_a. desf.
     { basic_solver. }
     exfalso; eauto. }
+  assert (BINS : E_s (mapper b_t)).
+  { admit. }
   assert (NOEXA : extra_a X_t' a_t b_t b_t ≡₁ ∅).
   { unfold extra_a; desf. desf. }
   assert (OLDEXA : extra_a X_t a_t b_t b_t ≡₁ eq b_t).
@@ -547,63 +549,82 @@ Proof using INV INV'.
       apply OLDEXA in EXA. congruence. }
     { unfold dtrmt', cmt'. basic_solver 11. }
     admit. (* sc... *) }
-  assert (STAB : WCore.stable_uncmt_reads_gen X_s' cmt' thrdle').
+  assert (STAB : WCore.stable_uncmt_reads_gen X_s' dtrmt' thrdle').
   { constructor; ins.
     { unfolder. subst thrdle'. ins.
-      splits; try red; eauto. intro FALSO.
-      apply (rsr_at_tid CORR).
-      rewrite (rsr_at_bt_tid CORR), FALSO.
-      now eapply eba_tid, SIMREL, extra_a_some. }
+      splits; try red; eauto. }
     { unfolder. subst thrdle'. ins. desf. }
     { constructor; unfolder; subst thrdle'.
-      { ins; desf. }
-      ins; desf. splits; ins; eauto. }
-    arewrite (E_s \₁ cmt' ≡₁ eq b_t).
-    { subst cmt'. rewrite set_minus_minus_r.
+      { ins; desf; eauto. }
+      ins; desf. splits; ins; eauto.
+      exfalso; eauto. }
+    rewrite seq_union_r.
+    arewrite (E_s \₁ dtrmt' ≡₁ eq (mapper b_t) ∪₁ eq b_t).
+    { subst dtrmt'. rewrite !set_minus_minus_r.
       basic_solver. }
-    rewrite seq_union_l.
-    arewrite ((rf_s ⨾ ⦗E_s \₁ eq b_t⦘) ⨾ ⦗eq b_t⦘ ≡ ∅₂).
-    { basic_solver. }
-    rewrite union_false_l. unfolder.
-    intros x y ((x' & y' & RF & XEQ & YEQ) & EQ).
-    destruct RF as (z & RF & YEQ' & ZEQ).
-    subst y. subst y'. subst z. subst x.
-    assert (XIN : E_t x').
-    { apply (wf_rfE WF') in RF. unfolder in RF. desf.
-      apply ADD in RF. destruct RF; ins.
-      exfalso. apply (rf_irr WF') with x'.
-      congruence. }
-    destruct classic with (tid x' = tid b_t) as [TID | NTID].
-    { left.
-      enough (IN : singl_rel (mapper' x') (mapper' a_t) ⊆ sb G_s').
-      { now apply IN. }
-      change G_s' with (WCore.G X_s').
-      rewrite (rsr_sb SIMREL'), NOEXA, cross_false_l, cross_false_r,
-              !union_false_r, <- collect_rel_singl.
-      apply collect_rel_mori; ins.
-      rewrite (WCore.add_event_sb ADD), swap_rel_union.
-      apply inclusion_union_r. right.
-      assert (XNB : x' <> b_t).
-      { intro FALSO. subst x'.
-        eapply (rsr_at_bt_loc CORR') with a_t b_t.
-        apply (wf_rfE WF') in RF. unfolder in RF. unfolder.
-        desf. splits; ins. symmetry. now apply (wf_rfl WF'). }
-      unfold WCore.sb_delta, swap_rel.
-      unfolder. intros x y (XEQ & YEQ). subst x; subst y.
-      left. splits; ins.
-      { right. split; ins. unfold same_tid.
-        rewrite TID, <- (rsr_tid SIMREL'); [| apply ADD; now right].
-        unfold compose. congruence. }
-      apply or_not_and. left.
-      apply or_not_and. now left. }
-    right. subst thrdle'; ins; splits; eauto.
-    { change (tid (mapper' a_t)) with ((tid ∘ mapper') a_t).
-      rewrite (rsr_tid SIMREL'); ins; try now apply SIMREL.
-      apply CORR. }
-    { change (tid (mapper' x')) with ((tid ∘ mapper') x').
-      rewrite (rsr_tid SIMREL'); [congruence|].
-      apply ADD. now left. }
-    right. congruence. }
+    rewrite id_union, !seq_union_l.
+    arewrite_false (⦗eq b_t⦘ ⨾ rf_s ⨾ ⦗E_s \₁ eq b_t⦘).
+    { admit. (* Nobody can read from a_s at this point *) }
+    arewrite (mapper b_t = mapper' b_t).
+    assert (INJ_LMB : inj_dom (
+      codom_rel ⦗eq b_t⦘ ∪₁
+        dom_rel (rf_t' ⨾ ⦗eq a_t⦘)
+      ) mapper'
+    ).
+    { eapply inj_dom_mori; [| reflexivity | apply SIMREL'].
+      unfold flip. rewrite (wf_rfE WF').
+      clear - INB'. basic_solver. }
+    assert (INJ_LMA : inj_dom (
+      codom_rel ⦗eq a_t⦘ ∪₁
+        dom_rel (rf_t' ⨾ ⦗eq a_t⦘)
+      ) mapper'
+    ).
+    { eapply inj_dom_mori; [| reflexivity | apply SIMREL'].
+      unfold flip. rewrite (wf_rfE WF').
+      clear - INA. basic_solver. }
+    arewrite_false (⦗eq (mapper' b_t)⦘ ⨾ mapper' ↑ (rf_t' ⨾ ⦗eq a_t⦘)).
+    { rewrite <- set_collect_eq, <- collect_rel_eqv.
+      seq_rewrite <- collect_rel_seq; auto.
+      rewrite <- collect_rel_empty; apply collect_rel_mori; auto.
+      rewrite (wf_rfl WF').
+      enough (RR : ⦗eq a_t⦘ ⨾ same_loc_t' ⨾ ⦗eq b_t⦘ ⊆ ∅₂).
+      { forward apply RR. clear. unfold same_loc. basic_solver. }
+      rewrite <- (rsr_at_bt_loc INV'), !set_inter_absorb_r.
+      all: clear - INB' INA; basic_solver. }
+    arewrite_false (⦗eq b_t⦘ ⨾ mapper' ↑ (rf_t' ⨾ ⦗eq a_t⦘)).
+    { rewrite <- MAPER_E, <- collect_rel_eqv,
+              <- collect_rel_seq.
+      all: auto.
+      rewrite <- collect_rel_empty; apply collect_rel_mori; auto.
+      rewrite <- restr_relE. apply restr_irrefl_eq.
+      apply (rf_irr WF'). }
+    rewrite !union_false_r.
+    arewrite (rf_s ≡ rf_s ∩ same_tid ∪ rf_s \ same_tid).
+    { split; [| clear; basic_solver].
+      now rewrite <- (split_rel ⊤₁ ⊤₁). }
+    rewrite seq_union_l, !seq_union_r.
+    apply union_mori.
+    { admit. (* TODO: cons of source *) }
+    assert (BTID : tid (mapper' b_t) = tid b_t).
+    { symmetry. now apply (rsr_tid' b_t SIMREL'). }
+    arewrite (rf_s ⊆ rf_s ⨾ ⦗fun x => ~is_init x⦘).
+    { rewrite no_rf_to_init at 1.
+      all: eauto using G_s_wf with hahn. }
+    arewrite (
+      rf_s ⨾ ⦗fun x => ~ is_init x⦘ ⊆
+        rf_s ⨾ ⦗set_compl (E_s ∩₁ Tid_ tid_init)⦘
+    ).
+    { rewrite (rsr_ninit_acts_s INV SIMREL).
+      clear. basic_solver. }
+    arewrite (
+      rf_s ⨾ ⦗set_compl (E_s ∩₁ Tid_ tid_init)⦘ ⊆
+      rf_s ⨾ ⦗set_compl (Tid_ tid_init)⦘
+    ).
+    { rewrite (wf_rfE (G_s_wf INV SIMREL)).
+      clear. basic_solver. }
+    clear - BTID. unfold thrdle', same_tid, NW.
+    unfolder. ins. desf. splits; eauto.
+    rewrite <- BTID. congruence. }
   (* The proof *)
   exists mapper', X_s', id, dtrmt', cmt'.
   split; red; ins.
