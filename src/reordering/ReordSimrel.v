@@ -787,4 +787,41 @@ Proof using.
   basic_solver.
 Qed.
 
+Lemma rsr_rf_from_exa
+    (CORR : reord_step_pred)
+    (SIMREL : reord_simrel)
+    (INB : E_t b_t)
+    (NINA : ~ E_t a_t) :
+  ⦗eq b_t⦘ ⨾ rf_s ⊆ ∅₂.
+Proof using.
+  rewrite (rsr_rf SIMREL), extra_a_some; auto.
+  rewrite seq_union_r.
+  arewrite (srf_s ⨾ ⦗eq b_t ∩₁ R_s⦘ ⊆ rf_s ⨾ ⦗eq b_t ∩₁ R_s⦘).
+  { rewrite (rsr_rf SIMREL), seq_union_l,
+            !seqA, extra_a_some.
+    all: auto.
+    seq_rewrite seq_eqvK. auto with hahn. }
+  assert (INJ :
+    inj_dom (
+      codom_rel ⦗E_t⦘ ∪₁ dom_rel
+        (rf_t ⨾ ⦗E_t⦘)
+    ) mapper
+  ).
+  { rewrite (wf_rfE (rsr_Gt_wf CORR)).
+    eapply inj_dom_mori; [| reflexivity | apply (rsr_inj SIMREL)].
+    unfold flip. basic_solver. }
+  apply inclusion_union_l.
+  { rewrite (wf_rfE (rsr_Gt_wf CORR)),
+            collect_rel_seq, collect_rel_eqv,
+            (rsr_codom SIMREL), extra_a_some.
+    all: auto.
+    seq_rewrite <- id_inter.
+    arewrite (eq b_t ∩₁ (E_s \₁ eq b_t) ⊆₁ ∅).
+    all: basic_solver 11. }
+  rewrite id_inter.
+  arewrite_false (⦗eq b_t⦘ ⨾ rf_s ⨾ ⦗eq b_t⦘); [| basic_solver].
+  rewrite <- restr_relE.
+  apply restr_irrefl_eq, (rf_irr (G_s_wf CORR SIMREL)).
+Qed.
+
 End SimRel.
