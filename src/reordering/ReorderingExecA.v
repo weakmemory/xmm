@@ -564,7 +564,10 @@ Proof using INV INV'.
       basic_solver. }
     rewrite id_union, !seq_union_l.
     arewrite_false (⦗eq b_t⦘ ⨾ rf_s ⨾ ⦗E_s \₁ eq b_t⦘).
-    { admit. (* Nobody can read from a_s at this point *) }
+    { rewrite <- seqA,
+              rsr_rf_from_exa with (X_s := X_s) (X_t := X_t).
+      all: eauto.
+      clear. basic_solver. }
     arewrite (mapper b_t = mapper' b_t).
     assert (INJ_LMB : inj_dom (
       codom_rel ⦗eq b_t⦘ ∪₁
