@@ -411,6 +411,7 @@ Notation "'rf''" := (rf G').
 Notation "'sb''" := (sb G').
 Notation "'rpo''" := (rpo G').
 Notation "'rmw''" := (rmw G').
+Notation "'hb''" := (hb G').
 Notation "'co''" := (co G').
 
 Notation "'G'" := (G X).
@@ -430,7 +431,7 @@ Record stable_uncmt_reads_gen thrdle : Prop :=
   { surg_init_least : least_elt thrdle tid_init;
     surg_init_min : min_elt thrdle tid_init;
     surg_order : strict_partial_order thrdle;
-    surg_ndtrmt : ⦗E' \₁ dtrmt⦘ ⨾ rf' ⊆ sb' ∪ tid ↓ thrdle; }.
+    surg_ndtrmt : ⦗E' \₁ dtrmt⦘ ⨾ rf' ⨾ hb'^? ⊆ sb' ∪ tid ↓ thrdle; }.
 
 
 Record commit_embedded : Prop :=
