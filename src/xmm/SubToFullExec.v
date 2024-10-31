@@ -2,6 +2,7 @@ Require Import Lia Setoid Program.Basics.
 Require Import AuxDef HahnTotalListEx AuxRel. (* needs wf_rmwff *)
 Require Import ExecEquiv.
 Require Import Core AddEventWf.
+Require Import Thrdle.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -901,10 +902,10 @@ Proof using.
     { left. now apply sb_trans with y. }
     all: change (thrdle (tid x) (tid z))
            with ((tid ↓ thrdle) x z).
-    { right. apply thrdle_sb_closed with (G := G').
+    { right. apply thrdle_sb_closed with (X := X').
       all: try now apply STAB.
       unfolder. eauto 11. }
-    { right. apply thrdle_sb_closed with (G := G').
+    { right. apply thrdle_sb_closed with (X := X').
       all: try now apply STAB.
       unfolder. eauto 11. }
     right. unfolder. eapply STAB; eauto. }
