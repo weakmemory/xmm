@@ -1566,12 +1566,12 @@ Lemma write_fr_sub (m : actid -> actid)
         (CODOM_SB_SL : codom_rel (⦗eq a⦘ ⨾ (sb_s ∩ same_loc_s)) ≡₁ ∅)
         (SB_SL_MAP : (sb_s ∩ same_loc_s)⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ (sb_t ∩ same_loc_t))
         (RF_MAP : rf_s ≡ m ↑ rf_t)
-        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
+        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
         (CONS : WCore.is_cons G_t sc_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
-    fr_s ⊆ m ↑ fr_t ∪ m ↑ rf_t⁻¹ ⨾ ((W_s \₁ eq a) ∩₁ same_loc_s a) × eq a.
+    fr_s ⊆ m ↑ fr_t ∪ m ↑ rf_t⁻¹ ⨾ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a.
 Proof using.
     unfold fr. rewrite RF_MAP. rewrite CO_MAP. 
     rewrite seq_union_r. rewrite <- collect_rel_transp.  
@@ -1597,14 +1597,14 @@ Lemma write_eco_sub (m : actid -> actid)
         (CODOM_SB_SL : codom_rel (⦗eq a⦘ ⨾ (sb_s ∩ same_loc_s)) ≡₁ ∅)
         (SB_SL_MAP : (sb_s ∩ same_loc_s)⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ (sb_t ∩ same_loc_t))
         (RF_MAP : rf_s ≡ m ↑ rf_t)
-        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
+        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
         (CONS : WCore.is_cons G_t sc_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
     eco_s ⊆ m ↑ eco_t 
-          ∪ (((W_s \₁ eq a) ∩₁ same_loc_s a) × eq a) ⨾ rf_s^?
-          ∪ (m ↑ rf_t⁻¹) ⨾ (((W_s \₁ eq a) ∩₁ same_loc_s a) × eq a) ⨾ rf_s^?.
+          ∪ (((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a) ⨾ rf_s^?
+          ∪ (m ↑ rf_t⁻¹) ⨾ (((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a) ⨾ rf_s^?.
 Proof using.
     unfold eco. repeat rewrite collect_rel_union. rewrite RF_MAP.
     repeat apply inclusion_union_l.
@@ -1625,8 +1625,8 @@ Proof using.
         rewrite IN1, IN2. basic_solver. }
       rewrite crE. rewrite seq_union_r.
       apply inclusion_union_l.
-      { clear; mode_solver 8. }
-      rewrite <- !unionA. rewrite !seq_union_r.
+      { clear; mode_solver 21. }
+      rewrite !seq_union_r.
       rewrite <- !unionA. do 2 left. right; vauto. }
     rewrite write_fr_sub; vauto.
     rewrite seq_union_l. apply inclusion_union_l.
@@ -1648,7 +1648,7 @@ Proof using.
         apply wf_frE in P1; vauto.
         destruct P1 as (x1 & INE1 & (x2 & P1 & (EQ & INE2))); vauto. }
       subst. vauto. }
-    rewrite seqA; right; basic_solver 8.
+    rewrite seqA; right; basic_solver 21.
 Qed.
 
 Lemma write_codom_sw (m : actid -> actid)
@@ -1662,7 +1662,7 @@ Lemma write_codom_sw (m : actid -> actid)
         (CODOM_SB_SL : codom_rel (⦗eq a⦘ ⨾ (sb_s ∩ same_loc_s)) ≡₁ ∅)
         (SB_SL_MAP : (sb_s ∩ same_loc_s)⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ (sb_t ∩ same_loc_t))
         (RF_MAP : rf_s ≡ m ↑ rf_t)
-        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
+        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
         (CONS : WCore.is_cons G_t sc_t)
         (WF_t : Wf G_t)
@@ -1709,7 +1709,7 @@ Lemma write_sw_helper_rf_rmw (m : actid -> actid)
         (CODOM_SB_SL : codom_rel (⦗eq a⦘ ⨾ (sb_s ∩ same_loc_s)) ≡₁ ∅)
         (SB_SL_MAP : (sb_s ∩ same_loc_s)⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ (sb_t ∩ same_loc_t))
         (RF_MAP : rf_s ≡ m ↑ rf_t)
-        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
+        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
         (CONS : WCore.is_cons G_t sc_t)
         (WF_t : Wf G_t)
@@ -1736,7 +1736,7 @@ Lemma write_sw_helper_release (m : actid -> actid)
         (CODOM_SB_SL : codom_rel (⦗eq a⦘ ⨾ (sb_s ∩ same_loc_s)) ≡₁ ∅)
         (SB_SL_MAP : (sb_s ∩ same_loc_s)⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ (sb_t ∩ same_loc_t))
         (RF_MAP : rf_s ≡ m ↑ rf_t)
-        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
+        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
         (CONS : WCore.is_cons G_t sc_t)
         (WF_t : Wf G_t)
@@ -1940,7 +1940,7 @@ Lemma write_sw_helper_rf (m : actid -> actid)
         (CODOM_SB_SL : codom_rel (⦗eq a⦘ ⨾ (sb_s ∩ same_loc_s)) ≡₁ ∅)
         (SB_SL_MAP : (sb_s ∩ same_loc_s)⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ (sb_t ∩ same_loc_t))
         (RF_MAP : rf_s ≡ m ↑ rf_t)
-        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
+        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
         (CONS : WCore.is_cons G_t sc_t)
         (WF_t : Wf G_t)
@@ -2032,7 +2032,7 @@ Lemma write_sw_sub_helper (m : actid -> actid)
         (CODOM_SB_SL : codom_rel (⦗eq a⦘ ⨾ (sb_s ∩ same_loc_s)) ≡₁ ∅)
         (SB_SL_MAP : (sb_s ∩ same_loc_s)⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ (sb_t ∩ same_loc_t))
         (RF_MAP : rf_s ≡ m ↑ rf_t)
-        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
+        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
         (CONS : WCore.is_cons G_t sc_t)
         (WF_t : Wf G_t)
@@ -2087,7 +2087,7 @@ Lemma write_sw_sub (m : actid -> actid)
         (CODOM_SB_SL : codom_rel (⦗eq a⦘ ⨾ (sb_s ∩ same_loc_s)) ≡₁ ∅)
         (SB_SL_MAP : (sb_s ∩ same_loc_s)⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ (sb_t ∩ same_loc_t))
         (RF_MAP : rf_s ≡ m ↑ rf_t)
-        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
+        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
         (CONS : WCore.is_cons G_t sc_t)
         (WF_t : Wf G_t)
@@ -2117,7 +2117,7 @@ Lemma write_rhb_codom (m : actid -> actid)
         (CODOM_SB_SL : codom_rel (⦗eq a⦘ ⨾ (sb_s ∩ same_loc_s)) ≡₁ ∅)
         (SB_SL_MAP : (sb_s ∩ same_loc_s)⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ (sb_t ∩ same_loc_t))
         (RF_MAP : rf_s ≡ m ↑ rf_t)
-        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
+        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
         (CONS : WCore.is_cons G_t sc_t)
         (WF_t : Wf G_t)
@@ -2165,7 +2165,7 @@ Lemma write_rhb_start (m : actid -> actid)
         (CODOM_SB_SL : codom_rel (⦗eq a⦘ ⨾ (sb_s ∩ same_loc_s)) ≡₁ ∅)
         (SB_SL_MAP : (sb_s ∩ same_loc_s)⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ (sb_t ∩ same_loc_t))
         (RF_MAP : rf_s ≡ m ↑ rf_t)
-        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
+        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
         (CONS : WCore.is_cons G_t sc_t)
         (WF_t : Wf G_t)
@@ -2211,7 +2211,7 @@ Lemma write_rhb_imm_start (m : actid -> actid)
         (CODOM_SB_SL : codom_rel (⦗eq a⦘ ⨾ (sb_s ∩ same_loc_s)) ≡₁ ∅)
         (SB_SL_MAP : (sb_s ∩ same_loc_s)⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ (sb_t ∩ same_loc_t))
         (RF_MAP : rf_s ≡ m ↑ rf_t)
-        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
+        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
         (CONS : WCore.is_cons G_t sc_t)
         (WF_t : Wf G_t)
@@ -2257,7 +2257,7 @@ Lemma write_rhb_fin (m : actid -> actid)
         (CODOM_SB_SL : codom_rel (⦗eq a⦘ ⨾ (sb_s ∩ same_loc_s)) ≡₁ ∅)
         (SB_SL_MAP : (sb_s ∩ same_loc_s)⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ (sb_t ∩ same_loc_t))
         (RF_MAP : rf_s ≡ m ↑ rf_t)
-        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
+        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
         (CONS : WCore.is_cons G_t sc_t)
         (WF_t : Wf G_t)
@@ -2285,7 +2285,7 @@ Lemma write_rhb_sub (m : actid -> actid)
         (CODOM_SB_SL : codom_rel (⦗eq a⦘ ⨾ (sb_s ∩ same_loc_s)) ≡₁ ∅)
         (SB_SL_MAP : (sb_s ∩ same_loc_s)⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ (sb_t ∩ same_loc_t))
         (RF_MAP : rf_s ≡ m ↑ rf_t)
-        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
+        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
         (CONS : WCore.is_cons G_t sc_t)
         (WF_t : Wf G_t)
@@ -2349,7 +2349,7 @@ Lemma write_extent (m : actid -> actid)
         (CODOM_SB_SL : codom_rel (⦗eq a⦘ ⨾ (sb_s ∩ same_loc_s)) ≡₁ ∅)
         (SB_SL_MAP : (sb_s ∩ same_loc_s)⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ (sb_t ∩ same_loc_t))
         (RF_MAP : rf_s ≡ m ↑ rf_t)
-        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
+        (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
         (CONS : WCore.is_cons G_t sc_t)
         (WF_t : Wf G_t)
