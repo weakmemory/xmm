@@ -9,6 +9,7 @@ Require Import StepOps.
 Require Import AuxInj.
 Require Import SubToFullExec.
 Require Import ReorderingFakeSrf.
+Require Import Thrdle.
 
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
@@ -52,6 +53,8 @@ Notation "'rmw_dep_t'" := (rmw_dep G_t).
 Notation "'data_t'" := (data G_t).
 Notation "'ctrl_t'" := (ctrl G_t).
 Notation "'addr_t'" := (addr G_t).
+Notation "'hb_t'" := (hb G_t).
+Notation "'rhb_t'" := (rhb G_t).
 Notation "'W_t'" := (fun x => is_true (is_w lab_t x)).
 Notation "'R_t'" := (fun x => is_true (is_r lab_t x)).
 Notation "'Loc_t_' l" := (fun e => loc_t e = l) (at level 1).
@@ -70,6 +73,8 @@ Notation "'rmw_dep_t''" := (rmw_dep G_t').
 Notation "'data_t''" := (data G_t').
 Notation "'ctrl_t''" := (ctrl G_t').
 Notation "'addr_t''" := (addr G_t').
+Notation "'hb_t''" := (hb G_t').
+Notation "'rhb_t''" := (rhb G_t').
 Notation "'W_t''" := (fun x => is_true (is_w lab_t' x)).
 Notation "'R_t''" := (fun x => is_true (is_r lab_t' x)).
 Notation "'Loc_t_'' l" := (fun e => loc_t' e = l) (at level 1).
@@ -89,6 +94,8 @@ Notation "'rmw_dep_s'" := (rmw_dep G_s).
 Notation "'data_s'" := (data G_s).
 Notation "'ctrl_s'" := (ctrl G_s).
 Notation "'addr_s'" := (addr G_s).
+Notation "'hb_s'" := (hb G_s).
+Notation "'rhb_s'" := (rhb G_s).
 Notation "'W_s'" := (fun x => is_true (is_w lab_s x)).
 Notation "'R_s'" := (fun x => is_true (is_r lab_s x)).
 Notation "'F_s'" := (F G_s).
@@ -116,6 +123,8 @@ Notation "'rmw_dep_s''" := (rmw_dep G_s').
 Notation "'data_s''" := (data G_s').
 Notation "'ctrl_s''" := (ctrl G_s').
 Notation "'addr_s''" := (addr G_s').
+Notation "'hb_s''" := (hb G_s').
+Notation "'rhb_s''" := (rhb G_s').
 Notation "'W_s''" := (fun x => is_true (is_w lab_s' x)).
 Notation "'R_s''" := (fun x => is_true (is_r lab_s' x)).
 Notation "'F_s''" := (F G_s').
@@ -347,33 +356,33 @@ Proof using.
     rewrite updo, upds; [done |].
     apply CTX. }
   assert (RFSUB :
-    mapper' ↑ rf_t' ⨾ ⦗E_s' \₁ cmt'⦘ ⊆
-    mapper' ↑ rf_t' ⨾ ⦗mapper' ↑₁ E_t' \₁ cmt'⦘
+    ⦗E_s' \₁ dtrmt'⦘ ⨾ mapper' ↑ rf_t' ⊆
+    ⦗mapper' ↑₁ E_t' \₁ dtrmt'⦘ ⨾ mapper' ↑ rf_t'
   ).
   { rewrite (rsr_acts (reexec_simrel CTX)).
-    rewrite set_minus_union_l, id_union, seq_union_r.
-    arewrite_false (mapper' ↑ rf_t' ⨾ ⦗extra_a X_t' a_t' b_t' b_t' \₁ cmt'⦘).
+    rewrite set_minus_union_l, id_union, seq_union_l.
+    arewrite_false (⦗extra_a X_t' a_t' b_t' b_t' \₁ dtrmt'⦘ ⨾ mapper' ↑ rf_t').
     all: try now rewrite union_false_r.
     unfold extra_a; desf; [| basic_solver].
     rewrite (wf_rfE (rsr_Gt_wf (rc_inv_end CTX))).
     rewrite <- MEQA.
     unfolder.
-    intros x y ((x' & y' & (_ & _ & YIN) & _ & YEQ) & (YEQA & _)).
-    subst y. apply mapinj' in YEQA; try now red.
+    intros x y ((XEQA & _) & (x' & y' & (XIN & _ & _) & XEQ & _)).
+    subst x. apply mapinj' in XEQ; try now red.
     desf. }
   assert (RFSUB2 :
-    mapper' ↑ rf_t' ⨾ ⦗mapper' ↑₁ E_t' \₁ cmt'⦘ ⊆
-    mapper' ↑ rf_t' ⨾ ⦗mapper' ↑₁ E_t' \₁ mapper' ↑₁ cmt⦘
+    ⦗mapper' ↑₁ E_t' \₁ dtrmt'⦘ ⨾ mapper' ↑ rf_t' ⊆
+    ⦗mapper' ↑₁ E_t' \₁ mapper' ↑₁ dtrmt⦘ ⨾ mapper' ↑ rf_t'
   ).
   { unfold cmt'.
     apply seq_mori; auto with hahn.
     apply eqv_rel_mori, set_minus_mori.
     all: auto with hahn.
     unfold flip.
-    rewrite set_collect_union. auto with hahn. }
+    admit. }
   assert (RFSUB3 :
-    mapper' ↑ rf_t' ⨾ ⦗mapper' ↑₁ E_t' \₁ mapper' ↑₁ cmt⦘ ⊆
-    mapper' ↑ (rf_t' ⨾ ⦗E_t' \₁ cmt⦘)
+    ⦗mapper' ↑₁ E_t' \₁ mapper' ↑₁ dtrmt⦘ ⨾ mapper' ↑ rf_t' ⊆
+    mapper' ↑ (⦗E_t' \₁ dtrmt⦘ ⨾ rf_t')
   ).
   { rewrite <- set_collect_minus,
             <- collect_rel_eqv,
@@ -384,16 +393,19 @@ Proof using.
     eapply inj_dom_mori; [| reflexivity | eapply mapinj'].
     unfold flip. basic_solver. }
   assert (SURG :
-    WCore.stable_uncmt_reads_gen X_s' cmt' thrdle
+    WCore.stable_uncmt_reads_gen X_s' dtrmt' thrdle
   ).
   { constructor; try now apply GREEXEC.
-    (* rewrite (rsr_rf (reexec_simrel CTX)).
-    rewrite seq_union_l.
-    apply inclusion_union_l.
-    { rewrite RFSUB, RFSUB2, RFSUB3.
-      rewrite (WCore.surg_uncmt (WCore.reexec_sur GREEXEC)).
-      admit. (* Refine the bounds on sb *) } *)
-    admit. (* BIG TODO *) }
+    apply thrdle_with_rhb.
+    all: try now apply GREEXEC.
+    rewrite (rsr_rf (reexec_simrel CTX)).
+    rewrite !seq_union_l, !seq_union_r, !seqA.
+    repeat apply inclusion_union_l.
+    { rewrite <- seqA.
+      rewrite RFSUB, RFSUB2, RFSUB3.
+      (* rewrite (WCore.surg_ndtrmt (WCore.reexec_sur GREEXEC)). *)
+      admit. (* Refine the bounds on sb *) }
+    admit. }
   assert (WF_START :
     WCore.wf (WCore.X_start X_s dtrmt') X_s' cmt'
   ).
@@ -480,7 +492,8 @@ Proof using.
   { now rewrite (rc_addr CTX), (rsr_naddr (rc_inv_end CTX)). }
   { now rewrite (rc_ctrl CTX), (rsr_nctrl (rc_inv_end CTX)). }
   { now rewrite (rc_rmw_dep CTX), (rsr_nrmw_dep (rc_inv_end CTX)). }
-  exact SURG.
+  ins.
+  admit. (* dtrmt' is subset of E_s' *)
 Admitted.
 
 End ReorderingReexecInternal.
