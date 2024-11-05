@@ -42,10 +42,31 @@ Proof using.
   basic_solver.
 Qed.
 
+Lemma no_rpo_imm_to_init :
+  rpo_imm ≡ rpo_imm ⨾ ⦗fun e => ~is_init e⦘.
+Proof using.
+  split; [| basic_solver].
+  unfold rpo_imm.
+  rewrite !seq_union_l.
+  repeat apply union_mori.
+  all: rewrite !seqA.
+  all: rewrite no_sb_to_init at 1.
+  all: basic_solver 11.
+Qed.
+
 Lemma rpo_in_sb : rpo ⊆ sb.
 Proof using.
   unfold rpo. rewrite rpo_imm_in_sb.
   apply ct_of_trans. apply sb_trans.
+Qed.
+
+Lemma no_rpo_to_init :
+  rpo ≡ rpo ⨾ ⦗fun e => ~is_init e⦘.
+Proof using.
+  split; [| basic_solver].
+  unfold rpo.
+  rewrite no_rpo_imm_to_init at 1.
+  apply inclusion_ct_seq_eqv_r.
 Qed.
 
 Lemma wf_rpoE
@@ -78,6 +99,20 @@ Proof using.
   rewrite <- seqA.
   rewrite ct_seq_eqv_r.
   basic_solver.
+Qed.
+
+Lemma no_rhb_to_init
+    (WF : Wf G) :
+  rhb ≡ rhb ⨾ ⦗fun e => ~is_init e⦘.
+Proof using.
+  split; [| basic_solver].
+  unfold rhb.
+  rewrite (no_sw_to_init WF) at 1.
+  rewrite no_sb_to_init at 1.
+  rewrite no_rpo_to_init at 1.
+  rewrite seq_eqv_inter_lr.
+  rewrite <- !seq_union_l.
+  apply inclusion_ct_seq_eqv_r.
 Qed.
 
 Lemma rpo_imm_upward_closed s
