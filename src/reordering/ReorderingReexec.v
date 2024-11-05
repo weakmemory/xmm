@@ -387,12 +387,12 @@ Proof using.
     WCore.stable_uncmt_reads_gen X_s' cmt' thrdle
   ).
   { constructor; try now apply GREEXEC.
-    rewrite (rsr_rf (reexec_simrel CTX)).
+    (* rewrite (rsr_rf (reexec_simrel CTX)).
     rewrite seq_union_l.
     apply inclusion_union_l.
     { rewrite RFSUB, RFSUB2, RFSUB3.
       rewrite (WCore.surg_uncmt (WCore.reexec_sur GREEXEC)).
-      admit. (* Refine the bounds on sb *) }
+      admit. (* Refine the bounds on sb *) } *)
     admit. (* BIG TODO *) }
   assert (WF_START :
     WCore.wf (WCore.X_start X_s dtrmt') X_s' cmt'
