@@ -156,10 +156,9 @@ Proof using INV INV'.
   |}).
   set (cmt' := E_s \₁ eq b_t).
   set (dtrmt' := E_s \₁ eq b_t \₁ eq (mapper b_t)).
-  set (thrdle' := fun x y =>
-    << YNINIT : y <> tid_init >> /\
-    << XVAL : x = tid_init \/ x = tid b_t >> /\
-    << XYVAL : y = tid b_t -> x = tid_init >>
+  set (thrdle' :=
+    eq tid_init × set_compl (eq tid_init) ∪
+    eq (tid b_t) × set_compl (eq tid_init ∪₁ eq (tid b_t))
   ).
   assert (INB' : E_t' b_t).
   { apply (rsr_at_bt_ord CORR'), (WCore.add_event_acts ADD).
@@ -551,6 +550,8 @@ Proof using INV INV'.
       apply OLDEXA in EXA. congruence. }
     { unfold dtrmt', cmt'. basic_solver 11. }
     admit. (* sc... *) }
+  assert (BTID : tid (mapper' b_t) = tid b_t).
+  { symmetry. now apply (rsr_tid' b_t SIMREL'). }
   assert (RFTHRDLE :
     ⦗eq (mapper' b_t)⦘ ⨾ rf_s ⨾ ⦗E_s \₁ eq b_t⦘ ⊆
     ⦗eq (mapper' b_t)⦘ ⨾ (sb G_s' ∪ tid ↓ thrdle') ⨾ ⦗E_s \₁ eq b_t⦘
@@ -561,8 +562,6 @@ Proof using INV INV'.
     rewrite !seq_union_l, !seq_union_r.
     apply union_mori.
     { admit. (* TODO: cons of source *) }
-    assert (BTID : tid (mapper' b_t) = tid b_t).
-    { symmetry. now apply (rsr_tid' b_t SIMREL'). }
     arewrite (rf_s ⊆ rf_s ⨾ ⦗fun x => ~is_init x⦘).
     { rewrite no_rf_to_init at 1.
       all: eauto using G_s_wf with hahn. }
@@ -580,16 +579,14 @@ Proof using INV INV'.
       clear. basic_solver. }
     clear - BTID. unfold thrdle', same_tid, NW.
     unfolder. ins. desf. splits; eauto.
-    rewrite <- BTID. congruence. }
+    assert (NEQ : tid_init <> tid y) by congruence.
+    rewrite <- BTID. right. tauto. }
   assert (STAB : WCore.stable_uncmt_reads_gen X_s' dtrmt' thrdle').
   { constructor; ins.
-    { unfolder. subst thrdle'. ins.
-      splits; try red; eauto. }
-    { unfolder. subst thrdle'. ins. desf. }
-    { constructor; unfolder; subst thrdle'.
-      { ins; desf; eauto. }
-      ins; desf. splits; ins; eauto.
-      exfalso; eauto. }
+    { unfold thrdle'. clear. basic_solver. }
+    { unfold thrdle'. clear. basic_solver. }
+    { constructor; unfold thrdle'.
+      all: clear; basic_solver 11. }
     apply thrdle_with_rhb
      with (X := X_s'); ins.
     { admit. }
@@ -642,6 +639,18 @@ Proof using INV INV'.
     apply inclusion_union_l.
     { rewrite seq_id_r, RFTHRDLE.
       clear. basic_solver. }
+    arewrite (
+      ⦗eq (mapper' b_t)⦘ ⨾ rf_s ⊆
+      ⦗eq (mapper' b_t)⦘ ⨾ rf_s ⨾ ⦗set_compl (Tid_ tid_init ∪₁ Tid_ (tid b_t))⦘
+    ).
+    { admit. }
+    arewrite (
+      rhb G_s' ⊆ rhb G_s' ⨾ ⦗set_compl (Tid_ tid_init ∪₁ Tid_ (tid b_t)) ∪₁ Tid_ (tid b_t)⦘
+    ).
+    { admit. }
+    rewrite id_union, !seq_union_r.
+    apply inclusion_union_l.
+    { admit. }
     admit. }
   (* The proof *)
   exists mapper', X_s', id, dtrmt', cmt'.
