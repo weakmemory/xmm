@@ -2,6 +2,7 @@ Require Import Lia Setoid Program.Basics.
 Require Import AuxDef HahnTotalListEx AuxRel. (* needs wf_rmwff *)
 Require Import ExecEquiv.
 Require Import Core AddEventWf.
+Require Import Thrdle.
 
 From PromisingLib Require Import Language Basic.
 From hahn Require Import Hahn.
@@ -659,7 +660,6 @@ End DeltaGraph.
 Section EnumeratedDifference.
 
 Variable X X' : WCore.t.
-Variable cmt : actid -> Prop.
 Variable traces : thread_id -> trace label -> Prop.
 
 Notation "'G''" := (WCore.G X').
@@ -684,7 +684,7 @@ Record enumd_diff (l : list actid) : Prop := {
   diff_elems : E' \₁ E ≡₁ fun x => In x l;
   diff_elemst : E' \₁ E ⊆₁ fun x => tid x <> tid_init;
   diff_sb : restr_rel (E' \₁ E) sb' ⊆ total_order_from_list l;
-  diff_rf : restr_rel (E' \₁ E) (rf' ⨾ ⦗E' \₁ cmt⦘) ⊆ total_order_from_list l;
+  diff_rf : restr_rel (E' \₁ E) rf' ⊆ total_order_from_list l;
   diff_rf_d : (E' \₁ E) ∩₁ R' ⊆₁ codom_rel rf';
 }.
 
@@ -769,7 +769,7 @@ Lemma sub_to_full_exec_end_wf l
     (SCWF : xmm_s.wf_sc G' sc')
     (WF : Wf G')
     (XWF : WCore.wf X X' cmt)
-    (ENUM : SubToFullExecInternal.enumd_diff X X' cmt l) :
+    (ENUM : SubToFullExecInternal.enumd_diff X X' l) :
   WCore.wf X' X' cmt.
 Proof using.
   constructor; ins.
@@ -798,7 +798,7 @@ Lemma sub_to_full_exec l
     (NADDR : addr' ⊆ ∅₂)
     (NCTRL : ctrl' ⊆ ∅₂)
     (NRMWDEP : rmw_dep' ⊆ ∅₂)
-    (ENUM : SubToFullExecInternal.enumd_diff X X' cmt l) :
+    (ENUM : SubToFullExecInternal.enumd_diff X X' l) :
   (WCore.guided_step cmt X')＊ X X'.
 Proof using.
   assert (WF' : WCore.wf X' X' cmt).
@@ -887,9 +887,9 @@ Lemma enumd_diff_listless
     (RFCO : rf_complete G')
     (FIN : set_finite (E' \₁ E))
     (NTID : E' \₁ E ⊆₁ (fun x => tid x <> tid_init))
-    (STAB : WCore.stable_uncmt_reads_gen X' cmt thrdle) :
+    (STAB : WCore.stable_uncmt_reads_gen X' E thrdle) :
   exists l,
-    SubToFullExecInternal.enumd_diff X X' cmt l.
+    SubToFullExecInternal.enumd_diff X X' l.
 Proof using.
   apply set_finiteE in FIN. destruct FIN as (l' & NODUP & EQ).
   destruct partial_order_included_in_total_order
@@ -902,10 +902,10 @@ Proof using.
     { left. now apply sb_trans with y. }
     all: change (thrdle (tid x) (tid z))
            with ((tid ↓ thrdle) x z).
-    { right. apply thrdle_sb_closed with (G := G').
+    { right. apply thrdle_sb_closed with (X := X').
       all: try now apply STAB.
       unfolder. eauto 11. }
-    { right. apply thrdle_sb_closed with (G := G').
+    { right. apply thrdle_sb_closed with (X := X').
       all: try now apply STAB.
       unfolder. eauto 11. }
     right. unfolder. eapply STAB; eauto. }
@@ -918,7 +918,8 @@ Proof using.
   { rewrite total_order_from_isort, <- EQ, <- SUB; ins.
     basic_solver. }
   { rewrite total_order_from_isort, <- EQ, <- SUB; ins.
-    now rewrite (WCore.surg_uncmt STAB). }
+    rewrite <- (WCore.surg_ndtrmt STAB).
+    basic_solver 11. }
   transitivity (E' ∩₁ R'); [basic_solver | apply RFCO].
 Qed.
 
@@ -934,7 +935,7 @@ Lemma sub_to_full_exec_listless
     (NADDR : addr' ⊆ ∅₂)
     (NCTRL : ctrl' ⊆ ∅₂)
     (NRMWDEP : rmw_dep' ⊆ ∅₂)
-    (STAB : WCore.stable_uncmt_reads_gen X' cmt thrdle) :
+    (STAB : WCore.stable_uncmt_reads_gen X' E thrdle) :
   (WCore.guided_step cmt X')＊ X X'.
 Proof using.
   destruct enumd_diff_listless as (l & ENUM); eauto.

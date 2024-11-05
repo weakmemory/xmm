@@ -10,42 +10,6 @@ Set Implicit Arguments.
 
 Open Scope program_scope.
 
-Section Thrdle.
-
-Variable G : execution.
-Notation "'E'" := (acts_set G).
-Notation "'sb'" := (sb G).
-
-(* Definition ppo_alt := (sb ∩ same_loc ∪ bob)⁺.
-Definition hb_alt := (ppo_alt ∪ rf)⁺. *)
-
-Lemma thrdle_sb_closed thrdle
-    (INIT_MIN : min_elt thrdle tid_init)
-    (INIT_LEAST : least_elt thrdle tid_init) :
-  sb^? ⨾ tid ↓ thrdle ⨾ sb^? ⊆ tid ↓ thrdle.
-Proof.
-  rewrite crE, !seq_union_l, !seq_union_r, !seq_id_l, !seq_id_r, !unionA.
-  apply inclusion_union_l; try done.
-  arewrite (tid ↓ thrdle ⨾ sb ⊆ tid ↓ thrdle).
-  { unfolder. intros x y (z & TID & SB).
-    unfold sb in SB; unfolder in SB.
-    destruct SB as (_ & SB & _).
-    destruct z as [zl | zt zn], y as [yl | yt yn]; ins.
-    { exfalso. now apply INIT_MIN with (tid x). }
-    desf. }
-  arewrite (sb ⨾ tid ↓ thrdle ⊆ tid ↓ thrdle).
-  { unfolder. intros x y (z & SB & TID).
-    unfold sb in SB; unfolder in SB.
-    destruct SB as (_ & SB & _).
-    destruct z as [zl | zt zn], x as [xl | xt xn]; ins.
-    { apply INIT_LEAST. intro F.
-      apply INIT_MIN with zt. congruence. }
-    desf. }
-  clear. basic_solver.
-Qed.
-
-End Thrdle.
-
 Lemma ct_l_upward_closed {A : Type} (r : relation A) s
     (UPC : upward_closed r s) :
   r⁺ ⨾ ⦗s⦘ ≡ (r ⨾ ⦗s⦘)⁺.
