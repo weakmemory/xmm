@@ -1667,7 +1667,16 @@ Proof using INV INV'.
   { red in STEP; desf.
     eapply WCore.add_event_wf with (X' := X_s''); eauto. }
   assert (LABEQ : eq_dom E_t (lab G_s'' ∘ mapper) lab_t).
-  { admit. }
+  { unfold G_s''; ins. unfold eq_dom.
+    intros x XIN. unfold compose.
+    rewrite updo; ins.
+    { apply (rsr_lab SIMREL); eauto. }
+    intros FALSE.
+    destruct SIMREL.
+    destruct rsr_codom0 with (x := mapper x).
+    { unfold set_collect. exists x; split; vauto. }
+    rewrite FALSE in H0. unfold extra_a in H0.
+    basic_solver 21. }
   (* The proof *)
   exists l_a', X_s''.
   splits; ins.
@@ -1765,11 +1774,10 @@ Proof using INV INV'.
       { unfold G_s'', is_r. ins.
         rewrite upds. ins. }
       { unfold G_s'', is_acq, mod; ins. 
-        rewrite upds. admit. }
+        rewrite upds. admit. (*TODO : add*) }
       { destruct SIMREL.
         rewrite rsr_codom0. basic_solver 21. }
-      { (* TODO : can try transitivity (rpo G_s). *)
-        unfold G_s'' at 2; ins.
+      { unfold G_s'' at 2; ins.
         rewrite set_minus_union_l. rels.
         rewrite set_minusK. rels.
         arewrite (E_s \₁ eq b_t ≡₁ E_s).
@@ -1952,7 +1960,7 @@ Proof using INV INV'.
         unfold add_max. unfold extra_a at 2. desf.
         { exfalso. eapply BNOTIN. apply a. }
         rewrite set_inter_empty_l; rels. }
-      { admit. (*TODO : insert*) }
+      { admit. (*TODO : add?*) }
       destruct INV; eauto. }
     { apply Consistency.write_extent with (G_t := G_t)
                   (sc_t := WCore.sc X_t) (a := b_t) (m := mapper); eauto.
@@ -2010,7 +2018,7 @@ Proof using INV INV'.
                     ⊆ ⦗F G_s'' ∩₁ Rel G_s''⦘ ⨾ mapper ↑ sb_t ⨾ ⦗W G_s'' ∩₁ Rlx G_s''⦘).
           { rewrite <- SBSUB. basic_solver 12. }
           rewrite SBSUB. rewrite <- ct_step.
-          rewrite !collect_rel_union. admit. (*TODO : fix*) }
+          rewrite !collect_rel_union. admit. (*TODO : to be done*) }
         assert (IND2 : mapper ↑ (rpo_imm G_t)⁺ ⨾ (rpo_imm G_s'' ⨾ ⦗E_s⦘)
                           ⊆ mapper ↑ (rpo_imm G_t)⁺).
         { assert (TRIN : mapper ↑ (rpo_imm G_t)⁺ ⨾ mapper ↑ (rpo_imm G_t)⁺
@@ -2135,8 +2143,48 @@ Proof using INV INV'.
         unfold WCore.lab_is_w.
         desf. rewrite set_inter_full_r.
         rels. apply cross_more; eauto.
-        admit. (*TODO : fix*)}
-      { admit. (*TODO : insert*) }
+        arewrite ((fun a : actid => is_w (upd lab_s b_t (Astore s o l v)) a)
+                      ∩₁ (E_s ∪₁ eq b_t) \₁ eq b_t ≡₁ (fun a : actid => is_w (upd lab_s b_t (Astore s o l v)) a)
+                                ∩₁ E_s).
+        { split; [basic_solver |].
+          intros x XIN. unfold set_minus.
+          split.
+          { clear - XIN. apply set_inter_union_r.
+            left; vauto. }
+          clear - XIN NOTIN. intros FALSE.
+          apply NOTIN. destruct XIN as (WR & INE); vauto. }
+          arewrite ((fun a : actid => is_w (upd lab_s b_t (Astore s o l v)) a)
+                        ∩₁ E_s ≡₁ W_s ∩₁ E_s).
+          { split.
+            { intros x XIN. destruct XIN as (WR & INE).
+              unfold is_w in WR. rewrite updo in WR.
+              { basic_solver. }
+              clear - INE NOTIN. intros FALSO.
+              basic_solver. }
+            intros x XIN. unfold is_w. split.
+            { rewrite updo.
+              { clear - XIN. destruct XIN as (WR & INE).
+                unfold is_w in WR; vauto. }
+              intros FALSO. apply NOTIN.
+              destruct XIN as (WR & INE); vauto. }
+            destruct XIN as (WR & INE); vauto. }
+          rewrite !set_interA.
+          arewrite (E_s ∩₁ Loc_s_ (WCore.lab_loc (Astore s0 o0 l0 v0)) 
+                      ≡₁ E_s ∩₁ same_loc (upd lab_s b_t (Astore s o l v)) b_t); vauto.
+          split.
+          { intros x XIN. destruct XIN as (INE & LOC).
+            split; vauto. unfold same_loc.
+            destruct classic with (P := x = b_t) as [EQ | NEQ]; vauto.
+            unfold loc. rewrite upds; vauto.
+            rewrite updo; vauto.
+            basic_solver 21. }
+          intros x XIN. destruct XIN as (INE & LOC).
+          split; vauto. unfold same_loc in LOC.
+          destruct classic with (P := x = b_t) as [EQ | NEQ]; vauto.
+          unfold loc in *. rewrite upds in LOC; vauto.
+          rewrite updo in LOC; vauto.
+          basic_solver 21. }
+      { admit. (*TODO : add*) }
       destruct INV; eauto. }
     admit. (*TODO : fence*) }
   { apply union_more; ins. }
@@ -2681,9 +2729,7 @@ Proof using.
             vauto. }
         destruct INSET as (EQ & COND).
         clear - EQ M2; congruence. }
-      { intros x y (z & (COND & INSET)).
-        destruct COND as (((x' & DOM & MAP) & EQ) & SL).
-        admit. }
+      { basic_solver 21. }
       unfolder. intros x y (((EQ1 & EQ2) & SL) & (ACTS & NEQ)).
       subst x; subst y.
       unfold same_loc, loc in SL.
