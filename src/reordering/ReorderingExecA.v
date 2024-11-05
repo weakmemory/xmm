@@ -643,15 +643,16 @@ Proof using INV INV'.
       ⦗eq (mapper' b_t)⦘ ⨾ rf_s ⊆
       ⦗eq (mapper' b_t)⦘ ⨾ rf_s ⨾ ⦗set_compl (Tid_ tid_init ∪₁ Tid_ (tid b_t))⦘
     ).
-    { admit. }
+    { admit. (* True because old source is cons *) }
     arewrite (
-      rhb G_s' ⊆ rhb G_s' ⨾ ⦗set_compl (Tid_ tid_init ∪₁ Tid_ (tid b_t)) ∪₁ Tid_ (tid b_t)⦘
+      ⦗E_s \₁ eq b_t⦘ ⨾ rhb G_s' ⊆
+        ⦗E_s \₁ eq b_t⦘ ⨾ rhb G_s' ⨾ ⦗set_compl (Tid_ tid_init ∪₁ Tid_ (tid b_t)) ∪₁ Tid_ (tid b_t)⦘
     ).
-    { admit. }
+    { admit. (* True by elimination *) }
     rewrite id_union, !seq_union_r.
     apply inclusion_union_l.
-    { admit. }
-    admit. }
+    { admit. (* Right int the thrdle *) }
+    admit. (* Should be empty, because this creates a cycle in the target graph *) }
   (* The proof *)
   exists mapper', X_s', id, dtrmt', cmt'.
   split; red; ins.
