@@ -311,7 +311,7 @@ Proof using.
 Admitted.
 
 Definition extra_b :=
-  ifP ~E_t' a_t' /\ E_t' b_t' then eq b_t' ∩₁ E_t'
+  ifP ~E_t' a_t' /\ E_t' b_t' then eq b_t' ∩₁ dtrmt
   else ∅.
 Definition cmt' := mapper' ↑₁ (cmt ∪₁ extra_b).
 Definition dtrmt' := mapper' ↑₁ (dtrmt \₁ extra_b).
@@ -429,7 +429,7 @@ Proof using.
     unfolder.
     intros x (y & (YEQ & YIN) & XEQ).
     subst. unfold a_s', mapper', b_s'.
-    exists b_t'. split; auto. }
+    exists b_t'. split; auto. desf. }
   { exact SURG. }
   { admit. (* sb-clos *) }
   { admit. (* rpo edges *) }
