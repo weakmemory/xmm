@@ -648,10 +648,26 @@ Proof using INV INV'.
       ⦗E_s \₁ eq b_t⦘ ⨾ rhb G_s' ⊆
         ⦗E_s \₁ eq b_t⦘ ⨾ rhb G_s' ⨾ ⦗set_compl (Tid_ tid_init ∪₁ Tid_ (tid b_t)) ∪₁ Tid_ (tid b_t)⦘
     ).
-    { admit. (* True by elimination *) }
+    { rewrite set_unionC, <- set_compl_minus.
+      rewrite set_minus_union_l, set_minusK, set_union_empty_r.
+      rewrite no_rhb_to_init at 1.
+      all: try now apply (G_s_wf INV' SIMREL').
+      rewrite wf_rhbE, !seqA.
+      all: try now apply (G_s_wf INV' SIMREL').
+      do 3 hahn_frame_l.
+      rewrite <- !id_inter. apply eqv_rel_mori.
+      unfolder. intros x (XIN & XNINIT).
+      split; auto. apply or_not_and.
+      left. intros FALSO. apply XNINIT.
+      apply (rsr_ninit_acts_s INV' SIMREL').
+      basic_solver. }
     rewrite id_union, !seq_union_r.
     apply inclusion_union_l.
-    { admit. (* Right int the thrdle *) }
+    { clear - BTID. unfold thrdle'.
+      unfolder. ins. desf.
+      do 2 right.
+      split; [rewrite <- BTID; auto |].
+      intro FALSO; desf; eauto. }
     admit. (* Should be empty, because this creates a cycle in the target graph *) }
   (* The proof *)
   exists mapper', X_s', id, dtrmt', cmt'.
