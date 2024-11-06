@@ -28,6 +28,7 @@ From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 From imm Require Import Events Execution.
 Require Import Setoid Morphisms Program.Basics Lia.
+Require Import xmm_s_hb.
 
 Section FakeSrf.
 
@@ -50,7 +51,10 @@ Notation "'sb_s'" := (sb G_s).
 Notation "'rf_s'" := (rf G_s).
 Notation "'co_s'" := (co G_s).
 Notation "'vf_s'" := (vf G_s).
+Notation "'vf_rhb_s'" := (vf_rhb G_s).
 Notation "'rmw_s'" := (rmw G_s).
+Notation "'hb_s'" := (hb G_s).
+Notation "'rhb_s'" := (rhb G_s).
 Notation "'W_s'" := (fun x => is_true (is_w lab_s x)).
 Notation "'R_s'" := (fun x => is_true (is_r lab_s x)).
 Notation "'Loc_s_' l" := (fun e => loc_s e = l) (at level 1).
@@ -87,6 +91,10 @@ Definition fake_srf :=
   (
     ⦗Loc_s_ (WCore.lab_loc l_e)⦘ ⨾ vf_s ⨾ fake_sb
   ) \ (co_s ⨾ vf_s ⨾ fake_sb).
+Definition fake_srf_rhb :=
+  (
+    ⦗Loc_s_ (WCore.lab_loc l_e)⦘ ⨾ vf_rhb_s ⨾ fake_sb
+  ) \ (co_s ⨾ vf_rhb_s ⨾ fake_sb).
 
 Lemma fake_srfE_left :
   fake_srf ⊆ ⦗E_s⦘ ⨾ fake_srf.
@@ -252,6 +260,37 @@ Proof using.
   all: unfold loc, WCore.lab_loc in *.
   all: rewrite ?upds in *.
   all: rewrite ?updo in *; congruence.
+Qed.
+
+Lemma fake_sb_trans :
+  transitive fake_sb.
+Proof using.
+  unfolder. ins. desf.
+  unfold fake_sb in *.
+  unfolder in *; splits; desf; eauto.
+  all: eapply ext_sb_trans; eauto.
+Qed.
+
+Lemma vf_fake_sb :
+  vf_s ⨾ fake_sb ≡ vf_rhb_s ⨾ fake_sb.
+Proof using.
+  unfold vf, vf_rhb.
+  rewrite !seqA.
+  split; [| now rewrite rhb_in_hb].
+  rewrite hb_helper, cr_union_r,
+          seq_union_l.
+  arewrite (sb_s ⊆ fake_sb).
+  { unfold sb, fake_sb. unfolder.
+    ins. desf; splits; eauto. }
+  rewrite rewrite_trans by apply fake_sb_trans.
+  basic_solver 11.
+Qed.
+
+Lemma fake_srf_with_rhb :
+  fake_srf ≡ fake_srf_rhb.
+Proof using.
+  unfold fake_srf, fake_srf_rhb.
+  now rewrite vf_fake_sb.
 Qed.
 
 End FakeSrf.

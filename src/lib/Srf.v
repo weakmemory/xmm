@@ -32,6 +32,8 @@ Notation "'Loc_' l" := (fun x => loc x = Some l) (at level 1).
 
 Definition vf := ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf^? ⨾ hb^?.
 Definition srf := ((vf ⨾ sb) ∩ same_loc) ⨾ ⦗R⦘ \ (co ⨾ vf ⨾ sb).
+Definition vf_rhb := ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf^? ⨾ rhb^?.
+Definition srf_rhb := ((vf_rhb ⨾ sb) ∩ same_loc) ⨾ ⦗R⦘ \ (co ⨾ vf_rhb ⨾ sb).
 
 Lemma wf_vfE_left : vf ≡ ⦗E⦘ ⨾ vf.
 Proof using.
@@ -244,9 +246,9 @@ Proof using.
 Qed.
 
 Lemma sbvf_as_rhb :
-  vf ⨾ sb ≡ ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf^? ⨾ rhb^? ⨾ sb.
+  vf ⨾ sb ≡ vf_rhb ⨾ sb.
 Proof using.
-  unfold vf. rewrite !seqA.
+  unfold vf, vf_rhb. rewrite !seqA.
   split; [| now rewrite rhb_in_hb].
   rewrite hb_helper, cr_union_r,
           seq_union_l.
@@ -255,11 +257,9 @@ Proof using.
 Qed.
 
 Lemma srf_as_rhb :
-  srf ≡
-    ((⦗E⦘ ⨾ ⦗W⦘ ⨾ rf^? ⨾ rhb^? ⨾ sb) ∩ same_loc) ⨾ ⦗R⦘ \
-      (co ⨾ ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf^? ⨾ rhb^? ⨾ sb).
+  srf ≡ srf_rhb.
 Proof using.
-  unfold srf.
+  unfold srf, srf_rhb.
   now rewrite sbvf_as_rhb.
 Qed.
 
