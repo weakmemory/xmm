@@ -400,11 +400,26 @@ Proof using.
     all: try now apply GREEXEC.
     rewrite (rsr_rf (reexec_simrel CTX)).
     rewrite !seq_union_l, !seq_union_r, !seqA.
+    arewrite (mapper' ↑ rf_t' ⊆ mapper' ↑ rf_t' ⨾ ⦗E_s' \₁ extra_a X_t' a_t' b_t' b_t'⦘).
+    { admit. }
     repeat apply inclusion_union_l.
     { rewrite <- seqA.
       rewrite RFSUB, RFSUB2, RFSUB3.
-      (* rewrite (WCore.surg_ndtrmt (WCore.reexec_sur GREEXEC)). *)
-      admit. (* Refine the bounds on sb *) }
+      rewrite crE, !seq_union_r, seq_id_r.
+      rewrite (rsr_rhb (rc_inv_end CTX) (reexec_simrel CTX)).
+      arewrite_id (⦗E_s' \₁ extra_a X_t' a_t' b_t' b_t'⦘).
+      rewrite <- !seq_union_r, <- crE.
+      arewrite ((mapper' ↑ rhb_t')^? ⊆ mapper' ↑ rhb_t'^?).
+      { admit. }
+      assert (INJHELPER : inj_dom (codom_rel (⦗E_t' \₁ dtrmt⦘ ⨾ rf_t') ∪₁ dom_rel rhb_t'^?) mapper').
+      { admit. }
+      rewrite <- collect_rel_seq, !seqA; auto.
+      admit. }
+    rewrite crE, !seq_union_r, seq_id_r.
+    arewrite_false (⦗extra_a X_t' a_t' b_t' b_t'∩₁ R_s'⦘ ⨾ rhb_s').
+    { admit. }
+    rewrite !seq_false_r, union_false_r.
+    unfold extra_a; desf; [| clear; basic_solver].
     admit. }
   assert (WF_START :
     WCore.wf (WCore.X_start X_s dtrmt') X_s' cmt'

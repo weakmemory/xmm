@@ -35,6 +35,7 @@ Notation "'E_t'" := (acts_set G_t).
 Notation "'sb_t'" := (sb G_t).
 Notation "'rf_t'" := (rf G_t).
 Notation "'co_t'" := (co G_t).
+Notation "'rhb_t'" := (rhb G_t).
 Notation "'rmw_t'" := (rmw G_t).
 Notation "'rpo_t'" := (rpo G_t).
 Notation "'rpo_imm_t'" := (rpo_imm G_t).
@@ -61,6 +62,7 @@ Notation "'E_s'" := (acts_set G_s).
 Notation "'sb_s'" := (sb G_s).
 Notation "'rf_s'" := (rf G_s).
 Notation "'co_s'" := (co G_s).
+Notation "'rhb_s'" := (rhb G_s).
 Notation "'rmw_s'" := (rmw G_s).
 Notation "'rpo_s'" := (rpo G_s).
 Notation "'rpo_imm_s'" := (rpo_imm G_s).
@@ -829,5 +831,13 @@ Proof using.
   rewrite <- restr_relE.
   apply restr_irrefl_eq, (rf_irr (G_s_wf CORR SIMREL)).
 Qed.
+
+Lemma rsr_rhb
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel) :
+  ⦗E_s \₁ extra_a b_t⦘ ⨾ rhb_s ⊆ mapper ↑ rhb_t.
+Proof using.
+  admit.
+Admitted.
 
 End SimRel.
