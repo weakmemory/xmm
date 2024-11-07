@@ -20,6 +20,7 @@ Notation "'sb'" := (sb G).
 Notation "'rf'" := (rf G).
 Notation "'co'" := (co G).
 Notation "'rmw'" := (rmw G).
+Notation "'rs'" := (rs G).
 Notation "'hb'" := (hb G).
 Notation "'sw'" := (sw G).
 Notation "'eco'" := (eco G).
@@ -69,8 +70,7 @@ Proof using.
   apply inclusion_ct_seq_eqv_r.
 Qed.
 
-Lemma wf_rpoE
-    (WF : Wf G) :
+Lemma wf_rpoE :
   rpo ≡ ⦗E⦘ ⨾ rpo ⨾ ⦗E⦘.
 Proof using.
   split; [| basic_solver].
@@ -323,6 +323,48 @@ Proof using.
     intros IR. apply irreflexive_inclusion
                     with (r' := hb ⨾ eco); eauto.
     apply inclusion_seq_mon. apply rhb_in_hb; eauto. vauto.
+Qed.
+
+Lemma sw_with_rpo dtrmt
+    (SUBE : dtrmt ⊆₁ E)
+    (SB : sb ⨾ ⦗dtrmt⦘ ⊆ ⦗dtrmt⦘ ⨾ sb ⨾ ⦗dtrmt⦘)
+    (RPO : rpo ⨾ ⦗E \₁ dtrmt⦘ ⊆ ⦗dtrmt⦘ ⨾ rpo ⨾ ⦗E \₁ dtrmt⦘) :
+  sw ⨾ ⦗E \₁ dtrmt⦘ ⊆
+    dtrmt × (E \₁ dtrmt) ∪
+    ⦗Rel⦘ ⨾ rs ⨾ rf ⨾ ⦗Rlx⦘ ⨾ (sb ⨾ ⦗F⦘)^? ⨾ ⦗Acq⦘ ⨾ ⦗E \₁ dtrmt⦘.
+Proof using.
+  unfold sw, release.
+  rewrite !seqA.
+  rewrite crE at 1.
+  rewrite seq_union_l, !seq_union_r,
+          seq_id_l, !seqA.
+  rewrite unionC with (r1 := dtrmt × (E \₁ dtrmt)).
+  apply union_mori.
+  { seq_rewrite <- !id_inter.
+    repeat apply seq_mori; auto with hahn.
+    basic_solver. }
+  unfold rs. rewrite !seqA.
+  arewrite (⦗Rel⦘ ⨾ ⦗F⦘ ⨾ sb ⨾ ⦗Rlx⦘ ⨾ ⦗W⦘ ⊆ rpo ⨾ ⦗Rlx⦘ ⨾ ⦗W⦘).
+  { unfold rpo.
+    seq_rewrite <- !id_inter.
+    rewrite <- inclusion_step_t
+       with (r' := rpo_imm)
+            (r := ⦗Rel ∩₁ F⦘ ⨾ sb ⨾ ⦗Rlx ∩₁ W⦘).
+    all: unfold rpo_imm; basic_solver 11. }
+  arewrite (rpo ⊆ rpo ⨾ ⦗dtrmt ∪₁ E \₁ dtrmt⦘).
+  { rewrite <- set_union_strict.
+    rewrite set_union_absorb_l
+       with (s := dtrmt) (s' := E).
+    all: auto.
+    rewrite wf_rpoE at 1.
+    basic_solver 11. }
+  rewrite id_union, seq_union_l, !seq_union_r.
+  apply inclusion_union_l.
+  { arewrite (rpo ⨾ ⦗dtrmt⦘ ⊆ ⦗dtrmt⦘ ⨾ sb ⨾ ⦗dtrmt⦘).
+    { now rewrite rpo_in_sb. }
+    basic_solver 11. }
+  rewrite <- seqA, RPO.
+  basic_solver 11.
 Qed.
 
 End Rhb.
