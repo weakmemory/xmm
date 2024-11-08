@@ -287,7 +287,7 @@ Proof using.
   rewrite crE at 1.
   rewrite !seq_union_l, !seq_union_r, seq_id_l.
   rewrite minus_union_l, unionA, unionC.
-  apply union_mori; [basic_solver 11 |].
+  apply inclusion_union_l; [basic_solver 11 |].
   rewrite crE at 1.
   rewrite !seq_union_l, !seq_union_r, seq_id_l.
   rewrite minus_union_l.
@@ -309,30 +309,28 @@ Proof using.
     arewrite (sb ⊆ E × E) at 1.
     { apply dom_helper_3, wf_sbE. }
     basic_solver 11. }
-  arewrite (⦗Rel⦘ ⨾ rs ⊆ co).
+  arewrite (⦗Rel⦘ ⨾ rs ⊆ co ∪ ⦗W⦘).
   { admit. (* TODO: lemma *) }
-  rewrite crE at 1.
-  rewrite !seq_union_l, !seq_union_r, seq_id_l.
   arewrite (
-    rf ⨾ ⦗Rlx⦘ ⨾ (sb ⨾ ⦗F⦘) ⨾ ⦗Acq⦘ ⊆
-      rf ⨾ rpo
+    rf ⨾ ⦗Rlx⦘ ⨾ (sb ⨾ ⦗F⦘)^? ⨾ ⦗Acq⦘ ⊆
+      rf ⨾ rpo^?
   ).
   { rewrite (wf_rfD WF) at 1.
     rewrite !seqA.
     arewrite_id (⦗W⦘). rewrite seq_id_l.
     hahn_frame_l.
+    rewrite !crE, seq_union_l, !seq_union_r.
+    apply union_mori; [basic_solver |].
     unfold rpo. rewrite <- ct_step.
     unfold rpo_imm. basic_solver 11. }
-  arewrite (rf ⨾ rpo ⨾ rhb^? ⊆ rf^? ⨾ rhb^?).
-  { rewrite rpo_in_rhb.
-    rewrite crE, !seq_union_r, !seq_id_r.
-    rewrite rewrite_trans by apply rhb_trans.
-    auto with hahn. }
-  arewrite (rf ⨾ ⦗Rlx⦘ ⨾ ⦗Acq⦘ ⨾ rhb^? ⊆ rf^? ⨾ rhb^?).
+  arewrite (rpo^? ⨾ rhb^? ⊆ rhb^?).
+  { rewrite rpo_in_rhb, rewrite_trans; auto with hahn.
+    apply transitive_cr, rhb_trans. }
+  rewrite !seq_union_l, seq_union_r.
+  arewrite (⦗E⦘ ⨾ co ⨾ rf ⨾ rhb^? ⨾ sb ⊆ co ⨾ rf^? ⨾ rhb^? ⨾ sb) at 1.
   { basic_solver 11. }
-  rewrite unionK.
-  rewrite seq_eqv_minus_ll, minusK.
-  basic_solver.
+  rewrite minus_union_l, minusK, union_false_l.
+  basic_solver 11.
 Admitted.
 
 End Srf.
