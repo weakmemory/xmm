@@ -325,20 +325,34 @@ Proof using.
     apply inclusion_seq_mon. apply rhb_in_hb; eauto. vauto.
 Qed.
 
+Lemma rhb_as_sb_sbsw :
+  rhb ⊆ sb ∪ sb^? ⨾ sw ⨾ rhb^?.
+Proof using.
+  unfold rhb at 1.
+  rewrite path_ut_first, <- !cr_of_ct.
+  change ((sb ∩ same_loc ∪ rpo ∪ sw)⁺)
+    with rhb.
+  arewrite (sb ∩ same_loc ∪ rpo ⊆ sb).
+  { rewrite rpo_in_sb. basic_solver. }
+  rewrite ct_of_trans by now apply sb_trans.
+  reflexivity.
+Qed.
+
 Lemma sw_with_rpo dtrmt
+    (WF : Wf G)
     (SUBE : dtrmt ⊆₁ E)
     (SB : sb ⨾ ⦗dtrmt⦘ ⊆ ⦗dtrmt⦘ ⨾ sb ⨾ ⦗dtrmt⦘)
     (RPO : rpo ⨾ ⦗E \₁ dtrmt⦘ ⊆ ⦗dtrmt⦘ ⨾ rpo ⨾ ⦗E \₁ dtrmt⦘) :
-  sw ⨾ ⦗E \₁ dtrmt⦘ ⊆
-    dtrmt × (E \₁ dtrmt) ∪
-    ⦗Rel⦘ ⨾ rs ⨾ rf ⨾ ⦗Rlx⦘ ⨾ (sb ⨾ ⦗F⦘)^? ⨾ ⦗Acq⦘ ⨾ ⦗E \₁ dtrmt⦘.
+  sw ⊆
+    dtrmt × E ∪
+    ⦗Rel⦘ ⨾ rs ⨾ rf ⨾ ⦗Rlx⦘ ⨾ (sb ⨾ ⦗F⦘)^? ⨾ ⦗Acq⦘.
 Proof using.
   unfold sw, release.
   rewrite !seqA.
   rewrite crE at 1.
   rewrite seq_union_l, !seq_union_r,
           seq_id_l, !seqA.
-  rewrite unionC with (r1 := dtrmt × (E \₁ dtrmt)).
+  rewrite unionC with (r1 := dtrmt × E).
   apply union_mori.
   { seq_rewrite <- !id_inter.
     repeat apply seq_mori; auto with hahn.
@@ -362,8 +376,93 @@ Proof using.
   apply inclusion_union_l.
   { arewrite (rpo ⨾ ⦗dtrmt⦘ ⊆ ⦗dtrmt⦘ ⨾ sb ⨾ ⦗dtrmt⦘).
     { now rewrite rpo_in_sb. }
+    rewrite (wf_rfE WF) at 2.
+    rewrite wf_sbE at 2.
     basic_solver 11. }
   rewrite <- seqA, RPO.
+  rewrite (wf_rfE WF) at 2.
+  rewrite wf_sbE at 1.
+  basic_solver 11.
+Qed.
+
+Lemma from_rhb dtrmt
+    (WF : Wf G)
+    (SUBE : dtrmt ⊆₁ E)
+    (SB : sb ⨾ ⦗dtrmt⦘ ⊆ ⦗dtrmt⦘ ⨾ sb ⨾ ⦗dtrmt⦘)
+    (RPO : rpo ⨾ ⦗E \₁ dtrmt⦘ ⊆ ⦗dtrmt⦘ ⨾ rpo ⨾ ⦗E \₁ dtrmt⦘) :
+  rhb ⊆
+    dtrmt × E ∪
+    sb ∪
+    sw ⨾ rhb^?.
+Proof using.
+  unfold rhb at 1.
+  rewrite ct_begin, <- cr_of_ct.
+  change ((sb ∩ same_loc ∪ rpo ∪ sw)⁺)
+    with rhb.
+  rewrite seq_union_l.
+  apply union_mori; auto with hahn.
+  arewrite (sb ∩ same_loc ∪ rpo ⊆ (sb ∩ same_loc ∪ rpo) ⨾ ⦗dtrmt ∪₁ E \₁ dtrmt⦘).
+  { rewrite set_unionC, <- set_union_minus; auto.
+    rewrite wf_rpoE, wf_sbE at 1.
+    basic_solver 11. }
+  rewrite id_union.
+  seq_rewrite seq_union_r.
+  rewrite seq_union_l with (r := rhb^?).
+  arewrite (sb ∩ same_loc ∪ rpo ⊆ sb) at 1.
+  { rewrite rpo_in_sb. basic_solver. }
+  apply inclusion_union_l.
+  { rewrite <- seqA, SB, !seqA.
+    rewrite SUBE at 2.
+    rewrite (wf_rhbE WF).
+    basic_solver 11. }
+  rewrite unionC, seq_union_l.
+  apply inclusion_union_l.
+  { rewrite <- seqA, RPO, !seqA.
+    rewrite (wf_rhbE WF).
+    basic_solver 11. }
+  rewrite rhb_as_sb_sbsw.
+  rewrite crE.
+  rewrite !seq_union_r, seq_id_r.
+  repeat apply inclusion_union_l.
+  { clear. basic_solver. }
+  { transitivity (sb ⨾ sb); [basic_solver |].
+    rewrite rewrite_trans by now apply sb_trans.
+    auto with hahn. }
+  arewrite (⦗E \₁ dtrmt⦘ ⨾ sb^? ⊆ ⦗E \₁ dtrmt⦘ ⨾ sb^? ⨾ ⦗E \₁ dtrmt⦘).
+  { rewrite crE, !seq_union_l, !seq_union_r.
+    rewrite seq_id_l, seq_id_r.
+    apply union_mori; [basic_solver |].
+    rewrite wf_sbE at 1. seq_rewrite <- id_inter.
+    rewrite set_union_minus
+       with (s' := dtrmt) (s := E)
+         at 3.
+    all: auto.
+    rewrite id_union, !seq_union_r.
+    apply inclusion_union_l; [basic_solver |].
+    rewrite SB. seq_rewrite <- id_inter.
+    basic_solver. }
+  arewrite (
+    sb ∩ same_loc ⨾ ⦗E \₁ dtrmt⦘ ⨾ sb^? ⨾ ⦗E \₁ dtrmt⦘ ⊆
+    sb ⨾ ⦗E \₁ dtrmt⦘
+  ).
+  { transitivity (sb ⨾ sb^? ⨾ ⦗E \₁ dtrmt⦘); [clear; basic_solver 11 |].
+    rewrite crE, !seq_union_l, seq_union_r, seq_id_l.
+    apply inclusion_union_l; auto with hahn.
+    rewrite <- seqA.
+    rewrite rewrite_trans; auto using sb_trans with hahn. }
+  (*
+    We can't use the available lemma,
+    because we have to preserve the eqv_rel
+    in the middle
+   *)
+  arewrite (sb ⨾ ⦗E \₁ dtrmt⦘ ⨾ sw ⊆ rpo ⨾ ⦗E \₁ dtrmt⦘ ⨾ sw).
+  { rewrite (wf_swD WF) at 1.
+    seq_rewrite seq_eqvC. rewrite !seqA.
+    arewrite (sb ⨾ ⦗(F ∪₁ W) ∩₁ Rel⦘ ⊆ rpo); [| basic_solver 11].
+    unfold rpo. rewrite <- ct_step.
+    unfold rpo_imm. basic_solver 11. }
+  rewrite <- seqA, RPO.
+  rewrite (wf_rhbE WF), (wf_swE WF).
   basic_solver 11.
 Qed.
 
