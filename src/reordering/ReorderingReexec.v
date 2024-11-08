@@ -355,6 +355,11 @@ Proof using.
   { unfold mapper'.
     rewrite updo, upds; [done |].
     apply CTX. }
+  assert (RHBTDLE :
+    ⦗E_t' \₁ dtrmt⦘ ⨾ rf_t' ⨾ rhb_t'^? ⊆
+      sb_t' ∪ tid ↓ thrdle
+  ).
+  { apply thrdle_with_rhb; apply GREEXEC. }
   assert (RFSUB :
     ⦗E_s' \₁ dtrmt'⦘ ⨾ mapper' ↑ rf_t' ⊆
     ⦗mapper' ↑₁ E_t' \₁ dtrmt'⦘ ⨾ mapper' ↑ rf_t'
@@ -420,6 +425,52 @@ Proof using.
     { admit. }
     rewrite !seq_false_r, union_false_r.
     unfold extra_a; desf; [| clear; basic_solver].
+    rewrite from_srf
+       with (dtrmt := dtrmt').
+    { rewrite !seq_union_l, !seq_union_r, !seqA.
+      arewrite_false (⦗E_s' \₁ dtrmt'⦘ ⨾ dtrmt' × E_s').
+      { basic_solver. }
+      rewrite seq_false_l, union_false_r.
+      apply inclusion_union_l; [| basic_solver].
+      arewrite (eq b_t' ∩₁ R_s' ⊆₁ A_s' ∩₁ WCore.lab_is_r (lab_s' a_s')).
+      { admit. }
+      destruct classic
+          with (WCore.lab_is_r (lab_s' a_s') ≡₁ ∅)
+            as [NISR|ISR].
+      { rewrite NISR. clear. basic_solver. }
+      assert (ISR' : WCore.lab_is_r (lab_s' a_s') ≡₁ ⊤₁).
+      { admit. }
+      rewrite ISR', set_inter_full_r.
+      transitivity (⦗E_s' \₁ dtrmt'⦘ ⨾ rf_s' ⨾ ⦗set_compl A_s'⦘ ⨾ rhb_s'^?).
+      { admit. }
+      rewrite (rc_rf CTX), !seq_union_l, !seq_union_r.
+      rewrite ISR', set_inter_full_r, !seqA.
+      arewrite_false (⦗A_s'⦘ ⨾ ⦗set_compl A_s'⦘).
+      { clear. basic_solver. }
+      rewrite !seq_false_l, !seq_false_r, union_false_r.
+      arewrite (
+        mapper' ↑ rf_t' ⨾ ⦗set_compl A_s'⦘ ⊆
+          mapper' ↑ rf_t' ⨾ ⦗E_s' \₁ extra_a X_t' a_t' b_t' b_t'⦘
+      ).
+      { admit. }
+      arewrite (
+        ⦗E_s' \₁ extra_a X_t' a_t' b_t' b_t'⦘ ⨾ rhb_s'^? ⊆
+          mapper' ↑ rhb_t'^?
+      ).
+      { rewrite !crE, seq_union_r, collect_rel_union.
+        rewrite rsr_rhb; [apply union_mori | |].
+        all: auto using reexec_simrel, rc_inv_end with hahn.
+        admit. }
+      arewrite (E_s' \₁ dtrmt' ⊆₁ mapper' ↑₁ (E_t' \₁ dtrmt)).
+      { admit. }
+      rewrite <- collect_rel_eqv, <- !collect_rel_seq.
+      { rewrite RHBTDLE. admit. }
+      { admit. }
+      admit. }
+    { admit. }
+    { admit. }
+    { admit. }
+    { admit. }
     admit. }
   assert (WF_START :
     WCore.wf (WCore.X_start X_s dtrmt') X_s' cmt'
