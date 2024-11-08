@@ -1,6 +1,6 @@
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
-From imm Require Import Events Execution SubExecution.
+From imm Require Import Events Execution Execution_eco SubExecution.
 Require Import Program.Basics.
 
 Require Import xmm_s_hb.
@@ -24,6 +24,9 @@ Notation "'co'" := (co G).
 Notation "'rmw'" := (rmw G).
 Notation "'hb'" := (hb G).
 Notation "'rhb'" := (rhb G).
+Notation "'rpo'" := (rpo G).
+Notation "'eco'" := (eco G).
+Notation "'rs'" := (rs G).
 Notation "'sw'" := (sw G).
 Notation "'W'" := (fun e => is_true (is_w lab e)).
 Notation "'R'" := (fun e => is_true (is_r lab e)).
@@ -262,6 +265,75 @@ Proof using.
   unfold srf, srf_rhb.
   now rewrite sbvf_as_rhb.
 Qed.
+
+Lemma from_srf dtrmt
+    (WF : Wf G)
+    (SUBE : dtrmt ⊆₁ E)
+    (SB : sb ⨾ ⦗dtrmt⦘ ⊆ ⦗dtrmt⦘ ⨾ sb ⨾ ⦗dtrmt⦘)
+    (RPO : rpo ⨾ ⦗E \₁ dtrmt⦘ ⊆ ⦗dtrmt⦘ ⨾ rpo ⨾ ⦗E \₁ dtrmt⦘)
+    (CONS : irreflexive (hb ⨾ eco^?)) :
+  srf ⊆ rf ⨾ rhb^? ⨾ sb ∪ sb ∪ dtrmt × E.
+Proof using.
+  arewrite (
+    srf ⊆
+      ⦗E⦘ ⨾ rf^? ⨾ rhb^? ⨾ sb \ co ⨾ rf^? ⨾ rhb^? ⨾ sb
+  ).
+  { rewrite srf_as_rhb. unfold srf_rhb, vf_rhb.
+    rewrite !seqA. apply minus_rel_mori.
+    { basic_solver 11. }
+    unfold flip.
+    rewrite (wf_coD WF), (wf_coE WF) at 1.
+    rewrite !seqA. basic_solver 11. }
+  rewrite crE at 1.
+  rewrite !seq_union_l, !seq_union_r, seq_id_l.
+  rewrite minus_union_l, unionA, unionC.
+  apply union_mori; [basic_solver 11 |].
+  rewrite crE at 1.
+  rewrite !seq_union_l, !seq_union_r, seq_id_l.
+  rewrite minus_union_l.
+  apply inclusion_union_l; [basic_solver |].
+  rewrite from_rhb with (dtrmt := dtrmt) at 1; auto.
+  rewrite !seq_union_l, !seq_union_r, !minus_union_l.
+  repeat apply inclusion_union_l.
+  { arewrite (sb ⊆ E × E) at 1.
+    { apply dom_helper_3, wf_sbE. }
+    basic_solver 11. }
+  { rewrite rewrite_trans by apply sb_trans.
+    basic_solver 11. }
+  rewrite from_sw with (dtrmt := dtrmt); auto.
+  rewrite !seq_union_l, !seq_union_r, minus_union_l.
+  rewrite !seqA.
+  apply inclusion_union_l.
+  { arewrite (rhb ⊆ E × E) at 1.
+    { apply dom_helper_3, (wf_rhbE WF). }
+    arewrite (sb ⊆ E × E) at 1.
+    { apply dom_helper_3, wf_sbE. }
+    basic_solver 11. }
+  arewrite (⦗Rel⦘ ⨾ rs ⊆ co).
+  { admit. (* TODO: lemma *) }
+  rewrite crE at 1.
+  rewrite !seq_union_l, !seq_union_r, seq_id_l.
+  arewrite (
+    rf ⨾ ⦗Rlx⦘ ⨾ (sb ⨾ ⦗F⦘) ⨾ ⦗Acq⦘ ⊆
+      rf ⨾ rpo
+  ).
+  { rewrite (wf_rfD WF) at 1.
+    rewrite !seqA.
+    arewrite_id (⦗W⦘). rewrite seq_id_l.
+    hahn_frame_l.
+    unfold rpo. rewrite <- ct_step.
+    unfold rpo_imm. basic_solver 11. }
+  arewrite (rf ⨾ rpo ⨾ rhb^? ⊆ rf^? ⨾ rhb^?).
+  { rewrite rpo_in_rhb.
+    rewrite crE, !seq_union_r, !seq_id_r.
+    rewrite rewrite_trans by apply rhb_trans.
+    auto with hahn. }
+  arewrite (rf ⨾ ⦗Rlx⦘ ⨾ ⦗Acq⦘ ⨾ rhb^? ⊆ rf^? ⨾ rhb^?).
+  { basic_solver 11. }
+  rewrite unionK.
+  rewrite seq_eqv_minus_ll, minusK.
+  basic_solver.
+Admitted.
 
 End Srf.
 
