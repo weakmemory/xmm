@@ -310,7 +310,14 @@ Proof using.
     { apply dom_helper_3, wf_sbE. }
     basic_solver 11. }
   arewrite (⦗Rel⦘ ⨾ rs ⊆ co ∪ ⦗W⦘).
-  { admit. (* TODO: lemma *) }
+  { transitivity rs; [basic_solver |].
+    rewrite rs_in_co; auto.
+    { rewrite (wf_coD WF). basic_solver. }
+    red.
+    rewrite inclusion_step_cr
+       with (r := eco) (r' := eco)
+         by reflexivity.
+    now rewrite sb_in_hb. }
   arewrite (
     rf ⨾ ⦗Rlx⦘ ⨾ (sb ⨾ ⦗F⦘)^? ⨾ ⦗Acq⦘ ⊆
       rf ⨾ rpo^?
@@ -331,7 +338,7 @@ Proof using.
   { basic_solver 11. }
   rewrite minus_union_l, minusK, union_false_l.
   basic_solver 11.
-Admitted.
+Qed.
 
 End Srf.
 
