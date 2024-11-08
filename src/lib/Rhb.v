@@ -338,7 +338,7 @@ Proof using.
   reflexivity.
 Qed.
 
-Lemma sw_with_rpo dtrmt
+Lemma from_sw dtrmt
     (WF : Wf G)
     (SUBE : dtrmt ⊆₁ E)
     (SB : sb ⨾ ⦗dtrmt⦘ ⊆ ⦗dtrmt⦘ ⨾ sb ⨾ ⦗dtrmt⦘)
