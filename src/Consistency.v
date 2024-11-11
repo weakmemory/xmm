@@ -358,7 +358,7 @@ Lemma monoton_fr_sub (m : actid -> actid)
         (RF_MAP : rf_s ⊆ m ↑ rf_t)
         (CO_MAP : co_s ⊆ m ↑ co_t)
         (RMW_MAP : rmw_s ⊆ m ↑ rmw_t)
-        (HB_MAP : hb_s ⊆ m ↑ hb_t)
+        (HB_MAP : rhb_s ⊆ m ↑ rhb_t)
         (CONS : WCore.is_cons G_t sc_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
@@ -384,7 +384,7 @@ Lemma monoton_eco_sub (m : actid -> actid)
         (RF_MAP : rf_s ⊆ m ↑ rf_t)
         (CO_MAP : co_s ⊆ m ↑ co_t)
         (RMW_MAP : rmw_s ⊆ m ↑ rmw_t)
-        (HB_MAP : hb_s ⊆ m ↑ hb_t)
+        (HB_MAP : rhb_s ⊆ m ↑ rhb_t)
         (CONS : WCore.is_cons G_t sc_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
@@ -435,7 +435,7 @@ Lemma monoton_cons (m : actid -> actid)
         (RF_MAP : rf_s ⊆ m ↑ rf_t)
         (CO_MAP : co_s ⊆ m ↑ co_t)
         (RMW_MAP : rmw_s ⊆ m ↑ rmw_t)
-        (HB_MAP : hb_s ⊆ m ↑ hb_t)
+        (HB_MAP : rhb_s ⊆ m ↑ rhb_t)
         (CONS : WCore.is_cons G_t sc_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
@@ -443,39 +443,46 @@ Lemma monoton_cons (m : actid -> actid)
 Proof using.
   constructor.
   { case_refl _.
-    { assert(HBIRR : irreflexive hb_t).
-      { destruct CONS. apply hb_irr; eauto. }
-      assert (REST : (hb_t) ≡ restr_rel E_t (hb_t)).
-      { rewrite restr_relE. rewrite wf_hbE; eauto.
-        basic_solver 21. }
-      assert (IRR' : irreflexive (restr_rel E_t (hb_t))).
-      { rewrite <- REST. apply HBIRR. }
-      assert (IRR'' : irreflexive (m ↑ restr_rel E_t hb_t)).
+    { rewrite hb_helper; eauto. rewrite irreflexive_union. split.
+      { apply sb_irr; eauto. }
+      intros x PATH.
+      assert (VERT' : (m ↑ rhb_t) x x).
+      { destruct HB_MAP with (x := x) (y := x); vauto. }
+      assert (IRR : irreflexive rhb_t).
+      { apply irreflexive_inclusion with (r' := hb_t); eauto.
+        apply rhb_in_hb; eauto. destruct CONS. apply hb_irr; eauto. }
+      assert (REST : (rhb_t) ≡ restr_rel E_t (rhb_t)).
+      { rewrite restr_relE. rewrite wf_rhbE; eauto.
+        clear; basic_solver 21. }
+      assert (IRR' : irreflexive (restr_rel E_t (rhb_t))).
+      { rewrite <- REST. apply IRR. }
+      assert (IRR'' : irreflexive (m ↑ restr_rel E_t rhb_t)).
       { apply collect_rel_irr_inj; eauto. }
       rewrite <- REST in IRR''. basic_solver. }
-    assert (IRR : irreflexive (m ↑ hb_t ⨾ m ↑ eco_t)).
-    { rewrite <- collect_rel_seq.
-      { assert (REST : (hb_t ⨾ eco_t) ≡ restr_rel E_t (hb_t ⨾ eco_t)).
-        { rewrite restr_relE. rewrite wf_hbE, wf_ecoE; eauto.
-          basic_solver 21. }
-        assert (IRR' : irreflexive (restr_rel E_t (hb_t ⨾ eco_t))).
-        { rewrite <- REST. destruct CONS. unfold irreflexive; intros x PATH.
-          rewrite crE in cons_coherence.
-          unfold irreflexive in cons_coherence.
-          specialize (cons_coherence x).
-          apply cons_coherence. red.
-          destruct PATH as (x0 & PTH1 & PTH2).
-          exists x0. split; vauto. }
-        assert (IRR'' : irreflexive (m ↑ restr_rel E_t (hb_t ⨾ eco_t))).
-        { apply collect_rel_irr_inj; eauto. }
-        rewrite <- REST in IRR''; vauto. }
-      assert (IN1 : codom_rel hb_t ⊆₁ E_t).
-      { rewrite wf_hbE; eauto. basic_solver. }
-      assert (IN2 : dom_rel eco_t ⊆₁ E_t).
-      { rewrite wf_ecoE; eauto. basic_solver. }
-      rewrite IN1, IN2. basic_solver. }
-    rewrite monoton_eco_sub; eauto.
-    rewrite HB_MAP; eauto. }
+    apply rhb_eco_irr_equiv; eauto.
+    apply irreflexive_inclusion with (r' := m ↑ rhb_t ⨾ m ↑ eco_t); eauto.
+    { apply seq_mori; vauto. apply monoton_eco_sub; vauto. }
+    rewrite <- collect_rel_seq.
+    2 : { assert (IN1 : codom_rel rhb_t ⊆₁ E_t).
+          { induction 1 as (y & COND). apply wf_rhbE in COND; eauto.
+            destruct COND as (x0 & INE1 & (x2 & COND & (EQ & INE2))); vauto. }
+          assert (IN2 : dom_rel eco_t ⊆₁ E_t).
+          { induction 1 as (y & COND). apply wf_ecoE in COND; eauto.
+            destruct COND as (x0 & INE1 & REST); apply INE1. }
+          rewrite IN1, IN2. basic_solver. }
+    assert (REST : (rhb_t ⨾ eco_t) ≡ restr_rel E_t (rhb_t ⨾ eco_t)).
+      { rewrite restr_relE. rewrite wf_rhbE; eauto.
+        rewrite wf_ecoE; eauto. clear; basic_solver 21. }
+    assert (IRR : irreflexive (restr_rel E_t (rhb_t ⨾ eco_t))).
+      { rewrite <- REST. rewrite rhb_eco_irr_equiv; eauto.
+        destruct CONS. unfold irreflexive; intros x COND.
+        unfold irreflexive in cons_coherence.
+        assert (F : (hb_t ⨾ eco_t^?) x x -> False). 
+          { apply cons_coherence. }
+          apply F. unfold seq. unfold seq in COND.
+          destruct COND as (x0 & C1 & C2).
+          exists x0. split; auto. }
+      rewrite REST. apply collect_rel_irr_inj with (rr := rhb_t ⨾ eco_t); eauto. }
   { split; [| basic_solver].
     rewrite RMW_MAP, CO_MAP, monoton_fr_sub; eauto.
     rewrite <- collect_rel_seq.
