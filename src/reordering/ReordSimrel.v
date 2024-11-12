@@ -5,10 +5,11 @@ Require Import Srf Rhb.
 Require Import SimrelCommon.
 Require Import StepOps.
 Require Import AuxInj.
+Require Import xmm_s_hb.
 
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
-From imm Require Import Events Execution.
+From imm Require Import Events Execution Execution_eco.
 Require Import Setoid Morphisms Program.Basics.
 
 Open Scope program_scope.
@@ -43,6 +44,9 @@ Notation "'rmw_dep_t'" := (rmw_dep G_t).
 Notation "'data_t'" := (data G_t).
 Notation "'ctrl_t'" := (ctrl G_t).
 Notation "'addr_t'" := (addr G_t).
+Notation "'hb_t'" := (hb G_t).
+Notation "'eco_t'" := (eco G_t).
+Notation "'sw_t'" := (sw G_t).
 Notation "'W_t'" := (fun e => is_true (is_w lab_t e)).
 Notation "'R_t'" := (fun e => is_true (is_r lab_t e)).
 Notation "'F_t'" := (fun e => is_true (is_f lab_t e)).
@@ -830,6 +834,133 @@ Proof using.
   arewrite_false (⦗eq b_t⦘ ⨾ rf_s ⨾ ⦗eq b_t⦘); [| basic_solver].
   rewrite <- restr_relE.
   apply restr_irrefl_eq, (rf_irr (G_s_wf CORR SIMREL)).
+Qed.
+
+Lemma rsr_sbt_in
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel) :
+  mapper ↑ (sb_t \ eq b_t × eq a_t) ⊆ sb_s.
+Proof using.
+  rewrite (rsr_sb SIMREL).
+  arewrite (
+    sb_t \ eq b_t × eq a_t ⊆
+    sb_t \ (eq b_t ∩₁ E_t) × (eq a_t ∩₁ E_t)
+  ).
+  { apply minus_rel_mori; auto with hahn.
+    unfold flip. basic_solver. }
+  basic_solver 11.
+Qed.
+
+Lemma rsr_no_rfrhb_ba
+    (PRED : reord_step_pred)
+    (CONS : WCore.is_cons G_t ∅₂) :
+  rf_t ⨾ rhb_t^? ⊆ rf_t ⨾ rhb_t^? \ eq b_t × eq a_t.
+Proof using.
+  unfolder.
+  intros x y (z & RF & RHB).
+  split; [eauto | intro FALSO].
+  destruct RHB as [EQ | RHB]; desf.
+  { apply (rsr_at_bt_loc PRED)
+     with (x := a_t) (y := b_t).
+    unfolder. splits; auto.
+    { apply (wf_rfE (rsr_Gt_wf PRED)) in RF.
+      unfolder in RF. desf. }
+    { apply (wf_rfl (rsr_Gt_wf PRED)) in RF.
+      unfold same_loc in *. congruence. }
+    apply (wf_rfE (rsr_Gt_wf PRED)) in RF.
+    unfolder in RF. desf. }
+  assert (AIN : E_t a_t).
+  { apply (wf_rhbE (rsr_Gt_wf PRED)) in RHB.
+    unfolder in RHB. desf. }
+  assert (BIN : E_t b_t).
+  { apply (wf_rfE (rsr_Gt_wf PRED)) in RF.
+    unfolder in RF. desf. }
+  assert (ZIN : E_t z).
+  { apply (wf_rfE (rsr_Gt_wf PRED)) in RF.
+    unfolder in RF. desf. }
+  assert (IMMSB : immediate sb_t b_t a_t).
+  { apply (rsr_at_bt_imm PRED). basic_solver. }
+  assert (ZNINIT : ~is_init z).
+  { apply (no_rf_to_init (rsr_Gt_wf PRED)) in RF.
+    unfolder in RF. desf. }
+  assert (BNINIT : ~is_init b_t).
+  { apply (rsr_bt_ninit PRED). }
+  apply rhb_as_sb_swsb in RHB.
+  destruct RHB as [SB | SBSW].
+  { enough (SB' : sb_t z b_t).
+    { apply (WCore.cons_coherence CONS) with z.
+      exists b_t. split; [now apply sb_in_hb |].
+      now apply r_step, rf_in_eco. }
+    assert (ZTID : tid b_t = tid z).
+    { rewrite <- (rsr_at_bt_tid PRED).
+      unfold sb, ext_sb in SB.
+      unfolder in SB. desf.
+      ins. desf. }
+    destruct PeanoNat.Nat.lt_total
+        with (n := index z) (m := index b_t)
+          as [ZB | [EQ | BZ]].
+    { unfold sb, ext_sb, index in *.
+      unfolder in *. desf. }
+    { exfalso.
+      apply (rf_irr (rsr_Gt_wf PRED)) with (x := b_t).
+      unfold index, tid in *. desf. }
+    exfalso.
+    apply IMMSB with (c := z); auto.
+    unfold sb, ext_sb. unfolder; splits; auto.
+    unfold index, tid in *. desf. }
+  hahn_rewrite <- seqA in SBSW.
+  destruct SBSW as (z' & (w & RHB & SW) & SB).
+  apply crE in SB. destruct SB as [EQ | SB].
+  { unfolder in EQ. desf.
+    apply (wf_swD (rsr_Gt_wf PRED)) in SW.
+    apply (rsr_at_nacq PRED) with a_t.
+    { basic_solver. }
+    unfolder in SW. desf. }
+  enough (SB' : sb_t z' b_t).
+  { apply (WCore.cons_coherence CONS) with z.
+    exists b_t.
+    split; [| now apply r_step, rf_in_eco].
+    apply hb_trans with z'; [| now apply sb_in_hb].
+    enough (HB : (hb_t^? ⨾ hb_t) z z').
+    { hahn_rewrite crE in HB.
+      unfolder in HB; desf.
+      eapply hb_trans; eauto. }
+    exists w.
+    split; [hahn_rewrite <- rhb_in_hb | apply sw_in_hb].
+    all: auto. }
+  assert (ZIN' : E_t z').
+  { apply (wf_swE (rsr_Gt_wf PRED)) in SW.
+    unfolder in SW. desf. }
+  assert (ZNINIT' : ~is_init z').
+  { apply (no_sw_to_init (rsr_Gt_wf PRED)) in SW.
+    unfolder in SW. desf. }
+  assert (ZTID : tid b_t = tid z').
+  { rewrite <- (rsr_at_bt_tid PRED).
+    unfold sb, ext_sb in SB.
+    unfolder in SB. desf.
+    ins. desf. }
+  destruct PeanoNat.Nat.lt_total
+      with (n := index z') (m := index b_t)
+        as [ZB | [EQ | BZ]].
+  { unfold sb, ext_sb, index in *.
+    unfolder in *. desf. }
+  { exfalso.
+    apply (WCore.cons_coherence CONS) with z.
+    exists b_t.
+    split; [| now apply r_step, rf_in_eco].
+    arewrite (b_t = z').
+    { unfold tid, index in *. desf. }
+    enough (HB : (hb_t^? ⨾ hb_t) z z').
+    { hahn_rewrite crE in HB.
+      unfolder in HB; desf.
+      eapply hb_trans; eauto. }
+    exists w.
+    split; [hahn_rewrite <- rhb_in_hb | apply sw_in_hb].
+    all: auto. }
+  exfalso.
+  apply IMMSB with (c := z'); auto.
+  unfold sb, ext_sb. unfolder; splits; auto.
+  unfold index, tid in *. desf.
 Qed.
 
 Lemma rsr_rhb
