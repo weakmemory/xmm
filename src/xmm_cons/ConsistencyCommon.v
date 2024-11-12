@@ -72,6 +72,17 @@ Proof using.
   rewrite srf_in_vf; try apply vf_hb_irr; eauto.
 Qed.
 
+Lemma coll_rel_inter (A B : Type) (f : A -> B) r r'
+    (INJ : inj_dom (dom_rel r ∪₁ codom_rel r ∪₁ dom_rel r' ∪₁ codom_rel r') f) :
+  f ↑ (r ∩ r') ≡ f ↑ r ∩ f ↑ r'.
+Proof using.
+  split; [apply collect_rel_inter |].
+  unfolder; intros x y REL; desf.
+  apply INJ in REL1, REL2; ins; desf.
+  { exists x'0, y'0; splits; ins. }
+  all: basic_solver 11.
+Qed.
+
 End ConsistencyCommon.
 
 End XmmCons.

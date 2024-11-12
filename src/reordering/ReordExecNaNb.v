@@ -7,6 +7,10 @@ Require Import SimrelCommon.
 Require Import StepOps.
 Require Import AuxInj.
 Require Import PorfPrefix.
+Require Import ConsistencyCommon.
+Require Import ConsistencyMonotonicity.
+Require Import ConsistencyReadExtent.
+Require Import ConsistencyWriteExtent.
 
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
@@ -495,7 +499,44 @@ Proof using INV INV'.
       apply ADD. }
     eapply G_s_wf with (X_s := X_s') (X_t := X_t'); eauto. }
   { eapply G_s_rfc; eauto. }
-  admit.
+  destruct (classic (~ E_t' a_t /\ E_t' b_t)) as [EMP|NEMP].
+  { assert (EXTRA : extra_a X_t' a_t b_t b_t ≡₁ eq b_t).
+    { unfold extra_a. desf. basic_solver. }
+    destruct (lab_s b_t) eqn:BLAB.
+    { apply XmmCons.read_extent with (G_t := G_t')
+        (sc_t := WCore.sc X_t') (a := b_t) (m := mapper'); eauto.
+      { apply SIMREL'. }
+      { destruct SIMREL'. rewrite rsr_acts.
+        rewrite EXTRA; clear; basic_solver. }
+      { destruct SIMREL'; vauto. }
+      { unfold G_s', is_r. ins.
+        rewrite updo; ins; basic_solver. }
+      { admit. (*TODO: add*) }
+      { rewrite EQACTS.
+        rewrite set_collect_union, MAPER_E, MAPSUB, (rsr_codom SIMREL).
+        rewrite EXEQ. rewrite EXTRA; rels. intros FLS.
+        destruct FLS as [FLS | FLS].
+        { destruct SIMREL.
+          destruct FLS; vauto. }
+        destruct E_NOT_B; vauto. }
+      all : admit. }
+    all : admit. } 
+  assert (EXTRA : extra_a X_t' a_t b_t b_t ≡₁ ∅).
+  { unfold extra_a. desf. }
+  apply XmmCons.monoton_cons with (G_t := G_t')
+          (sc_t := WCore.sc X_t') (m := mapper'); eauto.
+  { apply SIMREL'. }
+  { destruct SIMREL'. rewrite rsr_acts.
+    rewrite EXTRA; clear; basic_solver. }
+  { admit. }
+  { destruct SIMREL'. rewrite rsr_rf.
+    rewrite EXTRA; clear; basic_solver 8. }
+  { destruct SIMREL'. rewrite rsr_co.
+    rewrite EXTRA; clear; basic_solver 8. }
+  { destruct SIMREL'. rewrite rsr_rmw.
+    basic_solver. }
+  { admit. }
+  admit. (*TODO : add*) 
 Admitted.
 
 End ExecNotANotB.

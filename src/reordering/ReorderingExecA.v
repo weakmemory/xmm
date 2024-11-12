@@ -9,6 +9,10 @@ Require Import AuxInj.
 Require Import SubToFullExec.
 Require Import xmm_s_hb.
 Require Import Thrdle.
+Require Import ConsistencyCommon.
+Require Import ConsistencyMonotonicity.
+Require Import ConsistencyReadExtent.
+Require Import ConsistencyWriteExtent.
 
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
@@ -782,7 +786,310 @@ Proof using INV INV'.
     arewrite (id ↑₁ cmt' ≡₁ cmt').
     { clear. basic_solver. }
     unfold cmt'. clear. basic_solver. }
-  { admit. (* TODO: cons *) }
+  { assert (RPOMAP : rpo G_s' ⊆ mapper' ↑ (rpo G_t')).
+    { unfold rpo.
+      assert (IND1 : (rpo_imm G_s') ⊆ mapper' ↑ (rpo_imm G_t')⁺).
+      { unfold rpo_imm.
+        assert (SIMRELD : reord_simrel X_s' X_t' a_t b_t mapper') by vauto.
+        destruct SIMREL'.
+        arewrite (G_s' = WCore.G X_s').
+        rewrite wf_sbE.
+        rewrite rsr_sb.
+        rewrite NOEXA, cross_false_l, cross_false_r, union_false_r.
+        rewrite !union_false_r.
+        arewrite (eq b_t ∩₁ E_t' ≡₁ eq b_t).
+        { clear - INB'. basic_solver. }
+        arewrite (eq a_t ∩₁ E_t' ≡₁ eq a_t).
+        { clear - INA. basic_solver. }
+        unfold swap_rel. rewrite !collect_rel_union.
+        rewrite !seq_union_l. rewrite !seq_union_r.
+        arewrite !(sb_t' \ eq b_t × eq a_t ⊆ sb_t').
+        arewrite (WCore.G X_s' = G_s').
+        destruct INV.
+        arewrite_false (⦗R G_s' ∩₁ Rlx G_s'⦘
+                          ⨾ ⦗acts_set G_s'⦘
+                            ⨾ mapper' ↑ eq a_t × eq b_t
+                              ⨾ ⦗acts_set G_s'⦘ ⨾ ⦗F G_s' ∩₁ Acq G_s'⦘).
+        { arewrite (G_s' = WCore.G X_s'). rewrite rsr_acts.
+          rewrite NOEXA. rels. arewrite_id (⦗R (WCore.G X_s') ∩₁ Rlx (WCore.G X_s')⦘).
+          rels.
+          arewrite (mapper' b_t = a_t).
+          { rewrite rsr_map_bt with (X_s := X_s') (X_t := X_t') (a_t := a_t); vauto. }
+          intros x y PATH.
+          destruct PATH as [x0 [MAP [x1 [C1 C2]]]].
+          destruct MAP. subst x0.
+          destruct simrel_a_lab_wr with (X_s := X_s') (X_t := X_t')
+            (a_t := a_t) (b_t := b_t) (mapper := mapper') (x := a_t); vauto.
+          { destruct C1. subst x1.
+            destruct C2 as (x1 & (EQ & INE) & RT).
+            split; vauto. apply rsr_acts; vauto. }
+          { destruct C2 as (x2 & (EQ & INE) & RT); subst x2.
+            destruct C1. subst x1.
+            destruct RT as (EQQ & (RT & LT)).
+            clear - RT H. unfold is_r, is_f in *.
+            basic_solver 21. }
+          destruct C2 as (x2 & (EQ & INE) & RT); subst x2.
+          destruct C1. subst x1.
+          destruct RT as (EQQ & (RT & LT)).
+          clear - RT H. unfold is_w, is_f in *.
+          basic_solver 21. }
+        arewrite_false (⦗Acq G_s'⦘
+                          ⨾ ⦗acts_set G_s'⦘
+                            ⨾ mapper' ↑ eq a_t × eq b_t ⨾ ⦗acts_set G_s'⦘).
+        { arewrite (G_s' = WCore.G X_s'). rewrite rsr_acts.
+          rewrite NOEXA. rels. arewrite_id (⦗mapper' ↑₁ E_t'⦘).
+          rels.
+          arewrite (mapper' a_t = b_t).
+          { rewrite rsr_map_at with (X_s := X_s') (X_t := X_t') (b_t := b_t); vauto. }
+          intros x y PATH.
+          destruct PATH as [x0 [MAP [x1 C1]]].
+          destruct MAP. subst x0.
+          destruct simrel_b_lab_notacq with (X_s := X_s') (X_t := X_t')
+            (a_t := a_t) (b_t := b_t) (mapper := mapper') (x := b_t); vauto. }
+        arewrite_false (⦗acts_set G_s'⦘
+                          ⨾ mapper' ↑ eq a_t × eq b_t ⨾ ⦗acts_set G_s'⦘ ⨾ ⦗Rel G_s'⦘).
+        { arewrite (G_s' = WCore.G X_s'). rewrite rsr_acts.
+          rewrite NOEXA. rels. arewrite_id (⦗mapper' ↑₁ E_t'⦘).
+          rels.
+          arewrite (mapper' b_t = a_t).
+          { rewrite rsr_map_bt with (X_s := X_s') (X_t := X_t') (a_t := a_t); vauto. }
+          intros x y PATH.
+          destruct PATH as [x0 [MAP [x1 C1]]].
+          destruct MAP. subst x0.
+          destruct simrel_a_lab_notrel with (X_s := X_s') (X_t := X_t')
+            (a_t := a_t) (b_t := b_t) (mapper := mapper') (x := a_t); vauto.
+          split; vauto.
+          arewrite (WCore.G X_s' = G_s').
+          unfold G_s'; ins.
+          arewrite (y = mapper' b_t).
+          { rewrite rsr_map_bt with (X_s := X_s') (X_t := X_t') (a_t := y); vauto. }
+          apply rsr_acts. left.
+          clear - INB'. basic_solver. }
+        arewrite_false (⦗F G_s' ∩₁ Rel G_s'⦘
+                          ⨾ ⦗acts_set G_s'⦘
+                            ⨾ mapper' ↑ eq a_t × eq b_t
+                              ⨾ ⦗acts_set G_s'⦘ ⨾ ⦗W G_s' ∩₁ Rlx G_s'⦘).
+        { arewrite (G_s' = WCore.G X_s'). rewrite rsr_acts.
+          rewrite NOEXA. rels. arewrite_id (⦗mapper' ↑₁ E_t'⦘).
+          rels.
+          arewrite (mapper' a_t = b_t).
+          { rewrite rsr_map_at with (X_s := X_s') (X_t := X_t') (b_t := b_t); vauto. }
+          intros x y PATH.
+          destruct PATH as [x0 [MAP [x1 [C1 C2]]]].
+          destruct MAP. subst x0.
+          destruct simrel_b_lab_wr with (X_s := X_s') (X_t := X_t')
+            (a_t := a_t) (b_t := b_t) (mapper := mapper') (x := b_t); vauto.
+          { destruct C1. subst x1. subst x.
+            destruct H0. unfold is_f, is_r in *. basic_solver 21. }
+          destruct C1. subst x1. subst x.
+          destruct H0. unfold is_f, is_w in *. basic_solver 21. }
+        rewrite !union_false_r.
+        assert (SBMAP : mapper' ↑ sb_t' ⊆ ⦗mapper' ↑₁ E_t'⦘ ⨾ mapper' ↑ sb_t' ⨾ ⦗mapper' ↑₁ E_t'⦘).
+        { rewrite wf_sbE at 1. clear. basic_solver 8. }
+        rewrite SBMAP. rewrite !seqA. arewrite_id (⦗acts_set G_s'⦘). rels.
+        seq_rewrite <- !id_inter.
+        arewrite (G_s' = WCore.G X_s').
+        arewrite (⦗R (WCore.G X_s') ∩₁ Rlx (WCore.G X_s') ∩₁ mapper' ↑₁ E_t'⦘ ⊆
+                                    mapper' ↑ ⦗(R_t' ∩₁ Rlx G_t' ∩₁ E_t')⦘).
+        { intros x y COND. destruct COND as (EQ & COND); subst y.
+          destruct COND as ((COND1 & COND2) & INE).
+          destruct INE as [x' [INE MAP]].
+          unfold set_collect.
+          exists x'. exists x'. splits; vauto.
+          split; vauto. split; vauto.
+          split.
+          { unfold G_s' in COND1; ins.
+            unfold is_r. destruct rsr_lab with x'; vauto. }
+          unfold G_s' in COND2; ins.
+          unfold is_rlx. unfold mod. destruct rsr_lab with x'; vauto. }
+        arewrite (⦗mapper' ↑₁ E_t' ∩₁ (F (WCore.G X_s') ∩₁ Acq (WCore.G X_s'))⦘
+                ⊆ mapper' ↑ ⦗(E_t' ∩₁ F G_t' ∩₁ Acq G_t')⦘).
+        { intros x y COND. destruct COND as (EQ & COND); subst y.
+          destruct SIMREL.
+          destruct COND as [INE [FACQ FAT]].
+          unfold set_collect.
+          destruct INE as [x' [INE MAP]].
+          exists x'. exists x'. splits; vauto.
+          split; vauto. split.
+          { split; vauto. unfold G_s' in FACQ; ins.
+            unfold is_f. destruct rsr_lab with x'; vauto. }
+          unfold G_s' in FAT; ins.
+          unfold is_acq. unfold mod. destruct rsr_lab with x'; vauto. }
+        arewrite (⦗Acq (WCore.G X_s') ∩₁ mapper' ↑₁ E_t'⦘
+                ⊆ mapper' ↑ ⦗(Acq G_t' ∩₁ E_t')⦘).
+        { intros x y COND. destruct COND as (EQ & COND); subst y.
+          destruct SIMREL.
+          destruct COND as [ACQ INE].
+          unfold set_collect.
+          destruct INE as [x' [INE MAP]].
+          exists x'. exists x'. splits; vauto. split; vauto.
+          split; vauto.
+          unfold G_s' in ACQ; ins.
+          unfold is_acq. unfold mod. destruct rsr_lab with x'; vauto. }
+        arewrite (mapper' ↑ ⦗(Acq G_t' ∩₁ E_t')⦘ ⨾ mapper' ↑ sb_t' ⨾ ⦗mapper' ↑₁ E_t'⦘
+                ⊆ mapper' ↑ ⦗(Acq G_t' ∩₁ E_t')⦘ ⨾ mapper' ↑ sb_t' ⨾ mapper' ↑ ⦗E_t'⦘).
+        { do 2 hahn_frame_l. rewrite collect_rel_eqv; vauto. }
+        arewrite (⦗mapper' ↑₁ E_t'⦘
+              ⨾ mapper' ↑ sb_t' ⨾ ⦗mapper' ↑₁ E_t' ∩₁ Rel (WCore.G X_s')⦘
+            ⊆ mapper' ↑ ⦗E_t'⦘
+              ⨾ mapper' ↑ sb_t' ⨾ ⦗mapper' ↑₁ E_t' ∩₁ Rel (WCore.G X_s')⦘).
+        { do 2 hahn_frame_r. rewrite collect_rel_eqv; vauto. }
+        arewrite (⦗mapper' ↑₁ E_t' ∩₁ Rel (WCore.G X_s')⦘
+              ⊆ mapper' ↑ ⦗E_t' ∩₁ Rel G_t'⦘).
+        { intros x y COND. destruct COND as (EQ & COND); subst y.
+          destruct SIMREL.
+          destruct COND as [INE REL].
+          unfold set_collect.
+          destruct INE as [x' [INE MAP]].
+          exists x'. exists x'. splits; vauto. 
+          split; vauto. split; vauto.
+          unfold G_s' in REL; ins.
+          unfold is_rel. unfold mod. destruct rsr_lab with x'; vauto. }
+        arewrite (⦗F (WCore.G X_s') ∩₁ Rel (WCore.G X_s') ∩₁ mapper' ↑₁ E_t'⦘
+              ⊆ mapper' ↑ ⦗(F G_t' ∩₁ Rel G_t' ∩₁ E_t')⦘).
+        { intros x y COND. destruct COND as (EQ & COND); subst y.
+          destruct SIMREL.
+          destruct COND as [[FENC REL] INE].
+          unfold set_collect.
+          destruct INE as [x' [INE MAP]].
+          exists x'. exists x'. splits; vauto.
+          split; vauto. split; vauto. split.
+          { unfold G_s' in FENC; ins.
+            unfold is_f. destruct rsr_lab with x'; vauto. }
+          unfold G_s' in FENC; ins.
+          unfold is_rel. unfold mod. destruct rsr_lab with x'; vauto. }
+        arewrite (⦗mapper' ↑₁ E_t' ∩₁ (W (WCore.G X_s') ∩₁ Rlx (WCore.G X_s'))⦘
+              ⊆ mapper' ↑ ⦗(E_t' ∩₁ W G_t' ∩₁ Rlx G_t')⦘).
+        { intros x y COND. destruct COND as (EQ & COND); subst y.
+          destruct SIMREL.
+          destruct COND as [INE [WRLX INE']].
+          unfold set_collect.
+          destruct INE as [x' [INE MAP]].
+          exists x'. exists x'. splits; vauto.
+          split; vauto. split; vauto.
+          { split; vauto.
+            unfold G_s' in WRLX; ins.
+            unfold is_w. unfold is_rlx. unfold mod.
+            destruct rsr_lab with x'; vauto. }
+          unfold G_s' in INE'; ins.
+          unfold is_rlx. unfold mod. destruct rsr_lab with x'; vauto. }
+        rewrite <- ct_step.
+        assert (SBT : sb_t' ≡ ⦗E_t'⦘ ⨾ sb_t' ⨾ ⦗E_t'⦘).
+        { rewrite wf_sbE. basic_solver. }
+        rewrite SBT at 5. rewrite SBT at 6.
+        rewrite SBT at 7. rewrite SBT at 8.
+        rewrite !collect_rel_union. rewrite !seqA.
+        rewrite <- !id_inter.
+        rewrite <- !seqA.
+        rewrite <- !id_inter.
+        rewrite !seqA.
+        apply union_more.
+        { apply union_more.
+          { apply union_more.
+            { rewrite !collect_rel_seq; rewrite <- set_interA; vauto.
+              { assert (IN1 : codom_rel sb_t' ⊆₁ E_t').
+                { clear. rewrite wf_sbE. basic_solver. }
+                assert (IN2 : dom_rel ⦗E_t' ∩₁ F G_t' ∩₁ Acq G_t'⦘ ⊆₁ E_t').
+                { clear. basic_solver. }
+                rewrite IN1, IN2.
+                clear - rsr_inj; basic_solver 8. }
+              assert (IN1 : codom_rel ⦗R_t' ∩₁ Rlx G_t' ∩₁ E_t'⦘ ⊆₁ E_t').
+              { clear. basic_solver. }
+              assert (IN2 : dom_rel (sb_t' ⨾ ⦗E_t' ∩₁ F G_t' ∩₁ Acq G_t'⦘) ⊆₁ E_t').
+              { clear. rewrite wf_sbE. basic_solver. }
+              rewrite IN1, IN2.
+              clear - rsr_inj; basic_solver 8. }
+            rewrite !collect_rel_seq; vauto.
+            { assert (IN1 : codom_rel sb_t' ⊆₁ E_t').
+              { clear. rewrite wf_sbE. basic_solver. }
+              assert (IN2 : dom_rel ⦗E_t'⦘ ⊆₁ E_t').
+              { clear. basic_solver. }
+              rewrite IN1, IN2.
+              clear - rsr_inj; basic_solver 8. }
+            assert (IN1 : codom_rel ⦗Acq G_t' ∩₁ E_t'⦘ ⊆₁ E_t').
+            { clear. basic_solver. }
+            assert (IN2 : dom_rel (sb_t' ⨾ ⦗E_t'⦘) ⊆₁ E_t').
+            { clear. rewrite wf_sbE. basic_solver. }
+            rewrite IN1, IN2.
+            clear - rsr_inj; basic_solver 8. }
+          rewrite !collect_rel_seq; vauto.
+          { assert (IN1 : codom_rel sb_t' ⊆₁ E_t').
+            { clear. rewrite wf_sbE. basic_solver. }
+            assert (IN2 : dom_rel ⦗E_t' ∩₁ Rel G_t'⦘ ⊆₁ E_t').
+            { clear. basic_solver. }
+            rewrite IN1, IN2.
+            clear - rsr_inj; basic_solver 8. }
+          assert (IN1 : codom_rel ⦗E_t'⦘ ⊆₁ E_t').
+          { clear. basic_solver. }
+          assert (IN2 : dom_rel (sb_t' ⨾ ⦗E_t' ∩₁ Rel G_t'⦘) ⊆₁ E_t').
+          { clear. rewrite wf_sbE. basic_solver. }
+          rewrite IN1, IN2.
+          clear - rsr_inj; basic_solver 8. }
+        rewrite !collect_rel_seq; rewrite <- set_interA; vauto.
+        { assert (IN1 : codom_rel sb_t' ⊆₁ E_t').
+          { clear. rewrite wf_sbE. basic_solver. }
+          assert (IN2 : dom_rel ⦗E_t' ∩₁ W_t' ∩₁ Rlx G_t'⦘ ⊆₁ E_t').
+          { clear. basic_solver. }
+          rewrite IN1, IN2.
+          clear - rsr_inj; basic_solver 8. }
+        assert (IN1 : codom_rel ⦗F G_t' ∩₁ Rel G_t' ∩₁ E_t'⦘ ⊆₁ E_t').
+        { clear. basic_solver. }
+        assert (IN2 : dom_rel (sb_t' ⨾ ⦗E_t' ∩₁ W_t' ∩₁ Rlx G_t'⦘) ⊆₁ E_t').
+        { clear. rewrite wf_sbE. basic_solver. }
+        rewrite IN1, IN2.
+        clear - rsr_inj; basic_solver 8. }
+      assert (IND2 : mapper' ↑ (rpo_imm G_t')⁺ ⨾ (rpo_imm G_s')
+        ⊆ mapper' ↑ (rpo_imm G_t')⁺).
+      { assert (TRIN : mapper' ↑ (rpo_imm G_t')⁺ ⨾ mapper' ↑ (rpo_imm G_t')⁺
+                ⊆ mapper' ↑ (rpo_imm G_t')⁺).
+        { intros x y PATH. destruct PATH as (x0 & P1 & P2).
+          unfold collect_rel in P1, P2. unfold collect_rel.
+          destruct P1 as (x' & x0' & (P1 & M1 & M2)).
+          destruct P2 as (x0'' & y' & (P2 & M3 & M4)).
+          exists x', y'. splits; vauto.
+          assert (EQ : x0'' = x0').
+          { destruct SIMREL'. apply rsr_inj; vauto.
+            { apply ct_begin in P2.
+              destruct P2 as (x1 & P2 & P3).
+              destruct INV.
+              apply wf_rpo_immE in P2; vauto.
+              destruct P2 as (x2 & INE & REST).
+              apply INE. }
+            apply ct_end in P1.
+            destruct P1 as (x1 & P1 & P1').
+            destruct INV.
+            apply wf_rpo_immE in P1'; vauto.
+            destruct P1' as (x2 & P3 & (x3 & P4 & (EQ & P5))); vauto. }
+          subst. apply ct_ct.
+          unfold seq. exists x0'. splits; vauto. }
+        rewrite <- TRIN at 2. apply seq_mori; vauto. }
+      apply inclusion_t_ind_right; vauto. }
+    apply XmmCons.monoton_cons with (G_t := G_t')
+                (sc_t := WCore.sc X_t') (m := mapper'); eauto.
+    { destruct SIMREL'. arewrite (G_s' = WCore.G X_s').
+      rewrite rsr_acts. rewrite NOEXA. basic_solver. }
+    { destruct SIMREL'. arewrite (G_s' = WCore.G X_s').
+      rewrite rsr_rf. rewrite NOEXA. basic_solver 8. }
+    { destruct SIMREL'. arewrite (G_s' = WCore.G X_s').
+      rewrite rsr_co. rewrite NOEXA. basic_solver 8. }
+    { destruct SIMREL'. arewrite (G_s' = WCore.G X_s').
+      rewrite rsr_rmw; vauto. }
+    { unfold rhb.
+      assert (IND1 : (sb G_s' ∩ same_loc (lab G_s') ∪ rpo G_s' ∪ sw G_s') 
+            ⊆ mapper' ↑ (sb_t' ∩ same_loc_t' ∪ rpo_t' ∪ sw G_t')⁺).
+      { rewrite <- ct_step.
+        rewrite !collect_rel_union.
+        apply union_mori.
+        { apply union_mori; vauto.
+          admit. }
+        unfold sw. unfold release. unfold rs.
+        destruct SIMREL'. arewrite (G_s' = WCore.G X_s').
+        rewrite rsr_rf. rewrite NOEXA. rels.
+        rewrite rsr_rmw.
+        rewrite collect_rel_seq.
+        all : admit. }
+      admit. }
+    admit. (*TODO : add*) }
   apply sub_to_full_exec_listless with (thrdle := thrdle'); ins.
   { eapply G_s_rfc with (X_s := X_s'); eauto. }
   { arewrite (E_s \₁ dtrmt' ∩₁ E_s ≡₁ eq b_t ∪₁ eq (mapper b_t)).
