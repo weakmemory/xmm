@@ -170,6 +170,7 @@ Record reexec_conds : Prop := {
   rc_inv_start : reord_step_pred X_t a_t b_t;
   rc_inv_end : reord_step_pred X_t' a_t' b_t';
   rc_l_a_nacq : Rlx_s' a_s';
+  rc_end_cons : WCore.is_cons G_t' ∅₂;
   rc_vf : forall (IMB : E_t' b_t') (NINA : ~ E_t' a_t'),
             vf_s' ⨾ sb_s' ⨾ ⦗eq a_s'⦘ ≡ vf G_s'' ⨾ sb_s' ⨾ ⦗eq a_s'⦘;
   (**)
@@ -397,6 +398,10 @@ Proof using.
       unfold flip. basic_solver. }
     eapply inj_dom_mori; [| reflexivity | eapply mapinj'].
     unfold flip. basic_solver. }
+  assert (MAPTHRDLE : mapper' ↑ (restr_rel E_t' (tid ↓ thrdle)) ⊆ tid ↓ thrdle).
+  { clear - CTX. unfolder. ins. desf.
+    rewrite <- !(rsr_tid' _ (reexec_simrel CTX)).
+    all: auto. }
   assert (SURG :
     WCore.stable_uncmt_reads_gen X_s' dtrmt' thrdle
   ).
@@ -415,11 +420,32 @@ Proof using.
       arewrite_id (⦗E_s' \₁ extra_a X_t' a_t' b_t' b_t'⦘).
       rewrite <- !seq_union_r, <- crE.
       arewrite ((mapper' ↑ rhb_t')^? ⊆ mapper' ↑ rhb_t'^?).
-      { admit. }
+      { rewrite !crE, collect_rel_union.
+        apply union_mori; auto with hahn.
+        admit. }
       assert (INJHELPER : inj_dom (codom_rel (⦗E_t' \₁ dtrmt⦘ ⨾ rf_t') ∪₁ dom_rel rhb_t'^?) mapper').
-      { admit. }
+      { eapply inj_dom_mori; [| auto | apply mapinj'].
+        unfold flip. clear. basic_solver. }
       rewrite <- collect_rel_seq, !seqA; auto.
-      admit. }
+      rewrite (rsr_no_rfrhb_ba (rc_inv_end CTX) (rc_end_cons CTX)).
+      rewrite <- seq_eqv_minus_ll.
+      arewrite (
+        ⦗E_t' \₁ dtrmt⦘ ⨾ rf_t' ⨾ rhb_t'^? ⊆
+        restr_rel E_t' (⦗E_t' \₁ dtrmt⦘ ⨾ rf_t' ⨾ rhb_t'^?)
+      ).
+      { rewrite (wf_rfE (rsr_Gt_wf (rc_inv_end CTX))) at 1.
+        rewrite (wf_rhbE (rsr_Gt_wf (rc_inv_end CTX))) at 1.
+        clear. basic_solver 11. }
+      rewrite rhb_in_hb, (WCore.surg_ndtrmt (WCore.reexec_sur GREEXEC)).
+      rewrite restr_union.
+      rewrite minus_union_l, collect_rel_union.
+      arewrite (restr_rel E_t' sb_t' ⊆ sb_t').
+      rewrite (rsr_sbt_in (rc_inv_end CTX) (reexec_simrel CTX)).
+      apply union_mori; auto with hahn.
+      transitivity (mapper' ↑ (restr_rel E_t' (tid ↓ thrdle))).
+      { clear. apply collect_rel_mori; auto.
+        basic_solver. }
+      apply MAPTHRDLE. }
     rewrite crE, !seq_union_r, seq_id_r.
     arewrite_false (⦗extra_a X_t' a_t' b_t' b_t'∩₁ R_s'⦘ ⨾ rhb_s').
     { admit. }
