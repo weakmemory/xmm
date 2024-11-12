@@ -7,11 +7,13 @@
 
 ## Features
 
-- [ ] [@keba4ok](https://www.github.com/keba4ok) Consistency admit for `src/reordering/ReorderingExecA.v` -- due 30.10
-- [ ] [@keba4ok](https://www.github.com/keba4ok) Consistency admit for `src/reordering/ReorderingExecB.v` -- due 30.10
-- [ ] [@keba4ok](https://www.github.com/keba4ok) Consistency admit for `src/reordering/ReorderingExecNaNb.v` -- due 30.10
+- [ ] [@keba4ok](https://www.github.com/keba4ok) Consistency admit for `src/reordering/ReorderingExecA.v` -- due 30.10 (largely overdue, rhb mapping struggles)
+- [x] [@keba4ok](https://www.github.com/keba4ok) Consistency admit for `src/reordering/ReorderingExecB.v` -- due 30.10 (both subcases are done)
+- [ ] [@keba4ok](https://www.github.com/keba4ok) Consistency admit for `src/reordering/ReorderingExecNaNb.v` -- due 30.10 (largely overdue, rhb mapping struggles)
 - [ ] [@keba4ok](https://www.github.com/keba4ok) po-closure proof for `src/reordering/ReorderingExecA.v` -- due 6.11
 - [ ] [@keba4ok](https://www.github.com/keba4ok) rpo-dom proof for `src/reordering/ReorderingExecA.v` -- due 6.11
+- [x] [@keba4ok](https://www.github.com/keba4ok) fix monotonicity def — use rhb instead of hb -- due 12.11
+- [x] [@keba4ok](https://www.github.com/keba4ok) migrate consistency proofs into copy of main -- due 12.11
 - [ ] [@InnocentusLime](https://www.github.com/InnocentusLime) Partial proof for `src/reordering/ReorderingExecReexec.v`
     * [ ] Consistency proof for the intermediate graph -- next week
     * [ ] Simulation relation for `G_s'` -- this week
