@@ -338,6 +338,19 @@ Proof using.
   reflexivity.
 Qed.
 
+Lemma rhb_as_sb_swsb :
+  rhb ⊆ sb ∪ rhb^? ⨾ sw ⨾ sb^?.
+Proof using.
+  unfold rhb at 1.
+  rewrite path_ut_last, <- !cr_of_ct.
+  change ((sb ∩ same_loc ∪ rpo ∪ sw)⁺)
+    with rhb.
+  arewrite (sb ∩ same_loc ∪ rpo ⊆ sb).
+  { rewrite rpo_in_sb. basic_solver. }
+  rewrite ct_of_trans by now apply sb_trans.
+  reflexivity.
+Qed.
+
 Lemma from_sw dtrmt
     (WF : Wf G)
     (SUBE : dtrmt ⊆₁ E)
