@@ -125,6 +125,7 @@ Notation "'ctrl_s''" := (ctrl G_s').
 Notation "'addr_s''" := (addr G_s').
 Notation "'hb_s''" := (hb G_s').
 Notation "'rhb_s''" := (rhb G_s').
+Notation "'eco_s''" := (eco G_s').
 Notation "'W_s''" := (fun x => is_true (is_w lab_s' x)).
 Notation "'R_s''" := (fun x => is_true (is_r lab_s' x)).
 Notation "'F_s''" := (F G_s').
@@ -171,6 +172,7 @@ Record reexec_conds : Prop := {
   rc_inv_end : reord_step_pred X_t' a_t' b_t';
   rc_l_a_nacq : Rlx_s' a_s';
   rc_end_cons : WCore.is_cons G_t' ∅₂;
+  rc_new_cons : WCore.is_cons G_s' ∅₂;
   rc_vf : forall (IMB : E_t' b_t') (NINA : ~ E_t' a_t'),
             vf_s' ⨾ sb_s' ⨾ ⦗eq a_s'⦘ ≡ vf G_s'' ⨾ sb_s' ⨾ ⦗eq a_s'⦘;
   (**)
@@ -402,6 +404,35 @@ Proof using.
   { clear - CTX. unfolder. ins. desf.
     rewrite <- !(rsr_tid' _ (reexec_simrel CTX)).
     all: auto. }
+  assert (DIN : dtrmt ⊆₁ E_t').
+  { admit. }
+  assert (INJHELPER : inj_dom (codom_rel (⦗E_t' \₁ dtrmt⦘ ⨾ rf_t') ∪₁ dom_rel rhb_t'^?) mapper').
+  { eapply inj_dom_mori; [| auto | apply mapinj'].
+    unfold flip. clear. basic_solver. }
+  assert (MAPRFRHB :
+    mapper' ↑ (⦗E_t' \₁ dtrmt⦘ ⨾ rf_t') ⨾ mapper' ↑ rhb_t'^? ⊆
+      sb_s' ∪ tid ↓ thrdle
+  ).
+  { rewrite <- collect_rel_seq, !seqA; auto.
+    rewrite (rsr_no_rfrhb_ba (rc_inv_end CTX) (rc_end_cons CTX)).
+    rewrite <- seq_eqv_minus_ll.
+    arewrite (
+      ⦗E_t' \₁ dtrmt⦘ ⨾ rf_t' ⨾ rhb_t'^? ⊆
+      restr_rel E_t' (⦗E_t' \₁ dtrmt⦘ ⨾ rf_t' ⨾ rhb_t'^?)
+    ).
+    { rewrite (wf_rfE (rsr_Gt_wf (rc_inv_end CTX))) at 1.
+      rewrite (wf_rhbE (rsr_Gt_wf (rc_inv_end CTX))) at 1.
+      clear. basic_solver 11. }
+    rewrite rhb_in_hb, (WCore.surg_ndtrmt (WCore.reexec_sur GREEXEC)).
+    rewrite restr_union.
+    rewrite minus_union_l, collect_rel_union.
+    arewrite (restr_rel E_t' sb_t' ⊆ sb_t').
+    rewrite (rsr_sbt_in (rc_inv_end CTX) (reexec_simrel CTX)).
+    apply union_mori; auto with hahn.
+    transitivity (mapper' ↑ (restr_rel E_t' (tid ↓ thrdle))).
+    { clear. apply collect_rel_mori; auto.
+      basic_solver. }
+    apply MAPTHRDLE. }
   assert (SURG :
     WCore.stable_uncmt_reads_gen X_s' dtrmt' thrdle
   ).
@@ -419,56 +450,67 @@ Proof using.
       rewrite (rsr_rhb (rc_inv_end CTX) (reexec_simrel CTX)).
       arewrite_id (⦗E_s' \₁ extra_a X_t' a_t' b_t' b_t'⦘).
       rewrite <- !seq_union_r, <- crE.
-      arewrite ((mapper' ↑ rhb_t')^? ⊆ mapper' ↑ rhb_t'^?).
-      { rewrite !crE, collect_rel_union.
-        apply union_mori; auto with hahn.
-        admit. }
-      assert (INJHELPER : inj_dom (codom_rel (⦗E_t' \₁ dtrmt⦘ ⨾ rf_t') ∪₁ dom_rel rhb_t'^?) mapper').
-      { eapply inj_dom_mori; [| auto | apply mapinj'].
-        unfold flip. clear. basic_solver. }
-      rewrite <- collect_rel_seq, !seqA; auto.
-      rewrite (rsr_no_rfrhb_ba (rc_inv_end CTX) (rc_end_cons CTX)).
-      rewrite <- seq_eqv_minus_ll.
-      arewrite (
-        ⦗E_t' \₁ dtrmt⦘ ⨾ rf_t' ⨾ rhb_t'^? ⊆
-        restr_rel E_t' (⦗E_t' \₁ dtrmt⦘ ⨾ rf_t' ⨾ rhb_t'^?)
-      ).
-      { rewrite (wf_rfE (rsr_Gt_wf (rc_inv_end CTX))) at 1.
-        rewrite (wf_rhbE (rsr_Gt_wf (rc_inv_end CTX))) at 1.
-        clear. basic_solver 11. }
-      rewrite rhb_in_hb, (WCore.surg_ndtrmt (WCore.reexec_sur GREEXEC)).
-      rewrite restr_union.
-      rewrite minus_union_l, collect_rel_union.
-      arewrite (restr_rel E_t' sb_t' ⊆ sb_t').
-      rewrite (rsr_sbt_in (rc_inv_end CTX) (reexec_simrel CTX)).
+      arewrite ((mapper' ↑ rhb_t')^? ⊆ mapper' ↑ rhb_t'^?); auto.
+      rewrite !crE, collect_rel_union.
       apply union_mori; auto with hahn.
-      transitivity (mapper' ↑ (restr_rel E_t' (tid ↓ thrdle))).
-      { clear. apply collect_rel_mori; auto.
-        basic_solver. }
-      apply MAPTHRDLE. }
+      admit. }
     rewrite crE, !seq_union_r, seq_id_r.
     arewrite_false (⦗extra_a X_t' a_t' b_t' b_t'∩₁ R_s'⦘ ⨾ rhb_s').
     { admit. }
     rewrite !seq_false_r, union_false_r.
     unfold extra_a; desf; [| clear; basic_solver].
+    arewrite (
+      srf_s' ⨾ ⦗eq b_t' ∩₁ R_s'⦘ ⊆
+      ⦗set_compl (eq a_t')⦘ ⨾ srf_s' ⨾ ⦗eq b_t' ∩₁ R_s'⦘
+    ).
+    { admit. }
+    seq_rewrite seq_eqvC.
+    rewrite !seqA.
     rewrite from_srf
        with (dtrmt := dtrmt').
     { rewrite !seq_union_l, !seq_union_r, !seqA.
       arewrite_false (⦗E_s' \₁ dtrmt'⦘ ⨾ dtrmt' × E_s').
       { basic_solver. }
-      rewrite seq_false_l, union_false_r.
+      rewrite seq_false_l, seq_false_r, union_false_r.
       apply inclusion_union_l; [| basic_solver].
       arewrite (eq b_t' ∩₁ R_s' ⊆₁ A_s' ∩₁ WCore.lab_is_r (lab_s' a_s')).
-      { admit. }
+      { unfold A_s', a_s'.
+        rewrite extra_a_some by desf.
+        clear. unfold WCore.lab_is_r, is_r.
+        basic_solver. }
       destruct classic
           with (WCore.lab_is_r (lab_s' a_s') ≡₁ ∅)
             as [NISR|ISR].
       { rewrite NISR. clear. basic_solver. }
       assert (ISR' : WCore.lab_is_r (lab_s' a_s') ≡₁ ⊤₁).
-      { admit. }
+      { clear - ISR. unfold WCore.lab_is_r in *.
+        desf. }
       rewrite ISR', set_inter_full_r.
-      transitivity (⦗E_s' \₁ dtrmt'⦘ ⨾ rf_s' ⨾ ⦗set_compl A_s'⦘ ⨾ rhb_s'^?).
-      { admit. }
+      transitivity (⦗set_compl (eq a_t')⦘ ⨾ ⦗E_s' \₁ dtrmt'⦘ ⨾ rf_s' ⨾ ⦗set_compl A_s'⦘ ⨾ rhb_s'^? ⨾ sb_s').
+      { do 3 hahn_frame_l.
+        unfold A_s'. rewrite extra_a_some by desf.
+        arewrite (
+          rhb_s'^? ⊆
+          ⦗eq a_s' ∪₁ set_compl (eq a_s')⦘ ⨾ rhb_s'^?
+        ).
+        { rewrite <- set_full_split. clear.
+          basic_solver. }
+        rewrite id_union, !seq_union_l.
+        apply inclusion_union_l; [| basic_solver].
+        arewrite_false (⦗eq a_s'⦘ ⨾ rhb_s'^? ⨾ sb_s' ⨾ ⦗eq a_s'⦘); [| basic_solver].
+        transitivity (restr_rel (eq a_s') (rhb_s'^? ⨾ sb_s')); [basic_solver |].
+        apply restr_irrefl_eq.
+        rewrite rhb_in_hb, sb_in_hb.
+        arewrite (hb_s'^? ⨾ hb_s' ⊆ hb_s').
+        { rewrite crE, seq_union_l, seq_id_l.
+          rewrite rewrite_trans by now apply hb_trans.
+          auto with hahn. }
+        arewrite (hb_s' ⊆ hb_s' ⨾ eco_s'^?).
+        { clear. basic_solver. }
+        apply CTX. }
+      transitivity ((⦗set_compl (eq a_t')⦘ ⨾ ⦗E_s' \₁ dtrmt'⦘ ⨾ rf_s' ⨾ ⦗set_compl A_s'⦘ ⨾ rhb_s'^?) ⨾ sb_s').
+      { clear. basic_solver 11. }
+      apply thrdle_frame_sb_r; try now apply GREEXEC.
       rewrite (rc_rf CTX), !seq_union_l, !seq_union_r.
       rewrite ISR', set_inter_full_r, !seqA.
       arewrite_false (⦗A_s'⦘ ⨾ ⦗set_compl A_s'⦘).
@@ -478,7 +520,14 @@ Proof using.
         mapper' ↑ rf_t' ⨾ ⦗set_compl A_s'⦘ ⊆
           mapper' ↑ rf_t' ⨾ ⦗E_s' \₁ extra_a X_t' a_t' b_t' b_t'⦘
       ).
-      { admit. }
+      { unfold A_s', a_s'.
+        rewrite (rsr_acts (reexec_simrel CTX)).
+        rewrite !extra_a_some by desf.
+        rewrite set_minus_union_l, set_minusK,
+                set_union_empty_r.
+        rewrite (wf_rfE (rsr_Gt_wf (rc_inv_end CTX))) at 1.
+        rewrite <- seqA, collect_rel_seqi, seqA.
+        clear. basic_solver 11. }
       arewrite (
         ⦗E_s' \₁ extra_a X_t' a_t' b_t' b_t'⦘ ⨾ rhb_s'^? ⊆
           mapper' ↑ rhb_t'^?
@@ -487,17 +536,42 @@ Proof using.
         rewrite rsr_rhb; [apply union_mori | |].
         all: auto using reexec_simrel, rc_inv_end with hahn.
         admit. }
-      arewrite (E_s' \₁ dtrmt' ⊆₁ mapper' ↑₁ (E_t' \₁ dtrmt)).
+      arewrite (
+        mapper' ↑ rf_t' ⊆
+        ⦗mapper' ↑₁ E_t'⦘ ⨾ mapper' ↑ rf_t').
       { admit. }
-      rewrite <- collect_rel_eqv, <- !collect_rel_seq.
-      { rewrite RHBTDLE. admit. }
-      { admit. }
-      admit. }
+      seq_rewrite <- !id_inter.
+      arewrite (
+        set_compl (eq a_t') ∩₁ (E_s' \₁ dtrmt') ∩₁ mapper' ↑₁ E_t' ⊆₁
+        mapper' ↑₁ (E_t' \₁ dtrmt)
+      ).
+      { rewrite set_inter_minus_r, set_inter_minus_l.
+        rewrite set_interC,
+                set_interC with (s := set_compl (eq a_t')),
+                <- set_interA.
+        rewrite <- set_minusE, set_minus_minus_l.
+        rewrite set_collect_minus; [| admit].
+        apply set_minus_mori; [clear; basic_solver |].
+        unfold flip.
+        unfold dtrmt', extra_b.
+        desf; [| exfalso; eauto].
+        rewrite set_collect_minus; [| admit].
+        admit. }
+      rewrite set_collect_minus; [| admit].
+      rewrite <- seqA, RFSUB3.
+      apply MAPRFRHB. }
+    { eapply G_s_wf with (X_t := X_t').
+      { apply CTX. }
+      apply (reexec_simrel CTX). }
+    { unfold dtrmt'.
+      arewrite (dtrmt \₁ extra_b ⊆₁ dtrmt).
+      { clear. basic_solver. }
+      rewrite (rsr_acts (reexec_simrel CTX)).
+      transitivity (mapper' ↑₁ E_t'); [| clear; basic_solver].
+      apply set_collect_mori; auto. }
     { admit. }
     { admit. }
-    { admit. }
-    { admit. }
-    admit. }
+    apply CTX. }
   assert (WF_START :
     WCore.wf (WCore.X_start X_s dtrmt') X_s' cmt'
   ).
@@ -521,7 +595,7 @@ Proof using.
     unfolder.
     intros x (y & (YEQ & YIN) & XEQ).
     subst. unfold a_s', mapper', b_s'.
-    exists b_t'. split; auto. desf. }
+    exists b_t'. split; auto. }
   { exact SURG. }
   { admit. (* sb-clos *) }
   { admit. (* rpo edges *) }
