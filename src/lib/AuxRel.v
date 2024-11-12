@@ -303,3 +303,14 @@ Proof using.
     arewrite (r ⨾ (r ∪ r')⁺ ≡ r ⨾ (r' ∪ r)⁺) by now rewrite unionC.
     apply trans_helper_swapped; vauto.
 Qed.
+
+Lemma set_collect_id {A : Type} (s : A -> Prop) :
+  id ↑₁ s ≡₁ s.
+Proof using.
+  red.
+  unfold id, set_collect, set_subset.
+  split; intros x HSET.
+  { destruct HSET as (y' & REL & YEQ).
+    subst. exact REL. }
+  exists x. splits; auto.
+Qed.

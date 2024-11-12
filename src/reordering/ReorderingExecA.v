@@ -60,6 +60,8 @@ Notation "'rf_t''" := (rf G_t').
 Notation "'co_t''" := (co G_t').
 Notation "'rmw_t''" := (rmw G_t').
 Notation "'rpo_t''" := (rpo G_t').
+Notation "'rhb_t''" := (rhb G_t').
+Notation "'hb_t''" := (hb G_t').
 Notation "'rmw_dep_t''" := (rmw_dep G_t').
 Notation "'data_t''" := (data G_t').
 Notation "'ctrl_t''" := (ctrl G_t').
@@ -160,6 +162,8 @@ Proof using INV INV'.
     eq tid_init × set_compl (eq tid_init) ∪
     eq (tid b_t) × set_compl (eq tid_init ∪₁ eq (tid b_t))
   ).
+  assert (CONS_T : WCore.is_cons G_t' ∅₂).
+  { admit. }
   assert (INB' : E_t' b_t).
   { apply (rsr_at_bt_ord CORR'), (WCore.add_event_acts ADD).
     now right. }
@@ -640,11 +644,6 @@ Proof using INV INV'.
     { rewrite seq_id_r, RFTHRDLE.
       clear. basic_solver. }
     arewrite (
-      ⦗eq (mapper' b_t)⦘ ⨾ rf_s ⊆
-      ⦗eq (mapper' b_t)⦘ ⨾ rf_s ⨾ ⦗set_compl (Tid_ tid_init ∪₁ Tid_ (tid b_t))⦘
-    ).
-    { admit. (* True because old source is cons *) }
-    arewrite (
       ⦗E_s \₁ eq b_t⦘ ⨾ rhb G_s' ⊆
         ⦗E_s \₁ eq b_t⦘ ⨾ rhb G_s' ⨾ ⦗set_compl (Tid_ tid_init ∪₁ Tid_ (tid b_t)) ∪₁ Tid_ (tid b_t)⦘
     ).
@@ -668,7 +667,36 @@ Proof using INV INV'.
       do 2 right.
       split; [rewrite <- BTID; auto |].
       intro FALSO; desf; eauto. }
-    admit. (* Should be empty, because this creates a cycle in the target graph *) }
+    arewrite (rhb G_s' ⊆ mapper' ↑ rhb_t').
+    { rewrite <- (rsr_rhb INV' SIMREL').
+      rewrite extra_a_none_l; eauto.
+      change G_s' with (WCore.G X_s').
+      rewrite (wf_rhbE (G_s_wf INV' SIMREL')) at 1.
+      clear. basic_solver. }
+    arewrite (rf_s ⨾ ⦗E_s \₁ eq b_t⦘ ⊆ mapper' ↑ rf_t').
+    { admit. }
+    assert (INJ_RFRHB : inj_dom (codom_rel rf_t' ∪₁ dom_rel rhb_t') mapper').
+    { admit. }
+    seq_rewrite <- collect_rel_seq; auto.
+    rewrite <- set_collect_eq, <- collect_rel_eqv.
+    clear - INV' CONS_T.
+    transitivity (mapper' ↑ (
+      ⦗eq b_t⦘ ⨾ rf_t' ⨾ rhb_t' ⨾ ⦗Tid_ (tid b_t)⦘
+    )).
+    { seq_rewrite <- collect_rel_seq.
+      all: admit. }
+    arewrite_false (
+      ⦗eq b_t⦘ ⨾ rf_t' ⨾ rhb_t' ⨾ ⦗Tid_ (tid b_t)⦘
+    ); [| basic_solver].
+    arewrite (
+      ⦗eq b_t⦘ ⨾ rf_t' ⨾ rhb_t' ⨾ ⦗Tid_ (tid b_t)⦘ ⊆
+        ⦗eq b_t⦘ ⨾ rf_t' ⨾ rhb_t' ⨾ ⦗sb_t' b_t⦘
+    ).
+    { admit. }
+    arewrite (sb_t' b_t ⊆₁ eq a_t).
+    { admit. }
+    rewrite rhb_in_hb.
+    admit. }
   (* The proof *)
   exists mapper', X_s', id, dtrmt', cmt'.
   split; red; ins.

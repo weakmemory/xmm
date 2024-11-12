@@ -64,11 +64,37 @@ Record hb_pref_pred : Prop := {
   hb_pref_wf : Wf G';
   hb_pref_ine : E e;
   hb_pref_sub : sub_execution G' G ∅₂ ∅₂;
-  hb_pref_no_rsa_cyc : irreflexive (rs' ⨾ rf' ⨾ hb');
-  hb_pref_no_hb_cyc : irreflexive hb';
+  hb_pref_cons : irreflexive (hb' ⨾ eco'^?);
   hb_pref_sbp : eq e × (E' \₁ E) ⊆ ⦗eq e⦘ ⨾ hb';
   hb_pref_ini : E' ∩₁ is_init ⊆₁ E;
 }.
+
+Lemma hb_pref_no_rsa_cyc
+    (PP : hb_pref_pred) :
+  irreflexive (rs' ⨾ rf' ⨾ hb').
+Proof using.
+  rewrite rs_in_co; auto using hb_pref_wf.
+  { arewrite ((⦗W'⦘ ⨾ co'^?) ⨾ rf' ⊆ eco'^?); [| rotate; apply PP].
+    rewrite crE, seq_union_r, seq_union_l, seqA, seq_id_l.
+    apply inclusion_union_l.
+    { rewrite rf_in_eco. basic_solver. }
+    rewrite seqA, co_rf_in_eco. basic_solver. }
+  red.
+  rewrite inclusion_step_cr
+      with (r := eco') (r' := eco')
+        by reflexivity.
+  rewrite sb_in_hb.
+  apply PP.
+Qed.
+
+Lemma hb_pref_no_hb_cyc
+    (PP : hb_pref_pred) :
+  irreflexive hb'.
+Proof using.
+  arewrite (hb' ⊆ hb' ⨾ eco'^?).
+  { basic_solver. }
+  apply PP.
+Qed.
 
 Lemma hb_pref_sbp'
     (PP : hb_pref_pred) :
@@ -82,12 +108,10 @@ Lemma hb_pref_sbrfirr
     (PP : hb_pref_pred) :
   irreflexive (rf' ⨾ hb').
 Proof using.
-  arewrite (rf' ⊆ rs' ⨾ rf'); [| apply PP].
-  unfold rs.
-  rewrite <- cr_of_ct, <- inclusion_id_cr,
-          seq_id_r.
-  rewrite (wf_rfD (hb_pref_wf PP)).
-  basic_solver.
+  rotate.
+  rewrite rf_in_eco.
+  arewrite (eco' ⊆ eco'^?).
+  apply PP.
 Qed.
 
 Lemma hb_pref_rs
@@ -411,12 +435,16 @@ Lemma hb_pref_vf e
     (WF : Wf G')
     (INE : E e)
     (SUB : sub_execution G' G ∅₂ ∅₂)
-    (COH1 : irreflexive (rs' ⨾ rf' ⨾ hb'))
-    (COH2 : irreflexive hb')
+    (COH : irreflexive (hb' ⨾ eco'^?))
     (SBP : eq e × (E' \₁ E) ⊆ ⦗eq e⦘ ⨾ hb')
     (INI : E' ∩₁ is_init ⊆₁ E) :
   vf' ⨾ ⦗eq e⦘ ⊆ vf ⨾ ⦗eq e⦘.
 Proof using.
+  assert (HBRFIRR : irreflexive (hb' ⨾ rf')).
+  { rewrite rf_in_eco.
+    now arewrite (eco' ⊆ eco'^?). }
+  assert (SBP' : eq e × (E' \₁ E) ⊆ hb').
+  { rewrite SBP. basic_solver. }
   assert (WF' : Wf G).
   { eapply sub_WF; eauto.
     rewrite <- INI. clear. basic_solver. }
@@ -436,7 +464,10 @@ Proof using.
     subst y.
     assert (XIN : E x).
     { destruct classic with (E x) as [XIN|XNN]; auto.
-      exfalso. admit. (* hb-rf cycle *) }
+      exfalso.
+      apply HBRFIRR with e.
+      exists x. split; auto.
+      apply SBP'. basic_solver. }
     splits; auto.
     apply (sub_rf SUB). basic_solver. }
   rewrite hb_pref_hb.
@@ -449,21 +480,24 @@ Proof using.
     subst y.
     assert (XIN : E x).
     { destruct classic with (E x) as [XIN|XNN]; auto.
-      exfalso. admit. (* hb-rf cycle *) }
+      exfalso. apply HBRFIRR with z.
+      exists x. split; auto.
+      apply hb_trans with e; auto.
+      { eapply sub_hb_in; [apply SUB | eauto]. }
+      apply SBP'. basic_solver. }
     assert (ZIN : E z).
     { apply (wf_hbE WF') in HB.
       unfolder in HB. desf. }
     splits; auto. exists z; splits; auto.
     apply (sub_rf SUB). basic_solver. }
   constructor; auto.
-Admitted.
+Qed.
 
 Lemma hb_pref_vfsb e
     (WF : Wf G')
     (INE : E' e)
     (SUB : sub_execution G' G ∅₂ ∅₂)
-    (COH1 : irreflexive (rs' ⨾ rf' ⨾ hb'))
-    (COH2 : irreflexive hb')
+    (COH : irreflexive (hb' ⨾ eco'^?))
     (MAX : eq e × (E' \₁ E \₁ eq e) ⊆ ⦗eq e⦘ ⨾ sb')
     (INI : E' ∩₁ is_init ⊆₁ E) :
   vf' ⨾ sb' ⨾ ⦗eq e⦘ ≡ vf ⨾ sb' ⨾ ⦗eq e⦘.

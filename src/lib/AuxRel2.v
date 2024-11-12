@@ -72,6 +72,13 @@ Proof using.
   unfold add_max. now rewrite set_minus_disjoint.
 Qed.
 
+Lemma add_max_a T (A B : T -> Prop) :
+  add_max A B ≡ add_max (A \₁ B) B.
+Proof using.
+  unfold add_max.
+  basic_solver 11.
+Qed.
+
 Lemma restr_add_max T (A B C : T -> Prop) :
   restr_rel C (add_max A B) ≡ add_max (A ∩₁ C) (B ∩₁ C).
 Proof using.
@@ -79,6 +86,18 @@ Proof using.
   rewrite restr_relE, <- cross_inter_r, <- cross_inter_l.
   arewrite (C ∩₁ (A \₁ B) ≡₁ A ∩₁ C \₁ B ∩₁ C); ins.
   unfolder. split; ins; desf; splits; tauto.
+Qed.
+
+Lemma add_max_seq_r T (A B C : T -> Prop) :
+  add_max A B ⨾ ⦗C⦘ ≡ add_max (A \₁ (B \₁ C)) (B ∩₁ C).
+Proof using.
+  unfold add_max.
+  rewrite <- cross_inter_r.
+  apply cross_more; auto.
+  rewrite set_minus_minus_l.
+  apply set_minus_more; auto.
+  split; [| basic_solver].
+  unfolder. ins. desf. splits; tauto.
 Qed.
 
 Lemma swap_rel_union {T : Type} (r1 r2 : relation T) A B :
