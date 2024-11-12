@@ -4529,59 +4529,7 @@ Proof using INV INV'.
     unfolder. intros x y ((x' & y' & (RO & EQ) & XEQ & YEQ) & CX & CY).
     exfalso. apply CY. rewrite <- YEQ, <- EQ.
     unfold mapper'. now rupd. }
-  { 
-  (* assert (RPOCODOM : codom_rel (⦗eq b_t⦘ ⨾ rpo G_s') ≡₁ ∅).
-  { split; [| basic_solver].
-    transitivity (codom_rel (⦗eq b_t⦘ ⨾ sb G_s')).
-    { apply codom_rel_mori. hahn_frame.
-      apply rpo_in_sb. }
-    arewrite (⦗eq b_t⦘ ⨾ sb G_s' ≡ ∅₂).
-    { split; [| basic_solver].
-      unfold sb at 1. ins. destruct SIMREL.
-      rewrite rsr_sb0. unfold swap_rel.
-      arewrite (eq b_t ∩₁ E_t ≡₁ ∅).
-      { split; basic_solver 8. }
-      rels. unfold extra_a. desf.
-      { destruct a. destruct BNOTIN; eauto. }
-      rels. rewrite wf_sbE.
-      unfold extra_a in rsr_codom0. desf.
-      unfold WCore.sb_delta.
-      rewrite seq_union_r.
-      assert (PROP1 : ⦗eq b_t⦘ ⨾ mapper ↑ (⦗E_t⦘ ⨾ sb_t ⨾ ⦗E_t⦘) ≡ ∅₂).
-      { split; [|basic_solver]. rewrite collect_rel_seqi.
-        rewrite collect_rel_eqv.
-        rewrite rsr_codom0. intros x y PATH.
-        destruct PATH as (z1 & (C1 & C2) & (z2 & (C3 & C4))).
-        rewrite C1 in C2. rewrite <- C2 in C3.
-        destruct NOTIN. destruct C3. destruct H0; vauto. }
-      assert (PROP2 : ⦗eq b_t⦘ ⨾ ((fun a : actid => is_init a) 
-            ∪₁ E_s ∩₁ same_tid b_t) × eq b_t ≡ ∅₂).
-      { split; [|basic_solver].
-        assert (HELP1 : ⦗eq b_t⦘ ⨾ ((fun a : actid => is_init a) 
-              ∪₁ E_s ∩₁ same_tid b_t) × eq b_t ≡ ∅₂).
-        { split; [| basic_solver]. 
-          arewrite (⦗eq b_t⦘ ⨾ ((fun a : actid => is_init a) ∪₁ E_s ∩₁ same_tid b_t) × eq b_t ⊆
-                    ⦗eq b_t⦘ ⨾ ((fun a : actid => is_init a) ∪₁ E_s) × eq b_t).
-          { basic_solver. }
-          basic_solver 12. }
-        rewrite HELP1. basic_solver. }
-      rewrite PROP1, PROP2. basic_solver. }
-    basic_solver. }
-  assert (RPOIMMCODOM : codom_rel (⦗eq b_t⦘ ⨾ rpo_imm G_s'') ≡₁ ∅).
-  { split; [| basic_solver]. arewrite (rpo_imm G_s'' ⊆ rpo G_s'').
-    destruct RPOCODOM; vauto. }
-  assert (RPOIMMST : ⦗E_s⦘ ⨾ rpo_imm G_s'' ≡ rpo_imm G_s'').
-  { split; [basic_solver |].
-    arewrite (rpo_imm G_s'' ⊆ ⦗acts_set G_s''⦘ ⨾ rpo_imm G_s'').
-    { rewrite wf_rpo_immE at 1; basic_solver. }
-    unfold G_s'' at 1; ins. intros x y COND.
-    destruct COND as (z & (C1 & C2) & INE); subst.
-    destruct C2 as [C1 | C2].
-    { basic_solver 8. }
-    destruct RPOIMMCODOM as (IN & OUT). 
-    destruct IN with y.
-    basic_solver 21. } *)
-    assert (RPOMAP : rpo G_s' ⊆ mapper' ↑ (rpo G_t')).
+  { assert (RPOMAP : rpo G_s' ⊆ mapper' ↑ (rpo G_t')).
     { unfold rpo.
       assert (IND1 : (rpo_imm G_s') ⊆ mapper' ↑ (rpo_imm G_t')⁺).
       { unfold rpo_imm.
@@ -4869,8 +4817,22 @@ Proof using INV INV'.
       rewrite rsr_co0. rewrite NOEXA. basic_solver 8. }
     { destruct SIMREL'. arewrite (G_s' = WCore.G X_s').
       rewrite rsr_rmw0; vauto. }
-    { unfold rhb. unfold sw. unfold release. unfold rs. destruct SIMREL'. admit. }
-    admit. }
+    { unfold rhb.
+      assert (IND1 : (sb G_s' ∩ same_loc (lab G_s') ∪ rpo G_s' ∪ sw G_s') 
+            ⊆ mapper' ↑ (sb_t' ∩ same_loc_t' ∪ rpo_t' ∪ sw G_t')⁺).
+      { rewrite <- ct_step.
+        rewrite !collect_rel_union.
+        apply union_mori.
+        { apply union_mori; vauto.
+          admit. }
+        unfold sw. unfold release. unfold rs.
+        destruct SIMREL'. arewrite (G_s' = WCore.G X_s').
+        rewrite rsr_rf0. rewrite NOEXA. rels.
+        rewrite rsr_rmw0.
+        rewrite collect_rel_seq.
+        admit. }
+      admit. }
+    admit. (*TODO : add*) }
   apply sub_to_full_exec_listless with (thrdle := thrdle'); ins.
   { eapply G_s_rfc with (X_s := X_s'); eauto. }
   { arewrite (E_s \₁ dtrmt' ∩₁ E_s ≡₁ eq b_t ∪₁ eq (mapper b_t)).
