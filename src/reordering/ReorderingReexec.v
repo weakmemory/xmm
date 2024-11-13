@@ -256,6 +256,24 @@ Proof using INV INV'.
     { clear - NINB. basic_solver. }
     clear. basic_solver. }
   { admit. }
+  { assert (DOMT : dom_rel (sb_t ⨾ ⦗dtrmt⦘) ⊆₁ dtrmt).
+    { rewrite (WCore.reexec_dtrmt_sb_closed STEP); vauto. }
+    rewrite (rsr_sb SIMREL).
+    rewrite !seq_union_l. rewrite !dom_union.
+    apply set_subset_union_l; split.
+    { apply set_subset_union_l; split.
+      { unfold swap_rel. rewrite collect_rel_union.
+        rewrite !seq_union_l. rewrite !dom_union.
+        apply set_subset_union_l; split.
+        { rewrite collect_rel_minusE.
+          { intros x COND. unfold dom_rel in COND.
+            destruct COND as (y & z & MAP & (EQ & INE)); subst.
+            unfold dom_rel in DOMT.
+            admit. }
+          admit. }
+        admit. }
+      admit. }
+    admit. }
   admit.
 Admitted.
 

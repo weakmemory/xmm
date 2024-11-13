@@ -680,8 +680,151 @@ Proof using INV INV'.
   constructor; ins.
   { subst dtrmt' cmt'. basic_solver. }
   { subst cmt'. basic_solver. }
-  { unfold dtrmt'. admit. }
-  { admit. }
+  { unfold dtrmt'.
+    assert (DNOTIN : ~ ((dom_rel (sb_s ⨾ ⦗(E_s \₁ eq b_t) 
+            \₁ eq (mapper b_t)⦘)) (mapper b_t))).
+    { rewrite rsr_map_bt with (X_s := X_s)
+            (X_t := X_t) (a_t := a_t); vauto.
+      intros FALSO. unfold dom_rel in FALSO.
+      destruct FALSO as [x FALSO].
+      destruct FALSO as (y & SB & XIN & YIN).
+      apply (rsr_sb SIMREL) in SB.
+      destruct SB as [[SB | SB] | SB].
+      { unfold swap_rel in SB.
+        assert (AEMP : eq a_t ∩₁ E_t ≡₁ ∅).
+        { clear - NOTINA. basic_solver. }
+        destruct SB as [x' [y' SB]].
+        destruct SB as (SB & XEQ & YEQ).
+        destruct SB as [SB | SB].
+        { destruct SB as (SB & NEG).
+          assert (AMAP : a_t = mapper b_t).
+          { rewrite rsr_map_bt with (X_s := X_s)
+                (X_t := X_t) (a_t := a_t); vauto. }
+          rewrite AMAP in XEQ.
+          apply rsr_inj with (X_s := X_s)
+          (X_t := X_t) (a_t := a_t) (b_t := b_t) in XEQ; vauto.
+          { assert (INB2 : E_t b_t) by vauto.
+            apply (rsr_bt_max INV) in INB; vauto.
+            destruct INB with b_t y'.
+            clear - SB INB2. basic_solver 8. }
+          apply wf_sbE in SB.
+          clear - SB. destruct SB as (x0 & (EQ & INE) & _); vauto. }
+        destruct SB as (LS & RS).
+        apply AEMP in LS; vauto. }
+      { destruct SB as (LS & RS).
+        apply OLDEXA in RS; subst y. clear - YIN.
+        destruct YIN as ((C1 & C2) & C3); vauto. }
+      destruct SB as (LS & RS).
+      apply OLDEXA in LS.
+      assert (ANOTB : b_t <> a_t).
+      { intro FALSO. apply (rsr_at_neq_bt INV); vauto. }
+      vauto. }
+    transitivity (dom_rel (sb_s ⨾ ⦗(E_s \₁ eq b_t) \₁ eq (mapper b_t)⦘) \₁ eq (mapper b_t)).
+    { clear - DNOTIN. intros x COND.
+      unfold set_minus at 2; split; vauto.
+      intros FALSO; subst; vauto. }
+    apply set_subset_minus; vauto.
+    assert (DNOTIN' : ~ dom_rel (sb_s ⨾ ⦗(E_s \₁ eq b_t) \₁ 
+              eq (mapper b_t)⦘) (b_t)).
+    { intros FALSO. unfold dom_rel in FALSO.
+      destruct FALSO as [x FALSO].
+      destruct FALSO as (y & SB & XIN & YIN).
+      apply (rsr_sb SIMREL) in SB.
+      destruct SB as [[SB | SB] | SB].
+      { unfold swap_rel in SB.
+        assert (AEMP : eq a_t ∩₁ E_t ≡₁ ∅).
+        { clear - NOTINA. basic_solver. }
+        destruct SB as [x' [y' SB]].
+        destruct SB as (SB & XEQ & YEQ).
+        destruct SB as [SB | SB].
+        { destruct SB as (SB & NEG).
+          apply (rsr_bt_max INV) in INB; subst y.
+          { clear - SB XEQ ANCODOM.
+            apply ANCODOM. unfold set_collect.
+            exists x'. split; vauto.
+            apply wf_sbE in SB.
+            destruct SB as (x0 & (EQ & INE) & _); vauto. }
+          vauto. }
+        destruct SB as (LS & RS).
+        clear - LS NOTINA. destruct LS; subst; vauto. }
+      { destruct SB as (LS & RS).
+        subst y. apply OLDEXA in RS; subst x.
+        clear - YIN. destruct YIN as ((C1 & C2) & C3); vauto. }
+      destruct SB as (LS & RS); subst y.
+      clear - YIN. destruct YIN as ((C1 & C2) & C3); vauto. }
+    clear - DNOTIN'. intros x COND.
+    unfold set_minus; split; vauto.
+    { unfold dom_rel in COND.
+      destruct COND as [y COND].
+      destruct COND as (z & SB & XIN & YIN); subst.
+      apply wf_sbE in SB.
+      destruct SB as (x0 & (EQ & INE) & _); vauto. }
+    intros FALSO; subst; vauto. }
+  { unfold dtrmt'.
+    assert (EVEQ : E_s \₁ ((E_s \₁ eq b_t) \₁ eq (mapper b_t)) ≡₁ eq b_t ∪₁ eq a_t).
+    { clear - AINS BINS INV SIMREL INB. split.
+      { intros x COND.
+        destruct COND as (INE & COND).
+        unfold set_minus in COND.
+        apply not_and_or in COND.
+        destruct COND as [EQ | NEQ]; vauto.
+        { apply not_and_or in EQ.
+          destruct EQ as [EQ | EQ]; vauto.
+          unfold not in EQ. apply NNPP in EQ; vauto. }
+        unfold not in NEQ. apply NNPP in NEQ.
+        right. rewrite <- NEQ.
+        rewrite rsr_map_bt with (X_s := X_s)
+              (X_t := X_t) (a_t := a_t); vauto. }
+      intros x [EQ | EQ].
+      { split; vauto. intros FALSE.
+        unfold set_minus in FALSE.
+        destruct FALSE as (INE & FALSE).
+        desf. } 
+      rewrite <- rsr_map_bt with (X_s := X_s)
+        (X_t := X_t) (a_t := a_t) (b_t := b_t) (mapper := mapper) in EQ; vauto.
+      split; vauto. intros FALSE.
+      unfold set_minus in FALSE.
+      destruct FALSE as (INE & FALSE).
+      desf. }
+    rewrite EVEQ. rewrite id_union.
+    rewrite seq_union_r. rewrite dom_union.
+    rewrite set_subset_union_l; split.
+    { destruct SIMREL. intros x COND.
+      unfold dom_rel in COND. destruct COND as [y COND].
+      destruct COND as (z & SB & XIN & YIN); subst z y.
+      unfold set_minus. splits.
+      { apply wf_rpoE in SB.
+        { destruct SB as (x0 & (EQ & INE) & _); vauto. }
+        admit. (*TODO : add*) }
+      { apply rpo_in_sb in SB.
+        intros FALSE; subst x.
+        apply sb_irr in SB; vauto. }
+      intros FALSE.
+      rewrite rsr_map_bt with (X_s := X_s)
+          (X_t := X_t) (a_t := a_t) (b_t := b_t) (mapper := mapper) in FALSE.
+      { subst x. apply rpo_in_sb in SB.
+        unfold sb in SB. unfolder in SB; desf.
+        destruct INV. clear - SB0 rsr_at_bt_sb.
+        assert (TRANS : ext_sb a_t a_t).
+        { apply ext_sb_trans with (x := a_t)
+              (y := b_t) (z := a_t); vauto. }
+        apply ext_sb_irr in TRANS; vauto. }
+      all : vauto. }
+    destruct SIMREL. intros x COND.
+    unfold dom_rel in COND. destruct COND as [y COND].
+    destruct COND as (z & SB & XIN & YIN); subst z y.
+    unfold set_minus. splits.
+    { apply wf_rpoE in SB.
+      { destruct SB as (x0 & (EQ & INE) & _); vauto. }
+      admit. (*TODO : add*) }
+    { intros FALSE; subst x.
+      admit. (*TODO : ask*) }
+    intros FALSE.
+    rewrite rsr_map_bt with (X_s := X_s)
+      (X_t := X_t) (a_t := a_t) (b_t := b_t) (mapper := mapper) in FALSE.
+    { subst x. apply rpo_in_sb in SB.
+      apply sb_irr in SB; vauto. }
+    all : vauto. }
   { constructor; ins.
     { unfold id; ins. rupd. intro FALSO.
       now apply CMT. }

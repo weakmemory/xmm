@@ -502,6 +502,16 @@ Proof using INV INV'.
   destruct (classic (~ E_t' a_t /\ E_t' b_t)) as [EMP|NEMP].
   { assert (EXTRA : extra_a X_t' a_t b_t b_t ≡₁ eq b_t).
     { unfold extra_a. desf. basic_solver. }
+
+    assert (ANONTIN : ~ E_t a_t).
+    { clear - A_PRESERVED EMP. basic_solver 8. }
+    assert (BIN : E_t b_t).
+    { clear - B_PRESERVED EMP. basic_solver 8. }
+    assert (EXTRAOLD : extra_a X_t a_t b_t b_t ≡₁ eq b_t).
+    { unfold extra_a. desf. basic_solver. }
+
+
+
     destruct (lab_s b_t) eqn:BLAB.
     { apply XmmCons.read_extent with (G_t := G_t')
         (sc_t := WCore.sc X_t') (a := b_t) (m := mapper'); eauto.
@@ -519,6 +529,29 @@ Proof using INV INV'.
         { destruct SIMREL.
           destruct FLS; vauto. }
         destruct E_NOT_B; vauto. }
+      { assert (RPOCODOM : codom_rel (⦗eq b_t⦘ ⨾ rpo G_s') ≡₁ ∅).
+        { split; [| basic_solver].
+          transitivity (codom_rel (⦗eq b_t⦘ ⨾ sb G_s')).
+          { apply codom_rel_mori. hahn_frame.
+            apply rpo_in_sb. }
+          arewrite (⦗eq b_t⦘ ⨾ sb G_s' ≡ ∅₂); [| basic_solver].
+          split; [| basic_solver].
+          unfold sb at 1. ins. destruct SIMREL.
+          rewrite NEWSB. rewrite rsr_sb. unfold swap_rel.
+          arewrite (eq b_t ∩₁ E_t ≡₁ eq b_t).
+          { split; basic_solver. }
+          arewrite (eq a_t ∩₁ E_t ≡₁ ∅).
+          { split; basic_solver. }
+          rewrite cross_false_l. rewrite cross_false_r.
+          rewrite minus_false_r. rewrite union_false_r.
+          rewrite EXTRAOLD.
+          admit. }
+        vauto.
+            
+            
+      
+      
+      }
       all : admit. }
     all : admit. } 
   assert (EXTRA : extra_a X_t' a_t b_t b_t ≡₁ ∅).
