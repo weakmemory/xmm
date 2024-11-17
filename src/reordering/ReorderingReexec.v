@@ -288,6 +288,41 @@ Proof using.
   now rewrite !updo with (c := x) by congruence.
 Qed.
 
+Lemma mapd
+    (CTX : reexec_conds) :
+  eq_dom dtrmt mapper mapper'.
+Proof using.
+  unfolder. intros x D.
+  assert (GREEXEC :
+    WCore.reexec X_t X_t' f dtrmt cmt
+  ).
+  { apply (rc_step CTX). }
+  red in GREEXEC. destruct GREEXEC as (thrdle & GREEXEC).
+  assert (DE : dtrmt ⊆₁ E_t).
+  { now rewrite (WCore.dtrmt_cmt GREEXEC), (WCore.reexec_embd_acts (WCore.reexec_embd_corr GREEXEC)). }
+  rewrite (rsr_mapper (rc_simrel CTX)); auto.
+  unfold mapper'.
+  destruct classic with (dtrmt b_t) as [DB|NDB].
+  { apply (rc_b_eq CTX) in DB.
+    assert (DA : a_t = a_t') by now apply (rc_pres CTX).
+    unfold a_s', b_s'.
+    now rewrite DB, DA. }
+  assert (NDA : ~dtrmt a_t).
+  { intro FALSO. apply NDB.
+    apply (WCore.reexec_dtrmt_sb_closed GREEXEC).
+    unfolder. exists a_t, a_t. splits; auto.
+    unfold sb. unfolder; splits; auto.
+    { now apply (rsr_at_bt_ord (rc_inv_start CTX)), DE. }
+    apply CTX. }
+  assert (NDB' : ~ dtrmt b_t').
+  { intro FALSO. apply (rc_b_dtrmt CTX) in FALSO.
+    auto. }
+  assert (NDA' : ~ dtrmt a_t').
+  { intro FALSO. apply (rc_a_dtrmt CTX) in FALSO.
+    auto. }
+  now rewrite !updo by congruence.
+Qed.
+
 Lemma intermediate_graph_wf
     (INB : E_t' b_t')
     (NINA : ~ E_t' a_t')
@@ -491,7 +526,10 @@ Proof using.
   { unfold dtrmt', f', cmt'.
     arewrite (mapper' ↑₁ (dtrmt \₁ extra_b) ≡₁
               mapper  ↑₁ (dtrmt \₁ extra_b)).
-    { admit. }
+    { symmetry.
+      apply set_collect_eq_dom.
+      eapply eq_dom_mori; eauto using mapd.
+      unfold flip. basic_solver. }
     rewrite (WCore.dtrmt_cmt GREEXEC).
     rewrite set_collect_compose.
     transitivity ((mapper ∘ f) ↑₁ (mapper_inv' ↑₁ (mapper' ↑₁ cmt)));
