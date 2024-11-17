@@ -477,7 +477,10 @@ Proof using.
   assert (SURG :
     WCore.stable_uncmt_reads_gen X_s' dtrmt' thrdle
   ).
-  { admit. }
+  { constructor; try now apply GREEXEC.
+    rewrite (rsr_rf (reexec_simrel CTX)), seq_union_l,
+            seq_union_r.
+    admit. }
   assert (WF_START :
     WCore.wf (WCore.X_start X_s dtrmt') X_s' cmt'
   ).
