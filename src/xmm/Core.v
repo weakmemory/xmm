@@ -444,7 +444,7 @@ Record stable_uncmt_reads_gen thrdle : Prop :=
 Record commit_embedded : Prop :=
 { reexec_embd_inj : inj_dom cmt f;
   reexec_embd_tid : forall e (CMT : cmt e), tid (f e) = tid e;
-  reexec_embd_lab : forall e (CMT : cmt e), lab' (f e) = lab e;
+  reexec_embd_lab : forall e (CMT : cmt e), lab' e = lab (f e);
   reexec_embd_rpo : f ↑ restr_rel cmt rpo' ⊆ rpo;
   reexec_embd_rf : f ↑ restr_rel cmt rf' ⊆ rf;
   reexec_embd_co : f ↑ restr_rel cmt co' ⊆ co;
@@ -457,7 +457,7 @@ Record reexec_gen thrdle : Prop :=
   reexec_embd_dom : cmt ⊆₁ E';
   reexec_sur : stable_uncmt_reads_gen thrdle;
   reexec_dtrmt_sb_closed : dom_rel (sb ⨾ ⦗dtrmt⦘) ⊆₁ dtrmt;
-  reexec_dtrmt_rpo : dom_rel (rpo ⨾ ⦗E \₁ dtrmt⦘) ⊆₁ dtrmt;
+  reexec_dtrmt_rpo : dom_rel (rpo' ⨾ ⦗E' \₁ dtrmt⦘) ⊆₁ dtrmt;
   (* Correct embedding *)
   reexec_embd_corr : commit_embedded;
   (* Reproducable steps *)
