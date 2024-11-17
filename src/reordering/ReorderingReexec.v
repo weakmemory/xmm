@@ -194,39 +194,99 @@ Record reexec_conds : Prop := {
   rc_rmw_dep : rmw_dep_s' ≡ rmw_dep_t';
 }.
 
-Lemma mapinj' : inj_dom ⊤₁ mapper'.
+Lemma mapinj'
+    (NEQ : a_t' <> b_t') :
+  inj_dom ⊤₁ mapper'.
 Proof using.
-  admit.
-Admitted.
+  unfolder. unfold mapper'.
+  intros x y _ _.
+  destruct
+    classic with (x = b_t') as [XB|NXB],
+    classic with (x = a_t') as [XA|NXA],
+    classic with (y = b_t') as [YB|NYB],
+    classic with (y = a_t') as [YA|NYA].
+  all: unfold a_s', b_s', id.
+  all: try subst x; try subst y.
+  all: try congruence.
+  all: rupd.
+  all: congruence.
+Qed.
 
-Lemma mapinj : inj_dom E_t' mapper'.
+Lemma mapinj
+    (NEQ : a_t' <> b_t') :
+  inj_dom E_t' mapper'.
 Proof using.
-  admit.
-Admitted.
+  eapply inj_dom_mori; eauto using mapinj'.
+  red. basic_solver.
+Qed.
 
-Lemma mapinj_inv' : inj_dom ⊤₁ mapper_inv'.
+Lemma mapinj_inv'
+    (NEQ : a_t' <> b_t') :
+  inj_dom ⊤₁ mapper_inv'.
 Proof using.
-  admit.
-Admitted.
+  unfolder. unfold mapper_inv'.
+  intros x y _ _.
+  destruct
+    classic with (x = b_t') as [XB|NXB],
+    classic with (x = a_t') as [XA|NXA],
+    classic with (y = b_t') as [YB|NYB],
+    classic with (y = a_t') as [YA|NYA].
+  all: unfold a_s', b_s', id.
+  all: try subst x; try subst y.
+  all: try congruence.
+  all: rupd.
+  all: congruence.
+Qed.
 
-Lemma mapinj_inv : inj_dom E_t' mapper_inv'.
+Lemma mapinj_inv
+    (NEQ : a_t' <> b_t') :
+  inj_dom E_t' mapper_inv'.
 Proof using.
-  admit.
-Admitted.
+  eapply inj_dom_mori; eauto using mapinj_inv'.
+  red. basic_solver.
+Qed.
 
 Lemma mapper_inv_l_inv
     (NEQ : a_t' <> b_t') :
   mapper' ∘ mapper_inv' = id.
 Proof using.
-  admit.
-Admitted.
+  unfolder. unfold mapper', compose, mapper_inv'.
+  apply functional_extensionality.
+  intros x.
+  destruct
+    classic with (x = b_t') as [XB|NXB],
+    classic with (x = a_t') as [XA|NXA].
+  all: unfold a_s', b_s', id.
+  all: try subst x.
+  all: try congruence.
+  { rewrite updo with (c := b_t') by congruence.
+    rewrite upds.
+    rewrite updo with (c := a_t') by congruence.
+    now rewrite upds. }
+  { now rewrite !upds. }
+  now rewrite !updo with (c := x) by congruence.
+Qed.
 
 Lemma mapper_inv_r_inv
     (NEQ : a_t' <> b_t') :
   mapper_inv' ∘ mapper' = id.
 Proof using.
-  admit.
-Admitted.
+  unfolder. unfold mapper', compose, mapper_inv'.
+  apply functional_extensionality.
+  intros x.
+  destruct
+    classic with (x = b_t') as [XB|NXB],
+    classic with (x = a_t') as [XA|NXA].
+  all: unfold a_s', b_s', id.
+  all: try subst x.
+  all: try congruence.
+  { now rewrite !upds. }
+  { rewrite updo with (c := a_t') by congruence.
+    rewrite upds.
+    rewrite updo with (c := b_t') by congruence.
+    now rewrite upds. }
+  now rewrite !updo with (c := x) by congruence.
+Qed.
 
 Lemma intermediate_graph_wf
     (INB : E_t' b_t')
@@ -249,7 +309,8 @@ Proof using.
   ).
   { intros x XEQ.
     replace b_t' with (mapper' a_t') in XEQ.
-    { eapply mapinj'; easy. }
+    { eapply mapinj'; try done.
+      apply CTX. }
     clear - CTX. unfold mapper'.
     rupd; [easy | apply CTX]. }
   assert (SRF :
@@ -280,7 +341,7 @@ Proof using.
     now rewrite union_false_r. }
   constructor; ins.
   all: try now apply CTX.
-  { apply mapinj. }
+  { apply mapinj. apply CTX. }
   { unfolder. unfold extra_a; ins; desf.
     constructor; [red; auto | desf].
     rewrite extra_a_some in SRF; auto.
@@ -355,7 +416,7 @@ Proof using.
   ).
   { intros x XEQ.
     replace b_t' with (mapper' a_t') in XEQ.
-    { eapply mapinj'; easy. }
+    { eapply mapinj'; try done. apply CTX. }
     clear - CTX. unfold mapper'.
     rupd; [easy | apply CTX]. }
   assert (NEQ : a_t' <> b_t').
@@ -379,7 +440,7 @@ Proof using.
     rewrite <- !(rsr_tid' _ (reexec_simrel CTX)).
     all: auto. }
   assert (INJHELPER : inj_dom (codom_rel (⦗E_t' \₁ dtrmt⦘ ⨾ rf_t') ∪₁ dom_rel rhb_t'^?) mapper').
-  { eapply inj_dom_mori; [| auto | apply mapinj'].
+  { eapply inj_dom_mori; [| auto | apply mapinj'; apply CTX].
     unfold flip. clear. basic_solver. }
   assert (EXNCMT : extra_a X_t' a_t' b_t' b_t' ∩₁ cmt' ≡₁ ∅).
   { split; vauto.
