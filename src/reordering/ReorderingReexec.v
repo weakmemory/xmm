@@ -516,8 +516,49 @@ Proof using.
       { apply (WCore.reexec_embd_acts (WCore.reexec_embd_corr GREEXEC)); basic_solver. }
       { apply (WCore.reexec_embd_acts (WCore.reexec_embd_corr GREEXEC)); basic_solver. }
       done. }
-    { admit. (* TID *) }
-    { admit. (* lab *) }
+    { intros e CMT.
+      change (tid (f' e)) with ((tid ∘ f') e).
+      unfold f'.
+      rewrite <- !Combinators.compose_assoc.
+      change ((tid ∘ mapper ∘ f ∘ mapper_inv') e)
+        with ((tid ∘ mapper) ((f ∘ mapper_inv') e)).
+      unfold cmt' in CMT. unfolder in CMT.
+      destruct CMT as (e' & CMT & EQ); subst e.
+      assert (INE : E_t ((f ∘ mapper_inv') (mapper' e'))).
+      { apply (WCore.reexec_embd_acts (WCore.reexec_embd_corr GREEXEC)).
+        unfolder. exists e'. split; auto.
+        change ((f ∘ mapper_inv') (mapper' e'))
+          with (f ((mapper_inv' ∘ mapper') e')).
+        rewrite mapper_inv_r_inv; [now unfold id | apply CTX]. }
+      rewrite (rsr_tid (rc_simrel CTX)); auto.
+      unfold compose.
+      rewrite (WCore.reexec_embd_tid (WCore.reexec_embd_corr GREEXEC));
+        [| change (mapper_inv' (mapper' e')) with ((mapper_inv' ∘ mapper') e');
+           rewrite mapper_inv_r_inv; [now unfold id | apply CTX]].
+      change (mapper_inv' (mapper' e'))
+        with ((mapper_inv' ∘ mapper') e').
+      rewrite mapper_inv_r_inv by apply CTX.
+      unfold id.
+      apply rsr_tid' with (X_s := X_s') (X_t := X_t')
+                          (a_t := a_t') (b_t := b_t').
+      { now apply reexec_simrel. }
+      now apply (WCore.reexec_embd_dom GREEXEC). }
+    { intros e CMT.
+      change (lab_s (f' e)) with ((lab_s ∘ f') e).
+      unfold f'.
+      rewrite <- !Combinators.compose_assoc.
+      unfold cmt' in CMT. unfolder in CMT.
+      destruct CMT as (e' & CMT & EQ); subst e.
+      change ((lab_s ∘ mapper ∘ f ∘ mapper_inv') (mapper' e'))
+        with ((lab_s ∘ mapper) ((f ∘ (mapper_inv' ∘ mapper')) e')).
+      change (lab_s' (mapper' e')) with ((lab_s' ∘ mapper') e').
+      rewrite mapper_inv_r_inv by apply CTX.
+      arewrite (f ∘ id = f) by done.
+      rewrite (rsr_lab (rc_simrel CTX));
+        [| apply (WCore.reexec_embd_acts (WCore.reexec_embd_corr GREEXEC)); basic_solver].
+      rewrite (rsr_lab (reexec_simrel CTX));
+        [| apply (WCore.reexec_embd_dom GREEXEC); auto].
+      now apply GREEXEC. }
     { admit. }
     { rewrite (rsr_rf (reexec_simrel CTX)),
               restr_union, collect_rel_union.
