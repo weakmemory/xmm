@@ -435,6 +435,9 @@ Notation "'sc'" := (sc X).
 Definition X_start dtrmt :=
   Build_t (restrict G dtrmt) (restr_rel dtrmt sc).
 
+Definition reexec_thread :=
+  tid ↑₁ (E' \₁ dtrmt).
+
 Record stable_uncmt_reads_gen thrdle : Prop :=
   { surg_init_least : least_elt thrdle tid_init;
     surg_init_min : min_elt thrdle tid_init;
@@ -463,6 +466,7 @@ Record reexec_gen thrdle : Prop :=
   (* Reproducable steps *)
   reexec_start_wf : wf (X_start dtrmt) X' cmt;
   rexec_final_cons : is_cons G' sc;
+  rexec_acts : E ≡₁ dtrmt ∪₁ E ∩₁ tid ↓₁ reexec_thread;
   reexec_steps : (guided_step cmt X')＊ (X_start dtrmt) X'; }.
 
 Definition reexec : Prop :=
@@ -479,5 +483,14 @@ Proof using.
   now rewrite EEQ.
 Qed.
 
+Add Parametric Morphism : WCore.reexec_thread with signature
+  eq ==> set_equiv ==> set_equiv as reexec_thread_more.
+Proof using.
+  intros A E1 E2 EEQ. unfold WCore.reexec_thread.
+  now rewrite EEQ.
+Qed.
+
 #[export]
 Instance sb_delta_Propere : Proper (_ ==> _ ==> _) _ := sb_delta_more.
+#[export]
+Instance reexec_thread_Propere : Proper (_ ==> _ ==> _) _ := reexec_thread_more.
