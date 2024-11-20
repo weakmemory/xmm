@@ -699,6 +699,20 @@ Proof using INV INV'.
     { clear. basic_solver. }
     unfold cmt'. clear. basic_solver. }
   { admit. (* TODO: cons *) }
+  { unfold dtrmt'.
+    split; [| clear; basic_solver].
+    rewrite set_minus_minus_l.
+    rewrite set_union_minus
+       with (s := E_s) (s' := eq b_t ∪₁ eq (mapper b_t))
+         at 1
+         by basic_solver.
+    apply set_union_mori; [reflexivity |].
+    unfold WCore.reexec_thread. ins.
+    rewrite set_minus_minus_r, set_minusK,
+            set_union_empty_l.
+    rewrite set_inter_absorb_l
+       with (s := eq b_t ∪₁ eq (mapper b_t)).
+    all: basic_solver. }
   apply sub_to_full_exec_listless with (thrdle := thrdle'); ins.
   { eapply G_s_rfc with (X_s := X_s'); eauto. }
   { admit. }
