@@ -10,7 +10,7 @@ From RecordUpdate Require Import RecordSet.
 (* Import RecordSetNotations. *)
 
 Require Import xmm_s xmm_s_hb.
-Require Import AuxDef Rhb.
+Require Import AuxDef Rhb Srf.
 
 Open Scope program_scope.
 
@@ -420,6 +420,7 @@ Notation "'rpo''" := (rpo G').
 Notation "'rmw''" := (rmw G').
 Notation "'hb''" := (hb G').
 Notation "'co''" := (co G').
+Notation "'vf''" := (vf G').
 
 Notation "'G'" := (G X).
 Notation "'lab'" := (lab G).
@@ -438,8 +439,7 @@ Record stable_uncmt_reads_gen thrdle : Prop :=
   { surg_init_least : least_elt thrdle tid_init;
     surg_init_min : min_elt thrdle tid_init;
     surg_order : strict_partial_order thrdle;
-    surg_ndtrmt : ⦗E' \₁ dtrmt⦘ ⨾ rf' ⨾ hb'^? ⊆ sb' ∪ tid ↓ thrdle; }.
-
+    surg_ndtrmt : vf' ⨾ same_tid ⨾ ⦗E' \₁ cmt⦘ ⊆ tid ↓ thrdle ∪ same_tid; }.
 
 Record commit_embedded : Prop :=
 { reexec_embd_inj : inj_dom cmt f;
