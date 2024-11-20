@@ -439,7 +439,7 @@ Record stable_uncmt_reads_gen thrdle : Prop :=
   { surg_init_least : least_elt thrdle tid_init;
     surg_init_min : min_elt thrdle tid_init;
     surg_order : strict_partial_order thrdle;
-    surg_ndtrmt : vf' ⨾ same_tid ⨾ ⦗E' \₁ cmt⦘ ⊆ tid ↓ thrdle ∪ same_tid; }.
+    surg_ncmt : vf' ⨾ same_tid ⨾ ⦗E' \₁ cmt⦘ ⊆ tid ↓ thrdle ∪ same_tid; }.
 
 Record commit_embedded : Prop :=
 { reexec_embd_inj : inj_dom cmt f;
