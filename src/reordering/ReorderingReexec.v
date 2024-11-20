@@ -465,15 +465,6 @@ Proof using.
   { unfold mapper'.
     rewrite updo, upds; [done |].
     apply CTX. }
-  assert (RHBTDLE :
-    ⦗E_t' \₁ dtrmt⦘ ⨾ rf_t' ⨾ rhb_t'^? ⊆
-      sb_t' ∪ tid ↓ thrdle
-  ).
-  { apply thrdle_with_rhb; apply GREEXEC. }
-  assert (MAPTHRDLE : mapper' ↑ (restr_rel E_t' (tid ↓ thrdle)) ⊆ tid ↓ thrdle).
-  { clear - CTX. unfolder. ins. desf.
-    rewrite <- !(rsr_tid' _ (reexec_simrel CTX)).
-    all: auto. }
   assert (INJHELPER : inj_dom (codom_rel (⦗E_t' \₁ dtrmt⦘ ⨾ rf_t') ∪₁ dom_rel rhb_t'^?) mapper').
   { eapply inj_dom_mori; [| auto | apply mapinj'; apply CTX].
     unfold flip. clear. basic_solver. }
@@ -485,36 +476,10 @@ Proof using.
     unfold extra_a. desf; [| basic_solver].
     unfolder. ins. desf.
     erewrite <- MAPINV in a; eauto. }
-  assert (MAPRFRHB :
-    mapper' ↑ (⦗E_t' \₁ dtrmt⦘ ⨾ rf_t') ⨾ mapper' ↑ rhb_t'^? ⊆
-      sb_s' ∪ tid ↓ thrdle
-  ).
-  { rewrite <- collect_rel_seq, !seqA; auto.
-    rewrite (rsr_no_rfrhb_ba (rc_inv_end CTX) (rc_end_cons CTX)).
-    rewrite <- seq_eqv_minus_ll.
-    arewrite (
-      ⦗E_t' \₁ dtrmt⦘ ⨾ rf_t' ⨾ rhb_t'^? ⊆
-      restr_rel E_t' (⦗E_t' \₁ dtrmt⦘ ⨾ rf_t' ⨾ rhb_t'^?)
-    ).
-    { rewrite (wf_rfE (rsr_Gt_wf (rc_inv_end CTX))) at 1.
-      rewrite (wf_rhbE (rsr_Gt_wf (rc_inv_end CTX))) at 1.
-      clear. basic_solver 11. }
-    rewrite rhb_in_hb, (WCore.surg_ndtrmt (WCore.reexec_sur GREEXEC)).
-    rewrite restr_union.
-    rewrite minus_union_l, collect_rel_union.
-    arewrite (restr_rel E_t' sb_t' ⊆ sb_t').
-    rewrite (rsr_sbt_in (rc_inv_end CTX) (reexec_simrel CTX)).
-    apply union_mori; auto with hahn.
-    transitivity (mapper' ↑ (restr_rel E_t' (tid ↓ thrdle))).
-    { clear. apply collect_rel_mori; auto.
-      basic_solver. }
-    apply MAPTHRDLE. }
   assert (SURG :
-    WCore.stable_uncmt_reads_gen X_s' dtrmt' thrdle
+    WCore.stable_uncmt_reads_gen X_s' cmt' thrdle
   ).
   { constructor; try now apply GREEXEC.
-    rewrite (rsr_rf (reexec_simrel CTX)), seq_union_l,
-            seq_union_r.
     admit. }
   assert (WF_START :
     WCore.wf (WCore.X_start X_s dtrmt') X_s' cmt'
@@ -676,6 +641,7 @@ Proof using.
   { eapply G_s_rfc with (X_t := X_t').
     { apply CTX. }
     now apply reexec_simrel. }
+  { apply CTX. }
   { admit. (* difference between acts and dtrmt is fin *) }
   { admit. (* Prefix. Trivial? *) }
   { eapply G_s_wf with (X_t := X_t').
@@ -688,7 +654,6 @@ Proof using.
   { now rewrite (rc_ctrl CTX), (rsr_nctrl (rc_inv_end CTX)). }
   { now rewrite (rc_rmw_dep CTX), (rsr_nrmw_dep (rc_inv_end CTX)). }
   ins.
-  admit. (* dtrmt' is subset of E_s' *)
 Admitted.
 
 End ReorderingReexecInternal.
