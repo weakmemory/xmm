@@ -532,4 +532,12 @@ Proof using.
   basic_solver.
 Qed.
 
+Lemma rexec_dtrmt_sb_dom f dtrmt cmt thrdle
+    (REXEC : WCore.reexec_gen X X' f dtrmt cmt thrdle) :
+  dom_rel (sb ⨾ ⦗dtrmt⦘) ⊆₁ dtrmt.
+Proof using.
+  rewrite (WCore.reexec_dtrmt_sb_closed REXEC).
+  clear. basic_solver.
+Qed.
+
 End DeltaOps.

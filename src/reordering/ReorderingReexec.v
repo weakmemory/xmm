@@ -309,7 +309,7 @@ Proof using.
     now rewrite DB, DA. }
   assert (NDA : ~dtrmt a_t).
   { intro FALSO. apply NDB.
-    apply (WCore.reexec_dtrmt_sb_closed GREEXEC).
+    apply (rexec_dtrmt_sb_dom GREEXEC).
     unfolder. exists a_t, a_t. splits; auto.
     unfold sb. unfolder; splits; auto.
     { now apply (rsr_at_bt_ord (rc_inv_start CTX)), DE. }
@@ -508,6 +508,7 @@ Proof using.
     basic_solver. }
   { exact SURG. }
   { admit. (* sb-clos *) }
+  { admit. (* dtrmt to cmt *) }
   { admit. (* rpo edges *) }
   { constructor.
     { intros x' y'; unfold cmt', f'.
