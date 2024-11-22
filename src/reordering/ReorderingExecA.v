@@ -594,6 +594,7 @@ Proof using INV INV'.
   { subst cmt'. basic_solver. }
   { unfold dtrmt'. admit. }
   { admit. }
+  { admit. }
   { constructor; ins.
     { unfold id; ins. rupd. intro FALSO.
       now apply CMT. }
