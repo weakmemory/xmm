@@ -459,9 +459,9 @@ Record reexec_gen thrdle : Prop :=
   dtrmt_cmt : dtrmt ⊆₁ f ↑₁ cmt;
   reexec_embd_dom : cmt ⊆₁ E';
   reexec_sur : stable_uncmt_reads_gen thrdle;
-  reexec_dtrmt_sb_closed : dom_rel (sb ⨾ ⦗dtrmt⦘) ⊆₁ dtrmt;
-  dtrmt_po_max : ⦗dtrmt⦘ ⨾ immediate sb ⨾ ⦗cmt⦘ ⊆₁ ⦗dtrmt⦘ ⨾ immediate sb ⨾ ⦗dtrmt⦘;
-  reexec_dtrmt_rpo : dom_rel (rpo' ⨾ ⦗E' \₁ dtrmt⦘) ⊆₁ dtrmt;
+  reexec_dtrmt_sb_closed : sb ⨾ ⦗dtrmt⦘ ⊆ ⦗dtrmt⦘ ⨾ sb ⨾ ⦗dtrmt⦘;
+  dtrmt_sb_max : ⦗dtrmt⦘ ⨾ immediate sb ⨾ ⦗cmt⦘ ⊆ ⦗dtrmt⦘ ⨾ immediate sb ⨾ ⦗dtrmt⦘;
+  reexec_dtrmt_rpo : rpo' ⨾ ⦗E' \₁ dtrmt⦘ ⊆ ⦗dtrmt⦘ ⨾ rpo' ⨾ ⦗E' \₁ dtrmt⦘;
   (* Correct embedding *)
   reexec_embd_corr : commit_embedded;
   (* Reproducable steps *)
