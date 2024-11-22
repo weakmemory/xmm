@@ -635,6 +635,7 @@ Proof using.
     rewrite (rsr_acts (rc_simrel CTX)); auto with hahn. }
   { exact WF_START. (* wf start *) }
   { admit. (* Consistency *) }
+  { admit. (* acts *) }
   apply sub_to_full_exec_listless
    with (thrdle := thrdle).
   { exact WF_START. }
