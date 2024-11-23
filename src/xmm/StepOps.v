@@ -540,4 +540,35 @@ Proof using.
   clear. basic_solver.
 Qed.
 
+Lemma acts_steps X'' cmt
+    (STEPS : (WCore.guided_step cmt X')＊ X'' X') :
+  acts_set (WCore.G X'') ⊆₁ E'.
+Proof using.
+  apply clos_rt_rtn1 in STEPS.
+  induction STEPS as [| X''' X'''' STEP STEPS IHSTEP]; auto.
+  rewrite IHSTEP.
+  red in STEP. destruct STEP as (e' & l' & STEP).
+  set (STEP' := WCore.gsg_add_step STEP).
+  red in STEP'. destruct STEP' as (r & R1 & w & W1 & W2 & STEP').
+  rewrite (WCore.add_event_acts STEP').
+  auto with hahn.
+Qed.
+
+Lemma rexec_dtrmt_in_start f dtrmt cmt thrdle
+    (REXEC : WCore.reexec_gen X X' f dtrmt cmt thrdle) :
+  dtrmt ⊆₁ E.
+Proof using.
+  rewrite (WCore.dtrmt_cmt REXEC).
+  now rewrite (WCore.reexec_embd_acts (WCore.reexec_embd_corr REXEC)).
+Qed.
+
+Lemma rexec_dtrmt_in_fin f dtrmt cmt thrdle
+    (REXEC : WCore.reexec_gen X X' f dtrmt cmt thrdle) :
+  dtrmt ⊆₁ E'.
+Proof using.
+  rewrite <- (acts_steps (WCore.reexec_steps REXEC)).
+  ins. rewrite set_inter_absorb_r; auto with hahn.
+  apply (rexec_dtrmt_in_start REXEC).
+Qed.
+
 End DeltaOps.
