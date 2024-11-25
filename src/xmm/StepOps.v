@@ -571,4 +571,12 @@ Proof using.
   apply (rexec_dtrmt_in_start REXEC).
 Qed.
 
+Lemma rexec_dtrmt_sbimm_codom f dtrmt cmt thrdle
+    (REXEC : WCore.reexec_gen X X' f dtrmt cmt thrdle) :
+  codom_rel (⦗dtrmt⦘ ⨾ immediate sb ⨾ ⦗cmt⦘) ⊆₁ dtrmt.
+Proof using.
+  rewrite (WCore.dtrmt_sb_max REXEC).
+  clear. basic_solver.
+Qed.
+
 End DeltaOps.
