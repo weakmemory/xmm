@@ -10,12 +10,15 @@ Require Import AuxInj.
 Require Import SubToFullExec.
 Require Import ReorderingFakeSrf.
 Require Import Thrdle.
+Require Import StepOps.
 
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 From imm Require Import Events Execution Execution_eco.
 Require Import Setoid Morphisms Program.Basics.
 Require Import xmm_s_hb.
+
+Set Implicit Arguments.
 
 Module ReorderingReexecInternal.
 
@@ -442,6 +445,104 @@ Definition cmt' := mapper' ↑₁ cmt.
 Definition dtrmt' := mapper' ↑₁ (dtrmt \₁ extra_b).
 Definition f' := (mapper ∘ f) ∘ mapper_inv'.
 
+Lemma reexec_threads_s thrdle
+    (GREEXEC : WCore.reexec_gen X_t X_t' f dtrmt cmt thrdle)
+    (CTX : reexec_conds) :
+  WCore.reexec_thread X_s' dtrmt' ≡₁
+    WCore.reexec_thread X_t' dtrmt ∪₁ tid ↑₁ extra_a X_t' a_t' b_t' b_t'.
+Proof using.
+  unfold WCore.reexec_thread, dtrmt'.
+  rewrite (rsr_acts (reexec_simrel CTX)).
+  rewrite set_minus_union_l, set_collect_union.
+  arewrite (
+    tid ↑₁ (mapper' ↑₁ E_t' \₁ mapper' ↑₁ (dtrmt \₁ extra_b)) ≡₁
+    tid ↑₁ (mapper' ↑₁ (E_t' \₁ (dtrmt \₁ extra_b)))
+  ).
+  { admit. }
+  rewrite <- set_collect_compose.
+  rewrite set_collect_eq_dom
+      with (f := tid ∘ mapper')
+           (g := tid)
+        by (eapply eq_dom_mori;
+            [red; basic_solver
+            | eauto
+            | eauto
+            | apply (reexec_simrel CTX)
+            ]).
+  rewrite set_minus_minus_r, set_collect_union.
+  rewrite set_unionA.
+  apply set_union_more; [reflexivity |].
+  rewrite set_inter_absorb_l; [| admit].
+  arewrite (
+    tid ↑₁ (extra_a X_t' a_t' b_t' b_t' \₁ mapper' ↑₁ (dtrmt \₁ extra_b)) ≡₁
+    tid ↑₁ extra_a X_t' a_t' b_t' b_t'
+  ).
+  { admit. }
+  rewrite <- set_collect_union.
+  unfold extra_a, extra_b. desf; [| basic_solver].
+  rewrite set_union_absorb_l; basic_solver.
+Admitted.
+
+Lemma dtrmt_in_E_s thrdle
+    (GREEXEC : WCore.reexec_gen X_t X_t' f dtrmt cmt thrdle)
+    (CTX : reexec_conds) :
+  dtrmt' ⊆₁ E_s.
+Proof using.
+  unfold dtrmt'.
+  arewrite (dtrmt \₁ extra_b ⊆₁ dtrmt).
+  { basic_solver. }
+  rewrite <- set_collect_eq_dom; eauto using mapd.
+  rewrite (rexec_dtrmt_in_start GREEXEC).
+  rewrite (rsr_acts (rc_simrel CTX)); auto with hahn.
+Qed.
+
+Lemma reexec_acts_s thrdle
+    (GREEXEC : WCore.reexec_gen X_t X_t' f dtrmt cmt thrdle)
+    (CTX : reexec_conds) :
+  E_s ≡₁ dtrmt' ∪₁ E_s ∩₁ tid ↓₁ WCore.reexec_thread X_s' dtrmt'.
+Proof using.
+  split; [| rewrite (dtrmt_in_E_s GREEXEC CTX) at 1; basic_solver].
+  rewrite (reexec_threads_s GREEXEC CTX).
+  rewrite set_union_minus
+     with (s := E_s) (s' := dtrmt')
+       at 1
+       by (eapply dtrmt_in_E_s; eauto).
+  rewrite set_unionC.
+  apply set_union_mori; auto with hahn.
+  rewrite (rsr_acts (rc_simrel CTX)).
+  unfold dtrmt'.
+  arewrite (
+    mapper' ↑₁ (dtrmt \₁ extra_b) ≡₁
+    mapper ↑₁ (dtrmt \₁ extra_b)
+  ).
+  { admit. }
+  arewrite (
+    tid ↑₁ extra_a X_t' a_t' b_t' b_t' ≡₁
+    tid ↑₁ extra_a X_t a_t b_t b_t
+  ).
+  { admit. }
+  rewrite set_map_union.
+  rewrite set_minus_union_l, set_inter_union_r.
+  apply set_subset_union_l. split; [| basic_solver 11].
+  rewrite set_inter_union_l.
+  rewrite (WCore.rexec_acts GREEXEC) at 1.
+  rewrite set_collect_union, set_minus_union_l.
+  arewrite (
+    mapper ↑₁ dtrmt \₁ mapper ↑₁ (dtrmt \₁ extra_b) ⊆₁
+      mapper ↑₁ extra_b
+  ).
+  { admit. }
+  arewrite (
+    mapper ↑₁ (E_t ∩₁ tid ↓₁ WCore.reexec_thread X_t' dtrmt) \₁
+      mapper ↑₁ (dtrmt \₁ extra_b) ⊆₁
+        mapper ↑₁ (E_t ∩₁ tid ↓₁ WCore.reexec_thread X_t' dtrmt)
+  ).
+  { admit. }
+  rewrite set_unionC. apply set_union_mori.
+  { admit. }
+  admit.
+Admitted.
+
 Lemma reexec_step
     (CTX : reexec_conds) :
   WCore.reexec X_s X_s' f' dtrmt' cmt'.
@@ -636,7 +737,7 @@ Proof using.
     rewrite (rsr_acts (rc_simrel CTX)); auto with hahn. }
   { exact WF_START. (* wf start *) }
   { admit. (* Consistency *) }
-  { admit. (* acts *) }
+  { eapply reexec_acts_s; eauto. }
   apply sub_to_full_exec_listless
    with (thrdle := thrdle).
   { exact WF_START. }
