@@ -460,7 +460,7 @@ Record reexec_gen thrdle : Prop :=
   reexec_embd_dom : cmt ⊆₁ E';
   reexec_sur : stable_uncmt_reads_gen thrdle;
   reexec_dtrmt_sb_closed : sb ⨾ ⦗dtrmt⦘ ⊆ ⦗dtrmt⦘ ⨾ sb ⨾ ⦗dtrmt⦘;
-  dtrmt_sb_max : ⦗dtrmt⦘ ⨾ immediate sb ⨾ ⦗cmt⦘ ⊆ ⦗dtrmt⦘ ⨾ immediate sb ⨾ ⦗dtrmt⦘;
+  dtrmt_sb_max : ⦗dtrmt⦘ ⨾ immediate sb' ⨾ ⦗cmt⦘ ⊆ ⦗dtrmt⦘ ⨾ immediate sb ⨾ ⦗dtrmt⦘;
   reexec_dtrmt_rpo : rpo' ⨾ ⦗E' \₁ dtrmt⦘ ⊆ ⦗dtrmt⦘ ⨾ rpo' ⨾ ⦗E' \₁ dtrmt⦘;
   (* Correct embedding *)
   reexec_embd_corr : commit_embedded;
