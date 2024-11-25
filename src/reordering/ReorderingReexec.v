@@ -166,6 +166,8 @@ Definition G_s'' : execution := {|
 |}.
 
 Record reexec_conds : Prop := {
+  rc_a_tid : tid a_t = tid a_t';
+  rc_b_tid : tid b_t = tid b_t';
   rc_a_dtrmt : dtrmt a_t <-> dtrmt a_t';
   rc_b_dtrmt : dtrmt b_t <-> dtrmt b_t';
   rc_a_eq : dtrmt a_t -> a_t = a_t';
@@ -508,7 +510,7 @@ Proof using.
        at 1
        by (eapply dtrmt_in_E_s; eauto).
   rewrite set_unionC.
-  apply set_union_mori; auto with hahn.
+  rewrite set_union_mori; auto with hahn.
   rewrite (rsr_acts (rc_simrel CTX)).
   unfold dtrmt'.
   arewrite (
@@ -516,31 +518,94 @@ Proof using.
     mapper ↑₁ (dtrmt \₁ extra_b)
   ).
   { admit. }
+  rewrite set_minus_union_l.
   arewrite (
-    tid ↑₁ extra_a X_t' a_t' b_t' b_t' ≡₁
-    tid ↑₁ extra_a X_t a_t b_t b_t
-  ).
-  { admit. }
-  rewrite set_map_union.
-  rewrite set_minus_union_l, set_inter_union_r.
-  apply set_subset_union_l. split; [| basic_solver 11].
-  rewrite set_inter_union_l.
-  rewrite (WCore.rexec_acts GREEXEC) at 1.
-  rewrite set_collect_union, set_minus_union_l.
-  arewrite (
-    mapper ↑₁ dtrmt \₁ mapper ↑₁ (dtrmt \₁ extra_b) ⊆₁
-      mapper ↑₁ extra_b
+    extra_a X_t a_t b_t b_t \₁ mapper ↑₁ (dtrmt \₁ extra_b) ⊆₁
+      extra_a X_t a_t b_t b_t
   ).
   { admit. }
   arewrite (
-    mapper ↑₁ (E_t ∩₁ tid ↓₁ WCore.reexec_thread X_t' dtrmt) \₁
-      mapper ↑₁ (dtrmt \₁ extra_b) ⊆₁
+    mapper ↑₁ E_t \₁ mapper ↑₁ (dtrmt \₁ extra_b) ≡₁
+      mapper ↑₁ (E_t \₁ dtrmt ∪₁ extra_b)
+  ).
+  { admit. }
+  rewrite set_collect_union, set_unionA.
+  apply set_subset_union_l. split.
+  { rewrite (WCore.rexec_acts GREEXEC) at 1.
+    rewrite !set_minus_union_l, set_minusK,
+            set_union_empty_l, set_map_union,
+            set_inter_union_l, set_inter_union_r.
+    do 2 (apply set_subset_union_r; left).
+    arewrite (
+      mapper ↑₁ (E_t ∩₁ tid ↓₁ WCore.reexec_thread X_t' dtrmt \₁ dtrmt) ⊆₁
         mapper ↑₁ (E_t ∩₁ tid ↓₁ WCore.reexec_thread X_t' dtrmt)
+    ) by basic_solver.
+    arewrite (
+      tid ↓₁ WCore.reexec_thread X_t' dtrmt ≡₁
+        ⋃₁ x ∈ WCore.reexec_thread X_t' dtrmt, Tid_ x
+    ) by basic_solver.
+    rewrite <- !set_bunion_inter_compat_l, !set_collect_bunion.
+    apply set_subset_bunion with (s' := ⊤₁); auto with hahn.
+    intros t _.
+    now rewrite (rsr_same_tid' t (rc_simrel CTX)). }
+  apply set_subset_union_l. split.
+  { arewrite (
+      mapper ↑₁ extra_b ⊆₁
+        mapper ↑₁ E_t ∩₁ tid ↓₁ (tid ↑₁ extra_a X_t' a_t' b_t' b_t')
+    ); [| basic_solver].
+    unfold extra_b, extra_a; desf; [| basic_solver].
+    apply set_subset_inter_r.
+    split.
+    { rewrite <- (rexec_dtrmt_in_start GREEXEC).
+      basic_solver. }
+    admit. }
+  enough (EXIN :
+    extra_a X_t a_t b_t b_t ⊆₁ tid ↓₁ (
+      WCore.reexec_thread X_t' dtrmt ∪₁
+        tid ↑₁ extra_a X_t' a_t' b_t' b_t'
+    )
   ).
-  { admit. }
-  rewrite set_unionC. apply set_union_mori.
-  { admit. }
-  admit.
+  { rewrite <- EXIN. basic_solver. }
+  unfold extra_a at 1. do 2 desf.
+  rewrite set_map_union.
+  destruct classic with (
+    (tid ↓₁ (WCore.reexec_thread X_t' dtrmt)) b_t'
+  ) as [BT|NBT].
+  { intros x EQ. subst x. left. unfolder.
+    rewrite (rc_b_tid CTX). apply BT. }
+  assert (BDT : dtrmt b_t).
+  { apply (WCore.rexec_acts GREEXEC) in a0.
+    destruct a0 as [DT | NDT]; [apply DT |].
+    exfalso. apply NBT. unfolder.
+    rewrite <- (rc_b_tid CTX). apply NDT. }
+  destruct classic with (~ E_t' a_t') as [NIN | AIN].
+  { rewrite (rc_b_eq CTX BDT).
+    rewrite extra_a_some; [basic_solver 11| auto |].
+    rewrite <- (rc_b_eq CTX BDT).
+    now apply (rexec_dtrmt_in_fin GREEXEC) in BDT. }
+  apply NNPP in AIN.
+  destruct classic with (cmt a_t') as [ACMT|NCMT].
+  { enough (ADT : dtrmt a_t').
+    { now apply (rc_a_dtrmt CTX), (rexec_dtrmt_in_start GREEXEC) in ADT. }
+    apply (rexec_dtrmt_sbimm_codom GREEXEC).
+    apply (rc_b_dtrmt CTX) in BDT.
+    unfolder. exists b_t', b_t'. splits; auto.
+    apply (rexec_dtrmt_in_fin GREEXEC) in BDT.
+    exists a_t'; splits; auto.
+    { unfold sb. unfolder. splits; auto.
+      apply (rsr_at_bt_sb (rc_inv_end CTX)). }
+    unfold sb. unfolder. ins. desf.
+    apply (rsr_at_bt_imm (rc_inv_end CTX))
+     with (x := b_t') (y := a_t') (c := z).
+    all: unfold sb; basic_solver. }
+  assert (AT : WCore.reexec_thread X_t' dtrmt (tid a_t')).
+  { unfold WCore.reexec_thread. unfolder.
+    exists a_t'. splits; auto.
+    intro FALSO.
+    assert (ADT : dtrmt a_t) by now apply CTX.
+    now apply (rexec_dtrmt_in_start GREEXEC) in ADT. }
+  unfolder. intros x XEQ. subst x. left.
+  now rewrite (rc_b_tid CTX), <- (rsr_at_bt_tid (rc_inv_end CTX)).
 Admitted.
 
 Lemma reexec_step
