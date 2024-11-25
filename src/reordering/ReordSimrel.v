@@ -47,6 +47,7 @@ Notation "'addr_t'" := (addr G_t).
 Notation "'hb_t'" := (hb G_t).
 Notation "'eco_t'" := (eco G_t).
 Notation "'sw_t'" := (sw G_t).
+Notation "'vf_t'" := (vf G_t).
 Notation "'W_t'" := (fun e => is_true (is_w lab_t e)).
 Notation "'R_t'" := (fun e => is_true (is_r lab_t e)).
 Notation "'F_t'" := (fun e => is_true (is_f lab_t e)).
@@ -70,6 +71,7 @@ Notation "'rhb_s'" := (rhb G_s).
 Notation "'rmw_s'" := (rmw G_s).
 Notation "'rpo_s'" := (rpo G_s).
 Notation "'rpo_imm_s'" := (rpo_imm G_s).
+Notation "'vf_s'" := (vf G_s).
 Notation "'rmw_dep_s'" := (rmw_dep G_s).
 Notation "'data_s'" := (data G_s).
 Notation "'ctrl_s'" := (ctrl G_s).
@@ -967,6 +969,76 @@ Lemma rsr_rhb
     (PRED : reord_step_pred)
     (SIMREL : reord_simrel) :
   ⦗E_s \₁ extra_a b_t⦘ ⨾ rhb_s ⊆ mapper ↑ rhb_t.
+Proof using.
+  admit.
+Admitted.
+
+Lemma rsr_sb_nexa
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel) :
+  ⦗extra_a b_t⦘ ⨾ sb_s ⊆ eq b_t × eq a_t.
+Proof using.
+  unfold extra_a. desf; [| basic_solver].
+  rewrite (rsr_sb SIMREL).
+  rewrite !seq_union_r.
+  rewrite extra_a_some by desf.
+  arewrite_false (⦗eq b_t⦘ ⨾ mapper ↑ swap_rel sb_t (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t)).
+  { admit. }
+  arewrite_false (⦗eq b_t⦘ ⨾ (mapper ↑₁ dom_rel (sb_t ⨾ ⦗eq b_t⦘)) × eq b_t).
+  { admit. }
+  rewrite !union_false_l.
+  arewrite (b_s = a_t).
+  { symmetry. apply (rsr_bt SIMREL).
+    basic_solver. }
+  basic_solver.
+Admitted.
+
+Lemma rsr_rhb_exa
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel) :
+  ⦗extra_a b_t⦘ ⨾ rhb_s ⊆ ∅₂.
+Proof using.
+  unfold rhb.
+  rewrite ct_begin, !seq_union_l,
+          !seq_union_r.
+  arewrite_false (⦗extra_a b_t⦘ ⨾ sb_s ∩ same_loc_s).
+  { rewrite <- seq_eqv_inter_ll.
+    rewrite (rsr_sb_nexa PRED SIMREL).
+    admit. }
+  unfold rpo. rewrite ct_begin, !seqA.
+  arewrite_false (⦗extra_a b_t⦘ ⨾ rpo_imm_s).
+  { unfold rpo_imm. admit. }
+  arewrite_false (⦗extra_a b_t⦘ ⨾ sw G_s).
+  { admit. }
+  rewrite !seq_false_l. auto with hahn.
+Admitted.
+
+Lemma rsr_vfrhb
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel) :
+  vf_rhb G_s ⊆ mapper ↑ (vf_rhb G_t).
+Proof using.
+  unfold vf_rhb.
+  rewrite (rsr_rf SIMREL), cr_union_l,
+          !seq_union_l, !seq_union_r.
+  rewrite !seqA.
+  arewrite (
+    srf_s ⨾ ⦗extra_a b_t ∩₁ R_s⦘ ⨾ rhb_s^? ≡
+      srf_s ⨾ ⦗extra_a b_t ∩₁ R_s⦘
+  ).
+  { admit. }
+  arewrite (
+    (mapper ↑ rf_t)^? ⨾ rhb_s^? ⊆
+      (mapper ↑ rf_t)^? ⨾ ⦗E_s \₁ extra_a b_t⦘ ⨾ rhb_s^?
+  ).
+  { admit. }
+  admit.
+Admitted.
+
+Lemma rsr_vf
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel) :
+  vf_s ⊆ mapper ↑ vf_t.
 Proof using.
   admit.
 Admitted.
