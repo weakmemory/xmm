@@ -2,6 +2,8 @@ From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 Require Import Setoid Morphisms.
 
+Require Import AuxDef.
+
 Set Implicit Arguments.
 
 Lemma restr_rel_ct {A : Type} (r : relation A) s
@@ -209,3 +211,64 @@ Instance add_max_Propere T : Proper (_ ==> _ ==> _) _ := add_max_more (T:=T).
 
 #[export]
 Hint Unfold swap_rel add_max : unfolderDb.
+
+Lemma imm_exclude {T : Type} (a : T) r
+    (SEMITOTL : semi_total_l r)
+    (SEMITOTR : semi_total_r r)
+    (TRANS : transitive r) :
+  immediate r ≡
+    immediate (⦗fun e => ~r e a⦘ ⨾ r ⨾ ⦗fun e => ~r a e⦘) ∪
+      immediate (r \ (⦗fun e => ~r e a⦘ ⨾ r ⨾ ⦗fun e => ~r a e⦘)).
+Proof using.
+  split.
+  { arewrite (
+      r ≡ ⦗fun e => ~r e a⦘ ⨾ r ⨾ ⦗fun e => ~r a e⦘ ∪
+        (r \ ⦗fun e => ~r e a⦘ ⨾ r ⨾ ⦗fun e => ~r a e⦘)
+    ) at 1.
+    { split; [| basic_solver].
+      unfolder. ins. desf. tauto. }
+    now rewrite !imm_union. }
+  unfolder.
+  intros x y [
+    ((NXA & XY & NAY) & IMM) |
+    ((XY & YEA) & IMM)
+  ]; split; auto; intros z XZ ZY.
+  { apply IMM with z; splits; auto.
+    all: intro FALSO.
+    { apply NAY. eapply TRANS; eauto. }
+    apply NXA. eapply TRANS; eauto. }
+  assert (YEA' : r x a \/ r a y) by tauto.
+  apply IMM with z; split; auto.
+  all: desf; try tauto.
+  { destruct classic with (z = a) as [EQ|NEQ].
+    { subst z. tauto. }
+    destruct SEMITOTR
+        with a z y
+          as [AZ | ZA].
+    all: auto; try tauto.
+    enough (r x a) by tauto.
+    eapply TRANS; eauto. }
+  destruct classic with (z = a) as [EQ|NEQ].
+  { subst z. tauto. }
+  destruct SEMITOTL
+      with x z a
+        as [ZA | AZ].
+  all: auto; try tauto.
+  enough (r a y) by tauto.
+  eapply TRANS; eauto.
+Qed.
+
+Lemma imm_split {T : Type} (a : T) r
+    (SEMITOTL : semi_total_l r)
+    (SEMITOTR : semi_total_r r)
+    (TRANS : transitive r) :
+  immediate r ≡
+    immediate (⦗fun e => ~r e a⦘ ⨾ r ⨾ ⦗fun e => ~r a e⦘) ∪
+      immediate (⦗fun e => r a e⦘ ⨾ r) ∪
+        immediate (r ⨾ ⦗fun e => r e a⦘).
+Proof using.
+  rewrite imm_exclude with (a := a) at 1.
+  all: auto.
+  rewrite unionA.
+  apply union_more; [reflexivity |].
+Admitted.

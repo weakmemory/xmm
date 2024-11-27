@@ -16,5 +16,13 @@ Definition rmw_delta e e' : relation actid :=
 Definition least_elt {A} (r : relation A) (x : A) :=
   forall (y : A) (NOTX : x <> y), r x y.
 
+Definition semi_total_l {A} (r : relation A) : Prop :=
+  forall x y z (XZ : r x y) (YZ : r x z) (NEQ : y <> z),
+    r y z \/ r z y.
+
+Definition semi_total_r {A} (r : relation A) : Prop :=
+  forall x y z (XZ : r x z) (YZ : r y z) (NEQ : x <> y),
+    r x y \/ r y x.
+
 #[global]
 Hint Unfold least_elt rmw_delta : unfolderDb.
