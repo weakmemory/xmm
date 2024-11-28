@@ -259,16 +259,104 @@ Proof using.
 Qed.
 
 Lemma imm_split {T : Type} (a : T) r
+    (IRR : irreflexive r)
     (SEMITOTL : semi_total_l r)
     (SEMITOTR : semi_total_r r)
     (TRANS : transitive r) :
   immediate r ≡
     immediate (⦗fun e => ~r e a⦘ ⨾ r ⨾ ⦗fun e => ~r a e⦘) ∪
-      immediate (⦗fun e => r a e⦘ ⨾ r) ∪
-        immediate (r ⨾ ⦗fun e => r e a⦘).
+      immediate (⦗fun e => r a e \/ e = a⦘ ⨾ r) ∪
+        immediate (r ⨾ ⦗fun e => r e a \/ e = a⦘).
 Proof using.
   rewrite imm_exclude with (a := a) at 1.
   all: auto.
   rewrite unionA.
   apply union_more; [reflexivity |].
+  rewrite minus_inter_compl.
+  arewrite (
+    ⦗fun e : T => ~ r e a⦘ ⨾ r ⨾ ⦗fun e : T => ~ r a e⦘ ≡
+      (fun x y => ~ r x a /\ r x y /\ ~ r a y)
+  ) by basic_solver.
+  arewrite (
+    compl_rel (fun x y => ~ r x a /\ r x y /\ ~ r a y) ≡
+      (fun x y => r x a \/ ~r x y \/ r a y)
+  ) by unfolder; splits; ins; desf; tauto.
+  arewrite (
+    r ∩ (fun x y : T => r x a \/ ~ r x y \/ r a y) ≡
+      r ∩ (fun x y : T => r x a \/ r a y)
+  ) by basic_solver.
+  arewrite (
+    r ∩ (fun x y : T => r x a \/ r a y) ≡
+      r ∩ (fun x y : T => r x a) ∪
+        r ∩ (fun x y : T => r a y)
+  ) by basic_solver.
+  arewrite (
+    r ∩ (fun x y => r x a) ≡
+      ⦗fun e =>
+        codom_rel (⦗eq e⦘ ⨾ immediate r) ⊆₁
+          eq a ∪₁ (fun y => r y a)
+      ⦘ ⨾ r
+  ).
+  { split; unfolder; [intros x y | intros x y IMM].
+    all: ins; desf.
+    all: split; auto.
+    { intros x1 R. desf.
+      destruct classic with (a = x1); auto.
+      destruct SEMITOTL with z x1 a; auto.
+      exfalso. eauto. }
+    assert (IMME : exists y', immediate r x y'); desf.
+    { admit. }
+    destruct IMM with y' as [EQ | YA].
+    { exists x, x. splits; auto.
+      all: apply IMME. }
+    { subst y'. apply IMME. }
+    apply TRANS with y'; auto.
+    apply IMME. }
+  arewrite (
+    r ∩ (fun x y => r a y) ≡
+      r ⨾ ⦗fun e =>
+        dom_rel (immediate r ⨾ ⦗eq e⦘) ⊆₁
+          eq a ∪₁ (fun x => r a x)
+      ⦘
+  ).
+  { admit. }
+  arewrite (
+    immediate (
+      ⦗fun e =>
+        codom_rel (⦗eq e⦘ ⨾ immediate r) ⊆₁
+          eq a ∪₁ (fun y : T => r y a)
+      ⦘ ⨾ r ∪
+      r ⨾ ⦗fun e : T =>
+        dom_rel (immediate r ⨾ ⦗eq e⦘) ⊆₁
+          eq a ∪₁ (fun x : T => r a x)
+      ⦘)
+    ≡
+    immediate (
+      ⦗fun e =>
+        codom_rel (⦗eq e⦘ ⨾ immediate r) ⊆₁
+          eq a ∪₁ (fun y : T => r y a)
+      ⦘ ⨾ r
+    ) ∪
+    immediate (
+      r ⨾ ⦗fun e : T =>
+        dom_rel (immediate r ⨾ ⦗eq e⦘) ⊆₁
+          eq a ∪₁ (fun x : T => r a x)
+      ⦘
+    )
+  ).
+  { split; [apply imm_union |].
+    set (LA := ⦗fun e : T =>
+      codom_rel (⦗eq e⦘ ⨾ immediate r) ⊆₁ eq a ∪₁ (fun
+        y : T
+      => r y a)⦘).
+    set (RA := ⦗fun e : T =>
+        dom_rel (immediate r ⨾ ⦗eq e⦘) ⊆₁ eq a ∪₁ (fun
+          x : T
+        => r a x)⦘).
+    rewrite !immediateE, !seqA.
+    rewrite minus_union_l. apply union_mori.
+    { rewrite !seq_union_l, !seq_union_r, !seqA.
+      rewrite !minus_union_r.
+      admit. }
+    admit. }
 Admitted.
