@@ -259,7 +259,6 @@ Proof using.
 Qed.
 
 Lemma imm_split {T : Type} (a : T) r
-    (IRR : irreflexive r)
     (SEMITOTL : semi_total_l r)
     (SEMITOTR : semi_total_r r)
     (TRANS : transitive r) :
@@ -289,15 +288,26 @@ Proof using.
   { unfold left_dom, right_dom.
     unfolder. intros x y. ins. desf.
     { destruct classic with (a = y).
-      { left. basic_solver 11. }
+      { left. basic_solver 6. }
       destruct SEMITOTL with x y a; auto.
-      { left. basic_solver 11. }
-      exfalso. eauto 11. }
+      { left. basic_solver 6. }
+      exfalso. eauto 6. }
     destruct classic with (a = x).
-    { right. basic_solver 11. }
+    { right. basic_solver 6. }
     destruct SEMITOTR with x a y; auto.
-    { exfalso. eauto 11. }
-    right. basic_solver 11. }
+    { exfalso. basic_solver 6. }
+    right. basic_solver 6. }
   unfold left_dom, right_dom.
-  basic_solver 11.
+  unfolder. intros x y. ins. desf.
+  all: splits; auto.
+  all: match goal with
+       | HH : forall c, _ -> _ -> False |- _ => rename HH into IMM
+       | _ => fail "NO"
+       end.
+  all: intros c; ins; desf.
+  all: apply IMM with c.
+  all: splits; auto.
+  all: try left.
+  all: try now apply TRANS with x.
+  all: try now apply TRANS with y.
 Qed.
