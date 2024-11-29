@@ -993,6 +993,58 @@ Proof using.
   basic_solver.
 Admitted.
 
+Definition nin_sb G :=
+  ⦗fun e => ~ is_init e⦘ ⨾ sb G.
+
+Lemma nini_sb_imm_split G a
+    (WF : Wf G) :
+  immediate (nin_sb G) ≡
+    immediate (⦗fun e => ~nin_sb G e a⦘ ⨾ nin_sb G ⨾ ⦗fun e => ~nin_sb G a e⦘) ∪
+      immediate (⦗left_dom (nin_sb G) a⦘ ⨾ nin_sb G ⨾ ⦗left_dom (nin_sb G) a ∪₁ eq a⦘) ∪
+        immediate (⦗right_dom (nin_sb G) a ∪₁ eq a⦘ ⨾ nin_sb G ⨾ ⦗right_dom (nin_sb G) a⦘).
+Proof using.
+  apply imm_split.
+  { unfold nin_sb.
+    unfolder. ins. desf.
+    eapply sb_irr. eauto. }
+  { unfold semi_total_l. unfolder.
+    ins. desf.
+    destruct sb_semi_total_l with G x y z as [SB|SB]; auto.
+    { forward apply XZ. unfold nin_sb. basic_solver. }
+    { forward apply XZ. unfold nin_sb. basic_solver. }
+    { forward apply YZ. unfold nin_sb. basic_solver. }
+    { left. unfold nin_sb. unfolder.
+      split; auto.
+      unfold nin_sb in XZ. unfolder in XZ.
+      destruct XZ as (_ & XZ).
+      apply no_sb_to_init in XZ.
+      forward apply XZ. basic_solver. }
+    right. unfold nin_sb. unfolder.
+    split; auto.
+    unfold nin_sb in YZ. unfolder in YZ.
+    destruct YZ as (_ & YZ).
+    apply no_sb_to_init in YZ.
+    forward apply YZ. basic_solver. }
+  { unfold semi_total_r. unfolder.
+    ins. desf.
+    destruct sb_semi_total_r with G z x y as [SB|SB]; auto.
+    { forward apply YZ. unfold nin_sb. basic_solver. }
+    { forward apply XZ. unfold nin_sb. basic_solver. }
+    { forward apply YZ. unfold nin_sb. basic_solver. }
+    { left. unfold nin_sb. unfolder.
+      split; auto.
+      unfold nin_sb in XZ. unfolder in XZ.
+      desf. }
+    right. unfold nin_sb. unfolder.
+    split; auto.
+    unfold nin_sb in YZ. unfolder in YZ.
+    desf. }
+  unfolder. ins. desf.
+  unfold nin_sb in *.
+  unfolder in *. desf.
+  split; [auto | eapply sb_trans; eauto].
+Qed.
+
 Lemma rsr_rhb_exa
     (PRED : reord_step_pred)
     (SIMREL : reord_simrel) :
