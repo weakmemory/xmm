@@ -337,6 +337,29 @@ Proof using.
   admit. (* This graph is very conveniently mapped by m *)
 Admitted.
 
+Lemma reexec_mapinv_at x
+    (CTX : reexec_conds)
+    (MEQ : mapper' x = b_t') :
+  x = a_t'.
+Proof using.
+  replace b_t' with (mapper' a_t') in MEQ.
+  { eapply mapinj'; try done. apply CTX. }
+  clear - CTX. unfold mapper'.
+  rupd; [easy | apply CTX].
+Qed.
+
+Lemma reexec_mapinv_bt x
+    (CTX : reexec_conds)
+    (MEQ : mapper' x = a_t') :
+  x = b_t'.
+Proof using.
+  replace a_t' with (mapper' b_t') in MEQ.
+  { eapply mapinj'; try done. apply CTX. }
+  clear - CTX. unfold mapper'.
+  unfold b_s'.
+  now rupd.
+Qed.
+
 Lemma reexec_simrel
     (CTX : reexec_conds) :
   reord_simrel X_s' X_t' a_t' b_t' mapper'.
@@ -344,15 +367,6 @@ Proof using.
   assert (EXAR : eq b_t' ∩₁ R_s' ≡₁ eq b_t' ∩₁ WCore.lab_is_r (lab_s' a_s')).
   { unfold a_s', is_r, WCore.lab_is_r.
     unfolder; split; ins; desf. }
-  assert (MAPINV : forall x (MEQ : mapper' x = b_t'),
-    x = a_t'
-  ).
-  { intros x XEQ.
-    replace b_t' with (mapper' a_t') in XEQ.
-    { eapply mapinj'; try done.
-      apply CTX. }
-    clear - CTX. unfold mapper'.
-    rupd; [easy | apply CTX]. }
   assert (SRF :
     fake_srf G_s'' a_s' (lab_s' a_s') ⨾ ⦗A_s' ∩₁ WCore.lab_is_r (lab_s' a_s')⦘ ≡
     srf_s' ⨾ ⦗extra_a X_t' a_t' b_t' b_t' ∩₁ R_s'⦘
@@ -366,7 +380,7 @@ Proof using.
     { unfold G_s''. ins.
       intro FALSO. unfolder in FALSO.
       destruct FALSO as (x & XIN & XEQ).
-      rewrite MAPINV in XIN; auto. }
+      rewrite reexec_mapinv_at in XIN; auto. }
     { unfold G_s''. ins.
       admit. (* TODO: weaken cond*) }
     { apply CTX; auto. }
@@ -376,7 +390,7 @@ Proof using.
     arewrite (eq a_s' ∩₁ mapper' ↑₁ E_t' ≡₁ ∅).
     { split; [| basic_solver]. unfold a_s'.
       unfolder. intros x (XEQ & y & YIN & YEQ).
-      subst x. rewrite MAPINV in YIN; auto. }
+      subst x. rewrite reexec_mapinv_at in YIN; auto. }
     rewrite set_inter_empty_r, add_max_empty_r.
     now rewrite union_false_r. }
   constructor; ins.
@@ -391,7 +405,9 @@ Proof using.
     unfold extra_a; desf; [| clear; basic_solver].
     rewrite set_minus_disjoint; auto with hahn.
     unfolder. intros x (y & YIN & YEQ) XEQ.
-    subst x. rewrite MAPINV in YIN; auto. desf. }
+    subst x.
+    rewrite reexec_mapinv_at in YIN; auto.
+    desf. }
   { clear - CTX. unfold mapper'. unfolder.
     ins. rewrite !updo; [done | |].
     all: intro FALSO; desf.
@@ -609,18 +625,34 @@ Proof using.
   now rewrite (rc_b_tid CTX), <- (rsr_at_bt_tid (rc_inv_end CTX)).
 Admitted.
 
+Lemma reexec_extra_a_ncmt thrdle
+    (GREEXEC : WCore.reexec_gen X_t X_t' f dtrmt cmt thrdle)
+    (CTX : reexec_conds) :
+  extra_a X_t' a_t' b_t' b_t' ⊆₁ set_compl cmt'.
+Proof using.
+  unfold extra_a, cmt'. desf.
+  unfolder. ins. desf.
+  intros (y & CMT & MAP).
+  assert (YIN : E_t' y).
+  { now apply (WCore.reexec_embd_dom GREEXEC). }
+  assert (YEQ : y = a_t').
+  { now apply reexec_mapinv_at. }
+  congruence.
+Qed.
+
+Lemma imm_sb_d_s thrdle
+    (GREEXEC : WCore.reexec_gen X_t X_t' f dtrmt cmt thrdle)
+    (CTX : reexec_conds) :
+  ⦗dtrmt'⦘ ⨾ immediate (nin_sb G_s') ⨾ ⦗cmt'⦘ ⊆
+    ⦗dtrmt'⦘ ⨾ immediate (nin_sb G_s') ⨾ ⦗dtrmt'⦘.
+Proof using.
+  admit.
+Admitted.
+
 Lemma reexec_step
     (CTX : reexec_conds) :
   WCore.reexec X_s X_s' f' dtrmt' cmt'.
 Proof using.
-  assert (MAPINV : forall x (MEQ : mapper' x = b_t'),
-    x = a_t'
-  ).
-  { intros x XEQ.
-    replace b_t' with (mapper' a_t') in XEQ.
-    { eapply mapinj'; try done. apply CTX. }
-    clear - CTX. unfold mapper'.
-    rupd; [easy | apply CTX]. }
   assert (NEQ : a_t' <> b_t').
   { apply CTX. }
   assert (GREEXEC :
@@ -639,10 +671,10 @@ Proof using.
   { split; vauto.
     unfold cmt'.
     rewrite (WCore.reexec_embd_dom GREEXEC).
-    clear - MAPINV.
+    clear - CTX.
     unfold extra_a. desf; [| basic_solver].
-    unfolder. ins. desf.
-    erewrite <- MAPINV in a; eauto. }
+    unfolder. intros x (XEQ & y & YIN & YEQ).
+    subst x. apply reexec_mapinv_at in YEQ; desf. }
   assert (SURG :
     WCore.stable_uncmt_reads_gen X_s' cmt' thrdle
   ).
@@ -675,7 +707,7 @@ Proof using.
     basic_solver. }
   { exact SURG. }
   { admit. (* sb-clos *) }
-  { admit. (* dtrmt to cmt *) }
+  { eapply imm_sb_d_s; eauto. }
   { admit. (* rpo edges *) }
   { constructor.
     { intros x' y'; unfold cmt', f'.
