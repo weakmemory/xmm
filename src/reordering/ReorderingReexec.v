@@ -669,12 +669,8 @@ Proof using.
     unfold flip. clear. basic_solver. }
   assert (EXNCMT : extra_a X_t' a_t' b_t' b_t' ∩₁ cmt' ≡₁ ∅).
   { split; vauto.
-    unfold cmt'.
-    rewrite (WCore.reexec_embd_dom GREEXEC).
-    clear - CTX.
-    unfold extra_a. desf; [| basic_solver].
-    unfolder. intros x (XEQ & y & YIN & YEQ).
-    subst x. apply reexec_mapinv_at in YEQ; desf. }
+    rewrite (reexec_extra_a_ncmt GREEXEC CTX).
+    clear. basic_solver. }
   assert (SURG :
     WCore.stable_uncmt_reads_gen X_s' cmt' thrdle
   ).
@@ -771,10 +767,8 @@ Proof using.
       arewrite_false (restr_rel cmt'
         (srf_s' ⨾ ⦗extra_a X_t' a_t' b_t' b_t' ∩₁ R_s'⦘)).
       { rewrite restr_relE, !seqA, <- id_inter.
-        rewrite set_interA,
-                set_interC with (s' := cmt'),
-                <- set_interA.
-        rewrite EXNCMT. basic_solver. }
+        rewrite (reexec_extra_a_ncmt GREEXEC CTX).
+        clear. basic_solver. }
       rewrite collect_rel_empty, union_false_r.
       unfold cmt', f'.
       rewrite collect_rel_restr;
@@ -793,11 +787,9 @@ Proof using.
       arewrite_false (restr_rel cmt'
         (add_max (extra_co_D E_s' lab_s' (loc_s' b_t'))
           (extra_a X_t' a_t' b_t' b_t' ∩₁ W_s'))).
-      { rewrite restr_add_max.
-        rewrite set_interA,
-                set_interC with (s := W_s') (s' := cmt'),
-                <- set_interA.
-        rewrite EXNCMT. basic_solver. }
+      { rewrite restr_add_max. unfold add_max.
+        rewrite (reexec_extra_a_ncmt GREEXEC CTX) at 2.
+        clear. basic_solver. }
       rewrite collect_rel_empty, union_false_r.
       unfold cmt', f'.
       rewrite collect_rel_restr;
