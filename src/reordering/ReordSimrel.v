@@ -993,9 +993,6 @@ Proof using.
   basic_solver.
 Admitted.
 
-Definition nin_sb G :=
-  ⦗fun e => ~ is_init e⦘ ⨾ sb G.
-
 Lemma nini_sb_imm_split G a
     (WF : Wf G) :
   immediate (nin_sb G) ≡
@@ -1004,9 +1001,6 @@ Lemma nini_sb_imm_split G a
         immediate (⦗right_dom (nin_sb G) a ∪₁ eq a⦘ ⨾ nin_sb G ⨾ ⦗right_dom (nin_sb G) a⦘).
 Proof using.
   apply imm_split.
-  { unfold nin_sb.
-    unfolder. ins. desf.
-    eapply sb_irr. eauto. }
   { unfold semi_total_l. unfolder.
     ins. desf.
     destruct sb_semi_total_l with G x y z as [SB|SB]; auto.

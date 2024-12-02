@@ -31,4 +31,5 @@ Definition right_dom {A} (r : relation A) (a : A) : A -> Prop :=
   fun x => r a x.
 
 #[global]
-Hint Unfold least_elt rmw_delta left_dom right_dom : unfolderDb.
+Hint Unfold least_elt rmw_delta left_dom right_dom
+            semi_total_l semi_total_r : unfolderDb.

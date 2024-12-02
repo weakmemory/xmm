@@ -592,11 +592,12 @@ Proof using.
     unfolder. exists b_t', b_t'. splits; auto.
     apply (rexec_dtrmt_in_fin GREEXEC) in BDT.
     exists a_t'; splits; auto.
-    { unfold sb. unfolder. splits; auto.
+    { unfold nin_sb, sb. unfolder. splits; auto.
+      { apply CTX. }
       apply (rsr_at_bt_sb (rc_inv_end CTX)). }
-    unfold sb. unfolder. ins. desf.
+    unfold nin_sb, sb. unfolder. ins. desf.
     apply (rsr_at_bt_imm (rc_inv_end CTX))
-     with (x := b_t') (y := a_t') (c := z).
+     with (x := b_t') (y := a_t') (c := z1).
     all: unfold sb; basic_solver. }
   assert (AT : WCore.reexec_thread X_t' dtrmt (tid a_t')).
   { unfold WCore.reexec_thread. unfolder.
