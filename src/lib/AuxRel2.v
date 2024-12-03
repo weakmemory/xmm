@@ -1,6 +1,7 @@
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 Require Import Setoid Morphisms.
+From imm Require Import Events Execution.
 
 Require Import AuxDef.
 
@@ -212,102 +213,87 @@ Instance add_max_Propere T : Proper (_ ==> _ ==> _) _ := add_max_more (T:=T).
 #[export]
 Hint Unfold swap_rel add_max : unfolderDb.
 
-Lemma imm_exclude {T : Type} (a : T) r
-    (SEMITOTL : semi_total_l r)
-    (SEMITOTR : semi_total_r r)
-    (TRANS : transitive r) :
-  immediate r ≡
-    immediate (⦗fun e => ~r e a⦘ ⨾ r ⨾ ⦗fun e => ~r a e⦘) ∪
-      immediate (r \ (⦗fun e => ~r e a⦘ ⨾ r ⨾ ⦗fun e => ~r a e⦘)).
+(*
+  General lemma for dragging relation restriction in
+  and out of the immediate relation.
+*)
+Lemma immediate_restrE {T : Type} (s1 s2 : T -> Prop) r
+    (LRCLOS :
+      ⦗s1⦘ ⨾ r ⨾ r ⨾ ⦗s2⦘ ⊆
+        ⦗s1⦘ ⨾ r ⨾ ⦗s2⦘ ⨾ ⦗s1⦘ ⨾ r ⨾ ⦗s2⦘
+    ) :
+  ⦗s1⦘ ⨾ immediate r ⨾ ⦗s2⦘ ≡
+    immediate (⦗s1⦘ ⨾ r ⨾ ⦗s2⦘).
 Proof using.
+  rewrite !immediateE.
+  arewrite (
+    ⦗s1⦘ ⨾ (r \ r ⨾ r) ⨾ ⦗s2⦘ ≡
+      ⦗s1⦘ ⨾ r ⨾ ⦗s2⦘ \ ⦗s1⦘ ⨾ r ⨾ r ⨾ ⦗s2⦘
+  ).
+  { split.
+    all: unfolder; ins; desf.
+    all: splits; eauto.
+    all: intro FALSO; desf; eauto 7. }
   split.
-  { arewrite (
-      r ≡ ⦗fun e => ~r e a⦘ ⨾ r ⨾ ⦗fun e => ~r a e⦘ ∪
-        (r \ ⦗fun e => ~r e a⦘ ⨾ r ⨾ ⦗fun e => ~r a e⦘)
-    ) at 1.
-    { split; [| basic_solver].
-      unfolder. ins. desf. tauto. }
-    now rewrite !imm_union. }
-  unfolder.
-  intros x y [
-    ((NXA & XY & NAY) & IMM) |
-    ((XY & YEA) & IMM)
-  ]; split; auto; intros z XZ ZY.
-  { apply IMM with z; splits; auto.
-    all: intro FALSO.
-    { apply NAY. eapply TRANS; eauto. }
-    apply NXA. eapply TRANS; eauto. }
-  assert (YEA' : r x a \/ r a y) by tauto.
-  apply IMM with z; split; auto.
-  all: desf; try tauto.
-  { destruct classic with (z = a) as [EQ|NEQ].
-    { subst z. tauto. }
-    destruct SEMITOTR
-        with a z y
-          as [AZ | ZA].
-    all: auto; try tauto.
-    enough (r x a) by tauto.
-    eapply TRANS; eauto. }
-  destruct classic with (z = a) as [EQ|NEQ].
-  { subst z. tauto. }
-  destruct SEMITOTL
-      with x z a
-        as [ZA | AZ].
-  all: auto; try tauto.
-  enough (r a y) by tauto.
-  eapply TRANS; eauto.
+  { apply minus_rel_mori; [reflexivity |].
+    unfold Basics.flip. basic_solver. }
+  apply minus_rel_mori; [reflexivity |].
+  now unfold Basics.flip.
 Qed.
 
-Lemma imm_split {T : Type} (a : T) r
-    (SEMITOTL : semi_total_l r)
-    (SEMITOTR : semi_total_r r)
-    (TRANS : transitive r) :
-  immediate r ≡
-    immediate (⦗fun e => ~r e a⦘ ⨾ r ⨾ ⦗fun e => ~r a e⦘) ∪
-      immediate (⦗left_dom r a⦘ ⨾ r ⨾ ⦗left_dom r a ∪₁ eq a⦘) ∪
-        immediate (⦗right_dom r a ∪₁ eq a⦘ ⨾ r ⨾ ⦗right_dom r a⦘).
+(*
+  Specialised version of the lemma for left- and right-
+  continious sets
+*)
+Lemma immediate_restrE' {T : Type} (s1 s2 : T -> Prop) r
+    (LCONT : ⦗s1⦘ ⨾ r ⊆ ⦗s1⦘ ⨾ r ⨾ ⦗s1⦘)
+    (RCONT : r ⨾ ⦗s2⦘ ⊆ ⦗s2⦘ ⨾ r ⨾ ⦗s2⦘) :
+  ⦗s1⦘ ⨾ immediate r ⨾ ⦗s2⦘ ≡
+    immediate (⦗s1⦘ ⨾ r ⨾ ⦗s2⦘).
 Proof using.
-  rewrite imm_exclude with (a := a) at 1.
-  all: auto.
-  rewrite unionA.
-  apply union_more; [reflexivity |].
-  rewrite minus_inter_compl.
-  arewrite (
-    ⦗fun e : T => ~ r e a⦘ ⨾ r ⨾ ⦗fun e : T => ~ r a e⦘ ≡
-      (fun x y => ~ r x a /\ r x y /\ ~ r a y)
-  ) by basic_solver.
-  arewrite (
-    compl_rel (fun x y => ~ r x a /\ r x y /\ ~ r a y) ≡
-      (fun x y => r x a \/ ~r x y \/ r a y)
-  ) by unfolder; splits; ins; desf; tauto.
-  arewrite (
-    r ∩ (fun x y : T => r x a \/ ~ r x y \/ r a y) ≡
-      r ∩ (fun x y : T => r x a \/ r a y)
-  ) by basic_solver.
-  split.
-  { unfold left_dom, right_dom.
-    unfolder. intros x y. ins. desf.
-    { destruct classic with (a = y).
-      { left. basic_solver 6. }
-      destruct SEMITOTL with x y a; auto.
-      { left. basic_solver 6. }
-      exfalso. eauto 6. }
-    destruct classic with (a = x).
-    { right. basic_solver 6. }
-    destruct SEMITOTR with x a y; auto.
-    { exfalso. basic_solver 6. }
-    right. basic_solver 6. }
-  unfold left_dom, right_dom.
-  unfolder. intros x y. ins. desf.
-  all: splits; auto.
-  all: match goal with
-       | HH : forall c, _ -> _ -> False |- _ => rename HH into IMM
-       | _ => fail "NO"
-       end.
-  all: intros c; ins; desf.
-  all: apply IMM with c.
-  all: splits; auto.
-  all: try left.
-  all: try now apply TRANS with x.
-  all: try now apply TRANS with y.
+  apply immediate_restrE.
+  seq_rewrite seq_eqvC.
+  sin_rewrite LCONT.
+  sin_rewrite RCONT.
+  rewrite !seqA.
+  reflexivity.
+Qed.
+
+Lemma left_dom_right_cont {T : Type} (r : relation T) a
+    (TRANS : transitive r) :
+  r ⨾ ⦗left_dom r a⦘ ≡ ⦗left_dom r a⦘ ⨾ r ⨾ ⦗left_dom r a⦘.
+Proof using.
+  basic_solver 7.
+Qed.
+
+Lemma right_dom_left_cont {T : Type} (r : relation T) a
+    (TRANS : transitive r) :
+  ⦗right_dom r a⦘ ⨾ r ≡ ⦗right_dom r a⦘ ⨾ r ⨾ ⦗right_dom r a⦘.
+Proof using.
+  basic_solver 7.
+Qed.
+
+Lemma left_domE {T : Type} (r : relation T) a :
+  left_dom r a ≡₁ dom_rel (r ⨾ ⦗eq a⦘) ∪₁ eq a.
+Proof using.
+  unfolder. split; ins; desf.
+  all: eauto.
+Qed.
+
+Lemma right_domE {T : Type} (r : relation T) a :
+  right_dom r a ≡₁ codom_rel (⦗eq a⦘ ⨾ r) ∪₁ eq a.
+Proof using.
+  unfolder. split; ins; desf.
+  all: eauto.
+Qed.
+
+Lemma tid_left_cont G t
+    (NINIT : t <> tid_init) :
+  ⦗fun e => tid e = t⦘ ⨾ sb G ≡
+    ⦗fun e => tid e = t⦘ ⨾ sb G ⨾ ⦗fun e => tid e = t⦘.
+Proof using.
+  split; [| basic_solver].
+  unfold sb, ext_sb.
+  unfolder. ins. desf.
+  all: ins; desf.
 Qed.
