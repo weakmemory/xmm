@@ -365,6 +365,182 @@ Proof using.
   unfold ext_sb. desf.
 Qed.
 
+Lemma sb_imm_tid_split'
+    (INA : E a)
+    (NINIT : tid a <> tid_init) :
+  immediate sb_ta ≡
+    immediate (sb_ta ⨾ ⦗left_dom sb a ∪₁ eq a⦘) ∪
+      immediate (sb_ta ⨾ ⦗right_dom sb a⦘) ∩
+        ((sb_ta ⨾ ⦗right_dom sb a⦘) \
+          (sb_ta ⨾ ⦗left_dom sb a ∪₁ eq a⦘) ⨾
+            (sb_ta ⨾ ⦗right_dom sb a⦘)).
+Proof using.
+  rewrite sb_tid_split at 1; auto.
+  apply immediate_union.
+  all: rewrite ?seqA.
+  { arewrite_false (
+      ⦗right_dom sb a⦘ ⨾ sb_ta ⨾
+        ⦗left_dom sb a ∪₁ eq a⦘
+    ); [| basic_solver].
+    unfolder. ins. desf.
+    { apply sb_irr with (G := G) (x := a).
+      do 3 (eapply sb_trans; eauto). }
+    eapply sb_irr with (G := G).
+    eapply sb_trans; eauto. }
+  { rewrite !seq_union_l, !seqA.
+    arewrite (
+      sb_ta ⨾ ⦗left_dom sb a ∪₁ eq a⦘ ⨾
+        sb_ta ⨾ ⦗right_dom sb a⦘ ⊆
+          sb_ta ⨾ ⦗right_dom sb a⦘
+    ).
+    { rewrite <- seqA.
+      rewrite inclusion_seq_eqv_r
+         with (dom := left_dom sb a ∪₁ eq a).
+      sin_rewrite rewrite_trans; auto with hahn.
+      apply transitive_restr, sb_trans. }
+    arewrite (
+      sb_ta ⨾ ⦗right_dom sb a⦘ ⨾
+        sb_ta ⨾ ⦗right_dom sb a⦘ ⊆
+          sb_ta ⨾ ⦗right_dom sb a⦘
+    ).
+    { rewrite <- seqA.
+      rewrite inclusion_seq_eqv_r
+         with (dom := right_dom sb a)
+           at 1.
+      sin_rewrite rewrite_trans; auto with hahn.
+      apply transitive_restr, sb_trans. }
+    rewrite unionK.
+    unfolder. ins. desf.
+    { apply sb_irr with G a. eapply sb_trans; eauto. }
+    eapply sb_irr; eauto. }
+  arewrite (
+    sb_ta ⨾ ⦗left_dom sb a ∪₁ eq a⦘ ⨾
+      sb_ta ⨾ ⦗left_dom sb a ∪₁ eq a⦘ ⊆
+        sb_ta ⨾ ⦗left_dom sb a ∪₁ eq a⦘
+  ).
+  { rewrite <- seqA.
+    rewrite inclusion_seq_eqv_r
+        with (dom := left_dom sb a ∪₁ eq a)
+          at 1.
+    sin_rewrite rewrite_trans; auto with hahn.
+    apply transitive_restr, sb_trans. }
+  unfolder. ins. desf.
+  { apply sb_irr with G a. eapply sb_trans; eauto. }
+  eapply sb_irr; eauto.
+Qed.
+
+Lemma sb_ldom_merge
+    (INA : E a)
+    (NINIT : tid a <> tid_init) :
+  sb_ta ⨾ ⦗left_dom sb a ∪₁ eq a⦘ ⨾ sb_ta ⨾ ⦗right_dom sb a⦘ ≡
+    ⦗left_dom sb a⦘ ⨾ sb_ta ⨾ ⦗right_dom sb a⦘.
+Proof using.
+  assert (LDRW :
+    sb_ta ⨾ ⦗left_dom sb a⦘ ≡
+      sb_ta ⨾ ⦗left_dom sb_ta a⦘
+  ).
+  { unfolder. split; ins; desf. }
+  split.
+  { rewrite id_union, seq_union_l, seq_union_r.
+    seq_rewrite LDRW.
+    rewrite left_dom_right_cont
+         by apply transitive_restr, sb_trans.
+    arewrite (
+      sb_ta ⨾ ⦗eq a⦘ ≡
+        ⦗left_dom sb a⦘ ⨾ sb_ta ⨾ ⦗eq a⦘
+    ) by basic_solver.
+    seq_rewrite <- LDRW. rewrite seqA.
+    arewrite (⦗left_dom sb_ta a⦘ ⨾ sb_ta ≡
+              ⦗left_dom sb a⦘ ⨾ sb_ta).
+    { unfolder. split; ins; desf. }
+    rewrite <- seq_union_r.
+    arewrite (sb_ta ⨾ ⦗left_dom sb a⦘ ⊆ sb_ta) by basic_solver.
+    arewrite (⦗eq a⦘ ⨾ sb_ta ⊆ sb_ta) by basic_solver.
+    rewrite unionK.
+    arewrite (sb_ta ⨾ sb_ta ⊆ sb_ta); [| reflexivity].
+    apply rewrite_trans, transitive_restr, sb_trans. }
+  arewrite (
+    ⦗left_dom sb a⦘ ⨾ sb_ta ⨾ ⦗right_dom sb a⦘ ⊆
+      ⦗left_dom sb a⦘ ⨾ sb_ta ⨾ ⦗eq a⦘ ⨾ sb_ta ⨾ ⦗right_dom sb a⦘
+  ); [| basic_solver 11].
+  unfolder. ins. desf.
+  splits; auto. exists a; splits; auto.
+Qed.
+
+Lemma sb_imm_tid_split''
+    (INA : E a)
+    (NINIT : tid a <> tid_init) :
+  immediate sb_ta ≡
+    immediate (sb_ta ⨾ ⦗left_dom sb a ∪₁ eq a⦘) ∪
+      immediate (sb_ta ⨾ ⦗right_dom sb a⦘) ∩
+        ((sb_ta \ ⦗left_dom sb a⦘ ⨾ sb_ta) ⨾ ⦗right_dom sb a⦘).
+Proof using.
+  rewrite sb_imm_tid_split' at 1; auto.
+  rewrite !seqA.
+  rewrite sb_ldom_merge; auto.
+  arewrite (
+    sb_ta ⨾ ⦗right_dom sb a⦘ \
+      ⦗left_dom sb a⦘ ⨾ sb_ta ⨾ ⦗right_dom sb a⦘ ≡
+        (sb_ta \ ⦗left_dom sb a⦘ ⨾ sb_ta) ⨾ ⦗right_dom sb a⦘
+  ); [| reflexivity].
+  rewrite <- seqA.
+  set (r2 := (⦗left_dom sb a⦘ ⨾ sb_ta)).
+  set (r1 := sb_ta).
+  set (s := right_dom sb a).
+  unfolder; split; ins; desf.
+  all: splits; auto.
+  tauto.
+Qed.
+
+Lemma sb_ldom_compl
+    (INA : E a)
+    (NINIT : tid a <> tid_init) :
+  sb_ta \ ⦗left_dom sb a⦘ ⨾ sb_ta ≡
+     ⦗right_dom sb a ∪₁ eq a⦘ ⨾ sb_ta.
+Proof using.
+  split; unfolder; intros x y; ins; desf.
+  all: splits; auto.
+  { assert (XIN : E x).
+    { match goal with
+      | HH : sb x y |- _ => rename HH into SB
+      | _ => fail "no"
+      end.
+      apply wf_sbE in SB.
+      unfolder in SB. desf. }
+    assert (XA : ~ sb x a) by tauto.
+    destruct PeanoNat.Nat.lt_total
+        with (index a) (index x)
+          as [LT | [EQ | GT]].
+    { left. unfold sb.
+      unfolder. splits; auto.
+      unfold ext_sb. desf.
+      ins. lia. }
+    { right. destruct a, x.
+      all: ins; desf. }
+    exfalso. apply XA.
+    unfold sb.
+    unfolder. splits; auto.
+    unfold ext_sb. desf. }
+  { intro FALSO. desf.
+    eapply sb_irr with (G := G) (x := a).
+    eapply sb_trans; eauto. }
+  intro FALSO. desf.
+  eapply sb_irr; eauto.
+Qed.
+
+Lemma sb_imm_tid_split
+    (INA : E a)
+    (NINIT : tid a <> tid_init) :
+  immediate sb_ta ≡
+    immediate (sb_ta ⨾ ⦗left_dom sb a ∪₁ eq a⦘) ∪
+      immediate (sb_ta ⨾ ⦗right_dom sb a⦘) ∩
+        (⦗right_dom sb a ∪₁ eq a⦘ ⨾ sb_ta ⨾ ⦗right_dom sb a⦘).
+Proof using.
+  rewrite sb_imm_tid_split'' at 1; auto.
+  rewrite sb_ldom_compl at 1; auto.
+  rewrite !seqA. reflexivity.
+Qed.
+
 (* Lemma sb_tid_split_cont
     (WF : Wf G)
     (INA : E a)
