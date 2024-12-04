@@ -25,10 +25,10 @@ Definition semi_total_r {A} (r : relation A) : Prop :=
     r x y \/ r y x.
 
 Definition left_dom {A} (r : relation A) (a : A) : A -> Prop :=
-  fun x => r x a \/ x = a.
+  fun x => r x a.
 
 Definition right_dom {A} (r : relation A) (a : A) : A -> Prop :=
-  fun x => r a x \/ x = a.
+  fun x => r a x.
 
 #[global]
 Hint Unfold least_elt rmw_delta left_dom right_dom

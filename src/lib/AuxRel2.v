@@ -1,6 +1,7 @@
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 Require Import Setoid Morphisms.
+Require Import Lia.
 From imm Require Import Events Execution.
 
 Require Import AuxDef.
@@ -241,6 +242,35 @@ Proof using.
   now unfold Basics.flip.
 Qed.
 
+Lemma immediate_union {T : Type} (r1 r2 : relation T)
+    (AFTER : r2 ⨾ r1 ⊆ ∅₂)
+    (RIGHT : ((r1 ∪ r2) ⨾ r2) ∩ r1 ⊆ ∅₂)
+    (LEFT : (r1 ⨾ r1) ∩ r2 ⊆ ∅₂) :
+  immediate (r1 ∪ r2) ≡
+    immediate r1 ∪ immediate r2 ∩ (r2 \ r1 ⨾ r2).
+Proof using.
+  rewrite !immediateE.
+  rewrite minus_union_l at 1.
+  rewrite !seq_union_l, !seq_union_r.
+  rewrite !minus_union_r.
+  apply union_more.
+  { split; [basic_solver |].
+    rewrite AFTER.
+    arewrite (r1 \ r1 ⨾ r2 ≡ r1).
+    { apply minus_disjoint. split; [| basic_solver].
+      rewrite <- RIGHT. basic_solver. }
+    arewrite (r1 \ r2 ⨾ r2 ≡ r1).
+    { apply minus_disjoint. split; [| basic_solver].
+      rewrite <- RIGHT. basic_solver. }
+    basic_solver. }
+  rewrite <- !interA.
+  arewrite_false (r2 ⨾ r1); auto.
+  arewrite (r2 \ r1 ⨾ r1 ≡ r2).
+  { apply minus_disjoint. split; [| basic_solver].
+    rewrite <- LEFT. basic_solver. }
+  basic_solver 11.
+Qed.
+
 (*
   Specialised version of the lemma for left- and right-
   continious sets
@@ -274,26 +304,80 @@ Proof using.
 Qed.
 
 Lemma left_domE {T : Type} (r : relation T) a :
-  left_dom r a ≡₁ dom_rel (r ⨾ ⦗eq a⦘) ∪₁ eq a.
+  left_dom r a ≡₁ dom_rel (r ⨾ ⦗eq a⦘).
 Proof using.
   unfolder. split; ins; desf.
   all: eauto.
 Qed.
 
 Lemma right_domE {T : Type} (r : relation T) a :
-  right_dom r a ≡₁ codom_rel (⦗eq a⦘ ⨾ r) ∪₁ eq a.
+  right_dom r a ≡₁ codom_rel (⦗eq a⦘ ⨾ r).
 Proof using.
   unfolder. split; ins; desf.
   all: eauto.
 Qed.
 
-Lemma tid_left_cont G t
+Section SbSplit.
+
+Variable G : execution.
+Variable a : actid.
+
+Notation "'E'" := (acts_set G).
+Notation "'sb'" := (sb G).
+Notation "'Tid_' t" := (fun e => tid e = t) (at level 1).
+Notation "'sb_ta'" := (restr_rel (Tid_ (tid a)) sb).
+
+Lemma tid_left_cont t
     (NINIT : t <> tid_init) :
-  ⦗fun e => tid e = t⦘ ⨾ sb G ≡
-    ⦗fun e => tid e = t⦘ ⨾ sb G ⨾ ⦗fun e => tid e = t⦘.
+  ⦗Tid_ t⦘ ⨾ sb ≡ ⦗Tid_ t⦘ ⨾ sb ⨾ ⦗Tid_ t⦘.
 Proof using.
   split; [| basic_solver].
   unfold sb, ext_sb.
   unfolder. ins. desf.
   all: ins; desf.
 Qed.
+
+Lemma sb_tid_split
+    (INA : E a)
+    (NINIT : tid a <> tid_init) :
+  sb_ta ≡
+    sb_ta ⨾ ⦗left_dom sb a ∪₁ eq a⦘ ∪
+      sb_ta ⨾ ⦗right_dom sb a⦘.
+Proof using.
+  split; [| basic_solver].
+  rewrite !restr_relE, !seqA.
+  unfolder. intros x y (XT & SB & YT).
+  assert (YIN : E y).
+  { apply wf_sbE in SB. unfolder in SB. desf. }
+  assert (XIN : E x).
+  { apply wf_sbE in SB. unfolder in SB. desf. }
+  destruct PeanoNat.Nat.lt_total
+      with (index a) (index y)
+        as [LT | [EQ | GT]].
+  { right. splits; auto.
+    unfold sb. unfolder. splits; auto.
+    unfold ext_sb. desf. ins. lia. }
+  { left. splits; auto. right.
+    destruct y, a; ins; desf.
+    congruence. }
+  left. splits; auto. left.
+  unfold sb. unfolder. splits; auto.
+  unfold ext_sb. desf.
+Qed.
+
+(* Lemma sb_tid_split_cont
+    (WF : Wf G)
+    (INA : E a)
+    (NINIT : tid a <> tid_init) :
+  ⦗left_dom sb a ∪₁ eq a⦘ ⨾ sb_ta ⨾ sb_ta ⨾ ⦗right_dom sb a⦘ ⊆
+    ⦗left_dom sb a ∪₁ eq a⦘ ⨾ sb_ta ⨾ ⦗right_dom sb a⦘ ⨾
+      ⦗left_dom sb a ∪₁ eq a⦘ ⨾ sb_ta ⨾ ⦗right_dom sb a⦘.
+Proof using.
+  unfolder. intros x y SB.
+  destruct SB
+        as (LD & z & (XZ & TX & TZ) & ((ZY & TZ' & TY) &RD)).
+  all: splits; auto.
+  admit.
+Admitted. *)
+
+End SbSplit.
