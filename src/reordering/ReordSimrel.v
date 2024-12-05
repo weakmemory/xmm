@@ -993,7 +993,7 @@ Proof using.
   basic_solver.
 Admitted.
 
-Lemma nini_sb_imm_split G a
+(* Lemma nini_sb_imm_split G a
     (WF : Wf G) :
   immediate (nin_sb G) ≡
     immediate (⦗fun e => ~nin_sb G e a⦘ ⨾ nin_sb G ⨾ ⦗fun e => ~nin_sb G a e⦘) ∪
@@ -1037,7 +1037,7 @@ Proof using.
   unfold nin_sb in *.
   unfolder in *. desf.
   split; [auto | eapply sb_trans; eauto].
-Qed.
+Qed. *)
 
 Lemma rsr_rhb_exa
     (PRED : reord_step_pred)
