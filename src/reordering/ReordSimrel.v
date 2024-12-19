@@ -94,6 +94,8 @@ Notation "'Tid_' t" := (fun e => tid e = t) (at level 1).
 Record extra_a_pred x : Prop := {
   eba_tid : same_tid b_t x;
   eba_val : srf_s ⨾ ⦗eq x ∩₁ R_s⦘ ⊆ same_val lab_s;
+  eba_loc : ~same_loc_s a_t x; (* Okay, because a_t is in E_s at this point *)
+  eba_nacq : ~Acq_s x;
 }.
 
 Definition extra_a (a_s : actid) :=
@@ -1119,6 +1121,71 @@ Proof using.
     apply rsr_map_at; auto. }
   rewrite <- cross_inter_r.
   unfold extra_a. desf; clear; basic_solver 7.
+Qed.
+
+Lemma rsr_as_nacq
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel) :
+  eq b_t ∩₁ E_s ⊆₁ set_compl Acq_s.
+Proof using.
+  rewrite (rsr_acts SIMREL).
+  rewrite set_inter_union_r, set_unionC.
+  apply set_subset_union_l. split.
+  { rewrite (rsr_as SIMREL). unfolder.
+    ins. desf. now apply eba_nacq. }
+  transitivity (set_compl Acq_s ∩₁ mapper ↑₁ E_t);
+    [| basic_solver].
+  assert (INCL :
+    mapper ↑₁ (set_compl Acq_t ∩₁ E_t) ⊆₁
+      set_compl Acq_s ∩₁ mapper ↑₁ E_t
+  ).
+  { unfolder.
+    intros x (y & (ACQ & YIN) & XEQ).
+    unfold is_acq, mod in *. subst x.
+    change (lab_s (mapper y)) with ((lab_s ∘ mapper) y).
+    rewrite (rsr_lab SIMREL); eauto. }
+  rewrite <- INCL, <- (rsr_at_nacq PRED).
+  unfolder. intros x (XEQ & (y & YIN & YEQ)).
+  subst x.
+  assert (y = a_t); desf; eauto.
+  apply rsr_mapinv_at; auto.
+Qed.
+
+Lemma rsr_as_bs_loc
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel) :
+  ⦗eq a_t ∩₁ E_s⦘ ⨾ same_loc_s ⨾ ⦗eq b_t ∩₁ E_s⦘ ⊆ ∅₂.
+Proof using.
+  rewrite (rsr_acts SIMREL), !set_inter_union_r.
+  arewrite (eq a_t ∩₁ extra_a b_t ≡₁ ∅).
+  { split; auto with hahn.
+    unfold extra_a; desf; [| basic_solver].
+    unfolder. ins. desf.
+    now apply (rsr_at_neq_bt PRED). }
+  rewrite set_union_empty_r.
+  rewrite id_union, !seq_union_r, unionC.
+  apply inclusion_union_l.
+  { unfolder. ins. desf.
+    eapply eba_loc; eauto.
+    now apply (rsr_as SIMREL). }
+  rewrite <- (rsr_at_bt_loc PRED).
+  unfolder.
+  intros x' y'.
+  intros (
+    (XEQ & (x & XIN & XEQ')) &
+          LOC &
+    (YEQ & (y & YIN & YEQ'))
+  ).
+  subst x' y'.
+  assert (x = b_t) by now apply rsr_mapinv_bt.
+  assert (y = a_t) by now apply rsr_mapinv_at.
+  desf. splits; auto.
+  unfold same_loc, loc in *.
+  rewrite <- YEQ' in LOC.
+  rewrite <- XEQ' in LOC at 1.
+  change (lab_s (mapper b_t)) with ((lab_s ∘ mapper) b_t) in LOC.
+  change (lab_s (mapper a_t)) with ((lab_s ∘ mapper) a_t) in LOC.
+  rewrite !(rsr_lab SIMREL) in LOC; auto.
 Qed.
 
 (* Lemma nini_sb_imm_split G a
