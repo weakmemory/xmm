@@ -646,6 +646,94 @@ Lemma imm_sb_d_s thrdle
   ⦗dtrmt'⦘ ⨾ immediate (nin_sb G_s') ⨾ ⦗cmt'⦘ ⊆
     ⦗dtrmt'⦘ ⨾ immediate (nin_sb G_s') ⨾ ⦗dtrmt'⦘.
 Proof using.
+  destruct classic with (E_s' a_s') as [AIN|NINA].
+  { set (sb_ta' := restr_rel (Tid_ (tid a_s')) sb_s').
+    set (sb_nta' := restr_rel (set_compl (Tid_ (tid a_s'))) sb_s').
+    assert (ATID : tid a_s' <> tid_init).
+    { admit. }
+    arewrite (nin_sb G_s' ≡ sb_ta' ∪ sb_nta').
+    { admit. }
+    rewrite immediate_union, !seq_union_l, !seq_union_r.
+    2-4: subst sb_nta' sb_ta'; clear; basic_solver.
+    apply union_mori.
+    { subst sb_ta'.
+      rewrite sb_imm_tid_split_full; auto.
+      set (sb_ta' := restr_rel (Tid_ (tid a_s')) sb_s').
+      rewrite !seq_union_l, !seq_union_r.
+      repeat apply union_mori.
+      { admit. }
+      { admit. }
+      { admit. }
+      admit. }
+    arewrite_false (sb_ta' ⨾ sb_nta').
+    { subst sb_nta' sb_ta'; clear; basic_solver. }
+    rewrite minus_false_r.
+    arewrite (immediate sb_nta' ∩ sb_nta' ≡ immediate sb_nta').
+    { clear; basic_solver. }
+    arewrite (immediate sb_nta' ≡ immediate (restr_rel
+      (set_compl Tid_ (tid a_s'))
+      (mapper' ↑ swap_rel sb_t'
+                  (eq b_t' ∩₁ E_t')
+                  (eq a_t' ∩₁ E_t')
+      )
+    )).
+    { apply immediate_more. unfold sb_nta'.
+      rewrite (rsr_sb (reexec_simrel CTX)).
+      rewrite !restr_union.
+      arewrite_false (restr_rel (set_compl Tid_ (tid a_s'))
+        ((mapper' ↑₁ dom_rel (sb_t' ⨾ ⦗eq b_t'⦘)) ×
+          extra_a X_t' a_t' b_t' b_t')
+      ).
+      { unfold extra_a, a_s'; basic_solver. }
+      arewrite_false (restr_rel
+        (set_compl Tid_ (tid a_s'))
+        (extra_a X_t' a_t' b_t' b_t' × eq (mapper' b_t'))
+      ).
+      { unfold extra_a, a_s'; basic_solver. }
+      now rewrite !union_false_r. }
+    rewrite <- !seqA.
+    remember (⦗dtrmt'⦘ ⨾ immediate
+      (restr_rel
+        (set_compl Tid_ (tid a_s'))
+        (mapper' ↑ swap_rel sb_t'
+          (eq b_t' ∩₁ E_t')
+          (eq a_t' ∩₁ E_t'))
+      ))
+    as msb.
+    enough (COD : codom_rel (msb ⨾ ⦗cmt'⦘) ⊆₁ dtrmt').
+    { forward apply COD. clear. basic_solver. }
+    subst msb.
+    arewrite (
+      restr_rel
+        (set_compl Tid_ (tid a_s'))
+        (mapper' ↑ swap_rel sb_t'
+          (eq b_t' ∩₁ E_t')
+          (eq a_t' ∩₁ E_t'))
+      ≡
+      mapper' ↑ (
+        restr_rel
+          (set_compl Tid_ (tid a_s'))
+          (swap_rel sb_t' (eq b_t' ∩₁ E_t') (eq a_t' ∩₁ E_t'))
+      )
+    ).
+    { admit. }
+    unfold dtrmt', cmt'.
+    rewrite immediate_collect, <- !collect_rel_eqv.
+    arewrite (
+      restr_rel
+        (set_compl Tid_ (tid a_s'))
+        (swap_rel sb_t' (eq b_t' ∩₁ E_t') (eq a_t' ∩₁ E_t'))
+      ≡
+      restr_rel
+        (set_compl Tid_ (tid a_s'))
+        sb_t'
+    ).
+    { admit. }
+    rewrite <- !collect_rel_seq.
+    { rewrite <- set_collect_codom.
+      apply set_collect_mori; auto.
+      admit. }
+    all: admit. }
   admit.
 Admitted.
 
