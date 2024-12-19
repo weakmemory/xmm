@@ -47,6 +47,7 @@ Notation "'addr_t'" := (addr G_t).
 Notation "'hb_t'" := (hb G_t).
 Notation "'eco_t'" := (eco G_t).
 Notation "'sw_t'" := (sw G_t).
+Notation "'vf_t'" := (vf G_t).
 Notation "'W_t'" := (fun e => is_true (is_w lab_t e)).
 Notation "'R_t'" := (fun e => is_true (is_r lab_t e)).
 Notation "'F_t'" := (fun e => is_true (is_f lab_t e)).
@@ -70,6 +71,7 @@ Notation "'rhb_s'" := (rhb G_s).
 Notation "'rmw_s'" := (rmw G_s).
 Notation "'rpo_s'" := (rpo G_s).
 Notation "'rpo_imm_s'" := (rpo_imm G_s).
+Notation "'vf_s'" := (vf G_s).
 Notation "'rmw_dep_s'" := (rmw_dep G_s).
 Notation "'data_s'" := (data G_s).
 Notation "'ctrl_s'" := (ctrl G_s).
@@ -92,6 +94,8 @@ Notation "'Tid_' t" := (fun e => tid e = t) (at level 1).
 Record extra_a_pred x : Prop := {
   eba_tid : same_tid b_t x;
   eba_val : srf_s ⨾ ⦗eq x ∩₁ R_s⦘ ⊆ same_val lab_s;
+  eba_loc : ~same_loc_s a_t x; (* Okay, because a_t is in E_s at this point *)
+  eba_nacq : ~Acq_s x;
 }.
 
 Definition extra_a (a_s : actid) :=
@@ -967,6 +971,315 @@ Lemma rsr_rhb
     (PRED : reord_step_pred)
     (SIMREL : reord_simrel) :
   ⦗E_s \₁ extra_a b_t⦘ ⨾ rhb_s ⊆ mapper ↑ rhb_t.
+Proof using.
+  admit.
+Admitted.
+
+Lemma rsr_sb_nexa
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel) :
+  ⦗extra_a b_t⦘ ⨾ sb_s ⊆ eq b_t × eq a_t.
+Proof using.
+  unfold extra_a. desf; [| basic_solver].
+  rewrite (rsr_sb SIMREL).
+  rewrite !seq_union_r.
+  rewrite extra_a_some by desf.
+  arewrite_false (⦗eq b_t⦘ ⨾ mapper ↑ swap_rel sb_t (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t)).
+  { admit. }
+  arewrite_false (⦗eq b_t⦘ ⨾ (mapper ↑₁ dom_rel (sb_t ⨾ ⦗eq b_t⦘)) × eq b_t).
+  { admit. }
+  rewrite !union_false_l.
+  arewrite (b_s = a_t).
+  { symmetry. apply (rsr_bt SIMREL).
+    basic_solver. }
+  basic_solver.
+Admitted.
+
+Lemma rsr_mapinv_at x
+    (XIN : E_t x)
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel)
+    (MEQ : mapper x = b_t) :
+  x = a_t.
+Proof using.
+  rewrite (rsr_mapper SIMREL) in MEQ; auto.
+  assert (NEQ : a_t <> b_t) by now apply PRED.
+  destruct classic with (x = b_t),
+           classic with (x = a_t).
+  all: desf.
+  { now rewrite upds in MEQ. }
+  now rewrite !updo in MEQ.
+Qed.
+
+Lemma rsr_mapinv_bt x
+    (XIN : E_t x)
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel)
+    (MEQ : mapper x = a_t) :
+  x = b_t.
+Proof using.
+  rewrite (rsr_mapper SIMREL) in MEQ; auto.
+  assert (NEQ : a_t <> b_t) by now apply PRED.
+  destruct classic with (x = b_t),
+           classic with (x = a_t).
+  all: desf.
+  { rewrite updo, upds in MEQ; auto. }
+  now rewrite !updo in MEQ.
+Qed.
+
+Lemma rsr_sb_from_a
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel) :
+  ⦗eq b_t⦘ ⨾ sb_s ≡
+    mapper ↑ (⦗eq a_t⦘ ⨾ swap_rel sb_t (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t)) ∪
+    (extra_a b_t) × eq b_s.
+Proof using.
+  rewrite (rsr_sb SIMREL), !seq_union_r.
+  arewrite_false (⦗eq b_t⦘ ⨾ (mapper ↑₁ dom_rel (sb_t ⨾ ⦗eq b_t⦘)) × extra_a b_t).
+  { unfold extra_a. desf; [desf | clear; basic_solver].
+    rewrite <- cross_inter_l.
+    arewrite (eq b_t ∩₁ mapper ↑₁ dom_rel (sb_t ⨾ ⦗eq b_t⦘) ⊆₁ ∅); [| basic_solver].
+    unfolder. intros x (EQ & y1 & (y2 & SB & _) & YEQ).
+    subst x. apply wf_sbE in SB. unfolder in SB.
+    destruct SB as (Y1IN & SB & Y2IN).
+    rewrite rsr_mapinv_at with (x := y1) in Y1IN.
+    all: auto. }
+  rewrite union_false_r.
+  apply union_more.
+  { destruct classic with (~E_t a_t) as [NINA|INA].
+    { arewrite (eq a_t ∩₁ E_t ≡₁ ∅) by basic_solver.
+      rewrite !swap_rel_empty_r.
+      arewrite_false (⦗eq a_t⦘ ⨾ sb_t).
+      { clear - NINA. rewrite wf_sbE. basic_solver. }
+      rewrite collect_rel_empty. split; [| basic_solver].
+      unfolder. intros x y (EQ & x' & y' & (SB & XEQ & YEQ)).
+      subst x y.
+      assert (XIN : E_t x').
+      { apply wf_sbE in SB. unfolder in SB. desf. }
+      rewrite (rsr_mapinv_at XIN PRED SIMREL) in XIN; auto. }
+    assert (INA' : E_t a_t) by tauto.
+    assert (INJ : inj_dom
+      (codom_rel ⦗eq a_t⦘ ∪₁ dom_rel
+      (swap_rel
+      sb_t (eq b_t ∩₁ E_t)
+      (eq a_t ∩₁ E_t)))
+      mapper
+    ).
+    { eapply inj_dom_mori; eauto using rsr_inj.
+      unfold flip. rewrite wf_sbE.
+      basic_solver. }
+    rewrite collect_rel_seq; auto.
+    arewrite (mapper ↑ ⦗eq a_t⦘ ≡ ⦗eq b_t⦘); [| reflexivity].
+    rewrite collect_rel_eqv, set_collect_eq.
+    apply eqv_rel_more, set_equiv_single_single.
+    apply rsr_map_at; auto. }
+  unfold extra_a; desf; [| clear; basic_solver].
+  rewrite <- cross_inter_l. clear. basic_solver.
+Qed.
+
+Lemma rsr_sb_to_a
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel) :
+  sb_s ⨾ ⦗eq b_t⦘ ≡
+    mapper ↑ (swap_rel sb_t (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t) ⨾ ⦗eq a_t⦘)  ∪
+    (mapper ↑₁ dom_rel (sb_t ⨾ ⦗eq b_t⦘)) × (extra_a b_t).
+Proof using.
+  rewrite (rsr_sb SIMREL), !seq_union_l.
+  arewrite_false (extra_a b_t × eq b_s ⨾ ⦗eq b_t⦘).
+  { unfold extra_a; desf; [| basic_solver].
+    unfolder. intros x y ((XEQ & YEQ) & YEQ').
+    subst x y.
+    apply (rsr_at_neq_bt PRED).
+    rewrite rsr_mapinv_at with (x := b_t); desf. }
+  rewrite union_false_r.
+  apply union_more.
+  { destruct classic with (~E_t a_t) as [NINA|INA].
+    { arewrite (eq a_t ∩₁ E_t ≡₁ ∅) by basic_solver.
+      rewrite !swap_rel_empty_r.
+      arewrite_false (sb_t ⨾ ⦗eq a_t⦘).
+      { clear - NINA. rewrite wf_sbE. basic_solver. }
+      rewrite collect_rel_empty. split; [| basic_solver].
+      unfolder. intros x y ((x' & y' & (SB & XEQ & YEQ)) & EQ).
+      subst x y.
+      assert (YIN : E_t y').
+      { apply wf_sbE in SB. unfolder in SB. desf. }
+      rewrite (rsr_mapinv_at YIN PRED SIMREL) in YIN; auto. }
+    assert (INA' : E_t a_t) by tauto.
+    assert (INJ : inj_dom
+          (codom_rel
+        (swap_rel sb_t
+        (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t))
+      ∪₁ dom_rel ⦗eq a_t⦘) mapper
+    ).
+    { eapply inj_dom_mori; eauto using rsr_inj.
+      unfold flip. rewrite wf_sbE.
+      basic_solver. }
+    rewrite collect_rel_seq; auto.
+    arewrite (mapper ↑ ⦗eq a_t⦘ ≡ ⦗eq b_t⦘); [| reflexivity].
+    rewrite collect_rel_eqv, set_collect_eq.
+    apply eqv_rel_more, set_equiv_single_single.
+    apply rsr_map_at; auto. }
+  rewrite <- cross_inter_r.
+  unfold extra_a. desf; clear; basic_solver 7.
+Qed.
+
+Lemma rsr_as_nacq
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel) :
+  eq b_t ∩₁ E_s ⊆₁ set_compl Acq_s.
+Proof using.
+  rewrite (rsr_acts SIMREL).
+  rewrite set_inter_union_r, set_unionC.
+  apply set_subset_union_l. split.
+  { rewrite (rsr_as SIMREL). unfolder.
+    ins. desf. now apply eba_nacq. }
+  transitivity (set_compl Acq_s ∩₁ mapper ↑₁ E_t);
+    [| basic_solver].
+  assert (INCL :
+    mapper ↑₁ (set_compl Acq_t ∩₁ E_t) ⊆₁
+      set_compl Acq_s ∩₁ mapper ↑₁ E_t
+  ).
+  { unfolder.
+    intros x (y & (ACQ & YIN) & XEQ).
+    unfold is_acq, mod in *. subst x.
+    change (lab_s (mapper y)) with ((lab_s ∘ mapper) y).
+    rewrite (rsr_lab SIMREL); eauto. }
+  rewrite <- INCL, <- (rsr_at_nacq PRED).
+  unfolder. intros x (XEQ & (y & YIN & YEQ)).
+  subst x.
+  assert (y = a_t); desf; eauto.
+  apply rsr_mapinv_at; auto.
+Qed.
+
+Lemma rsr_as_bs_loc
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel) :
+  ⦗eq a_t ∩₁ E_s⦘ ⨾ same_loc_s ⨾ ⦗eq b_t ∩₁ E_s⦘ ⊆ ∅₂.
+Proof using.
+  rewrite (rsr_acts SIMREL), !set_inter_union_r.
+  arewrite (eq a_t ∩₁ extra_a b_t ≡₁ ∅).
+  { split; auto with hahn.
+    unfold extra_a; desf; [| basic_solver].
+    unfolder. ins. desf.
+    now apply (rsr_at_neq_bt PRED). }
+  rewrite set_union_empty_r.
+  rewrite id_union, !seq_union_r, unionC.
+  apply inclusion_union_l.
+  { unfolder. ins. desf.
+    eapply eba_loc; eauto.
+    now apply (rsr_as SIMREL). }
+  rewrite <- (rsr_at_bt_loc PRED).
+  unfolder.
+  intros x' y'.
+  intros (
+    (XEQ & (x & XIN & XEQ')) &
+          LOC &
+    (YEQ & (y & YIN & YEQ'))
+  ).
+  subst x' y'.
+  assert (x = b_t) by now apply rsr_mapinv_bt.
+  assert (y = a_t) by now apply rsr_mapinv_at.
+  desf. splits; auto.
+  unfold same_loc, loc in *.
+  rewrite <- YEQ' in LOC.
+  rewrite <- XEQ' in LOC at 1.
+  change (lab_s (mapper b_t)) with ((lab_s ∘ mapper) b_t) in LOC.
+  change (lab_s (mapper a_t)) with ((lab_s ∘ mapper) a_t) in LOC.
+  rewrite !(rsr_lab SIMREL) in LOC; auto.
+Qed.
+
+(* Lemma nini_sb_imm_split G a
+    (WF : Wf G) :
+  immediate (nin_sb G) ≡
+    immediate (⦗fun e => ~nin_sb G e a⦘ ⨾ nin_sb G ⨾ ⦗fun e => ~nin_sb G a e⦘) ∪
+      immediate (⦗left_dom (nin_sb G) a⦘ ⨾ nin_sb G ⨾ ⦗left_dom (nin_sb G) a ∪₁ eq a⦘) ∪
+        immediate (⦗right_dom (nin_sb G) a ∪₁ eq a⦘ ⨾ nin_sb G ⨾ ⦗right_dom (nin_sb G) a⦘).
+Proof using.
+  apply imm_split.
+  { unfold semi_total_l. unfolder.
+    ins. desf.
+    destruct sb_semi_total_l with G x y z as [SB|SB]; auto.
+    { forward apply XZ. unfold nin_sb. basic_solver. }
+    { forward apply XZ. unfold nin_sb. basic_solver. }
+    { forward apply YZ. unfold nin_sb. basic_solver. }
+    { left. unfold nin_sb. unfolder.
+      split; auto.
+      unfold nin_sb in XZ. unfolder in XZ.
+      destruct XZ as (_ & XZ).
+      apply no_sb_to_init in XZ.
+      forward apply XZ. basic_solver. }
+    right. unfold nin_sb. unfolder.
+    split; auto.
+    unfold nin_sb in YZ. unfolder in YZ.
+    destruct YZ as (_ & YZ).
+    apply no_sb_to_init in YZ.
+    forward apply YZ. basic_solver. }
+  { unfold semi_total_r. unfolder.
+    ins. desf.
+    destruct sb_semi_total_r with G z x y as [SB|SB]; auto.
+    { forward apply YZ. unfold nin_sb. basic_solver. }
+    { forward apply XZ. unfold nin_sb. basic_solver. }
+    { forward apply YZ. unfold nin_sb. basic_solver. }
+    { left. unfold nin_sb. unfolder.
+      split; auto.
+      unfold nin_sb in XZ. unfolder in XZ.
+      desf. }
+    right. unfold nin_sb. unfolder.
+    split; auto.
+    unfold nin_sb in YZ. unfolder in YZ.
+    desf. }
+  unfolder. ins. desf.
+  unfold nin_sb in *.
+  unfolder in *. desf.
+  split; [auto | eapply sb_trans; eauto].
+Qed. *)
+
+Lemma rsr_rhb_exa
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel) :
+  ⦗extra_a b_t⦘ ⨾ rhb_s ⊆ ∅₂.
+Proof using.
+  unfold rhb.
+  rewrite ct_begin, !seq_union_l,
+          !seq_union_r.
+  arewrite_false (⦗extra_a b_t⦘ ⨾ sb_s ∩ same_loc_s).
+  { rewrite <- seq_eqv_inter_ll.
+    rewrite (rsr_sb_nexa PRED SIMREL).
+    admit. }
+  unfold rpo. rewrite ct_begin, !seqA.
+  arewrite_false (⦗extra_a b_t⦘ ⨾ rpo_imm_s).
+  { unfold rpo_imm. admit. }
+  arewrite_false (⦗extra_a b_t⦘ ⨾ sw G_s).
+  { admit. }
+  rewrite !seq_false_l. auto with hahn.
+Admitted.
+
+Lemma rsr_vfrhb
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel) :
+  vf_rhb G_s ⊆ mapper ↑ (vf_rhb G_t).
+Proof using.
+  unfold vf_rhb.
+  rewrite (rsr_rf SIMREL), cr_union_l,
+          !seq_union_l, !seq_union_r.
+  rewrite !seqA.
+  arewrite (
+    srf_s ⨾ ⦗extra_a b_t ∩₁ R_s⦘ ⨾ rhb_s^? ≡
+      srf_s ⨾ ⦗extra_a b_t ∩₁ R_s⦘
+  ).
+  { admit. }
+  arewrite (
+    (mapper ↑ rf_t)^? ⨾ rhb_s^? ⊆
+      (mapper ↑ rf_t)^? ⨾ ⦗E_s \₁ extra_a b_t⦘ ⨾ rhb_s^?
+  ).
+  { admit. }
+  admit.
+Admitted.
+
+Lemma rsr_vf
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel) :
+  vf_s ⊆ mapper ↑ vf_t.
 Proof using.
   admit.
 Admitted.

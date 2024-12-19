@@ -10,12 +10,15 @@ Require Import AuxInj.
 Require Import SubToFullExec.
 Require Import ReorderingFakeSrf.
 Require Import Thrdle.
+Require Import StepOps.
 
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 From imm Require Import Events Execution Execution_eco.
 Require Import Setoid Morphisms Program.Basics.
 Require Import xmm_s_hb.
+
+Set Implicit Arguments.
 
 Module ReorderingReexecInternal.
 
@@ -163,6 +166,8 @@ Definition G_s'' : execution := {|
 |}.
 
 Record reexec_conds : Prop := {
+  rc_a_tid : tid a_t = tid a_t';
+  rc_b_tid : tid b_t = tid b_t';
   rc_a_dtrmt : dtrmt a_t <-> dtrmt a_t';
   rc_b_dtrmt : dtrmt b_t <-> dtrmt b_t';
   rc_a_eq : dtrmt a_t -> a_t = a_t';
@@ -309,7 +314,7 @@ Proof using.
     now rewrite DB, DA. }
   assert (NDA : ~dtrmt a_t).
   { intro FALSO. apply NDB.
-    apply (WCore.reexec_dtrmt_sb_closed GREEXEC).
+    apply (rexec_dtrmt_sb_dom GREEXEC).
     unfolder. exists a_t, a_t. splits; auto.
     unfold sb. unfolder; splits; auto.
     { now apply (rsr_at_bt_ord (rc_inv_start CTX)), DE. }
@@ -332,6 +337,29 @@ Proof using.
   admit. (* This graph is very conveniently mapped by m *)
 Admitted.
 
+Lemma reexec_mapinv_at x
+    (CTX : reexec_conds)
+    (MEQ : mapper' x = b_t') :
+  x = a_t'.
+Proof using.
+  replace b_t' with (mapper' a_t') in MEQ.
+  { eapply mapinj'; try done. apply CTX. }
+  clear - CTX. unfold mapper'.
+  rupd; [easy | apply CTX].
+Qed.
+
+Lemma reexec_mapinv_bt x
+    (CTX : reexec_conds)
+    (MEQ : mapper' x = a_t') :
+  x = b_t'.
+Proof using.
+  replace a_t' with (mapper' b_t') in MEQ.
+  { eapply mapinj'; try done. apply CTX. }
+  clear - CTX. unfold mapper'.
+  unfold b_s'.
+  now rupd.
+Qed.
+
 Lemma reexec_simrel
     (CTX : reexec_conds) :
   reord_simrel X_s' X_t' a_t' b_t' mapper'.
@@ -339,15 +367,6 @@ Proof using.
   assert (EXAR : eq b_t' ∩₁ R_s' ≡₁ eq b_t' ∩₁ WCore.lab_is_r (lab_s' a_s')).
   { unfold a_s', is_r, WCore.lab_is_r.
     unfolder; split; ins; desf. }
-  assert (MAPINV : forall x (MEQ : mapper' x = b_t'),
-    x = a_t'
-  ).
-  { intros x XEQ.
-    replace b_t' with (mapper' a_t') in XEQ.
-    { eapply mapinj'; try done.
-      apply CTX. }
-    clear - CTX. unfold mapper'.
-    rupd; [easy | apply CTX]. }
   assert (SRF :
     fake_srf G_s'' a_s' (lab_s' a_s') ⨾ ⦗A_s' ∩₁ WCore.lab_is_r (lab_s' a_s')⦘ ≡
     srf_s' ⨾ ⦗extra_a X_t' a_t' b_t' b_t' ∩₁ R_s'⦘
@@ -361,7 +380,7 @@ Proof using.
     { unfold G_s''. ins.
       intro FALSO. unfolder in FALSO.
       destruct FALSO as (x & XIN & XEQ).
-      rewrite MAPINV in XIN; auto. }
+      rewrite reexec_mapinv_at in XIN; auto. }
     { unfold G_s''. ins.
       admit. (* TODO: weaken cond*) }
     { apply CTX; auto. }
@@ -371,22 +390,26 @@ Proof using.
     arewrite (eq a_s' ∩₁ mapper' ↑₁ E_t' ≡₁ ∅).
     { split; [| basic_solver]. unfold a_s'.
       unfolder. intros x (XEQ & y & YIN & YEQ).
-      subst x. rewrite MAPINV in YIN; auto. }
+      subst x. rewrite reexec_mapinv_at in YIN; auto. }
     rewrite set_inter_empty_r, add_max_empty_r.
     now rewrite union_false_r. }
   constructor; ins.
   all: try now apply CTX.
   { apply mapinj. apply CTX. }
   { unfolder. unfold extra_a; ins; desf.
-    constructor; [red; auto | desf].
-    rewrite extra_a_some in SRF; auto.
-    rewrite <- SRF. apply CTX. }
+    constructor; [red; auto | desf | |].
+    { rewrite extra_a_some in SRF; auto.
+      rewrite <- SRF. apply CTX. }
+    { admit. (* TODO: add loc property to CTX *) }
+    admit. (* TODO: update the nacq prop in CTX *) }
   { rewrite (rc_acts CTX), set_minus_union_l.
     unfold a_s'. rewrite set_minusK, set_union_empty_r.
     unfold extra_a; desf; [| clear; basic_solver].
     rewrite set_minus_disjoint; auto with hahn.
     unfolder. intros x (y & YIN & YEQ) XEQ.
-    subst x. rewrite MAPINV in YIN; auto. desf. }
+    subst x.
+    rewrite reexec_mapinv_at in YIN; auto.
+    desf. }
   { clear - CTX. unfold mapper'. unfolder.
     ins. rewrite !updo; [done | |].
     all: intro FALSO; desf.
@@ -442,18 +465,284 @@ Definition cmt' := mapper' ↑₁ cmt.
 Definition dtrmt' := mapper' ↑₁ (dtrmt \₁ extra_b).
 Definition f' := (mapper ∘ f) ∘ mapper_inv'.
 
+Lemma reexec_threads_s thrdle
+    (GREEXEC : WCore.reexec_gen X_t X_t' f dtrmt cmt thrdle)
+    (CTX : reexec_conds) :
+  WCore.reexec_thread X_s' dtrmt' ≡₁
+    WCore.reexec_thread X_t' dtrmt ∪₁ tid ↑₁ extra_a X_t' a_t' b_t' b_t'.
+Proof using.
+  unfold WCore.reexec_thread, dtrmt'.
+  rewrite (rsr_acts (reexec_simrel CTX)).
+  rewrite set_minus_union_l, set_collect_union.
+  arewrite (
+    tid ↑₁ (mapper' ↑₁ E_t' \₁ mapper' ↑₁ (dtrmt \₁ extra_b)) ≡₁
+    tid ↑₁ (mapper' ↑₁ (E_t' \₁ (dtrmt \₁ extra_b)))
+  ).
+  { admit. }
+  rewrite <- set_collect_compose.
+  rewrite set_collect_eq_dom
+      with (f := tid ∘ mapper')
+           (g := tid)
+        by (eapply eq_dom_mori;
+            [red; basic_solver
+            | eauto
+            | eauto
+            | apply (reexec_simrel CTX)
+            ]).
+  rewrite set_minus_minus_r, set_collect_union.
+  rewrite set_unionA.
+  apply set_union_more; [reflexivity |].
+  rewrite set_inter_absorb_l; [| admit].
+  arewrite (
+    tid ↑₁ (extra_a X_t' a_t' b_t' b_t' \₁ mapper' ↑₁ (dtrmt \₁ extra_b)) ≡₁
+    tid ↑₁ extra_a X_t' a_t' b_t' b_t'
+  ).
+  { admit. }
+  rewrite <- set_collect_union.
+  unfold extra_a, extra_b. desf; [| basic_solver].
+  rewrite set_union_absorb_l; basic_solver.
+Admitted.
+
+Lemma dtrmt_in_E_s thrdle
+    (GREEXEC : WCore.reexec_gen X_t X_t' f dtrmt cmt thrdle)
+    (CTX : reexec_conds) :
+  dtrmt' ⊆₁ E_s.
+Proof using.
+  unfold dtrmt'.
+  arewrite (dtrmt \₁ extra_b ⊆₁ dtrmt).
+  { basic_solver. }
+  rewrite <- set_collect_eq_dom; eauto using mapd.
+  rewrite (rexec_dtrmt_in_start GREEXEC).
+  rewrite (rsr_acts (rc_simrel CTX)); auto with hahn.
+Qed.
+
+Lemma reexec_acts_s thrdle
+    (GREEXEC : WCore.reexec_gen X_t X_t' f dtrmt cmt thrdle)
+    (CTX : reexec_conds) :
+  E_s ≡₁ dtrmt' ∪₁ E_s ∩₁ tid ↓₁ WCore.reexec_thread X_s' dtrmt'.
+Proof using.
+  split; [| rewrite (dtrmt_in_E_s GREEXEC CTX) at 1; basic_solver].
+  rewrite (reexec_threads_s GREEXEC CTX).
+  rewrite set_union_minus
+     with (s := E_s) (s' := dtrmt')
+       at 1
+       by (eapply dtrmt_in_E_s; eauto).
+  rewrite set_unionC.
+  rewrite set_union_mori; auto with hahn.
+  rewrite (rsr_acts (rc_simrel CTX)).
+  unfold dtrmt'.
+  arewrite (
+    mapper' ↑₁ (dtrmt \₁ extra_b) ≡₁
+    mapper ↑₁ (dtrmt \₁ extra_b)
+  ).
+  { admit. }
+  rewrite set_minus_union_l.
+  arewrite (
+    extra_a X_t a_t b_t b_t \₁ mapper ↑₁ (dtrmt \₁ extra_b) ⊆₁
+      extra_a X_t a_t b_t b_t
+  ).
+  { admit. }
+  arewrite (
+    mapper ↑₁ E_t \₁ mapper ↑₁ (dtrmt \₁ extra_b) ≡₁
+      mapper ↑₁ (E_t \₁ dtrmt ∪₁ extra_b)
+  ).
+  { admit. }
+  rewrite set_collect_union, set_unionA.
+  apply set_subset_union_l. split.
+  { rewrite (WCore.rexec_acts GREEXEC) at 1.
+    rewrite !set_minus_union_l, set_minusK,
+            set_union_empty_l, set_map_union,
+            set_inter_union_l, set_inter_union_r.
+    do 2 (apply set_subset_union_r; left).
+    arewrite (
+      mapper ↑₁ (E_t ∩₁ tid ↓₁ WCore.reexec_thread X_t' dtrmt \₁ dtrmt) ⊆₁
+        mapper ↑₁ (E_t ∩₁ tid ↓₁ WCore.reexec_thread X_t' dtrmt)
+    ) by basic_solver.
+    arewrite (
+      tid ↓₁ WCore.reexec_thread X_t' dtrmt ≡₁
+        ⋃₁ x ∈ WCore.reexec_thread X_t' dtrmt, Tid_ x
+    ) by basic_solver.
+    rewrite <- !set_bunion_inter_compat_l, !set_collect_bunion.
+    apply set_subset_bunion with (s' := ⊤₁); auto with hahn.
+    intros t _.
+    now rewrite (rsr_same_tid' t (rc_simrel CTX)). }
+  apply set_subset_union_l. split.
+  { arewrite (
+      mapper ↑₁ extra_b ⊆₁
+        mapper ↑₁ E_t ∩₁ tid ↓₁ (tid ↑₁ extra_a X_t' a_t' b_t' b_t')
+    ); [| basic_solver].
+    unfold extra_b, extra_a; desf; [| basic_solver].
+    apply set_subset_inter_r.
+    split.
+    { rewrite <- (rexec_dtrmt_in_start GREEXEC).
+      basic_solver. }
+    admit. }
+  enough (EXIN :
+    extra_a X_t a_t b_t b_t ⊆₁ tid ↓₁ (
+      WCore.reexec_thread X_t' dtrmt ∪₁
+        tid ↑₁ extra_a X_t' a_t' b_t' b_t'
+    )
+  ).
+  { rewrite <- EXIN. basic_solver. }
+  unfold extra_a at 1. do 2 desf.
+  rewrite set_map_union.
+  destruct classic with (
+    (tid ↓₁ (WCore.reexec_thread X_t' dtrmt)) b_t'
+  ) as [BT|NBT].
+  { intros x EQ. subst x. left. unfolder.
+    rewrite (rc_b_tid CTX). apply BT. }
+  assert (BDT : dtrmt b_t).
+  { apply (WCore.rexec_acts GREEXEC) in a0.
+    destruct a0 as [DT | NDT]; [apply DT |].
+    exfalso. apply NBT. unfolder.
+    rewrite <- (rc_b_tid CTX). apply NDT. }
+  destruct classic with (~ E_t' a_t') as [NIN | AIN].
+  { rewrite (rc_b_eq CTX BDT).
+    rewrite extra_a_some; [basic_solver 11| auto |].
+    rewrite <- (rc_b_eq CTX BDT).
+    now apply (rexec_dtrmt_in_fin GREEXEC) in BDT. }
+  apply NNPP in AIN.
+  destruct classic with (cmt a_t') as [ACMT|NCMT].
+  { enough (ADT : dtrmt a_t').
+    { now apply (rc_a_dtrmt CTX), (rexec_dtrmt_in_start GREEXEC) in ADT. }
+    apply (rexec_dtrmt_sbimm_codom GREEXEC).
+    apply (rc_b_dtrmt CTX) in BDT.
+    unfolder. exists b_t', b_t'. splits; auto.
+    apply (rexec_dtrmt_in_fin GREEXEC) in BDT.
+    exists a_t'; splits; auto.
+    { unfold nin_sb, sb. unfolder. splits; auto.
+      { apply CTX. }
+      apply (rsr_at_bt_sb (rc_inv_end CTX)). }
+    unfold nin_sb, sb. unfolder. ins. desf.
+    apply (rsr_at_bt_imm (rc_inv_end CTX))
+     with (x := b_t') (y := a_t') (c := z1).
+    all: unfold sb; basic_solver. }
+  assert (AT : WCore.reexec_thread X_t' dtrmt (tid a_t')).
+  { unfold WCore.reexec_thread. unfolder.
+    exists a_t'. splits; auto.
+    intro FALSO.
+    assert (ADT : dtrmt a_t) by now apply CTX.
+    now apply (rexec_dtrmt_in_start GREEXEC) in ADT. }
+  unfolder. intros x XEQ. subst x. left.
+  now rewrite (rc_b_tid CTX), <- (rsr_at_bt_tid (rc_inv_end CTX)).
+Admitted.
+
+Lemma reexec_extra_a_ncmt thrdle
+    (GREEXEC : WCore.reexec_gen X_t X_t' f dtrmt cmt thrdle)
+    (CTX : reexec_conds) :
+  extra_a X_t' a_t' b_t' b_t' ⊆₁ set_compl cmt'.
+Proof using.
+  unfold extra_a, cmt'. desf.
+  unfolder. ins. desf.
+  intros (y & CMT & MAP).
+  assert (YIN : E_t' y).
+  { now apply (WCore.reexec_embd_dom GREEXEC). }
+  assert (YEQ : y = a_t').
+  { now apply reexec_mapinv_at. }
+  congruence.
+Qed.
+
+Lemma imm_sb_d_s thrdle
+    (GREEXEC : WCore.reexec_gen X_t X_t' f dtrmt cmt thrdle)
+    (CTX : reexec_conds) :
+  ⦗dtrmt'⦘ ⨾ immediate (nin_sb G_s') ⨾ ⦗cmt'⦘ ⊆
+    ⦗dtrmt'⦘ ⨾ immediate (nin_sb G_s') ⨾ ⦗dtrmt'⦘.
+Proof using.
+  destruct classic with (E_s' a_s') as [AIN|NINA].
+  { set (sb_ta' := restr_rel (Tid_ (tid a_s')) sb_s').
+    set (sb_nta' := restr_rel (set_compl (Tid_ (tid a_s'))) sb_s').
+    assert (ATID : tid a_s' <> tid_init).
+    { admit. }
+    arewrite (nin_sb G_s' ≡ sb_ta' ∪ sb_nta').
+    { admit. }
+    rewrite immediate_union, !seq_union_l, !seq_union_r.
+    2-4: subst sb_nta' sb_ta'; clear; basic_solver.
+    apply union_mori.
+    { subst sb_ta'.
+      rewrite sb_imm_tid_split_full; auto.
+      set (sb_ta' := restr_rel (Tid_ (tid a_s')) sb_s').
+      rewrite !seq_union_l, !seq_union_r.
+      repeat apply union_mori.
+      { admit. }
+      { admit. }
+      { admit. }
+      admit. }
+    arewrite_false (sb_ta' ⨾ sb_nta').
+    { subst sb_nta' sb_ta'; clear; basic_solver. }
+    rewrite minus_false_r.
+    arewrite (immediate sb_nta' ∩ sb_nta' ≡ immediate sb_nta').
+    { clear; basic_solver. }
+    arewrite (immediate sb_nta' ≡ immediate (restr_rel
+      (set_compl Tid_ (tid a_s'))
+      (mapper' ↑ swap_rel sb_t'
+                  (eq b_t' ∩₁ E_t')
+                  (eq a_t' ∩₁ E_t')
+      )
+    )).
+    { apply immediate_more. unfold sb_nta'.
+      rewrite (rsr_sb (reexec_simrel CTX)).
+      rewrite !restr_union.
+      arewrite_false (restr_rel (set_compl Tid_ (tid a_s'))
+        ((mapper' ↑₁ dom_rel (sb_t' ⨾ ⦗eq b_t'⦘)) ×
+          extra_a X_t' a_t' b_t' b_t')
+      ).
+      { unfold extra_a, a_s'; basic_solver. }
+      arewrite_false (restr_rel
+        (set_compl Tid_ (tid a_s'))
+        (extra_a X_t' a_t' b_t' b_t' × eq (mapper' b_t'))
+      ).
+      { unfold extra_a, a_s'; basic_solver. }
+      now rewrite !union_false_r. }
+    rewrite <- !seqA.
+    remember (⦗dtrmt'⦘ ⨾ immediate
+      (restr_rel
+        (set_compl Tid_ (tid a_s'))
+        (mapper' ↑ swap_rel sb_t'
+          (eq b_t' ∩₁ E_t')
+          (eq a_t' ∩₁ E_t'))
+      ))
+    as msb.
+    enough (COD : codom_rel (msb ⨾ ⦗cmt'⦘) ⊆₁ dtrmt').
+    { forward apply COD. clear. basic_solver. }
+    subst msb.
+    arewrite (
+      restr_rel
+        (set_compl Tid_ (tid a_s'))
+        (mapper' ↑ swap_rel sb_t'
+          (eq b_t' ∩₁ E_t')
+          (eq a_t' ∩₁ E_t'))
+      ≡
+      mapper' ↑ (
+        restr_rel
+          (set_compl Tid_ (tid a_s'))
+          (swap_rel sb_t' (eq b_t' ∩₁ E_t') (eq a_t' ∩₁ E_t'))
+      )
+    ).
+    { admit. }
+    unfold dtrmt', cmt'.
+    rewrite immediate_collect, <- !collect_rel_eqv.
+    arewrite (
+      restr_rel
+        (set_compl Tid_ (tid a_s'))
+        (swap_rel sb_t' (eq b_t' ∩₁ E_t') (eq a_t' ∩₁ E_t'))
+      ≡
+      restr_rel
+        (set_compl Tid_ (tid a_s'))
+        sb_t'
+    ).
+    { admit. }
+    rewrite <- !collect_rel_seq.
+    { rewrite <- set_collect_codom.
+      apply set_collect_mori; auto.
+      admit. }
+    all: admit. }
+  admit.
+Admitted.
+
 Lemma reexec_step
     (CTX : reexec_conds) :
   WCore.reexec X_s X_s' f' dtrmt' cmt'.
 Proof using.
-  assert (MAPINV : forall x (MEQ : mapper' x = b_t'),
-    x = a_t'
-  ).
-  { intros x XEQ.
-    replace b_t' with (mapper' a_t') in XEQ.
-    { eapply mapinj'; try done. apply CTX. }
-    clear - CTX. unfold mapper'.
-    rupd; [easy | apply CTX]. }
   assert (NEQ : a_t' <> b_t').
   { apply CTX. }
   assert (GREEXEC :
@@ -465,56 +754,17 @@ Proof using.
   { unfold mapper'.
     rewrite updo, upds; [done |].
     apply CTX. }
-  assert (RHBTDLE :
-    ⦗E_t' \₁ dtrmt⦘ ⨾ rf_t' ⨾ rhb_t'^? ⊆
-      sb_t' ∪ tid ↓ thrdle
-  ).
-  { apply thrdle_with_rhb; apply GREEXEC. }
-  assert (MAPTHRDLE : mapper' ↑ (restr_rel E_t' (tid ↓ thrdle)) ⊆ tid ↓ thrdle).
-  { clear - CTX. unfolder. ins. desf.
-    rewrite <- !(rsr_tid' _ (reexec_simrel CTX)).
-    all: auto. }
   assert (INJHELPER : inj_dom (codom_rel (⦗E_t' \₁ dtrmt⦘ ⨾ rf_t') ∪₁ dom_rel rhb_t'^?) mapper').
   { eapply inj_dom_mori; [| auto | apply mapinj'; apply CTX].
     unfold flip. clear. basic_solver. }
   assert (EXNCMT : extra_a X_t' a_t' b_t' b_t' ∩₁ cmt' ≡₁ ∅).
   { split; vauto.
-    unfold cmt'.
-    rewrite (WCore.reexec_embd_dom GREEXEC).
-    clear - MAPINV.
-    unfold extra_a. desf; [| basic_solver].
-    unfolder. ins. desf.
-    erewrite <- MAPINV in a; eauto. }
-  assert (MAPRFRHB :
-    mapper' ↑ (⦗E_t' \₁ dtrmt⦘ ⨾ rf_t') ⨾ mapper' ↑ rhb_t'^? ⊆
-      sb_s' ∪ tid ↓ thrdle
-  ).
-  { rewrite <- collect_rel_seq, !seqA; auto.
-    rewrite (rsr_no_rfrhb_ba (rc_inv_end CTX) (rc_end_cons CTX)).
-    rewrite <- seq_eqv_minus_ll.
-    arewrite (
-      ⦗E_t' \₁ dtrmt⦘ ⨾ rf_t' ⨾ rhb_t'^? ⊆
-      restr_rel E_t' (⦗E_t' \₁ dtrmt⦘ ⨾ rf_t' ⨾ rhb_t'^?)
-    ).
-    { rewrite (wf_rfE (rsr_Gt_wf (rc_inv_end CTX))) at 1.
-      rewrite (wf_rhbE (rsr_Gt_wf (rc_inv_end CTX))) at 1.
-      clear. basic_solver 11. }
-    rewrite rhb_in_hb, (WCore.surg_ndtrmt (WCore.reexec_sur GREEXEC)).
-    rewrite restr_union.
-    rewrite minus_union_l, collect_rel_union.
-    arewrite (restr_rel E_t' sb_t' ⊆ sb_t').
-    rewrite (rsr_sbt_in (rc_inv_end CTX) (reexec_simrel CTX)).
-    apply union_mori; auto with hahn.
-    transitivity (mapper' ↑ (restr_rel E_t' (tid ↓ thrdle))).
-    { clear. apply collect_rel_mori; auto.
-      basic_solver. }
-    apply MAPTHRDLE. }
+    rewrite (reexec_extra_a_ncmt GREEXEC CTX).
+    clear. basic_solver. }
   assert (SURG :
-    WCore.stable_uncmt_reads_gen X_s' dtrmt' thrdle
+    WCore.stable_uncmt_reads_gen X_s' cmt' thrdle
   ).
   { constructor; try now apply GREEXEC.
-    rewrite (rsr_rf (reexec_simrel CTX)), seq_union_l,
-            seq_union_r.
     admit. }
   assert (WF_START :
     WCore.wf (WCore.X_start X_s dtrmt') X_s' cmt'
@@ -543,6 +793,7 @@ Proof using.
     basic_solver. }
   { exact SURG. }
   { admit. (* sb-clos *) }
+  { eapply imm_sb_d_s; eauto. }
   { admit. (* rpo edges *) }
   { constructor.
     { intros x' y'; unfold cmt', f'.
@@ -606,10 +857,8 @@ Proof using.
       arewrite_false (restr_rel cmt'
         (srf_s' ⨾ ⦗extra_a X_t' a_t' b_t' b_t' ∩₁ R_s'⦘)).
       { rewrite restr_relE, !seqA, <- id_inter.
-        rewrite set_interA,
-                set_interC with (s' := cmt'),
-                <- set_interA.
-        rewrite EXNCMT. basic_solver. }
+        rewrite (reexec_extra_a_ncmt GREEXEC CTX).
+        clear. basic_solver. }
       rewrite collect_rel_empty, union_false_r.
       unfold cmt', f'.
       rewrite collect_rel_restr;
@@ -628,11 +877,9 @@ Proof using.
       arewrite_false (restr_rel cmt'
         (add_max (extra_co_D E_s' lab_s' (loc_s' b_t'))
           (extra_a X_t' a_t' b_t' b_t' ∩₁ W_s'))).
-      { rewrite restr_add_max.
-        rewrite set_interA,
-                set_interC with (s := W_s') (s' := cmt'),
-                <- set_interA.
-        rewrite EXNCMT. basic_solver. }
+      { rewrite restr_add_max. unfold add_max.
+        rewrite (reexec_extra_a_ncmt GREEXEC CTX) at 2.
+        clear. basic_solver. }
       rewrite collect_rel_empty, union_false_r.
       unfold cmt', f'.
       rewrite collect_rel_restr;
@@ -670,12 +917,14 @@ Proof using.
     rewrite (rsr_acts (rc_simrel CTX)); auto with hahn. }
   { exact WF_START. (* wf start *) }
   { admit. (* Consistency *) }
+  { eapply reexec_acts_s; eauto. }
   apply sub_to_full_exec_listless
    with (thrdle := thrdle).
   { exact WF_START. }
   { eapply G_s_rfc with (X_t := X_t').
     { apply CTX. }
     now apply reexec_simrel. }
+  { apply CTX. }
   { admit. (* difference between acts and dtrmt is fin *) }
   { admit. (* Prefix. Trivial? *) }
   { eapply G_s_wf with (X_t := X_t').
@@ -688,7 +937,6 @@ Proof using.
   { now rewrite (rc_ctrl CTX), (rsr_nctrl (rc_inv_end CTX)). }
   { now rewrite (rc_rmw_dep CTX), (rsr_nrmw_dep (rc_inv_end CTX)). }
   ins.
-  admit. (* dtrmt' is subset of E_s' *)
 Admitted.
 
 End ReorderingReexecInternal.

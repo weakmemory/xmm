@@ -314,3 +314,13 @@ Proof using.
     subst. exact REL. }
   exists x. splits; auto.
 Qed.
+
+Lemma seq_eqv_inter_rl {A : Type}
+    (s : A -> Prop)
+    (r r' : relation A) :
+  r ∩ (⦗s⦘ ⨾ r') ≡ ⦗s⦘ ⨾ r ∩ r'.
+Proof using.
+  split.
+  all: unfold inter_rel, inclusion, seq, eqv_rel.
+  all: ins; desf; eauto.
+Qed.

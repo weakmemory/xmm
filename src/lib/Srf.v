@@ -248,6 +248,15 @@ Proof using.
     rewrite EQ1. basic_solver.
 Qed.
 
+Lemma vf_as_rhb :
+  vf ≡ vf_rhb ∪ ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf^? ⨾ sb.
+Proof using.
+  unfold vf, vf_rhb.
+  rewrite hb_helper, cr_union_r,
+          !seq_union_r.
+  rewrite unionC. reflexivity.
+Qed.
+
 Lemma sbvf_as_rhb :
   vf ⨾ sb ≡ vf_rhb ⨾ sb.
 Proof using.
