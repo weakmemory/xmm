@@ -397,9 +397,11 @@ Proof using.
   all: try now apply CTX.
   { apply mapinj. apply CTX. }
   { unfolder. unfold extra_a; ins; desf.
-    constructor; [red; auto | desf].
-    rewrite extra_a_some in SRF; auto.
-    rewrite <- SRF. apply CTX. }
+    constructor; [red; auto | desf | |].
+    { rewrite extra_a_some in SRF; auto.
+      rewrite <- SRF. apply CTX. }
+    { admit. (* TODO: add loc property to CTX *) }
+    admit. (* TODO: update the nacq prop in CTX *) }
   { rewrite (rc_acts CTX), set_minus_union_l.
     unfold a_s'. rewrite set_minusK, set_union_empty_r.
     unfold extra_a; desf; [| clear; basic_solver].

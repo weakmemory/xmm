@@ -373,6 +373,7 @@ Proof using INV INV'.
 Admitted.
 
 Lemma simrel_exec_b l l_a
+    (NACQ : ~mode_le Oacq (WCore.lab_mode l_a))
     (NEQLOC : WCore.lab_loc l <> WCore.lab_loc l_a)
     (EQA : a_t = a_t')
     (EQB : b_t = b_t')
@@ -383,7 +384,7 @@ Lemma simrel_exec_b l l_a
     << STEP1 : WCore.exec_inst X_s  X_s'' a_s l_a' >> /\
     << STEP2 : WCore.exec_inst X_s'' X_s' (mapper' b_t) l >>.
 Proof using.
-  assert (CORR : reord_step_pred X_t a_t b_t); ins.
+  assert (CORR : reord_step_pred X_t a_t b_t); auto.
   assert (CORR' : reord_step_pred X_t' a_t b_t) by congruence.
   (* unfold hypotheses *)
   destruct STEP as [ADD RFC CONS].
@@ -597,6 +598,20 @@ Proof using.
       apply ADD. right. clear. basic_solver. }
     now rewrite <- (rsr_rmw SIMREL), collect_rel_empty, seq_false_l,
                 union_false_r. }
+  assert (NACQ' :
+    ~is_acq (upd (upd lab_s b_t l_a') a_t l) b_t
+  ).
+  { unfold is_acq, mod.
+    rewrite updo, upds; [| congruence].
+    clear - LABU2V NACQ.
+    unfold same_label_u2v in *; desf; ins; desf. }
+  assert (NEQLOC' :
+    ~same_loc (upd (upd lab_s b_t l_a') a_t l) a_t b_t
+  ).
+  { unfold same_loc, loc.
+    rewrite upds, updo, upds; [| congruence].
+    clear - LABU2V NEQLOC.
+    unfold same_label_u2v in *; desf; ins; desf. }
   assert (SIMREL' : reord_simrel X_s' X_t' a_t b_t mapper').
   { constructor; ins.
     { rewrite (WCore.add_event_acts ADD). apply inj_dom_union.
@@ -647,6 +662,7 @@ Proof using.
       { unfolder. intros x XIN.
         unfold compose. rupd; try congruence; eauto.
         now rewrite <- (rsr_lab SIMREL) by basic_solver. }
+      clear.
       unfolder. ins. desf. unfold compose. now rupd. }
     { rewrite EQACTS, set_collect_union, MAPER_E, MAPSUB.
       rewrite (rsr_acts SIMREL), NEWEXA, OLDEXA.
