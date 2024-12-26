@@ -1065,7 +1065,6 @@ Lemma simrel_reexec :
   exists mapper' X_s' f' dtrmt' cmt',
     << SIMREL : reord_simrel X_s' X_t' a_t' b_t' mapper' >> /\
     << STEP : WCore.reexec X_s X_s' f' dtrmt' cmt' >>.
-<<<<<<< HEAD
 Proof using INV INV'.
   destruct STEP as (thrdle & STEP).
   set (mapper' :=  upd (upd id a_t' b_t') b_t' a_t').
@@ -1228,9 +1227,6 @@ Proof using INV INV'.
       admit. }
     admit. }
   admit.
-=======
-Proof using CTX.
->>>>>>> main
 Admitted.
 
 End ReorderingReexec.

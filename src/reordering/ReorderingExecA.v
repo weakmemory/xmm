@@ -596,7 +596,6 @@ Proof using INV INV'.
   constructor; ins.
   { subst dtrmt' cmt'. basic_solver. }
   { subst cmt'. basic_solver. }
-<<<<<<< HEAD
   { unfold dtrmt'.
     assert (DNOTIN : ~ ((dom_rel (sb_s ⨾ ⦗(E_s \₁ eq b_t) 
             \₁ eq (mapper b_t)⦘)) (mapper b_t))).
@@ -742,11 +741,6 @@ Proof using INV INV'.
     { subst x. apply rpo_in_sb in SB.
       apply sb_irr in SB; vauto. }
     all : vauto. }
-=======
-  { unfold dtrmt'. admit. }
-  { admit. }
-  { admit. }
->>>>>>> main
   { constructor; ins.
     { unfold id; ins. rupd. intro FALSO.
       now apply CMT. }
@@ -851,7 +845,6 @@ Proof using INV INV'.
     arewrite (id ↑₁ cmt' ≡₁ cmt').
     { clear. basic_solver. }
     unfold cmt'. clear. basic_solver. }
-<<<<<<< HEAD
   { assert (RPOMAP : rpo G_s' ⊆ mapper' ↑ (rpo G_t')).
     { unfold rpo.
       assert (IND1 : (rpo_imm G_s') ⊆ mapper' ↑ (rpo_imm G_t')⁺).
@@ -1524,23 +1517,6 @@ Proof using INV INV'.
         rewrite <- TRIN at 2. apply seq_mori; vauto. }
       apply inclusion_t_ind_right; vauto. }
     admit. (*TODO : add*) }
-=======
-  { admit. (* TODO: cons *) }
-  { unfold dtrmt'.
-    split; [| clear; basic_solver].
-    rewrite set_minus_minus_l.
-    rewrite set_union_minus
-       with (s := E_s) (s' := eq b_t ∪₁ eq (mapper b_t))
-         at 1
-         by basic_solver.
-    apply set_union_mori; [reflexivity |].
-    unfold WCore.reexec_thread. ins.
-    rewrite set_minus_minus_r, set_minusK,
-            set_union_empty_l.
-    rewrite set_inter_absorb_l
-       with (s := eq b_t ∪₁ eq (mapper b_t)).
-    all: basic_solver. }
->>>>>>> main
   apply sub_to_full_exec_listless with (thrdle := thrdle'); ins.
   { eapply G_s_rfc with (X_s := X_s'); eauto. }
   { admit. }

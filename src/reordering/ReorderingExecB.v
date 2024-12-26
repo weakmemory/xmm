@@ -8,14 +8,11 @@ Require Import StepOps.
 Require Import AuxInj.
 Require Import PorfPrefix.
 Require Import AddEventWf.
-<<<<<<< HEAD
 Require Import ConsistencyCommon.
 Require Import ConsistencyMonotonicity.
 Require Import ConsistencyReadExtent.
 Require Import ConsistencyWriteExtent.
-=======
 Require Import ReorderingFakeSrf.
->>>>>>> main
 
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
