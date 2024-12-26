@@ -314,10 +314,22 @@ Proof using INV INV'.
       { apply eqv_rel_mori. clear - XIN XIN' ENEXA.
         unfolder. ins. desf. splits; ins.
         unfold is_r in *. now rewrite updo in * by congruence. }
-      rewrite SRF'', SRFE, (rsr_as_val SIMREL).
-      clear - NOTIN. unfolder. ins. desf.
-      unfold same_val, val in *.
-      now rewrite !updo by congruence. }
+      { rewrite SRF'', SRFE, (rsr_as_val SIMREL).
+        clear - NOTIN. unfolder. ins. desf.
+        unfold same_val, val in *.
+        now rewrite !updo by congruence. }
+      { intro FALSO.
+        enough (FALSO' : same_loc_s a_t x).
+        { eapply eba_loc; eauto.
+          apply (rsr_as SIMREL); eauto. }
+        apply EXEQ in XIN.
+        clear - E_NOT_A ENEXA FALSO XIN. ins.
+        unfold same_loc, loc in FALSO.
+        rewrite !updo in FALSO; auto.
+        congruence. }
+      unfold is_acq, mod. ins.
+      rewrite updo; [| apply EXEQ in XIN; congruence].
+      now eapply eba_nacq, (rsr_as SIMREL). }
     { rewrite (WCore.add_event_acts ADD),
               set_collect_union, set_collect_eq.
       rewrite set_collect_eq_dom; [| eassumption].

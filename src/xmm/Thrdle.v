@@ -49,6 +49,20 @@ Proof using.
   clear. basic_solver.
 Qed.
 
+Lemma thrdle_frame_sb_r r
+    (INIT_MIN : min_elt thrdle tid_init)
+    (INIT_LEAST : least_elt thrdle tid_init)
+    (HIN : r ⊆ sb ∪ tid ↓ thrdle) :
+  r ⨾ sb ⊆ sb ∪ tid ↓ thrdle.
+Proof using.
+  rewrite HIN, seq_union_l.
+  rewrite rewrite_trans by apply sb_trans.
+  apply union_mori; auto with hahn.
+  rewrite <- thrdle_sb_closed at 2.
+  all: auto.
+  basic_solver 11.
+Qed.
+
 Lemma thrdle_with_rhb
     (INIT_MIN : min_elt thrdle tid_init)
     (INIT_LEAST : least_elt thrdle tid_init) :

@@ -10,7 +10,7 @@ From RecordUpdate Require Import RecordSet.
 (* Import RecordSetNotations. *)
 
 Require Import xmm_s xmm_s_hb.
-Require Import AuxDef Rhb.
+Require Import AuxDef Rhb Srf.
 
 Open Scope program_scope.
 
@@ -33,6 +33,9 @@ Notation "'rf'" := (rf G).
 
 Definition rf_complete : Prop :=
     E ∩₁ R ⊆₁ codom_rel rf.
+
+Definition nin_sb : relation actid :=
+  ⦗fun e => ~ is_init e⦘ ⨾ sb G.
 
 End RfComplete.
 
@@ -275,6 +278,13 @@ Definition lab_loc :=
   | Afence _ => None
   end.
 
+Definition lab_mode :=
+  match l with
+  | Aload _ m _ _ => m
+  | Astore _ m _ _ => m
+  | Afence m => m
+  end.
+
 Definition lab_is_r : actid -> Prop :=
   match l with
   | Aload _ _ _ _ => ⊤₁
@@ -413,6 +423,7 @@ Notation "'rpo''" := (rpo G').
 Notation "'rmw''" := (rmw G').
 Notation "'hb''" := (hb G').
 Notation "'co''" := (co G').
+Notation "'vf''" := (vf G').
 
 Notation "'G'" := (G X).
 Notation "'lab'" := (lab G).
@@ -427,17 +438,19 @@ Notation "'sc'" := (sc X).
 Definition X_start dtrmt :=
   Build_t (restrict G dtrmt) (restr_rel dtrmt sc).
 
+Definition reexec_thread :=
+  tid ↑₁ (E' \₁ dtrmt).
+
 Record stable_uncmt_reads_gen thrdle : Prop :=
   { surg_init_least : least_elt thrdle tid_init;
     surg_init_min : min_elt thrdle tid_init;
     surg_order : strict_partial_order thrdle;
-    surg_ndtrmt : ⦗E' \₁ dtrmt⦘ ⨾ rf' ⨾ hb'^? ⊆ sb' ∪ tid ↓ thrdle; }.
-
+    surg_ncmt : vf' ⨾ same_tid ⨾ ⦗E' \₁ cmt⦘ ⊆ tid ↓ thrdle ∪ same_tid; }.
 
 Record commit_embedded : Prop :=
 { reexec_embd_inj : inj_dom cmt f;
   reexec_embd_tid : forall e (CMT : cmt e), tid (f e) = tid e;
-  reexec_embd_lab : forall e (CMT : cmt e), lab' (f e) = lab e;
+  reexec_embd_lab : forall e (CMT : cmt e), lab' e = lab (f e);
   reexec_embd_rpo : f ↑ restr_rel cmt rpo' ⊆ rpo;
   reexec_embd_rf : f ↑ restr_rel cmt rf' ⊆ rf;
   reexec_embd_co : f ↑ restr_rel cmt co' ⊆ co;
@@ -449,13 +462,17 @@ Record reexec_gen thrdle : Prop :=
   dtrmt_cmt : dtrmt ⊆₁ f ↑₁ cmt;
   reexec_embd_dom : cmt ⊆₁ E';
   reexec_sur : stable_uncmt_reads_gen thrdle;
-  reexec_dtrmt_sb_closed : dom_rel (sb ⨾ ⦗dtrmt⦘) ⊆₁ dtrmt;
-  reexec_dtrmt_rpo : dom_rel (rpo ⨾ ⦗E \₁ dtrmt⦘) ⊆₁ dtrmt;
+  reexec_dtrmt_sb_closed : sb ⨾ ⦗dtrmt⦘ ⊆ ⦗dtrmt⦘ ⨾ sb ⨾ ⦗dtrmt⦘;
+  dtrmt_sb_max :
+    ⦗dtrmt⦘ ⨾ immediate (nin_sb G') ⨾ ⦗cmt⦘ ⊆
+      ⦗dtrmt⦘ ⨾ immediate (nin_sb G') ⨾ ⦗dtrmt⦘;
+  reexec_dtrmt_rpo : rpo' ⨾ ⦗E' \₁ dtrmt⦘ ⊆ ⦗dtrmt⦘ ⨾ rpo' ⨾ ⦗E' \₁ dtrmt⦘;
   (* Correct embedding *)
   reexec_embd_corr : commit_embedded;
   (* Reproducable steps *)
   reexec_start_wf : wf (X_start dtrmt) X' cmt;
   rexec_final_cons : is_cons G' sc;
+  rexec_acts : E ≡₁ dtrmt ∪₁ E ∩₁ tid ↓₁ reexec_thread;
   reexec_steps : (guided_step cmt X')＊ (X_start dtrmt) X'; }.
 
 Definition reexec : Prop :=
@@ -472,5 +489,14 @@ Proof using.
   now rewrite EEQ.
 Qed.
 
+Add Parametric Morphism : WCore.reexec_thread with signature
+  eq ==> set_equiv ==> set_equiv as reexec_thread_more.
+Proof using.
+  intros A E1 E2 EEQ. unfold WCore.reexec_thread.
+  now rewrite EEQ.
+Qed.
+
 #[export]
 Instance sb_delta_Propere : Proper (_ ==> _ ==> _) _ := sb_delta_more.
+#[export]
+Instance reexec_thread_Propere : Proper (_ ==> _ ==> _) _ := reexec_thread_more.

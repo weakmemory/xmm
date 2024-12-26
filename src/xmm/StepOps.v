@@ -1,10 +1,11 @@
-From imm Require Import Events Execution SubExecution.
+From imm Require Import Events Execution SubExecution Execution_eco.
 
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 
-Require Import AuxDef AuxRel.
-Require Import Core.
+Require Import AuxDef AuxRel Lia.
+Require Import Core Srf.
+Require Import xmm_s_hb.
 
 Require Import Program.Basics.
 
@@ -17,7 +18,6 @@ Section DeltaOps.
 Variable X X' : WCore.t.
 Variable e : actid.
 Variable l : label.
-Variable m : actid -> actid.
 
 Notation "'G''" := (WCore.G X').
 Notation "'G'" := (WCore.G X).
@@ -29,6 +29,7 @@ Notation "'sb''" := (sb G').
 Notation "'rf''" := (rf G').
 Notation "'co''" := (co G').
 Notation "'rmw''" := (rmw G').
+Notation "'vf''" := (vf G').
 Notation "'data''" := (data G').
 Notation "'addr''" := (addr G').
 Notation "'ctrl''" := (ctrl G').
@@ -58,7 +59,7 @@ Notation "'same_val'" := (same_val lab).
 Notation "'Loc_' l" := (fun e => loc e = l) (at level 1).
 Notation "'Val_' v" := (fun e => val e = v) (at level 1).
 
-Lemma mapped_sb_delta
+Lemma mapped_sb_delta m
     (INIT : fixset is_init m)
     (TID : m ↑₁ (E ∩₁ same_tid e) ≡₁ m ↑₁ E ∩₁ same_tid (m e)) :
   m ↑ WCore.sb_delta e E ≡
@@ -70,7 +71,7 @@ Proof using.
   ins.
 Qed.
 
-Lemma mapped_rf_delta_R w :
+Lemma mapped_rf_delta_R m w :
   m ↑ WCore.rf_delta_R e w ≡
     WCore.rf_delta_R (m e) (option_map m w).
 Proof using.
@@ -80,7 +81,7 @@ Proof using.
   unfold WCore.lab_is_r. basic_solver.
 Qed.
 
-Lemma mapped_rf_delta_W R1 :
+Lemma mapped_rf_delta_W m R1 :
   m ↑ WCore.rf_delta_W e R1 ≡
     WCore.rf_delta_W (m e) (m ↑₁ R1).
 Proof using.
@@ -90,7 +91,7 @@ Proof using.
   unfold WCore.lab_is_w. basic_solver.
 Qed.
 
-Lemma mapped_co_delta W1 W2 :
+Lemma mapped_co_delta m W1 W2 :
   m ↑ WCore.co_delta e W1 W2 ≡
     WCore.co_delta (m e) (m ↑₁ W1) (m ↑₁ W2).
 Proof using.
@@ -101,7 +102,7 @@ Proof using.
   all: basic_solver.
 Qed.
 
-Definition mapped_rmw_delta r :
+Definition mapped_rmw_delta m r :
   m ↑ WCore.rmw_delta e r ≡
     WCore.rmw_delta (m e) (option_map m r).
 Proof using.
@@ -458,6 +459,124 @@ Lemma sb_delta_union s1 s2 :
     WCore.sb_delta e s1 ∪ WCore.sb_delta e s2.
 Proof using.
   basic_solver 11.
+Qed.
+
+Lemma rf_uncmt' cmt thrdle
+    (WF : Wf G')
+    (STAB : WCore.stable_uncmt_reads_gen X' cmt thrdle) :
+  rf' ⨾ ⦗E' \₁ cmt⦘ ⊆ tid ↓ thrdle ∪ (rf' ⨾ ⦗E' \₁ cmt⦘) ∩ same_tid.
+Proof using.
+  arewrite (
+    rf' ⨾ ⦗E' \₁ cmt⦘ ⊆
+      (rf' ⨾ ⦗E' \₁ cmt⦘) \ same_tid ∪
+      (rf' ⨾ ⦗E' \₁ cmt⦘) ∩ same_tid
+  ).
+  { clear. unfolder. ins. desf. splits; tauto. }
+  apply union_mori; auto with hahn.
+  rewrite (rf_sub_vf WF).
+  arewrite (vf' ⨾ ⦗E' \₁ cmt⦘ ⊆ vf' ⨾ same_tid ⨾ ⦗E' \₁ cmt⦘).
+  { unfold same_tid. basic_solver 11. }
+  rewrite (WCore.surg_ncmt STAB).
+  basic_solver.
+Qed.
+
+Lemma rfi_in_sb
+    (WF : Wf G')
+    (CONS : WCore.is_cons G' ∅₂) :
+  rf' ∩ same_tid ⊆ sb'.
+Proof using.
+  arewrite (
+    rf' ⊆ rf' ∩ sb' ∪ rf' \ sb'
+  ).
+  { apply ri_union_re. }
+  rewrite inter_union_l.
+  apply inclusion_union_l; [basic_solver |].
+  arewrite (rf' \ sb' ⊆ rf' \ ext_sb).
+  { rewrite (wf_rfE WF) at 1. unfold sb.
+    unfolder. ins. desf. split; tauto. }
+  rewrite (no_rf_to_init WF).
+  unfolder. intros x y.
+  destruct PeanoNat.Nat.lt_total
+      with (n := index x) (m := index y)
+        as [LT | [EQ | GT]].
+  { unfold sb, same_tid, ext_sb.
+    unfolder. ins. exfalso. desf.
+    ins. desf. eauto. }
+  { unfold index in EQ.
+    unfold sb, same_tid, ext_sb.
+    unfolder. ins. exfalso. desf.
+    ins. desf. eapply (rf_irr WF); eauto. }
+  ins.
+  assert (RFE : (⦗E'⦘ ⨾ rf' ⨾ ⦗E'⦘) x y).
+  { apply WF. desf. }
+  assert (SB : sb' y x).
+  { unfolder in RFE. unfold sb.
+    unfolder. splits; desf.
+    unfold same_tid, ext_sb in *.
+    desf. }
+  exfalso.
+  apply (WCore.cons_coherence CONS) with y.
+  exists x. split; [now apply sb_in_hb |].
+  apply r_step, rf_in_eco. desf.
+Qed.
+
+Lemma rf_uncmt cmt thrdle
+    (WF : Wf G')
+    (CONS : WCore.is_cons G' ∅₂)
+    (STAB : WCore.stable_uncmt_reads_gen X' cmt thrdle) :
+  rf' ⨾ ⦗E' \₁ cmt⦘ ⊆ tid ↓ thrdle ∪ sb'.
+Proof using.
+  rewrite rf_uncmt' with (thrdle := thrdle); auto.
+  rewrite seq_eqv_inter_lr.
+  rewrite rfi_in_sb; auto.
+  basic_solver.
+Qed.
+
+Lemma rexec_dtrmt_sb_dom f dtrmt cmt thrdle
+    (REXEC : WCore.reexec_gen X X' f dtrmt cmt thrdle) :
+  dom_rel (sb ⨾ ⦗dtrmt⦘) ⊆₁ dtrmt.
+Proof using.
+  rewrite (WCore.reexec_dtrmt_sb_closed REXEC).
+  clear. basic_solver.
+Qed.
+
+Lemma acts_steps X'' cmt
+    (STEPS : (WCore.guided_step cmt X')＊ X'' X') :
+  acts_set (WCore.G X'') ⊆₁ E'.
+Proof using.
+  apply clos_rt_rtn1 in STEPS.
+  induction STEPS as [| X''' X'''' STEP STEPS IHSTEP]; auto.
+  rewrite IHSTEP.
+  red in STEP. destruct STEP as (e' & l' & STEP).
+  set (STEP' := WCore.gsg_add_step STEP).
+  red in STEP'. destruct STEP' as (r & R1 & w & W1 & W2 & STEP').
+  rewrite (WCore.add_event_acts STEP').
+  auto with hahn.
+Qed.
+
+Lemma rexec_dtrmt_in_start f dtrmt cmt thrdle
+    (REXEC : WCore.reexec_gen X X' f dtrmt cmt thrdle) :
+  dtrmt ⊆₁ E.
+Proof using.
+  rewrite (WCore.dtrmt_cmt REXEC).
+  now rewrite (WCore.reexec_embd_acts (WCore.reexec_embd_corr REXEC)).
+Qed.
+
+Lemma rexec_dtrmt_in_fin f dtrmt cmt thrdle
+    (REXEC : WCore.reexec_gen X X' f dtrmt cmt thrdle) :
+  dtrmt ⊆₁ E'.
+Proof using.
+  rewrite <- (acts_steps (WCore.reexec_steps REXEC)).
+  ins. rewrite set_inter_absorb_r; auto with hahn.
+  apply (rexec_dtrmt_in_start REXEC).
+Qed.
+
+Lemma rexec_dtrmt_sbimm_codom f dtrmt cmt thrdle
+    (REXEC : WCore.reexec_gen X X' f dtrmt cmt thrdle) :
+  codom_rel (⦗dtrmt⦘ ⨾ immediate (nin_sb G') ⨾ ⦗cmt⦘) ⊆₁ dtrmt.
+Proof using.
+  rewrite (WCore.dtrmt_sb_max REXEC).
+  clear. basic_solver.
 Qed.
 
 End DeltaOps.
