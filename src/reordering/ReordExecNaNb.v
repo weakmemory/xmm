@@ -112,6 +112,8 @@ Lemma simrel_exec_not_a_not_b e l
     (EQB : b_t = b_t')
     (E_NOT_A : e <> a_t)
     (E_NOT_B : e <> b_t)
+    (B_NOT_F : ~ is_f lab_t b_t)
+    (A_NOT_F : ~ is_f lab_t a_t)
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
     (STEP : WCore.exec_inst X_t X_t' e l) :
   exists mapper' X_s',
@@ -307,17 +309,19 @@ Proof using INV INV'.
     { rewrite <- EXEQ. unfolder.
       intros x XIN. ins. constructor.
       { now apply (rsr_as SIMREL). }
-      change (WCore.G X_s') with G_s'.
-      assert (XIN' : extra_a X_t' a_t b_t b_t x).
-      { now apply EXEQ. }
-      arewrite (⦗eq x ∩₁ R G_s'⦘ ⊆ ⦗extra_a X_t a_t b_t b_t ∩₁ R_s⦘).
-      { apply eqv_rel_mori. clear - XIN XIN' ENEXA.
-        unfolder. ins. desf. splits; ins.
-        unfold is_r in *. now rewrite updo in * by congruence. }
-      rewrite SRF'', SRFE, (rsr_as_val SIMREL).
-      clear - NOTIN. unfolder. ins. desf.
-      unfold same_val, val in *.
-      now rewrite !updo by congruence. }
+      { change (WCore.G X_s') with G_s'.
+        assert (XIN' : extra_a X_t' a_t b_t b_t x).
+        { now apply EXEQ. }
+        arewrite (⦗eq x ∩₁ R G_s'⦘ ⊆ ⦗extra_a X_t a_t b_t b_t ∩₁ R_s⦘).
+        { apply eqv_rel_mori. clear - XIN XIN' ENEXA.
+          unfolder. ins. desf. splits; ins.
+          unfold is_r in *. now rewrite updo in * by congruence. }
+        rewrite SRF'', SRFE, (rsr_as_val SIMREL).
+        clear - NOTIN. unfolder. ins. desf.
+        unfold same_val, val in *.
+        now rewrite !updo by congruence. }
+      (* TODO *)
+      all : admit. } 
     { rewrite (WCore.add_event_acts ADD),
               set_collect_union, set_collect_eq.
       rewrite set_collect_eq_dom; [| eassumption].
@@ -508,16 +512,12 @@ Proof using INV INV'.
   destruct (classic (~ E_t' a_t /\ E_t' b_t)) as [EMP|NEMP].
   { assert (EXTRA : extra_a X_t' a_t b_t b_t ≡₁ eq b_t).
     { unfold extra_a. desf. basic_solver. }
-
     assert (ANONTIN : ~ E_t a_t).
     { clear - A_PRESERVED EMP. basic_solver 8. }
     assert (BIN : E_t b_t).
     { clear - B_PRESERVED EMP. basic_solver 8. }
     assert (EXTRAOLD : extra_a X_t a_t b_t b_t ≡₁ eq b_t).
     { unfold extra_a. desf. basic_solver. }
-
-
-
     assert (SBFROMA : ⦗eq b_t⦘ ⨾ sb G_s' ⊆ eq b_t × eq a_t).
     { unfold G_s', sb; ins.
       rewrite NEWSB.
@@ -558,8 +558,6 @@ Proof using INV INV'.
         unfold same_tid in TIDB.
         apply ETID in TIDB. basic_solver. }
       rewrite SBHELP. basic_solver. }
-
-
     assert (AINRW : eq a_t ∩₁ (acts_set G_s') ⊆₁ (R G_s' ∪₁ W G_s')).
     { intros x XIN.
       destruct simrel_a_lab_wr with (X_s := X_s') (X_t := X_t') 
@@ -570,7 +568,6 @@ Proof using INV INV'.
       apply simrel_a_lab_notrel with (X_s := X_s') (X_t := X_t')
           (a_t := a_t) (b_t := b_t) (mapper := mapper') (x := x); vauto.
       apply EQACTS; basic_solver. }
-
     assert (RPOIMMEMP : ⦗eq b_t⦘ ⨾ rpo_imm G_s' ⊆ ∅₂).
     { unfold rpo_imm. rewrite !seq_union_r.
       rewrite <- !seqA.
@@ -614,14 +611,13 @@ Proof using INV INV'.
       arewrite_id (⦗acts_set G_s'⦘) at 2.
       rels.
       unfold is_f; ins. destruct INV.
-      clear - rsr_at_neq_bt E_NOT_B E_NOT_A. unfolder.
+      clear - rsr_at_neq_bt E_NOT_B E_NOT_A A_NOT_F SIMREL. unfolder.
       intros x y ((COND1 & EQ) & (COND2 & COND3)).
       subst x y. rewrite updo in COND1; [| basic_solver].
+      destruct COND1 as [C1 C2].
       admit. (*TODO : add*) }
-
       assert (MAPE : e = mapper' e).
       { unfold mapper'. now rewrite upds. }
-
       assert (RPOEMP : ⦗eq b_t⦘ ⨾ rpo G_s' ⊆ ∅₂).
       { unfold rpo. rewrite ct_begin.
         rewrite <- seqA.
@@ -639,9 +635,6 @@ Proof using INV INV'.
           { basic_solver. }
           admit. (* TODO : add*) }
         unfold G_s' at 1; ins. }
-
-
-
     destruct (lab_s b_t) eqn:BLAB.
     { apply XmmCons.read_extent with (G_t := G_t')
         (sc_t := WCore.sc X_t') (a := b_t) (m := mapper'); eauto.
@@ -659,19 +652,16 @@ Proof using INV INV'.
         { destruct SIMREL.
           destruct FLS; vauto. }
         destruct E_NOT_B; vauto. }
-
-
-
       { arewrite (rpo (WCore.G X_s') ⊆ ⦗acts_set G_s'⦘ ⨾ rpo G_s').
-        { rewrite wf_rpoE; [basic_solver 8|]. admit. (*TODO : add*) }
-        unfold G_s' at 1; ins.
+        { rewrite wf_rpoE.
+          arewrite (acts_set (WCore.G X_s') ⊆₁ acts_set G_s').
+          basic_solver. }
         transitivity (⦗(E_s ∪₁ eq e) \₁ eq b_t⦘ ⨾ rpo G_s' ⨾ ⦗(E_s ∪₁ eq e) \₁ eq b_t⦘).
         { hahn_frame_r. unfold set_minus. intros x y (x0 & (EQ & INE) & PTH); subst x0.
           red. exists x; splits; vauto. red. split; vauto.
           splits; vauto. intros FALSE. subst x.
           destruct RPOCODOM as [IN OUT]. destruct IN with y.
           clear - PTH. basic_solver 8. }
-
         unfold rpo. transitivity ((⦗(E_s ∪₁ eq e) \₁ eq b_t⦘ ⨾ rpo_imm G_s' ⨾ ⦗(E_s ∪₁ eq e) \₁ eq b_t⦘)⁺).
         { induction 1 as (x0 & (P1 & (x1 & (P2 & P3)))).
           destruct P1 as (EQ & COND1); subst x0.
@@ -690,7 +680,6 @@ Proof using INV INV'.
             apply IHP2_1 in COND1; vauto.
             apply IHP2_2 in INE'; vauto. }
           admit. (*TODO : add*) }
-
           assert (IND1 : (⦗(E_s ∪₁ eq e) \₁ eq b_t⦘ ⨾ rpo_imm G_s' ⨾ ⦗(E_s ∪₁ eq e) \₁ eq b_t⦘) ⊆ mapper' ↑ (rpo_imm G_t')⁺).
           { unfold rpo_imm. rewrite !seq_union_l. rewrite !seqA.
             rewrite <- ct_step.
@@ -721,7 +710,6 @@ Proof using INV INV'.
                   rels. }
                 rewrite EXTRA. clear; basic_solver. }
               rewrite EXTRA. clear; basic_solver. }
-
             arewrite (⦗R G_s' ∩₁ Rlx G_s'⦘ ⨾ ⦗(E_s ∪₁ eq e) \₁ eq b_t⦘ ⨾ sb G_s' ⨾ ⦗(E_s ∪₁ eq e) \₁ eq b_t⦘ ⨾ ⦗F G_s' ∩₁ Acq G_s'⦘
                       ⊆ ⦗R G_s' ∩₁ Rlx G_s'⦘ ⨾ ⦗(E_s ∪₁ eq e) \₁ eq b_t⦘ ⨾ mapper' ↑ sb_t' ⨾ ⦗(E_s ∪₁ eq e) \₁ eq b_t⦘ ⨾ ⦗F G_s' ∩₁ Acq G_s'⦘).
             { clear - SBSUB. hahn_frame_l. hahn_frame_r; vauto. }
@@ -738,7 +726,6 @@ Proof using INV INV'.
             rewrite <- !set_interA.
             destruct SIMREL. rewrite rsr_acts.
             rewrite EXTRAOLD.
-
             arewrite ((mapper ↑₁ E_t ∪₁ eq b_t ∪₁ eq e) \₁ eq b_t
               ⊆₁ mapper ↑₁ E_t ∪₁ eq e).
             { clear. basic_solver. }
@@ -747,7 +734,6 @@ Proof using INV INV'.
             arewrite (mapper ↑₁ E_t ∪₁ eq (mapper' e)
               ⊆₁ mapper' ↑₁ E_t').
             { rewrite <- MAPSUB. rewrite EQACTS. clear; basic_solver 8. }
-
             arewrite (⦗R G_s' ∩₁ Rlx G_s' ∩₁ mapper' ↑₁ E_t'⦘
                         ⊆ mapper' ↑ ⦗R_t' ∩₁ Rlx G_t' ∩₁ E_t'⦘).
             { intros x y COND. destruct COND as (EQ & COND); subst y.
@@ -761,7 +747,6 @@ Proof using INV INV'.
                 unfold is_r. destruct rsr_lab0 with x'; vauto. }
               unfold G_s' in COND2; ins.
               unfold is_rlx. unfold mod. destruct rsr_lab0 with x'; vauto. }
-
             arewrite (⦗mapper' ↑₁ E_t' ∩₁ F G_s' ∩₁ Acq G_s'⦘
                         ⊆ mapper' ↑ ⦗E_t' ∩₁ F G_t' ∩₁ Acq G_t'⦘).
             { intros x y COND. destruct COND as (EQ & COND); subst y.
@@ -830,7 +815,6 @@ Proof using INV INV'.
                 unfold is_w. destruct rsr_lab0 with x'; vauto. }
               unfold G_s' in COND2; ins.
               unfold is_rlx. unfold mod. destruct rsr_lab0 with x'; vauto. }
-
             rewrite !collect_rel_union.
             apply union_more.
             { apply union_more.
@@ -917,7 +901,7 @@ Proof using INV INV'.
         arewrite (WCore.G X_s' = G_s').
         rewrite SBFROMA. unfolder.
         intros x (y & (XEQ & YEQ) & LOC).
-        subst x; subst y.
+        subst x; subst y. destruct INV.
         destruct INV'.
         admit. (*TODO : ask*) }
       { admit. }

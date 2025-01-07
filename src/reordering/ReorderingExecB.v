@@ -1865,7 +1865,6 @@ Proof using.
     { destruct SIMREL'; vauto. }
     { unfold G_s'; ins. unfold upd.
       unfold is_r. basic_solver. }
-    { admit. (*TODO : add*) }
     { rewrite EQACTS.
       rewrite set_collect_union, MAPER_E, MAPSUB, (rsr_codom SIMREL).
       rewrite OLDEXA; rels. intros FLS.
@@ -1874,7 +1873,7 @@ Proof using.
         destruct FLS; vauto. }
       destruct ANOTB; vauto. }
     { arewrite (rpo G_s' ⊆ ⦗acts_set G_s'⦘ ⨾ rpo G_s').
-      { rewrite wf_rpoE; [basic_solver 8|]. admit. (*TODO : add*) }
+      { rewrite wf_rpoE. basic_solver 8. }
       unfold G_s' at 1; ins.
       arewrite ((E_s ∪₁ eq b_t ∪₁ eq a_t) \₁ eq b_t ≡₁
                 E_s ∪₁ eq a_t).
@@ -2366,10 +2365,8 @@ Proof using.
         rewrite COND1 in COND2. desf. }
       red; intros x COND. split; vauto.
       rewrite COND. desf.
-      { exfalso. rewrite <- COND in e.
-        destruct ANOTB; vauto. }
-      exfalso. rewrite <- COND in e.
-      destruct ANOTINS; vauto. }
+      all : rewrite <- COND in e.
+      all :  destruct ANOTB; vauto. }
     { destruct SIMREL'.
       arewrite (G_s' = WCore.G X_s').
       rewrite rsr_co. unfold add_max.
@@ -2384,8 +2381,8 @@ Proof using.
       red; intros x COND. 
       destruct COND as [COND1 COND2].
       rewrite COND1 in COND2. desf.
-      exfalso. rewrite <- COND1 in e.
-      destruct ANOTB; vauto. }
+      all : exfalso; rewrite <- COND1 in e.
+      all : destruct ANOTB; vauto. }
     admit. (*add?*) }
   { apply XmmCons.write_extent with (G_t := G_t')
               (sc_t := WCore.sc X_t') (a := b_t) (m := mapper'); eauto.
