@@ -596,9 +596,79 @@ Proof using INV INV'.
   constructor; ins.
   { subst dtrmt' cmt'. basic_solver. }
   { subst cmt'. basic_solver. }
-  { admit. (* TODO : ask *)}
+  { admit. (* TODO : ask *) }
   { admit. }
-  { admit. }
+  { enough (RPOD : dom_rel (rpo G_s' ⨾ ⦗E_s \₁ dtrmt'⦘) ⊆₁ dtrmt').
+    { forward apply RPOD. clear. basic_solver 11. }
+    unfold dtrmt'.
+    assert (EVEQ : E_s \₁ ((E_s \₁ eq b_t) \₁ eq (mapper b_t)) ≡₁ eq b_t ∪₁ eq a_t).
+    { clear - AINS BINS INV SIMREL INB. split.
+      { intros x COND.
+        destruct COND as (INE & COND).
+        unfold set_minus in COND.
+        apply not_and_or in COND.
+        destruct COND as [EQ | NEQ]; vauto.
+        { apply not_and_or in EQ.
+          destruct EQ as [EQ | EQ]; vauto.
+          unfold not in EQ. apply NNPP in EQ; vauto. }
+        unfold not in NEQ. apply NNPP in NEQ.
+        right. rewrite <- NEQ.
+        rewrite rsr_map_bt with (X_s := X_s)
+              (X_t := X_t) (a_t := a_t); vauto. }
+      intros x [EQ | EQ].
+      { split; vauto. intros FALSE.
+        unfold set_minus in FALSE.
+        destruct FALSE as (INE & FALSE).
+        desf. } 
+      rewrite <- rsr_map_bt with (X_s := X_s)
+        (X_t := X_t) (a_t := a_t) (b_t := b_t) (mapper := mapper) in EQ; vauto.
+      split; vauto. intros FALSE.
+      unfold set_minus in FALSE.
+      destruct FALSE as (INE & FALSE).
+      desf. }
+    rewrite EVEQ. rewrite id_union.
+    rewrite seq_union_r. rewrite dom_union.
+    rewrite set_subset_union_l; split.
+    { destruct SIMREL. intros x COND.
+      unfold dom_rel in COND. destruct COND as [y COND].
+      destruct COND as (z & SB & XIN & YIN); subst z y.
+      unfold set_minus. splits.
+      { apply wf_rpoE in SB.
+        destruct SB as (x0 & (EQ & INE) & _); vauto. }
+      { apply rpo_in_sb in SB.
+        intros FALSE; subst x.
+        apply sb_irr in SB; vauto. }
+      intros FALSE.
+      rewrite rsr_map_bt with (X_s := X_s)
+          (X_t := X_t) (a_t := a_t) (b_t := b_t) (mapper := mapper) in FALSE.
+      { subst x. apply rpo_in_sb in SB.
+        unfold sb in SB. unfolder in SB; desf.
+        destruct INV. clear - SB0 rsr_at_bt_sb.
+        assert (TRANS : ext_sb a_t a_t).
+        { apply ext_sb_trans with (x := a_t)
+              (y := b_t) (z := a_t); vauto. }
+        apply ext_sb_irr in TRANS; vauto. }
+      all : vauto. }
+    intros x COND.
+    unfold dom_rel in COND. destruct COND as [y COND].
+    destruct COND as (z & SB & XIN & YIN); subst z y.
+    unfold set_minus. splits.
+    { apply wf_rpoE in SB.
+      destruct SB as (x0 & (EQ & INE) & _); vauto. }
+    { intros FALSE; subst x.
+      apply (rsr_nrpo SIMREL') with b_t a_t.
+      unfolder; ins. splits; vauto.
+      { exists a_t; splits; ins.
+        unfold mapper'. now rupd. }
+      exists b_t; splits; ins.
+      eapply rsr_map_bt with (X_s := X_s')
+          (X_t := X_t'); vauto. }
+    intros FALSE.
+    rewrite rsr_map_bt with (X_s := X_s)
+      (X_t := X_t) (a_t := a_t) (b_t := b_t) (mapper := mapper) in FALSE.
+    { subst x. apply rpo_in_sb in SB.
+      apply sb_irr in SB; vauto. }
+    all : vauto. }
   { constructor; ins.
     { unfold id; ins. rupd. intro FALSO.
       now apply CMT. }
@@ -1374,7 +1444,8 @@ Proof using INV INV'.
           unfold seq. exists x0'. splits; vauto. }
         rewrite <- TRIN at 2. apply seq_mori; vauto. }
       apply inclusion_t_ind_right; vauto. }
-    admit. (*TODO : add*) }
+    apply G_s_wf with (X_t := X_t') (X_s := X_s') 
+        (a_t := a_t) (b_t := b_t) (mapper := mapper'); vauto. }
   { admit. (* TODO *)}
   apply sub_to_full_exec_listless with (thrdle := thrdle'); ins.
   { eapply G_s_rfc with (X_s := X_s'); eauto. }

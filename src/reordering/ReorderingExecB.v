@@ -840,7 +840,7 @@ Proof using INV INV'.
         unfold add_max. unfold extra_a at 2. desf.
         { exfalso. eapply BNOTIN. apply a. }
         rewrite set_inter_empty_l; rels. }
-      { admit. (*TODO : add?*) }
+      { admit. (*TODO : ask?*) }
       destruct INV; eauto. }
     { apply XmmCons.write_extent with (G_t := G_t)
                   (sc_t := WCore.sc X_t) (a := b_t) (m := mapper); eauto.
@@ -1289,7 +1289,7 @@ Proof using INV INV'.
           unfold loc in *. rewrite upds in LOC; vauto.
           rewrite updo in LOC; vauto.
           basic_solver 21. }
-      { admit. (*TODO : add*) }
+      { admit. (*TODO : ask?*) }
       destruct INV; eauto. }
     admit. (*TODO : fence*) }
   { apply union_more; ins. }
@@ -2383,7 +2383,8 @@ Proof using.
       rewrite COND1 in COND2. desf.
       all : exfalso; rewrite <- COND1 in e.
       all : destruct ANOTB; vauto. }
-    admit. (*add?*) }
+    apply G_s_wf with (X_t := X_t') (X_s := X_s')
+          (a_t := a_t) (b_t := b_t) (mapper := mapper'); vauto. }
   { apply XmmCons.write_extent with (G_t := G_t')
               (sc_t := WCore.sc X_t') (a := b_t) (m := mapper'); eauto.
     { destruct SIMREL'; vauto. }
@@ -2434,7 +2435,8 @@ Proof using.
       apply cross_more; vauto.
       unfold extra_co_D. unfold same_loc. 
       basic_solver 42. }
-    admit. (*add?*) }
+    apply G_s_wf with (X_t := X_t') (X_s := X_s')
+          (a_t := a_t) (b_t := b_t) (mapper := mapper'); vauto. }
   admit. (* fence *)
 Admitted.
 

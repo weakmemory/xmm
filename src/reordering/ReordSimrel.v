@@ -1435,4 +1435,12 @@ Proof using.
   basic_solver 21.
 Qed.
 
+Lemma rsr_a_s_is_r_or_w
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel) :
+eq b_t ∩₁ (acts_set G_s) ⊆₁ (R G_s ∪₁ W G_s).
+Proof using.
+  admit.
+Admitted.
+
 End SimRel.
