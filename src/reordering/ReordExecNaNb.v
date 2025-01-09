@@ -1324,7 +1324,12 @@ Proof using INV INV'.
         rewrite rsr_co. unfold add_max.
         rewrite EXTRA. apply union_more; vauto.
         apply cross_more.
-        { admit. (*TODO : finish*) }
+        { unfold extra_co_D. unfold same_loc.
+          arewrite (eq b_t ∩₁ W (WCore.G X_s') ≡₁ eq b_t).
+          { split; [basic_solver 8|]. unfold is_w.
+          red. arewrite (WCore.G X_s' = G_s'). split; vauto.
+          unfold G_s'; ins. rewrite updo; basic_solver. }
+          clear; basic_solver 42. }
         split; [basic_solver 8|].
         unfold is_w. red. arewrite (WCore.G X_s' = G_s'). split; vauto.
         unfold G_s'; ins. rewrite updo; basic_solver. }
