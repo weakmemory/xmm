@@ -6,6 +6,7 @@ Require Import SimrelCommon.
 Require Import StepOps.
 Require Import AuxInj.
 Require Import xmm_s_hb.
+Require Import Lia.
 
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
@@ -1186,6 +1187,263 @@ Proof using.
   change (lab_s (mapper b_t)) with ((lab_s ∘ mapper) b_t) in LOC.
   change (lab_s (mapper a_t)) with ((lab_s ∘ mapper) a_t) in LOC.
   rewrite !(rsr_lab SIMREL) in LOC; auto.
+Qed.
+
+Lemma rsr_sbs_dom_disjunct
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel) :
+  mapper ↑₁ dom_rel (sb_t ⨾ ⦗eq b_t⦘) ≡₁
+    dom_rel (sb_t ⨾ ⦗eq b_t⦘).
+Proof using.
+  rewrite set_collect_eq_dom
+     with (g := id); [basic_solver 11 |].
+  unfolder. intros x (y & SB & YEQ). subst y.
+  assert (XIN : E_t x).
+  { apply wf_sbE in SB. unfolder in SB. desf. }
+  rewrite rsr_mapper; auto.
+  rewrite updo; [| intro FALSO; desf; eapply sb_irr; eauto].
+  rewrite updo; auto.
+  intro FALSO. subst x.
+  apply ext_sb_irr with a_t.
+  apply ext_sb_trans with b_t.
+  { unfold sb in SB; unfolder in SB; desf. }
+  apply PRED.
+Qed.
+
+Lemma rsr_sbt_map1
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel)
+    (INB : E_t b_t)
+    (NINA : ~E_t a_t) :
+  mapper ↑ sb_t ≡
+    dom_rel (sb_t ⨾ ⦗eq b_t⦘) × eq a_t ∪
+    sb_t ⨾ ⦗set_compl (eq b_t)⦘.
+Proof using.
+  arewrite (
+    sb_t ≡
+      sb_t ⨾ ⦗eq b_t⦘ ∪
+        sb_t ⨾ ⦗set_compl (eq b_t)⦘
+  ) at 1.
+  { clear. unfolder; split; ins; desf. tauto. }
+  rewrite collect_rel_union.
+  arewrite (
+    sb_t ⨾ ⦗eq b_t⦘ ≡
+      dom_rel (sb_t ⨾ ⦗eq b_t⦘) × eq b_t
+  ) at 1.
+  { basic_solver. }
+  rewrite collect_rel_cross,
+          rsr_sbs_dom_disjunct,
+          set_collect_eq; auto.
+  rewrite rsr_map_bt; auto.
+  apply union_more; auto with hahn.
+  rewrite collect_rel_eq_dom
+     with (g := id); [basic_solver 11 |].
+  arewrite (
+    dom_rel (sb_t ⨾ ⦗set_compl (eq b_t)⦘) ⊆₁
+      E_t \₁ (eq a_t ∪₁ eq b_t)
+  ).
+  { rewrite wf_sbE, !seqA.
+    unfolder.
+    intros x (y & XIN & SB & YIN & NEQ).
+    split; auto. intro FALSO; desf.
+    eapply (rsr_bt_max PRED); eauto.
+    unfolder. splits; eauto. }
+  arewrite (
+    codom_rel (sb_t ⨾ ⦗set_compl (eq b_t)⦘) ⊆₁
+      E_t \₁ (eq a_t ∪₁ eq b_t)
+  ).
+  { rewrite wf_sbE, !seqA.
+    rewrite 2!codom_seq.
+    unfolder. ins. desf.
+    split; auto. intro FALSO; desf. }
+  rewrite set_unionK. unfolder.
+  intros x (XIN & NEQ).
+  rewrite rsr_mapper; auto.
+  assert (NEQ': a_t <> x /\ b_t <> x) by tauto.
+  desf. now rewrite !updo by congruence.
+Qed.
+
+Lemma rsr_sbt_map2
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel)
+    (INB : E_t b_t)
+    (NINA : E_t a_t) :
+  mapper ↑ swap_rel
+      sb_t
+      (eq b_t ∩₁ E_t)
+      (eq a_t ∩₁ E_t)
+    ≡ sb_t.
+Proof using.
+  arewrite (eq b_t ∩₁ E_t ≡₁ eq b_t) by basic_solver.
+  arewrite (eq a_t ∩₁ E_t ≡₁ eq a_t) by basic_solver.
+  unfold swap_rel. rewrite collect_rel_union.
+  rewrite collect_rel_cross, !set_collect_eq.
+  rewrite rsr_map_bt, rsr_map_at; auto.
+  assert (NEQ : a_t <> b_t) by apply PRED.
+  split; intros x y;
+    [intros [HREL | BA] | intro SB].
+  { unfolder in HREL.
+      destruct HREL as
+        (x' & y' & (SB & NEQ') & EQX & EQY).
+    assert (INX' : E_t x').
+    { apply wf_sbE in SB; unfolder in SB; desf. }
+    assert (INY' : E_t y').
+    { apply wf_sbE in SB; unfolder in SB; desf. }
+    destruct
+      classic with (x' = a_t) as [XEA|XNA],
+      classic with (x' = b_t) as [XEB|XNB],
+      classic with (y' = a_t) as [YEA|YNA],
+      classic with (y' = b_t) as [YEB|YNB].
+    all: desf.
+    { exfalso. now apply sb_irr with G_t a_t. }
+    { rewrite rsr_map_at, rsr_map_bt; auto.
+      unfold sb. unfolder. splits; auto. apply PRED. }
+    { rewrite rsr_map_at; auto.
+      rewrite rsr_mapper, !updo; auto.
+      unfold id; ins.
+      admit. }
+    { tauto. }
+    { exfalso. now apply sb_irr with G_t b_t. }
+    { rewrite rsr_map_bt; auto.
+      rewrite rsr_mapper, !updo; auto.
+      unfold id; ins.
+      admit. }
+    { rewrite rsr_map_at; auto.
+      rewrite rsr_mapper, !updo; auto.
+      unfold id; ins.
+      admit. }
+    { rewrite rsr_map_bt; auto.
+      rewrite rsr_mapper, !updo; auto.
+      unfold id; ins.
+      eapply sb_trans; eauto.
+      unfold sb; unfolder; splits; auto.
+      apply PRED. }
+    rewrite !rsr_mapper, !updo; auto. }
+  { unfolder in BA. desf.
+    unfold sb; unfolder; splits; auto.
+    apply PRED. }
+  assert (INX : E_t x).
+  { apply wf_sbE in SB; unfolder in SB; desf. }
+  assert (INY : E_t y).
+  { apply wf_sbE in SB; unfolder in SB; desf. }
+  destruct
+    classic with (x = a_t) as [XEA|XNA],
+    classic with (x = b_t) as [XEB|XNB],
+    classic with (y = a_t) as [YEA|YNA],
+    classic with (y = b_t) as [YEB|YNB].
+  all: desf.
+  { exfalso; eapply sb_irr; eauto. }
+  { admit. }
+  { admit. }
+  { basic_solver. }
+  { exfalso; eapply sb_irr; eauto. }
+  { admit. }
+  { admit. }
+  { admit. }
+  left. exists x, y; split.
+  { unfolder. split; auto.
+    apply or_not_and. now left. }
+  rewrite !rsr_mapper; auto.
+  now rewrite !updo by auto.
+Admitted.
+
+Lemma rsr_sbE
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel) :
+  sb_s ≡ sb_t ∪
+    (is_init ∪₁ E_t ∩₁ Tid_ (tid b_t)) × extra_a a_t.
+Proof using.
+  rewrite (rsr_sb SIMREL).
+  destruct classic with (~ E_t b_t) as [NINB|INB'].
+  { rewrite !extra_a_none_r; auto.
+    arewrite (eq b_t ∩₁ E_t ≡₁ ∅) by basic_solver.
+    rewrite !cross_false_r, cross_false_l, !union_false_r.
+    rewrite swap_rel_empty_l.
+    rewrite collect_rel_eq_dom
+       with (g := id); [basic_solver 11 |].
+    arewrite (
+      dom_rel sb_t ∪₁ codom_rel sb_t ⊆₁
+        E_t
+    ).
+    { rewrite wf_sbE. basic_solver. }
+    unfolder. intros x XIN.
+    rewrite rsr_mapper; auto.
+    rewrite updo by congruence.
+    rewrite updo; auto. intro FALSO.
+    subst x.
+    now apply NINB, (rsr_at_bt_ord PRED). }
+  assert (INB : E_t b_t) by tauto. clear INB'.
+  rewrite rsr_sbs_dom_disjunct; auto.
+  rewrite rsr_map_bt; auto.
+  unfold extra_a; desf; [desf |].
+  { arewrite (eq a_t ∩₁ E_t ≡₁ ∅) by basic_solver.
+    rewrite swap_rel_empty_r.
+    arewrite (
+      dom_rel (sb_t ⨾ ⦗eq b_t⦘) × eq b_t ≡
+        sb_t ⨾ ⦗eq b_t⦘
+    ) by basic_solver.
+    rewrite rsr_sbt_map1; auto.
+    split; repeat apply inclusion_union_l.
+    { arewrite (
+        dom_rel (sb_t ⨾ ⦗eq b_t⦘) ⊆₁
+          is_init ∪₁ E_t ∩₁ Tid_ (tid b_t)
+      ); [| auto with hahn].
+      unfold sb, ext_sb. unfolder.
+      ins; desf; ins; desf; eauto. }
+    { basic_solver. }
+    { basic_solver. }
+    { basic_solver 7. }
+    { arewrite (
+        sb_t ≡
+          sb_t ⨾ ⦗set_compl (eq b_t)⦘ ∪
+            sb_t ⨾ ⦗eq b_t⦘
+      ) at 1.
+      { clear. unfolder; split; ins; desf.
+        tauto. }
+      basic_solver 11. }
+    transitivity (
+      dom_rel (sb_t ⨾ ⦗eq b_t⦘) × eq a_t ∪
+        eq b_t × eq a_t
+    ); auto with hahn.
+    rewrite <- cross_union_l.
+    apply cross_mori; auto with hahn.
+    arewrite (E_t ≡₁ E_t \₁ eq b_t ∪₁ eq b_t).
+    { split; [| basic_solver].
+      unfolder. ins. desf. tauto. }
+    rewrite set_inter_union_l, <- set_unionA.
+    arewrite (eq b_t ∩₁ Tid_ (tid b_t) ≡₁ eq b_t).
+    { unfold tid. basic_solver. }
+    apply set_subset_union; auto with hahn.
+    apply set_subset_union_l. split.
+    { unfold sb, ext_sb, is_init. unfolder.
+      ins. desf. exists b_t. splits; auto.
+      { now apply (rsr_init_acts PRED). }
+      desf. apply (rsr_bt_ninit PRED).
+      unfold is_init. desf. }
+    unfolder. intros x ((XIN & NEQ) & TID).
+    destruct PeanoNat.Nat.lt_total
+        with (index x) (index b_t)
+          as [LT | [EQ | GT]].
+    { exists b_t; split; auto.
+      unfold sb, index, ext_sb in *.
+      unfolder. splits; auto.
+      desf; ins; desf; lia. }
+    { exfalso.
+      unfold tid, index in *. desf.
+      { apply (rsr_bt_ninit PRED).
+        unfold is_init. desf. }
+      { apply (rsr_bt_tid PRED).
+        unfold tid. desf. }
+      apply (rsr_bt_ninit PRED).
+      unfold is_init. desf. }
+    exfalso. eapply (rsr_bt_max PRED); auto.
+    unfolder. splits; eauto.
+    unfold sb, ext_sb, index in *.
+    unfolder; splits; eauto. desf; lia. }
+  rewrite cross_false_l, !cross_false_r,
+          !union_false_r.
+  assert (INA : E_t a_t) by tauto.
+  now apply rsr_sbt_map2.
 Qed.
 
 (* Lemma nini_sb_imm_split G a
