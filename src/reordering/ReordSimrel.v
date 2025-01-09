@@ -1449,6 +1449,34 @@ Qed.
 Definition extra_sb :=
   (is_init ∪₁ E_t ∩₁ Tid_ (tid b_t)) × extra_a a_t.
 
+Lemma extra_sb_some
+    (NINA : ~E_t a_t)
+    (INB : E_t b_t) :
+  extra_sb ≡
+    (is_init ∪₁ E_t ∩₁ Tid_ (tid b_t)) × eq a_t.
+Proof using.
+  unfold extra_sb.
+  rewrite extra_a_some; auto with hahn.
+Qed.
+
+Lemma extra_sb_none_l
+    (INA : E_t a_t) :
+  extra_sb ≡ ∅₂.
+Proof using.
+  unfold extra_sb.
+  rewrite extra_a_none_l; auto.
+  basic_solver.
+Qed.
+
+Lemma extra_sb_none_r
+    (INA : ~E_t b_t) :
+  extra_sb ≡ ∅₂.
+Proof using.
+  unfold extra_sb.
+  rewrite extra_a_none_r; auto.
+  basic_solver.
+Qed.
+
 Lemma rsr_sbE_imm
     (PRED : reord_step_pred)
     (SIMREL : reord_simrel) :
