@@ -1446,6 +1446,40 @@ Proof using.
   now apply rsr_sbt_map2.
 Qed.
 
+Definition extra_sb :=
+  (is_init ∪₁ E_t ∩₁ Tid_ (tid b_t)) × extra_a a_t.
+
+Lemma rsr_sbE_imm
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel) :
+  immediate sb_s ≡
+    immediate sb_t ∪
+      extra_sb \ sb_t ⨾ extra_sb.
+Proof using.
+  assert (NINA : ~is_init a_t) by apply PRED.
+  rewrite rsr_sbE; auto.
+  rewrite immediate_union.
+  { arewrite (immediate extra_sb ≡ extra_sb).
+    { rewrite immediateE.
+      arewrite_false (extra_sb ⨾ extra_sb); [| basic_solver].
+      unfold extra_sb. unfold extra_a; desf; basic_solver. }
+    arewrite (
+      extra_sb ∩ (extra_sb \ sb_t ⨾ extra_sb) ≡
+        extra_sb \ sb_t ⨾ extra_sb
+    ); [| reflexivity].
+    rewrite inter_absorb_l; [reflexivity |].
+    basic_solver. }
+  { unfold extra_sb.
+    unfold extra_a; desf; [| basic_solver].
+    rewrite wf_sbE. basic_solver. }
+  { rewrite wf_sbE. unfold extra_sb.
+    unfold extra_a; desf; [| basic_solver].
+    basic_solver 11. }
+  rewrite wf_sbE. unfold extra_sb.
+  unfold extra_a; desf; [| basic_solver].
+  basic_solver 11.
+Qed.
+
 (* Lemma nini_sb_imm_split G a
     (WF : Wf G) :
   immediate (nin_sb G) ≡
