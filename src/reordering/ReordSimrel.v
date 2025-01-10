@@ -1542,6 +1542,47 @@ Proof using.
   basic_solver.
 Qed.
 
+Lemma extra_sbE
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel) :
+  extra_sb \ (nin_sb G_t) ⨾ extra_sb ≡
+    extra_a b_t × eq a_t.
+Proof using.
+  assert (ABSB : sb_t b_t a_t).
+  { admit. }
+  assert (NIB : ~is_init b_t).
+  { admit. }
+  unfold extra_sb, extra_a.
+  desf; [| clear; basic_solver].
+  split.
+  { intros x y (EQ & MAX).
+    assert (NIX : ~is_init x).
+    { admit. }
+    unfolder in EQ.
+    destruct EQ as ((XIN & XT) & YEQ).
+    subst y. unfolder. split; auto.
+    destruct PeanoNat.Nat.lt_total
+        with (index b_t) (index x)
+          as [LT | [EQ | GT]].
+    { exfalso.
+      apply (rsr_bt_max PRED) with b_t x.
+      all: auto || desf.
+      unfolder. splits; auto.
+      unfold sb, ext_sb. unfolder.
+      splits; auto; desf.
+      all: ins; desf; lia. }
+    { unfold index, tid, is_init in *; desf. }
+    exfalso. apply MAX.
+    unfolder. exists b_t; splits; desf.
+    unfold nin_sb, sb, ext_sb, index, is_init in *.
+    unfolder; desf. }
+  intros x y (XEQ & YEQ); subst.
+  split; [basic_solver |].
+  unfold nin_sb. unfolder. intros FALSO; desf.
+  eapply (rsr_bt_max PRED); eauto.
+  unfolder; splits; eauto.
+Admitted.
+
 Lemma rsr_sbE_imm
     (PRED : reord_step_pred)
     (SIMREL : reord_simrel) :
