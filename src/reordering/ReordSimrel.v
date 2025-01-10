@@ -1489,13 +1489,36 @@ Proof using.
 Qed.
 
 Definition extra_sb :=
-  (is_init ∪₁ E_t ∩₁ Tid_ (tid b_t)) × extra_a a_t.
+  (E_t ∩₁ Tid_ (tid b_t)) × extra_a a_t.
+
+Lemma rsr_ninsbE
+    (PRED : reord_step_pred)
+    (SIMREL : reord_simrel) :
+  nin_sb G_s ≡ nin_sb G_t ∪ extra_sb.
+Proof using.
+  unfold nin_sb.
+  rewrite rsr_sbE; eauto.
+  rewrite !seq_union_r.
+  apply union_more; [reflexivity |].
+  rewrite <- cross_inter_l, set_inter_union_r.
+  arewrite ((fun x => ~is_init x) ∩₁ is_init ≡₁ ∅).
+  { basic_solver. }
+  rewrite set_union_empty_l.
+  unfold extra_sb. apply cross_more; [| reflexivity].
+  split; [basic_solver |].
+  unfolder. ins. desf. splits; auto.
+  unfold tid, is_init in *. desf.
+  { exfalso. apply (rsr_bt_ninit PRED).
+    unfold is_init; desf. }
+  exfalso. apply (rsr_bt_tid PRED).
+  unfold tid. desf.
+Qed.
 
 Lemma extra_sb_some
     (NINA : ~E_t a_t)
     (INB : E_t b_t) :
   extra_sb ≡
-    (is_init ∪₁ E_t ∩₁ Tid_ (tid b_t)) × eq a_t.
+    (E_t ∩₁ Tid_ (tid b_t)) × eq a_t.
 Proof using.
   unfold extra_sb.
   rewrite extra_a_some; auto with hahn.
@@ -1522,29 +1545,32 @@ Qed.
 Lemma rsr_sbE_imm
     (PRED : reord_step_pred)
     (SIMREL : reord_simrel) :
-  immediate sb_s ≡
-    immediate sb_t ∪
-      extra_sb \ sb_t ⨾ extra_sb.
+  immediate (nin_sb G_s) ≡
+    immediate (nin_sb G_t) ∪
+      extra_sb \ (nin_sb G_t) ⨾ extra_sb.
 Proof using.
   assert (NINA : ~is_init a_t) by apply PRED.
-  rewrite rsr_sbE; auto.
+  rewrite rsr_ninsbE; auto.
   rewrite immediate_union.
   { arewrite (immediate extra_sb ≡ extra_sb).
     { rewrite immediateE.
       arewrite_false (extra_sb ⨾ extra_sb); [| basic_solver].
       unfold extra_sb. unfold extra_a; desf; basic_solver. }
     arewrite (
-      extra_sb ∩ (extra_sb \ sb_t ⨾ extra_sb) ≡
-        extra_sb \ sb_t ⨾ extra_sb
+      extra_sb ∩ (extra_sb \ (nin_sb G_t) ⨾ extra_sb) ≡
+        extra_sb \ (nin_sb G_t) ⨾ extra_sb
     ); [| reflexivity].
     rewrite inter_absorb_l; [reflexivity |].
     basic_solver. }
   { unfold extra_sb.
     unfold extra_a; desf; [| basic_solver].
+    unfold nin_sb.
     rewrite wf_sbE. basic_solver. }
-  { rewrite wf_sbE. unfold extra_sb.
+  { unfold nin_sb.
+    rewrite wf_sbE. unfold extra_sb.
     unfold extra_a; desf; [| basic_solver].
     basic_solver 11. }
+  unfold nin_sb.
   rewrite wf_sbE. unfold extra_sb.
   unfold extra_a; desf; [| basic_solver].
   basic_solver 11.
