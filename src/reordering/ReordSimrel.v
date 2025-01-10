@@ -1281,7 +1281,10 @@ Proof using.
   rewrite rsr_map_bt, rsr_map_at; auto.
   assert (NEQ : a_t <> b_t) by apply PRED.
   assert (ABSB : sb_t b_t a_t).
-  { admit. }
+  { unfold sb. unfolder; splits; auto.
+    apply PRED. }
+  assert (ABIMM : immediate sb_t b_t a_t).
+  { apply (rsr_at_bt_imm PRED). basic_solver. }
   split; intros x y;
     [intros [HREL | BA] | intro SB].
   { unfolder in HREL.
@@ -1308,11 +1311,19 @@ Proof using.
     { rewrite rsr_map_bt; auto.
       rewrite rsr_mapper, !updo; auto.
       unfold id; ins.
-      admit. }
+      destruct sb_semi_total_l
+          with (x := b_t) (y := a_t) (z := y') (G := G_t)
+            as [LSB | RSB].
+      all: auto; try now apply PRED.
+      exfalso. now apply ABIMM with y'. }
     { rewrite rsr_map_at; auto.
       rewrite rsr_mapper, !updo; auto.
       unfold id; ins.
-      admit. }
+      destruct sb_semi_total_r
+          with (x := a_t) (y := x') (z := b_t) (G := G_t)
+            as [LSB | RSB].
+      all: auto; try now apply PRED.
+      exfalso. now apply ABIMM with x'. }
     { rewrite rsr_map_bt; auto.
       rewrite rsr_mapper, !updo; auto.
       unfold id; ins.
@@ -1330,19 +1341,53 @@ Proof using.
     classic with (y = b_t) as [YEB|YNB].
   all: desf.
   { exfalso; eapply sb_irr; eauto. }
-  { admit. }
-  { admit. }
+  { exfalso; eapply sb_irr, sb_trans; eauto. }
+  { left. exists b_t, y.
+    rewrite rsr_map_bt; auto.
+    rewrite rsr_mapper; auto.
+    rewrite !updo by congruence.
+    unfold id. splits; auto.
+    split; [eapply sb_trans; eauto|].
+    unfolder; apply or_not_and; now right. }
   { basic_solver. }
   { exfalso; eapply sb_irr; eauto. }
-  { admit. }
-  { admit. }
-  { admit. }
+  { left. exists a_t, y.
+    rewrite rsr_map_at; auto.
+    rewrite rsr_mapper; auto.
+    rewrite !updo by congruence.
+    unfold id. splits; auto.
+    split; [|
+      unfolder; apply or_not_and; now right].
+    destruct sb_semi_total_l
+        with (x := b_t) (y := a_t) (z := y) (G := G_t)
+          as [LSB | RSB].
+    all: auto; try now apply PRED.
+    exfalso. now apply ABIMM with y. }
+  { left. exists x, b_t.
+    rewrite rsr_map_bt; auto.
+    rewrite rsr_mapper; auto.
+    rewrite !updo by congruence.
+    unfold id. splits; auto.
+    split; [|
+      unfolder; apply or_not_and; now right].
+    destruct sb_semi_total_r
+        with (x := a_t) (y := x) (z := b_t) (G := G_t)
+          as [LSB | RSB].
+    all: auto; try now apply PRED.
+    exfalso. now apply ABIMM with x. }
+  { left. exists x, a_t.
+    rewrite rsr_map_at; auto.
+    rewrite rsr_mapper; auto.
+    rewrite !updo by congruence.
+    unfold id. splits; auto.
+    split; [eapply sb_trans; eauto|].
+    unfolder; apply or_not_and; now left. }
   left. exists x, y; split.
   { unfolder. split; auto.
     apply or_not_and. now left. }
   rewrite !rsr_mapper; auto.
   now rewrite !updo by auto.
-Admitted.
+Qed.
 
 Lemma rsr_sbE
     (PRED : reord_step_pred)
