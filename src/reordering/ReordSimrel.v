@@ -856,6 +856,34 @@ Proof using.
   basic_solver 11.
 Qed.
 
+Lemma rsr_bt_max' x
+    (PRED : reord_step_pred)
+    (INB : E_t b_t)
+    (NINA : ~E_t a_t)
+    (XIN : E_t x)
+    (TID : tid x = tid b_t) :
+  sb_t x b_t \/ x = b_t.
+Proof using.
+  assert (NIB : ~is_init b_t) by apply PRED.
+  assert (NIX : ~is_init x).
+  { unfold is_init. desf.
+    exfalso. now apply (rsr_bt_tid PRED). }
+  destruct PeanoNat.Nat.lt_total
+      with (n := index x) (m := index b_t)
+        as [ZB | [EQ | BZ]].
+  { left. unfold sb, ext_sb.
+    unfolder. splits; auto.
+    unfold is_init, index in *; desf. }
+  { right.
+    unfold is_init, index, tid in *; desf. }
+  exfalso.
+  apply (rsr_bt_max PRED INB NINA)
+   with (x := b_t) (y := x).
+  unfold sb; unfolder; splits; auto.
+  unfold ext_sb, is_init, index in *.
+  desf.
+Qed.
+
 Lemma rsr_no_rfrhb_ba
     (PRED : reord_step_pred)
     (CONS : WCore.is_cons G_t ∅₂) :
@@ -1561,21 +1589,11 @@ Proof using.
     unfolder in EQ.
     destruct EQ as ((XIN & XT) & YEQ).
     subst y. unfolder. split; auto.
-    destruct PeanoNat.Nat.lt_total
-        with (index b_t) (index x)
-          as [LT | [EQ | GT]].
-    { exfalso.
-      apply (rsr_bt_max PRED) with b_t x.
-      all: auto || desf.
-      unfolder. splits; auto.
-      unfold sb, ext_sb. unfolder.
-      splits; auto; desf.
-      all: ins; desf; lia. }
-    { unfold index, tid, is_init in *; desf. }
+    destruct (rsr_bt_max' x PRED) as [SB | EQ].
+    all: desf.
     exfalso. apply MAX.
     unfolder. exists b_t; splits; desf.
-    unfold nin_sb, sb, ext_sb, index, is_init in *.
-    unfolder; desf. }
+    unfold nin_sb. unfolder; split; auto. }
   intros x y (XEQ & YEQ); subst.
   split; [basic_solver |].
   unfold nin_sb. unfolder. intros FALSO; desf.
