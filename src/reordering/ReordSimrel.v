@@ -1280,6 +1280,8 @@ Proof using.
   rewrite collect_rel_cross, !set_collect_eq.
   rewrite rsr_map_bt, rsr_map_at; auto.
   assert (NEQ : a_t <> b_t) by apply PRED.
+  assert (ABSB : sb_t b_t a_t).
+  { admit. }
   split; intros x y;
     [intros [HREL | BA] | intro SB].
   { unfolder in HREL.
@@ -1296,12 +1298,11 @@ Proof using.
       classic with (y' = b_t) as [YEB|YNB].
     all: desf.
     { exfalso. now apply sb_irr with G_t a_t. }
-    { rewrite rsr_map_at, rsr_map_bt; auto.
-      unfold sb. unfolder. splits; auto. apply PRED. }
+    { rewrite rsr_map_at, rsr_map_bt; auto. }
     { rewrite rsr_map_at; auto.
       rewrite rsr_mapper, !updo; auto.
       unfold id; ins.
-      admit. }
+      apply sb_trans with a_t; auto. }
     { tauto. }
     { exfalso. now apply sb_irr with G_t b_t. }
     { rewrite rsr_map_bt; auto.
@@ -1315,13 +1316,9 @@ Proof using.
     { rewrite rsr_map_bt; auto.
       rewrite rsr_mapper, !updo; auto.
       unfold id; ins.
-      eapply sb_trans; eauto.
-      unfold sb; unfolder; splits; auto.
-      apply PRED. }
+      apply sb_trans with b_t; auto. }
     rewrite !rsr_mapper, !updo; auto. }
-  { unfolder in BA. desf.
-    unfold sb; unfolder; splits; auto.
-    apply PRED. }
+  { unfolder in BA. desf. }
   assert (INX : E_t x).
   { apply wf_sbE in SB; unfolder in SB; desf. }
   assert (INY : E_t y).
