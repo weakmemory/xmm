@@ -657,7 +657,9 @@ Proof using.
   arewrite (dtrmt' ∩₁ extra_a X_t' a_t' b_t' b_t' ≡₁ ∅).
   { split; [| auto with hahn].
     rewrite reexec_extra_a_ncmt; eauto.
-    admit. }
+    unfold dtrmt', cmt'.
+    rewrite (WCore.dtrmt_cmt GREEXEC).
+    clear. basic_solver. }
   apply union_mori; [| basic_solver].
 Admitted.
 
