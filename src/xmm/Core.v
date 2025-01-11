@@ -459,7 +459,8 @@ Record commit_embedded : Prop :=
 
 Record reexec_gen thrdle : Prop :=
 { (* Correct start *)
-  dtrmt_cmt : dtrmt ⊆₁ f ↑₁ cmt;
+  dtrmt_cmt : dtrmt ⊆₁ cmt;
+  dtrmt_fixed : fixset dtrmt f;
   reexec_embd_dom : cmt ⊆₁ E';
   reexec_sur : stable_uncmt_reads_gen thrdle;
   reexec_dtrmt_sb_closed : sb ⨾ ⦗dtrmt⦘ ⊆ ⦗dtrmt⦘ ⨾ sb ⨾ ⦗dtrmt⦘;

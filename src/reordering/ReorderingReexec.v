@@ -302,8 +302,6 @@ Proof using.
   ).
   { apply (rc_step CTX). }
   red in GREEXEC. destruct GREEXEC as (thrdle & GREEXEC).
-  assert (DE : dtrmt ⊆₁ E_t).
-  { now rewrite (WCore.dtrmt_cmt GREEXEC), (WCore.reexec_embd_acts (WCore.reexec_embd_corr GREEXEC)). }
   rewrite (rsr_mapper (rc_simrel CTX)); auto.
   unfold mapper'.
   destruct classic with (dtrmt b_t) as [DB|NDB].
@@ -316,15 +314,18 @@ Proof using.
     apply (rexec_dtrmt_sb_dom GREEXEC).
     unfolder. exists a_t, a_t. splits; auto.
     unfold sb. unfolder; splits; auto.
-    { now apply (rsr_at_bt_ord (rc_inv_start CTX)), DE. }
-    apply CTX. }
-  assert (NDB' : ~ dtrmt b_t').
-  { intro FALSO. apply (rc_b_dtrmt CTX) in FALSO.
-    auto. }
-  assert (NDA' : ~ dtrmt a_t').
-  { intro FALSO. apply (rc_a_dtrmt CTX) in FALSO.
-    auto. }
-  now rewrite !updo by congruence.
+    { apply (rsr_at_bt_ord (rc_inv_start CTX)),
+            (rexec_dtrmt_in_start GREEXEC), FALSO. }
+    { apply CTX. }
+    apply (rexec_dtrmt_in_start GREEXEC), FALSO. }
+  { assert (NDB' : ~ dtrmt b_t').
+    { intro FALSO. apply (rc_b_dtrmt CTX) in FALSO.
+      auto. }
+    assert (NDA' : ~ dtrmt a_t').
+    { intro FALSO. apply (rc_a_dtrmt CTX) in FALSO.
+      auto. }
+    now rewrite !updo by congruence. }
+  apply (rexec_dtrmt_in_start GREEXEC), D.
 Qed.
 
 Lemma intermediate_graph_wf
@@ -694,21 +695,25 @@ Proof using.
   (**)
   red. exists thrdle.
   constructor.
-  { unfold dtrmt', f', cmt'.
-    arewrite (mapper' ↑₁ (dtrmt \₁ extra_b) ≡₁
-              mapper  ↑₁ (dtrmt \₁ extra_b)).
-    { symmetry.
-      apply set_collect_eq_dom.
-      eapply eq_dom_mori; eauto using mapd.
-      unfold flip. basic_solver. }
-    rewrite (WCore.dtrmt_cmt GREEXEC).
-    rewrite set_collect_compose.
-    transitivity ((mapper ∘ f) ↑₁ (mapper_inv' ↑₁ (mapper' ↑₁ cmt)));
-      [|basic_solver 11].
-    rewrite <- set_collect_compose with (g := mapper_inv').
-    rewrite mapper_inv_r_inv, set_collect_id; [| apply CTX].
-    rewrite set_collect_compose.
-    basic_solver 11. }
+  { unfold dtrmt', cmt'.
+    apply set_collect_mori; auto.
+    transitivity dtrmt; [basic_solver |].
+    apply (WCore.dtrmt_cmt GREEXEC). }
+  { unfold f', dtrmt'.
+    assert (EQDOM : eq_dom (dtrmt \₁ extra_b) mapper' mapper).
+    { arewrite (dtrmt \₁ extra_b ⊆₁ dtrmt) by basic_solver.
+      unfolder. ins. symmetry. now apply mapd. }
+    rewrite set_collect_eq_dom with (g := mapper); auto.
+    rewrite Combinators.compose_assoc.
+    apply fixset_swap.
+    apply fixset_eq_dom
+      with (g := f ∘ mapper_inv' ∘ mapper').
+    { admit. }
+    eapply fixset_mori; try now apply GREEXEC.
+    { red. clear. basic_solver. }
+    now rewrite Combinators.compose_assoc,
+                mapper_inv_r_inv,
+                Combinators.compose_id_right. }
   { unfold cmt'.
     rewrite (rc_acts CTX), (WCore.reexec_embd_dom GREEXEC).
     basic_solver. }
