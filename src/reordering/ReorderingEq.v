@@ -233,35 +233,21 @@ Proof using SIMREL PRED.
       classic with (y' = b_t) as [YEB|YNB].
     all: desf.
     { exfalso. now apply sb_irr with G_t a_t. }
-    { rewrite (rsr_map_at INA SIMREL),
-              (rsr_map_bt INB SIMREL); auto. }
-    { rewrite (rsr_map_at INA SIMREL); auto.
-      rewrite (rsr_mapper SIMREL), !updo; auto.
-      unfold id; ins.
-      apply sb_trans with a_t; auto. }
-    { tauto. }
-    { exfalso. now apply sb_irr with G_t b_t. }
-    { rewrite (rsr_map_bt INB SIMREL); auto.
-      rewrite (rsr_mapper SIMREL), !updo; auto.
-      unfold id; ins.
-      destruct sb_semi_total_l
+    all: rewrite ?(rsr_map_at INA SIMREL), ?(rsr_map_bt INB SIMREL).
+    all: rewrite ?(rsr_mapper SIMREL), ?updo; auto.
+    all: unfold id; ins.
+    all: try now (solve [eapply sb_trans; eauto] || tauto).
+    { exfalso. eapply sb_irr; eauto. }
+    { destruct sb_semi_total_l
           with (x := b_t) (y := a_t) (z := y') (G := G_t)
             as [LSB | RSB].
       all: auto; try now apply PRED.
       exfalso. now apply ABIMM with y'. }
-    { rewrite (rsr_map_at INA SIMREL); auto.
-      rewrite (rsr_mapper SIMREL), !updo; auto.
-      unfold id; ins.
-      destruct sb_semi_total_r
-          with (x := a_t) (y := x') (z := b_t) (G := G_t)
-            as [LSB | RSB].
-      all: auto; try now apply PRED.
-      exfalso. now apply ABIMM with x'. }
-    { rewrite (rsr_map_bt INB SIMREL); auto.
-      rewrite (rsr_mapper SIMREL), !updo; auto.
-      unfold id; ins.
-      apply sb_trans with b_t; auto. }
-    rewrite !(rsr_mapper SIMREL), !updo; auto. }
+    destruct sb_semi_total_r
+        with (x := a_t) (y := x') (z := b_t) (G := G_t)
+          as [LSB | RSB].
+    all: auto; try now apply PRED.
+    exfalso. now apply ABIMM with x'. }
   { unfolder in BA. desf. }
   assert (INX : E_t x).
   { apply wf_sbE in SB; unfolder in SB; desf. }
@@ -273,7 +259,7 @@ Proof using SIMREL PRED.
     classic with (y = a_t) as [YEA|YNA],
     classic with (y = b_t) as [YEB|YNB].
   all: desf.
-  { exfalso; eapply sb_irr; eauto. }
+  all: try now (exfalso; eapply sb_irr; eauto).
   { exfalso; eapply sb_irr, sb_trans; eauto. }
   { left. exists b_t, y.
     rewrite (rsr_map_bt INB SIMREL); auto.
@@ -283,7 +269,6 @@ Proof using SIMREL PRED.
     split; [eapply sb_trans; eauto|].
     unfolder; apply or_not_and; now right. }
   { basic_solver. }
-  { exfalso; eapply sb_irr; eauto. }
   { left. exists a_t, y.
     rewrite (rsr_map_at INA SIMREL); auto.
     rewrite (rsr_mapper SIMREL); auto.
@@ -394,25 +379,9 @@ Proof using PRED SIMREL.
       desf. apply (rsr_bt_ninit PRED).
       unfold is_init. desf. }
     unfolder. intros x ((XIN & NEQ) & TID).
-    destruct PeanoNat.Nat.lt_total
-        with (index x) (index b_t)
-          as [LT | [EQ | GT]].
-    { exists b_t; split; auto.
-      unfold sb, index, ext_sb in *.
-      unfolder. splits; auto.
-      desf; ins; desf; lia. }
-    { exfalso.
-      unfold tid, index in *. desf.
-      { apply (rsr_bt_ninit PRED).
-        unfold is_init. desf. }
-      { apply (rsr_bt_tid PRED).
-        unfold tid. desf. }
-      apply (rsr_bt_ninit PRED).
-      unfold is_init. desf. }
-    exfalso. eapply (rsr_bt_max PRED); auto.
-    unfolder. splits; eauto.
-    unfold sb, ext_sb, index in *.
-    unfolder; splits; eauto. desf; lia. }
+    destruct (rsr_bt_max' x PRED INB)
+          as [EQ | SB].
+    all: eauto || congruence. }
   rewrite cross_false_l, !cross_false_r,
           !union_false_r.
   assert (INA : E_t a_t) by tauto.
