@@ -424,30 +424,28 @@ Lemma extra_sbE :
   extra_sb \ (nin_sb G_t) ⨾ extra_sb ≡
     extra_a b_t × eq a_t.
 Proof using PRED SIMREL.
-  assert (ABSB : sb_t b_t a_t).
-  { admit. }
-  assert (NIB : ~is_init b_t).
-  { admit. }
+  assert (NIB : ~is_init b_t) by apply PRED.
+  assert (BT : tid b_t <> tid_init) by apply (rsr_bt_tid PRED).
   unfold extra_sb, extra_a.
   desf; [| clear; basic_solver].
   split.
   { intros x y (EQ & MAX).
     assert (NIX : ~is_init x).
-    { admit. }
-    unfolder in EQ.
-    destruct EQ as ((XIN & XT) & YEQ).
-    subst y. unfolder. split; auto.
-    destruct (rsr_bt_max' x PRED) as [SB | EQ].
-    all: desf.
-    exfalso. apply MAX.
-    unfolder. exists b_t; splits; desf.
-    unfold nin_sb. unfolder; split; auto. }
+    { intro FALSO. unfold is_init in FALSO.
+      desf. apply BT. forward apply EQ.
+      clear. basic_solver. }
+    enough (XB : x = b_t).
+    { forward apply EQ. basic_solver. }
+    destruct (rsr_bt_max' x PRED) as [SB | EQ'].
+    all: desf; try apply EQ.
+    exfalso. apply MAX. forward apply EQ.
+    unfold nin_sb. basic_solver 11. }
   intros x y (XEQ & YEQ); subst.
   split; [basic_solver |].
   unfold nin_sb. unfolder. intros FALSO; desf.
   eapply (rsr_bt_max PRED); eauto.
   unfolder; splits; eauto.
-Admitted.
+Qed.
 
 Lemma rsr_sbE_imm :
   immediate (nin_sb G_s) ≡
@@ -457,28 +455,11 @@ Proof using PRED SIMREL.
   assert (NINA : ~is_init a_t) by apply PRED.
   rewrite rsr_ninsbE; auto.
   rewrite immediate_union.
-  { arewrite (immediate extra_sb ≡ extra_sb).
-    { rewrite immediateE.
-      arewrite_false (extra_sb ⨾ extra_sb); [| basic_solver].
-      unfold extra_sb. unfold extra_a; desf; basic_solver. }
-    arewrite (
-      extra_sb ∩ (extra_sb \ (nin_sb G_t) ⨾ extra_sb) ≡
-        extra_sb \ (nin_sb G_t) ⨾ extra_sb
-    ); [| reflexivity].
-    rewrite inter_absorb_l; [reflexivity |].
-    basic_solver. }
-  { unfold extra_sb.
-    unfold extra_a; desf; [| basic_solver].
-    unfold nin_sb.
-    rewrite wf_sbE. basic_solver. }
-  { unfold nin_sb.
-    rewrite wf_sbE. unfold extra_sb.
-    unfold extra_a; desf; [| basic_solver].
-    basic_solver 11. }
-  unfold nin_sb.
-  rewrite wf_sbE. unfold extra_sb.
-  unfold extra_a; desf; [| basic_solver].
-  basic_solver 11.
+  { rewrite immediateE with (r := extra_sb).
+    arewrite_false (extra_sb ⨾ extra_sb); [| basic_solver 7].
+    unfold extra_sb, extra_a; desf; basic_solver. }
+  all: unfold extra_sb, extra_a, nin_sb; desf.
+  all: rewrite wf_sbE; basic_solver.
 Qed.
 
 End ReordEquivLemmas.
