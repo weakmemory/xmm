@@ -651,9 +651,13 @@ Proof using.
      with (X_s := X_s') (X_t := X_t') (a_t := a_t') (b_t := b_t').
   all: eauto using rc_inv_end, reexec_simrel.
   rewrite !seq_union_l, !seq_union_r.
-  apply union_mori.
-  { admit. }
-  admit.
+  rewrite extra_sbE; eauto using rc_inv_end, reexec_simrel.
+  seq_rewrite <- cross_inter_l.
+  arewrite (dtrmt' ∩₁ extra_a X_t' a_t' b_t' b_t' ≡₁ ∅).
+  { split; [| auto with hahn].
+    rewrite reexec_extra_a_ncmt; eauto.
+    admit. }
+  apply union_mori; [| basic_solver].
 Admitted.
 
 Lemma reexec_step
