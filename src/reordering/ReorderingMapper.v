@@ -183,10 +183,32 @@ Proof using.
   now rewrite EQ, rsr_mapper_at.
 Qed.
 
+Lemma rsr_mapper_self_inv x
+    (NEQ : a_t <> b_t) :
+  mapper (mapper x) = x.
+Proof using.
+  unfold mapper at 2.
+  unfold id at 1.
+  destruct classic with (x = b_t) as [XB|XNB].
+  { desf. rewrite upds, rsr_mapper_at; auto. }
+  destruct classic with (x = a_t) as [XA|XNA].
+  { desf. rewrite updo, upds, rsr_mapper_bt; auto. }
+  rewrite !updo, rsr_mappero; auto.
+Qed.
+
+Lemma rsr_mapper_compose
+    (NEQ : a_t <> b_t) :
+  mapper ∘ mapper = id.
+Proof using.
+  apply functional_extensionality. ins.
+  now apply rsr_mapper_self_inv.
+Qed.
+
 End ReordMapper.
 
 #[global]
 Hint Resolve rsr_mapper_at rsr_mapper_bt
   rsr_mappero rsr_mapper_tid rsr_mapper_inj
   rsr_mapper_inv_at rsr_mapper_bt
-  rsr_mapper_tid' rsr_mapper_tid : xmm.
+  rsr_mapper_tid' rsr_mapper_tid
+  rsr_mapper_self_inv : xmm.
