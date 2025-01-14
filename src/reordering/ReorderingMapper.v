@@ -183,9 +183,10 @@ Proof using.
   now rewrite EQ, rsr_mapper_at.
 Qed.
 
+End ReordMapper.
+
+#[global]
 Hint Resolve rsr_mapper_at rsr_mapper_bt
   rsr_mappero rsr_mapper_tid rsr_mapper_inj
   rsr_mapper_inv_at rsr_mapper_bt
   rsr_mapper_tid' rsr_mapper_tid : xmm.
-
-End ReordMapper.
