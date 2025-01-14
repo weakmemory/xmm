@@ -480,10 +480,15 @@ Proof using.
     all: eapply rexec_dtrmt_in_start; eauto.
     { erewrite <- (rsr_mapper_inv_bt y NEQ); eauto. }
     erewrite <- rsr_mapper_inv_bt; eauto. }
-  arewrite (A_s ⊆₁ tid ↓₁ (tid ↑₁ A_s')).
+  assert (SUB : A_s ⊆₁
+    tid ↓₁ WCore.reexec_thread X_t' dtrmt ∪₁
+      tid ↓₁ (tid ↑₁ A_s')
+  ).
   { admit. }
-  apply set_subset_union; auto with hahn.
-  rewrite <- set_collect_minus; [| admit].
+  apply set_subset_union_l. split; auto.
+  apply set_subset_union_r; left.
+  rewrite <- set_collect_minus;
+    [| eapply inj_dom_mori; eauto with xmm; red; auto with hahn].
   rewrite <- reexec_thread_mapper; eauto.
   apply set_collect_mori; auto.
   rewrite set_minus_minus_r.
