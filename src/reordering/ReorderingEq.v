@@ -72,38 +72,118 @@ Notation "'extra_a'" := (extra_a X_t a_t b_t).
 Hypothesis PRED : reord_step_pred X_t a_t b_t.
 Hypothesis SIMREL : reord_simrel X_s X_t a_t b_t mapper.
 
+Lemma rsr_setE_iff s
+    (SUB : s ⊆₁ E_t)
+    (IFF : (s b_t /\ s a_t) \/ (~s b_t /\ ~s a_t)) :
+  mapper ↑₁ s ≡₁ s.
+Proof using PRED SIMREL.
+  rewrite set_collect_eq_dom
+     with (g := upd (upd id a_t b_t) b_t a_t).
+  all: try eapply eq_dom_mori; eauto using rsr_mapper.
+  rewrite set_union_minus
+     with (s := s) (s' := s ∩₁ (eq b_t ∪₁ eq a_t))
+       by basic_solver.
+  rewrite set_collect_union. apply set_union_more.
+  { rewrite set_collect_eq_dom
+       with (g := id); [basic_solver|].
+    unfolder. ins. rewrite !updo; auto.
+    all: symmetry; tauto. }
+  rewrite set_inter_union_r, set_collect_union.
+  destruct IFF as [BOTH | NON].
+  { rewrite !set_inter_absorb_l,
+            !set_collect_eq, upds,
+            updo, upds.
+    all: try now apply PRED.
+    all: desf; basic_solver. }
+  arewrite (s ∩₁ eq b_t ≡₁ ∅) by basic_solver.
+  arewrite (s ∩₁ eq a_t ≡₁ ∅) by basic_solver.
+  basic_solver.
+Qed.
+
+Lemma rsr_setE_niff s
+    (SUB : s ⊆₁ E_t)
+    (NIFF : s b_t /\ ~s a_t) :
+  mapper ↑₁ s ≡₁ s \₁ eq b_t ∪₁ eq a_t.
+Proof using PRED SIMREL.
+  rewrite set_collect_eq_dom
+     with (g := upd (upd id a_t b_t) b_t a_t).
+  all: try eapply eq_dom_mori; eauto using rsr_mapper.
+  rewrite set_union_minus
+     with (s := s) (s' := s ∩₁ (eq b_t ∪₁ eq a_t))
+       by basic_solver.
+  rewrite set_collect_union. apply set_union_more.
+  { arewrite (s ∩₁ (eq b_t ∪₁ eq a_t) ≡₁ s ∩₁ eq b_t).
+    { basic_solver. }
+    rewrite set_minus_union_l.
+    arewrite (s ∩₁ eq b_t \₁ eq b_t ≡₁ ∅).
+    { basic_solver. }
+    rewrite set_union_empty_r.
+    arewrite ((s \₁ s ∩₁ eq b_t) \₁ eq b_t ≡₁ s \₁ s ∩₁ eq b_t).
+    { basic_solver 11. }
+    rewrite set_collect_eq_dom
+       with (g := id); [basic_solver|].
+    unfolder. ins. rewrite !updo; auto.
+    all: symmetry; tauto || (desf; congruence). }
+  destruct NIFF as (INB & NINA).
+  rewrite set_inter_union_r, set_collect_union.
+  rewrite set_inter_absorb_l by basic_solver.
+  arewrite (s ∩₁ eq a_t ≡₁ ∅) by basic_solver.
+  rewrite set_collect_empty, set_union_empty_r.
+  now rewrite set_collect_eq, upds.
+Qed.
+
+Lemma rsr_setE_ex s
+    (SUB : s ⊆₁ E_t)
+    (EX : ~s b_t /\ s a_t) :
+  mapper ↑₁ s ≡₁ s \₁ eq a_t ∪₁ eq b_t.
+Proof using PRED SIMREL.
+  rewrite set_collect_eq_dom
+     with (g := upd (upd id a_t b_t) b_t a_t).
+  all: try eapply eq_dom_mori; eauto using rsr_mapper.
+  rewrite set_union_minus
+     with (s := s) (s' := s ∩₁ (eq b_t ∪₁ eq a_t))
+       by basic_solver.
+  rewrite set_collect_union. apply set_union_more.
+  { arewrite (s ∩₁ (eq b_t ∪₁ eq a_t) ≡₁ s ∩₁ eq a_t).
+    { basic_solver. }
+    rewrite set_minus_union_l.
+    arewrite (s ∩₁ eq a_t \₁ eq a_t ≡₁ ∅).
+    { basic_solver. }
+    rewrite set_union_empty_r.
+    arewrite ((s \₁ s ∩₁ eq a_t) \₁ eq a_t ≡₁ s \₁ s ∩₁ eq a_t).
+    { basic_solver 11. }
+    rewrite set_collect_eq_dom
+       with (g := id); [basic_solver|].
+    unfolder. ins. rewrite !updo; auto.
+    all: symmetry; tauto || (desf; congruence). }
+  destruct EX as (NINB & INA).
+  rewrite set_inter_union_r, set_collect_union.
+  arewrite (s ∩₁ eq b_t ≡₁ ∅) by basic_solver.
+  rewrite set_inter_absorb_l by basic_solver.
+  rewrite set_collect_empty, set_union_empty_l.
+  rewrite set_collect_eq, updo, upds.
+  all: reflexivity || apply PRED.
+Qed.
+
 Lemma rsr_actsE :
   E_s ≡₁ E_t ∪₁ extra_a a_t.
 Proof using SIMREL PRED.
   rewrite (rsr_acts SIMREL).
-  rewrite set_union_minus
-     with (s := E_t) (s' := E_t ∩₁ (eq b_t ∪₁ eq a_t))
-       by basic_solver.
-  rewrite set_collect_union, !set_unionA.
-  apply set_union_more.
-  { rewrite set_collect_eq_dom
-       with (g := id); [basic_solver |].
-    unfolder; ins; desf.
-    rewrite (rsr_mapper SIMREL); auto.
-    unfold id. rewrite !updo; auto. }
   unfold extra_a; desf.
-  { assert (INB : E_t b_t) by desf.
-    arewrite (E_t ∩₁ (eq b_t ∪₁ eq a_t) ≡₁ eq b_t).
-    { basic_solver. }
-    rewrite set_collect_eq, (rsr_map_bt INB SIMREL).
-    basic_solver. }
-  rewrite !set_union_empty_r, set_inter_union_r,
-          set_collect_union.
-  assert (ORD : E_t a_t -> E_t b_t) by apply PRED.
+  { rewrite rsr_setE_niff by desf.
+    rewrite set_union_minus
+       with (s := E_t) (s' := eq b_t)
+         at 2.
+    all: basic_solver. }
+  rewrite !set_union_empty_r.
+  apply rsr_setE_iff; [reflexivity |].
   assert (ORE : E_t a_t \/ ~E_t b_t) by tauto.
-  destruct ORE as [INA | NINB];
-    [| unfolder; splits; ins; desf; tauto].
-  assert (INB : E_t b_t) by tauto.
-  rewrite !set_inter_absorb_l by basic_solver.
-  rewrite !set_collect_eq,
-          (rsr_map_at INA SIMREL),
-          (rsr_map_bt INB SIMREL).
-  basic_solver.
+  destruct ORE as [INA | NINB].
+  { left. split; auto.
+    now apply (rsr_at_bt_ord PRED). }
+  right. split; auto.
+  intro FALSO. apply NINB.
+  now apply (rsr_at_bt_ord PRED).
 Qed.
 
 Lemma rsr_sbs_dom_disjunct :
