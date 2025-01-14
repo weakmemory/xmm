@@ -328,7 +328,7 @@ Proof using.
 Admitted.
 
 Definition extra_b :=
-  ifP E_t' a_t /\ ~dtrmt a_t /\ dtrmt b_t then eq b_t
+  ifP ~dtrmt a_t /\ dtrmt b_t then eq b_t
   else ∅.
 Definition extra_d :=
   ifP
@@ -410,9 +410,8 @@ Proof using.
     unfold extra_b, extra_d; intro FALSO; do 2 desf.
     all: enough (E_t' a_t) by eauto.
     all: try now apply (WCore.reexec_embd_dom GREEXEC).
-    eapply rexec_dtrmt_in_fin; eauto.
-    erewrite <- rsr_mapper_inv_bt; eauto. }
-  apply set_union_more; [| reflexivity].
+    all: eapply rexec_dtrmt_in_fin; eauto.
+    all: erewrite <- (rsr_mapper_inv_bt y); eauto. }
   unfold extra_d; desf.
   { assert (INA : E_t' a_t).
     { apply (WCore.reexec_embd_dom GREEXEC). desf. }
@@ -425,7 +424,8 @@ Proof using.
     unfold extra_b; desf; [exfalso; tauto |].
     arewrite (dtrmt \₁ ∅ ≡₁ dtrmt) by basic_solver.
     rewrite rsr_setE_iff; eauto.
-    unfold a_s. apply tid_map_replace.
+    unfold a_s.
+    apply set_union_more; [apply tid_map_replace | reflexivity].
     { clear. basic_solver 11. }
     rewrite set_minus_union_r.
     unfolder. intros x (XIN & NDX).
@@ -434,14 +434,27 @@ Proof using.
   rewrite set_union_empty_r.
   unfold extra_b; desf.
   { assert (INB : E_t' b_t).
-    { now apply (rsr_at_bt_ord (rc_inv_end CTX)). }
-    rewrite rsr_setE_iff; desf; eauto.
-    rewrite rsr_setE_iff; eauto;
-      [| desf; unfolder; tauto].
-    rewrite set_minus_minus_r, set_collect_union.
-    split; [| auto with hahn].
-    apply set_subset_union_l; split; auto.
-    transitivity (eq (tid a_t)); basic_solver. }
+    { eapply rexec_dtrmt_in_fin; eauto. desf. }
+    destruct classic with (E_t' a_t) as [INA|NINA].
+    { apply set_union_more; [| reflexivity].
+      rewrite rsr_setE_iff; desf; eauto.
+      rewrite rsr_setE_iff; eauto;
+        [| desf; unfolder; tauto].
+      rewrite set_minus_minus_r, set_collect_union.
+      split; [| auto with hahn].
+      apply set_subset_union_l; split; auto.
+      transitivity (eq (tid a_t)); basic_solver. }
+    rewrite <- set_collect_minus;
+      [| eapply inj_dom_mori; eauto with xmm; red; auto with hahn].
+    rewrite set_minus_minus_r, !set_collect_union.
+    arewrite (tid ↑₁ (mapper ↑₁ (E_t' ∩₁ eq b_t)) ≡₁ tid ↑₁ A_s').
+    { rewrite extra_a_some by auto.
+      rewrite set_inter_absorb_l by (clear - INB; basic_solver).
+      rewrite set_collect_eq, rsr_mapper_bt; eauto.
+      clear - TEQ. basic_solver. }
+    rewrite rsr_setE_iff; eauto.
+    { clear. basic_solver 11. }
+    right. unfolder; tauto. }
   arewrite (dtrmt \₁ ∅ ≡₁ dtrmt) by basic_solver.
   rewrite <- set_collect_minus;
     [| eapply inj_dom_mori; eauto with xmm; red; auto with hahn].
@@ -523,17 +536,28 @@ Proof using.
     erewrite <- rsr_mapper_inv_bt; eauto. }
   apply set_subset_union_l.
   split; eauto using reexec_acts_s_helper.
-  apply set_subset_union_r; left.
   rewrite <- set_collect_minus;
     [| eapply inj_dom_mori; eauto with xmm; red; auto with hahn].
   rewrite <- reexec_thread_mapper; eauto.
-  apply set_collect_mori; auto.
-  rewrite set_minus_minus_r.
+  rewrite set_minus_minus_r, set_collect_union.
   apply set_subset_union_l. split.
-  { rewrite (WCore.rexec_acts GREEXEC). basic_solver. }
+  { apply set_subset_union_r. left.
+    rewrite (WCore.rexec_acts GREEXEC). basic_solver. }
   unfold extra_b. desf; [| basic_solver].
-  unfolder. ins. desf.
-  rewrite <- TID. unfold WCore.reexec_thread.
+  destruct classic with (E_t' a_t) as [INA | NINA].
+  { apply set_subset_union_r. left.
+    apply set_collect_mori; auto.
+    unfolder. ins. desf.
+    rewrite <- TID. unfold WCore.reexec_thread.
+    basic_solver. }
+  assert (INB' : E_t' b_t).
+  { eapply rexec_dtrmt_in_fin; eauto. desf. }
+  rewrite extra_a_some; auto.
+  assert (INB : E_t b_t).
+  { eapply rexec_dtrmt_in_start; eauto. desf. }
+  rewrite set_inter_absorb_l by basic_solver.
+  apply set_subset_union_r. right.
+  rewrite set_collect_eq, rsr_mapper_bt; auto.
   basic_solver.
 Qed.
 
@@ -607,7 +631,8 @@ Proof using.
     assert (NDA : ~dtrmt a_t).
     { intro FALSO. eapply NINA, rexec_dtrmt_in_fin; eauto. }
     unfold dtrmt', extra_b, extra_d, cmt'; desf; desf.
-    rewrite set_union_empty_r.
+    all: rewrite set_union_empty_r.
+    { admit. }
     arewrite (dtrmt \₁ ∅ ≡₁ dtrmt) by basic_solver.
     admit. }
   admit.
