@@ -572,6 +572,7 @@ Lemma imm_sb_d_s thrdle
   ⦗dtrmt'⦘ ⨾ immediate (nin_sb G_s') ⨾ ⦗cmt'⦘ ⊆
     ⦗dtrmt'⦘ ⨾ immediate (nin_sb G_s') ⨾ ⦗dtrmt'⦘.
 Proof using.
+  assert (NEQ : a_t <> b_t) by apply CTX.
   rewrite rsr_sbE_imm
      with (X_s := X_s') (X_t := X_t') (a_t := a_t) (b_t := b_t).
   all: eauto using rc_inv_end, reexec_simrel.
@@ -583,6 +584,33 @@ Proof using.
     rewrite reexec_extra_a_ncmt, dtrmt_in_cmt; eauto.
     clear. basic_solver. }
   apply union_mori; [| basic_solver].
+  destruct classic with (~ E_t' b_t) as [NINB | INB'].
+  { assert (NINA : ~ E_t' a_t).
+    { intro FALSO. now apply NINB, (rsr_at_bt_ord (rc_inv_end CTX)). }
+    assert (NCA : ~cmt a_t).
+    { intro FALSO. now apply NINA, (WCore.reexec_embd_dom GREEXEC). }
+    assert (NCB : ~cmt b_t).
+    { intro FALSO. now apply NINB, (WCore.reexec_embd_dom GREEXEC). }
+    assert (NDA : ~dtrmt a_t).
+    { intro FALSO. eapply NINA, rexec_dtrmt_in_fin; eauto. }
+    assert (NDB : ~dtrmt b_t).
+    { intro FALSO. eapply NINB, rexec_dtrmt_in_fin; eauto. }
+    unfold dtrmt', cmt', extra_b, extra_d; desf; desf.
+    rewrite set_union_empty_r.
+    arewrite (dtrmt \₁ ∅ ≡₁ dtrmt) by basic_solver.
+    rewrite 2!rsr_setE_iff; eauto.
+    apply (WCore.dtrmt_sb_max GREEXEC). }
+  assert (INB : E_t' b_t) by tauto; clear INB'.
+  destruct classic with (~ E_t' a_t) as [NINA | INA'].
+  { assert (NCA : ~cmt a_t).
+    { intro FALSO. now apply NINA, (WCore.reexec_embd_dom GREEXEC). }
+    assert (NDA : ~dtrmt a_t).
+    { intro FALSO. eapply NINA, rexec_dtrmt_in_fin; eauto. }
+    unfold dtrmt', extra_b, extra_d, cmt'; desf; desf.
+    rewrite set_union_empty_r.
+    arewrite (dtrmt \₁ ∅ ≡₁ dtrmt) by basic_solver.
+    admit. }
+  admit.
 Admitted.
 
 Lemma reexec_step
