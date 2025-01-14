@@ -351,13 +351,19 @@ Proof using.
   transitivity (mapper ↑₁ E_t);
     [| rewrite (rsr_acts (rc_simrel CTX)); basic_solver].
   rewrite <- (WCore.reexec_embd_acts (WCore.reexec_embd_corr GREEXEC)).
+  assert (INA : E_t' a_t).
+  { now apply (WCore.reexec_embd_dom GREEXEC). }
+  assert (NEQ : a_t <> b_t) by apply CTX.
   arewrite (
     eq a_s ≡₁ mapper ↑₁ (f ↑₁ eq a_t)
   ).
-  { admit. }
+  { unfold a_s. rewrite set_collect_eq.
+    rewrite (rc_f_a_t CTX); desf.
+    rewrite set_collect_eq, rsr_mapper_at.
+    all: auto with hahn. }
   do 2 (apply set_collect_mori; auto).
   basic_solver.
-Admitted.
+Qed.
 
 Lemma dtrmt_in_E_s thrdle
     (GREEXEC : WCore.reexec_gen X_t X_t' f dtrmt cmt thrdle)
