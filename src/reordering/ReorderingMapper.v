@@ -204,6 +204,94 @@ Proof using.
   now apply rsr_mapper_self_inv.
 Qed.
 
+Lemma rsr_setE_iff s
+    (NEQ : a_t <> b_t)
+    (IFF : (s b_t /\ s a_t) \/ (~s b_t /\ ~s a_t)) :
+  mapper ↑₁ s ≡₁ s.
+Proof using.
+  rewrite set_union_minus
+     with (s := s) (s' := s ∩₁ (eq b_t ∪₁ eq a_t))
+       by basic_solver.
+  rewrite set_collect_union. apply set_union_more.
+  { rewrite set_collect_eq_dom
+       with (g := id); [basic_solver|].
+    unfold mapper.
+    unfolder. ins. rewrite !updo; auto.
+    all: symmetry; tauto. }
+  rewrite set_inter_union_r, set_collect_union.
+  destruct IFF as [BOTH | NON].
+  { unfold mapper.
+    rewrite !set_inter_absorb_l,
+            !set_collect_eq, upds,
+            updo, upds.
+    all: desf; basic_solver. }
+  arewrite (s ∩₁ eq b_t ≡₁ ∅) by basic_solver.
+  arewrite (s ∩₁ eq a_t ≡₁ ∅) by basic_solver.
+  basic_solver.
+Qed.
+
+Lemma rsr_setE_niff s
+    (NEQ : a_t <> b_t)
+    (NIFF : s b_t /\ ~s a_t) :
+  mapper ↑₁ s ≡₁ s \₁ eq b_t ∪₁ eq a_t.
+Proof using.
+  rewrite set_union_minus
+     with (s := s) (s' := s ∩₁ (eq b_t ∪₁ eq a_t))
+       by basic_solver.
+  rewrite set_collect_union. apply set_union_more.
+  { arewrite (s ∩₁ (eq b_t ∪₁ eq a_t) ≡₁ s ∩₁ eq b_t).
+    { basic_solver. }
+    rewrite set_minus_union_l.
+    arewrite (s ∩₁ eq b_t \₁ eq b_t ≡₁ ∅).
+    { basic_solver. }
+    rewrite set_union_empty_r.
+    arewrite ((s \₁ s ∩₁ eq b_t) \₁ eq b_t ≡₁ s \₁ s ∩₁ eq b_t).
+    { basic_solver 11. }
+    rewrite set_collect_eq_dom
+       with (g := id); [basic_solver|].
+    unfolder. ins. unfold mapper.
+    rewrite !updo; auto.
+    all: symmetry; tauto || (desf; congruence). }
+  destruct NIFF as (INB & NINA).
+  rewrite set_inter_union_r, set_collect_union.
+  rewrite set_inter_absorb_l by basic_solver.
+  arewrite (s ∩₁ eq a_t ≡₁ ∅) by basic_solver.
+  rewrite set_collect_empty, set_union_empty_r.
+  unfold mapper. now rewrite set_collect_eq, upds.
+Qed.
+
+Lemma rsr_setE_ex s
+    (NEQ : a_t <> b_t)
+    (EX : ~s b_t /\ s a_t) :
+  mapper ↑₁ s ≡₁ s \₁ eq a_t ∪₁ eq b_t.
+Proof using.
+  rewrite set_union_minus
+     with (s := s) (s' := s ∩₁ (eq b_t ∪₁ eq a_t))
+       by basic_solver.
+  rewrite set_collect_union. apply set_union_more.
+  { arewrite (s ∩₁ (eq b_t ∪₁ eq a_t) ≡₁ s ∩₁ eq a_t).
+    { basic_solver. }
+    rewrite set_minus_union_l.
+    arewrite (s ∩₁ eq a_t \₁ eq a_t ≡₁ ∅).
+    { basic_solver. }
+    rewrite set_union_empty_r.
+    arewrite ((s \₁ s ∩₁ eq a_t) \₁ eq a_t ≡₁ s \₁ s ∩₁ eq a_t).
+    { basic_solver 11. }
+    rewrite set_collect_eq_dom
+       with (g := id); [basic_solver|].
+    unfold mapper.
+    unfolder. ins. rewrite !updo; auto.
+    all: symmetry; tauto || (desf; congruence). }
+  destruct EX as (NINB & INA).
+  rewrite set_inter_union_r, set_collect_union.
+  arewrite (s ∩₁ eq b_t ≡₁ ∅) by basic_solver.
+  rewrite set_inter_absorb_l by basic_solver.
+  rewrite set_collect_empty, set_union_empty_l.
+  unfold mapper.
+  rewrite set_collect_eq, updo, upds.
+  all: auto with hahn.
+Qed.
+
 End ReordMapper.
 
 #[global]

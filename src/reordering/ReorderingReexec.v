@@ -379,81 +379,68 @@ Lemma reexec_threads_s thrdle
     (CTX : reexec_conds) :
   WCore.reexec_thread X_s' dtrmt' ≡₁ WCore.reexec_thread X_t' dtrmt.
 Proof using.
+  assert (NEQ : a_t <> b_t) by apply CTX.
   unfold WCore.reexec_thread, dtrmt'.
   rewrite (rsr_acts (reexec_simrel CTX)).
   unfold extra_d; desf.
   { assert (INA : E_t' a_t) by admit.
     assert (INB : E_t' b_t) by admit.
     rewrite extra_a_none_l, set_union_empty_r; auto.
-    rewrite rsr_setE_iff.
-    all: eauto using rc_inv_end, reexec_simrel.
+    rewrite rsr_setE_iff; eauto.
     assert (ND : ~dtrmt b_t) by admit.
     unfold extra_b; desf; [exfalso; tauto |].
     arewrite (dtrmt \₁ ∅ ≡₁ dtrmt) by basic_solver.
-    rewrite rsr_setE_iff.
-    all: eauto using rc_inv_end, reexec_simrel.
-    { unfold a_s. apply tid_map_replace.
-      { admit. }
-      (* unfolder; ins; desf.
-      exists (ifP x = b_t then a_t else x); desf.
-      { splits; eauto; [apply and_not_or; split |].
-        all: auto; try apply CTX.
-        admit. }
-      splits; auto.
-      apply and_not_or. split; auto; congruence.  *)
+    rewrite rsr_setE_iff; eauto.
+    unfold a_s. apply tid_map_replace.
+    { admit. }
+    (* unfolder; ins; desf.
+    exists (ifP x = b_t then a_t else x); desf.
+    { splits; eauto; [apply and_not_or; split |].
+      all: auto; try apply CTX.
       admit. }
+    splits; auto.
+    apply and_not_or. split; auto; congruence.  *)
     admit. }
   rewrite set_union_empty_r.
   unfold extra_b; desf.
   { rewrite extra_a_none_l by desf.
     rewrite set_union_empty_r.
     assert (INB : E_t' b_t) by admit.
-    rewrite rsr_setE_iff.
-    all: eauto using rc_inv_end, reexec_simrel.
-    all: try now (desf; eauto).
-    rewrite rsr_setE_iff.
-    all: eauto using rc_inv_end, reexec_simrel.
-    { apply tid_map_replace.
-      { unfolder. ins. desf. exists x.
-        splits; auto. admit. }
-      (* unfolder; ins; desf.
-      exists (ifP x = b_t then a_t else x); desf.
-      splits; eauto. tauto. *)
-      admit. }
-    { admit. }
-    desf. unfolder. tauto. }
+    rewrite rsr_setE_iff; desf; eauto.
+    rewrite rsr_setE_iff; eauto; [| desf; unfolder; tauto].
+    apply tid_map_replace.
+    { unfolder. ins. desf. exists x.
+      splits; auto. admit. }
+    (* unfolder; ins; desf.
+    exists (ifP x = b_t then a_t else x); desf.
+    splits; eauto. tauto. *)
+    admit. }
   arewrite (dtrmt \₁ ∅ ≡₁ dtrmt) by basic_solver.
   unfold extra_a; desf.
-  { rewrite rsr_setE_niff.
-    all: eauto using rc_inv_end, reexec_simrel.
-    all: desf.
+  { rewrite rsr_setE_niff; desf; eauto.
     arewrite (E_t' \₁ eq b_t ∪₁ eq a_t ∪₁ eq b_t ≡₁ E_t' ∪₁ eq a_t).
     { unfolder; split; ins; desf; tauto. }
     assert (NA : ~dtrmt a_t) by admit.
     destruct classic with (dtrmt b_t) as [BD | BND].
-    { rewrite rsr_setE_niff.
-      all: eauto using rc_inv_end, reexec_simrel.
-      { arewrite (
-          (E_t' ∪₁ eq a_t) \₁ (dtrmt \₁ eq b_t ∪₁ eq a_t) ≡₁
-            E_t' \₁ (dtrmt \₁ eq b_t ∪₁ eq a_t)
-        ).
-        { unfolder; split; ins; desf; splits; eauto.
-          tauto. }
-        arewrite (
-          E_t' \₁ (dtrmt \₁ eq b_t ∪₁ eq a_t) ≡₁
-            E_t' \₁ (dtrmt \₁ eq b_t)
-        ).
-        { unfolder; split; ins; desf; splits; eauto.
-          intro FALSO; desf. tauto. }
-        (* apply tid_map_replace.
-        { unfolder; ins; desf; exists x; splits; auto.
-          admit. }
-        unfolder; ins; desf. admit. *)
+    { rewrite rsr_setE_niff; eauto.
+      arewrite (
+        (E_t' ∪₁ eq a_t) \₁ (dtrmt \₁ eq b_t ∪₁ eq a_t) ≡₁
+          E_t' \₁ (dtrmt \₁ eq b_t ∪₁ eq a_t)
+      ).
+      { unfolder; split; ins; desf; splits; eauto.
+        tauto. }
+      arewrite (
+        E_t' \₁ (dtrmt \₁ eq b_t ∪₁ eq a_t) ≡₁
+          E_t' \₁ (dtrmt \₁ eq b_t)
+      ).
+      { unfolder; split; ins; desf; splits; eauto.
+        intro FALSO; desf. tauto. }
+      (* apply tid_map_replace.
+      { unfolder; ins; desf; exists x; splits; auto.
         admit. }
+      unfolder; ins; desf. admit. *)
       admit. }
-    rewrite rsr_setE_iff.
-    all: eauto using rc_inv_end, reexec_simrel.
-    { admit. }
+    rewrite rsr_setE_iff; eauto.
     admit. }
   rewrite set_union_empty_r.
   rewrite <- set_collect_minus; [| admit].
@@ -467,6 +454,8 @@ Lemma reexec_thread_mapper thrdle
   mapper ↑₁ (tid ↓₁ WCore.reexec_thread X_t dtrmt) ≡₁
     tid ↓₁ WCore.reexec_thread X_t dtrmt.
 Proof using.
+  assert (NEQ : a_t <> b_t) by apply CTX.
+  eapply rsr_setE_iff; eauto.
   admit.
 Admitted.
 
@@ -962,13 +951,6 @@ Definition a_s := b_t.
 Definition b_s := a_t.
 Definition a_s' := b_t'.
 Definition b_s' := a_t'.
-
-Definition mapper := upd (upd id a_t' a_s') b_t' b_s'.
-
-Lemma mapeq : eq_dom dtrmt mapper mapper.
-Proof using CTX.
-  admit.
-Admitted.
 
 (* Intermediate graph for locating the srf edge for for a_s *)
 
