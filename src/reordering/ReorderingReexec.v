@@ -448,6 +448,15 @@ Proof using.
   all: unfolder; rewrite <- TID; auto.
 Qed.
 
+Lemma reexec_acts_s_helper thrdle
+    (GREEXEC : WCore.reexec_gen X_t X_t' f dtrmt cmt thrdle)
+    (CTX : reexec_conds) :
+  A_s ⊆₁ tid ↓₁ WCore.reexec_thread X_t' dtrmt ∪₁
+            tid ↓₁ (tid ↑₁ A_s').
+Proof using.
+  admit.
+Admitted.
+
 Lemma reexec_acts_s thrdle
     (GREEXEC : WCore.reexec_gen X_t X_t' f dtrmt cmt thrdle)
     (CTX : reexec_conds) :
@@ -480,12 +489,8 @@ Proof using.
     all: eapply rexec_dtrmt_in_start; eauto.
     { erewrite <- (rsr_mapper_inv_bt y NEQ); eauto. }
     erewrite <- rsr_mapper_inv_bt; eauto. }
-  assert (SUB : A_s ⊆₁
-    tid ↓₁ WCore.reexec_thread X_t' dtrmt ∪₁
-      tid ↓₁ (tid ↑₁ A_s')
-  ).
-  { admit. }
-  apply set_subset_union_l. split; auto.
+  apply set_subset_union_l.
+  split; eauto using reexec_acts_s_helper.
   apply set_subset_union_r; left.
   rewrite <- set_collect_minus;
     [| eapply inj_dom_mori; eauto with xmm; red; auto with hahn].
@@ -498,7 +503,7 @@ Proof using.
   unfolder. ins. desf.
   rewrite <- TID. unfold WCore.reexec_thread.
   basic_solver.
-Admitted.
+Qed.
 
 Lemma reexec_extra_a_ncmt thrdle
     (GREEXEC : WCore.reexec_gen X_t X_t' f dtrmt cmt thrdle)
