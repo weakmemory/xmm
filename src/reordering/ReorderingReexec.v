@@ -454,8 +454,22 @@ Lemma reexec_acts_s_helper thrdle
   A_s ⊆₁ tid ↓₁ WCore.reexec_thread X_t' dtrmt ∪₁
             tid ↓₁ (tid ↑₁ A_s').
 Proof using.
-  admit.
-Admitted.
+  assert (TEQ : tid a_t = tid b_t) by apply CTX.
+  unfold extra_a at 1; desf.
+  assert (NDA : ~ dtrmt a_t).
+  { intro FALSO. enough (E_t a_t) by desf.
+    eapply rexec_dtrmt_in_start; eauto. }
+  destruct classic with (dtrmt b_t) as [DB|NDB].
+  { unfold extra_a; desf; [basic_solver |].
+    assert (INB : E_t' b_t).
+    { eapply rexec_dtrmt_in_fin; eauto. }
+    assert (INA : E_t' a_t) by tauto.
+    apply set_subset_union_r. left.
+    unfold WCore.reexec_thread. basic_solver. }
+  assert (INB : E_t b_t) by desf.
+  apply (WCore.rexec_acts GREEXEC) in INB.
+  destruct INB as [DB | [_ OK]]; basic_solver.
+Qed.
 
 Lemma reexec_acts_s thrdle
     (GREEXEC : WCore.reexec_gen X_t X_t' f dtrmt cmt thrdle)
