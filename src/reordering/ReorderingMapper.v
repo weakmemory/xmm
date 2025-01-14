@@ -126,12 +126,11 @@ Proof using.
   rewrite !updo; auto.
 Qed.
 
-Lemma rsr_mapper_tid
+Lemma rsr_mapper_tid' x
     (TID : tid a_t = tid b_t) :
-  eq_dom ⊤₁ tid (tid ∘ mapper).
+  tid (mapper x) = tid x.
 Proof using.
-  unfold eq_dom, compose, mapper.
-  intros x _.
+  unfold mapper.
   destruct classic with (x = b_t) as [EQ|XNB].
   { subst. now rewrite upds. }
   rewrite updo; auto.
@@ -139,5 +138,54 @@ Proof using.
   { subst. now rewrite upds. }
   rewrite updo; auto.
 Qed.
+
+Lemma rsr_mapper_tid
+    (TID : tid a_t = tid b_t) :
+  eq_dom ⊤₁ (tid ∘ mapper) tid.
+Proof using.
+  unfold eq_dom, compose.
+  intros x _.
+  now apply rsr_mapper_tid'.
+Qed.
+
+Lemma rsr_mapper_inj
+    (NEQ : a_t <> b_t) :
+  inj_dom ⊤₁ mapper.
+Proof using.
+  unfold inj_dom, mapper.
+  intros x y _ _ FEQ.
+  destruct classic with (x = b_t) as [XB|XNB],
+           classic with (y = b_t) as [YB|YNB],
+           classic with (x = a_t) as [XA|XNA],
+           classic with (y = a_t) as [YA|YNA].
+  all: desf.
+  all: do 4 (
+    rewrite ?upds, 1?updo in FEQ by congruence
+  ).
+  all: unfold id in *; ins; try congruence.
+Qed.
+
+Lemma rsr_mapper_inv_at x
+    (NEQ : a_t <> b_t)
+    (EQ : mapper x = a_t) :
+  x = b_t.
+Proof using.
+  apply rsr_mapper_inj; try red; auto.
+  now rewrite EQ, rsr_mapper_bt.
+Qed.
+
+Lemma rsr_mapper_inv_bt x
+    (NEQ : a_t <> b_t)
+    (EQ : mapper x = b_t) :
+  x = a_t.
+Proof using.
+  apply rsr_mapper_inj; try red; auto.
+  now rewrite EQ, rsr_mapper_at.
+Qed.
+
+Hint Resolve rsr_mapper_at rsr_mapper_bt
+  rsr_mappero rsr_mapper_tid rsr_mapper_inj
+  rsr_mapper_inv_at rsr_mapper_bt
+  rsr_mapper_tid' rsr_mapper_tid : xmm.
 
 End ReordMapper.
