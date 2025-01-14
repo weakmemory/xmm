@@ -524,19 +524,15 @@ Lemma reexec_extra_a_ncmt thrdle
     (CTX : reexec_conds) :
   extra_a X_t' a_t b_t b_t ⊆₁ set_compl cmt'.
 Proof using.
-  (* unfold extra_a, cmt', extra_cmt. desf.
-  { exfalso.
-    enough (E_t' a_t') by desf.
-    apply (WCore.reexec_embd_dom GREEXEC).
-    desf. }
+  assert (NEQ : a_t <> b_t) by apply CTX.
+  unfold extra_a, cmt'. desf.
   unfolder. ins. desf.
-  intros [(y & CMT & MAP) | FAL]; auto.
+  intros (y & CMT & MAP).
   assert (YIN : E_t' y).
   { now apply (WCore.reexec_embd_dom GREEXEC). }
-  assert (YEQ : y = a_t').
-  { now apply reexec_mapinv_at. }
-  congruence. *)
-Admitted.
+  enough (E_t' a_t) by desf.
+  erewrite <- (rsr_mapper_inv_bt _ NEQ); eauto.
+Qed.
 
 Lemma dtrmt_in_cmt thrdle
     (GREEXEC : WCore.reexec_gen X_t X_t' f dtrmt cmt thrdle)
