@@ -1,5 +1,6 @@
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
+From imm Require Import Events Execution.
 
 Set Implicit Arguments.
 
@@ -34,4 +35,14 @@ Proof using.
     rewrite E_MAP. rewrite set_minus_union_l.
     rewrite set_minusK. rewrite set_union_empty_r.
     apply set_minus_disjoint; eauto.
+Qed.
+
+Lemma tid_map_replace (s s' : actid -> Prop)
+    (SUB1 : s ⊆₁ tid ↓₁ (tid ↑₁ s'))
+    (SUB2 : s' ⊆₁ tid ↓₁ (tid ↑₁ s)) :
+  tid ↑₁ s ≡₁ tid ↑₁ s'.
+Proof using.
+  split.
+  { now rewrite SUB1, collect_map_in_set. }
+  now rewrite SUB2, collect_map_in_set.
 Qed.
