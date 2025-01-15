@@ -558,8 +558,13 @@ Lemma rexec_dtrmt_in_start f dtrmt cmt thrdle
     (REXEC : WCore.reexec_gen X X' f dtrmt cmt thrdle) :
   dtrmt ⊆₁ E.
 Proof using.
-  rewrite (WCore.dtrmt_cmt REXEC).
-  now rewrite (WCore.reexec_embd_acts (WCore.reexec_embd_corr REXEC)).
+  arewrite (dtrmt ≡₁ id ↑₁ dtrmt) by basic_solver.
+  rewrite set_collect_eq_dom
+     with (g := f).
+  { rewrite (WCore.dtrmt_cmt REXEC).
+    apply (WCore.reexec_embd_acts (WCore.reexec_embd_corr REXEC)). }
+  unfolder. unfold id. ins. symmetry.
+  now apply (WCore.dtrmt_fixed REXEC).
 Qed.
 
 Lemma rexec_dtrmt_in_fin f dtrmt cmt thrdle

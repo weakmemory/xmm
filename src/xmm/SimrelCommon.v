@@ -3,7 +3,7 @@ From hahnExt Require Import HahnExt.
 From imm Require Import Events Execution.
 Require Import Program.Basics.
 
-Require Import Core.
+Require Import Core AuxDef.
 
 Open Scope program_scope.
 

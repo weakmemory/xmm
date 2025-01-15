@@ -23,22 +23,6 @@ Set Implicit Arguments.
     <acts_set; threads_set; lab; rmw; data; addr; ctrl; rmw_dep; rf; co>
 .
 
-Section RfComplete.
-
-Variable G : execution.
-Notation "'E'" := (acts_set G).
-Notation "'lab'" := (lab G).
-Notation "'R'" := (is_r lab).
-Notation "'rf'" := (rf G).
-
-Definition rf_complete : Prop :=
-    E ∩₁ R ⊆₁ codom_rel rf.
-
-Definition nin_sb : relation actid :=
-  ⦗fun e => ~ is_init e⦘ ⨾ sb G.
-
-End RfComplete.
-
 Section Race.
 Variable G : execution.
 Notation "'E'" := (acts_set G).
@@ -459,7 +443,8 @@ Record commit_embedded : Prop :=
 
 Record reexec_gen thrdle : Prop :=
 { (* Correct start *)
-  dtrmt_cmt : dtrmt ⊆₁ f ↑₁ cmt;
+  dtrmt_cmt : dtrmt ⊆₁ cmt;
+  dtrmt_fixed : fixset dtrmt f;
   reexec_embd_dom : cmt ⊆₁ E';
   reexec_sur : stable_uncmt_reads_gen thrdle;
   reexec_dtrmt_sb_closed : sb ⨾ ⦗dtrmt⦘ ⊆ ⦗dtrmt⦘ ⨾ sb ⨾ ⦗dtrmt⦘;

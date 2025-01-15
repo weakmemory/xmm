@@ -1,4 +1,4 @@
-Require Import ReordSimrel.
+Require Import ReordSimrel ReorderingEq.
 Require Import AuxDef.
 Require Import Core.
 Require Import AuxRel AuxRel2.

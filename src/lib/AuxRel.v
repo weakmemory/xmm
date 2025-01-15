@@ -324,3 +324,79 @@ Proof using.
   all: unfold inter_rel, inclusion, seq, eqv_rel.
   all: ins; desf; eauto.
 Qed.
+
+Lemma eq_dom_inj_dom {A B : Type}
+    (s : A -> Prop)
+    (f g : A -> B)
+    (EQ : eq_dom s f g) :
+  inj_dom s f <-> inj_dom s g.
+Proof using.
+  split; intros INJ.
+  all: unfold inj_dom; intros x y XIN YIN FEQ.
+  all: apply INJ; auto.
+  { now rewrite !EQ. }
+  now rewrite <- !EQ.
+Qed.
+
+Instance eq_dom_Reflexive A B s :
+  Reflexive (@eq_dom A B s).
+Proof using.
+  apply eq_dom_equivalence.
+Qed.
+
+Instance eq_dom_Symmetric A B s :
+  Symmetric (@eq_dom A B s).
+Proof using.
+  apply eq_dom_equivalence.
+Qed.
+
+Instance eq_dom_Trans A B s :
+  Transitive (@eq_dom A B s).
+Proof using.
+  apply eq_dom_equivalence.
+Qed.
+
+Instance eq_dom_Eqv A B s :
+  Equivalence (@eq_dom A B s).
+Proof using.
+  constructor.
+  { apply eq_dom_Reflexive. }
+  { eapply eq_dom_Symmetric. }
+  apply eq_dom_Trans.
+Qed.
+
+Lemma eq_dom_compose {A B C : Type}
+    (s : A -> Prop)
+    (f1 f2 : A -> B)
+    (g1 g2 : B -> C)
+    (EQ1 : eq_dom s f1 f2)
+    (EQ2 : eq_dom (f2 ↑₁ s) g1 g2) :
+  eq_dom s (g1 ∘ f1) (g2 ∘ f2).
+Proof using.
+  unfold eq_dom, compose in *.
+  intros x XIN.
+  rewrite EQ1, EQ2; auto.
+  unfold set_collect. eauto.
+Qed.
+
+Lemma eq_dom_compose_l {A B C : Type}
+    (s : A -> Prop)
+    (f : A -> B)
+    (g1 g2 : B -> C)
+    (GEQ : eq_dom (f ↑₁ s) g1 g2) :
+  eq_dom s (g1 ∘ f) (g2 ∘ f).
+Proof using.
+  apply eq_dom_compose; auto.
+  reflexivity.
+Qed.
+
+Lemma eq_dom_compose_r {A B C : Type}
+    (s : A -> Prop)
+    (f1 f2 : A -> B)
+    (g : B -> C)
+    (FEQ : eq_dom s f1 f2) :
+  eq_dom s (g ∘ f1) (g ∘ f2).
+Proof using.
+  apply eq_dom_compose; auto.
+  reflexivity.
+Qed.
