@@ -30,6 +30,22 @@ Definition left_dom {A} (r : relation A) (a : A) : A -> Prop :=
 Definition right_dom {A} (r : relation A) (a : A) : A -> Prop :=
   fun x => r a x.
 
+Section ExecDefs.
+
+Variable G : execution.
+Notation "'E'" := (acts_set G).
+Notation "'lab'" := (lab G).
+Notation "'R'" := (is_r lab).
+Notation "'rf'" := (rf G).
+
+Definition rf_complete : Prop :=
+    E ∩₁ R ⊆₁ codom_rel rf.
+
+Definition nin_sb : relation actid :=
+  ⦗fun e => ~ is_init e⦘ ⨾ sb G.
+
+End ExecDefs.
+
 #[global]
 Hint Unfold least_elt rmw_delta left_dom right_dom
             semi_total_l semi_total_r : unfolderDb.

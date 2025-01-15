@@ -23,22 +23,6 @@ Set Implicit Arguments.
     <acts_set; threads_set; lab; rmw; data; addr; ctrl; rmw_dep; rf; co>
 .
 
-Section RfComplete.
-
-Variable G : execution.
-Notation "'E'" := (acts_set G).
-Notation "'lab'" := (lab G).
-Notation "'R'" := (is_r lab).
-Notation "'rf'" := (rf G).
-
-Definition rf_complete : Prop :=
-    E ∩₁ R ⊆₁ codom_rel rf.
-
-Definition nin_sb : relation actid :=
-  ⦗fun e => ~ is_init e⦘ ⨾ sb G.
-
-End RfComplete.
-
 Section Race.
 Variable G : execution.
 Notation "'E'" := (acts_set G).
