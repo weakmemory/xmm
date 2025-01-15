@@ -1,6 +1,7 @@
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 From imm Require Import Events Execution.
+Require Import AuxDef.
 
 Set Implicit Arguments.
 
@@ -45,4 +46,29 @@ Proof using.
   split.
   { now rewrite SUB1, collect_map_in_set. }
   now rewrite SUB2, collect_map_in_set.
+Qed.
+
+Lemma sb_downward_total G
+    (WF : Wf G) :
+  downward_total (nin_sb G).
+Proof using.
+  unfold downward_total, nin_sb.
+  unfolder.
+  intros y z x
+    (y' & (EQY & YNIN) & SB1)
+    (z' & (EQZ & ZNIN) & SB2).
+  subst y' z'.
+  destruct classic with (y = z) as [EQ|NEQ].
+  { basic_solver. }
+  destruct sb_semi_total_r
+      with (x := x) (y := y) (z := z) (G := G)
+        as [YZ|ZY].
+  all: eauto 7.
+Qed.
+
+Lemma nin_sb_functional_l G
+    (WF : Wf G) :
+  functional ((immediate (nin_sb G))⁻¹).
+Proof using.
+  now apply dwt_imm_f, sb_downward_total.
 Qed.

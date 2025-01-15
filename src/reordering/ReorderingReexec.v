@@ -689,7 +689,18 @@ Proof using.
       [| basic_solver].
     enough (HH : dom_rel (⦗dtrmt⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗eq b_t⦘) ⊆₁ ∅).
     { forward apply HH. clear. basic_solver 7. }
-    clear - NBD. admit. }
+    clear - CTX NBD. intros x1 (b' & HSET). apply NBD.
+    intros x2 (b'' & IMMSB).
+    assert (b' = b_t); desf.
+    { forward apply HSET. clear. basic_solver. }
+    assert (b'' = b_t); desf.
+    { forward apply IMMSB. clear. basic_solver. }
+    enough (EQ : x1 = x2).
+    { subst x1. forward apply HSET. basic_solver. }
+    eapply nin_sb_functional_l with (G := G_t').
+    { apply CTX. }
+    { forward apply HSET. clear. basic_solver. }
+    forward apply IMMSB. clear. basic_solver. }
   destruct classic with (dtrmt b_t) as [DB|NDB].
   { assert (BC : cmt b_t).
     { now apply (WCore.dtrmt_cmt GREEXEC). }
