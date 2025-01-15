@@ -335,7 +335,7 @@ Definition extra_d :=
     ~cmt b_t /\
     cmt a_t /\
     ~dtrmt a_t /\
-    dom_rel (immediate sb_t' ⨾ ⦗eq b_t⦘) ⊆₁ dtrmt
+    dom_rel (immediate (nin_sb G_t') ⨾ ⦗eq b_t⦘) ⊆₁ dtrmt
   then eq a_s
   else ∅.
 Definition cmt' := mapper ↑₁ cmt.
@@ -596,7 +596,9 @@ Lemma imm_sb_d_s thrdle
   ⦗dtrmt'⦘ ⨾ immediate (nin_sb G_s') ⨾ ⦗cmt'⦘ ⊆
     ⦗dtrmt'⦘ ⨾ immediate (nin_sb G_s') ⨾ ⦗dtrmt'⦘.
 Proof using.
+  assert (NB : ~is_init b_t) by apply CTX.
   assert (NEQ : a_t <> b_t) by apply CTX.
+  assert (NEQ' : b_t <> a_t) by congruence.
   rewrite rsr_sbE_imm
      with (X_s := X_s') (X_t := X_t') (a_t := a_t) (b_t := b_t).
   all: eauto using rc_inv_end, reexec_simrel.
@@ -608,33 +610,76 @@ Proof using.
     rewrite reexec_extra_a_ncmt, dtrmt_in_cmt; eauto.
     clear. basic_solver. }
   apply union_mori; [| basic_solver].
-  destruct classic with (~ E_t' b_t) as [NINB | INB'].
-  { assert (NINA : ~ E_t' a_t).
-    { intro FALSO. now apply NINB, (rsr_at_bt_ord (rc_inv_end CTX)). }
-    assert (NCA : ~cmt a_t).
-    { intro FALSO. now apply NINA, (WCore.reexec_embd_dom GREEXEC). }
-    assert (NCB : ~cmt b_t).
-    { intro FALSO. now apply NINB, (WCore.reexec_embd_dom GREEXEC). }
-    assert (NDA : ~dtrmt a_t).
-    { intro FALSO. eapply NINA, rexec_dtrmt_in_fin; eauto. }
-    assert (NDB : ~dtrmt b_t).
-    { intro FALSO. eapply NINB, rexec_dtrmt_in_fin; eauto. }
-    unfold dtrmt', cmt', extra_b, extra_d; desf; desf.
+  destruct classic with (dtrmt a_t) as [AD | AND].
+  { assert (ACMT : cmt a_t).
+    { now apply (WCore.dtrmt_cmt GREEXEC). }
+    assert (AIN : E_t a_t).
+    { eapply rexec_dtrmt_in_start; eauto. }
+    assert (BIN : E_t b_t).
+    { now apply (rsr_at_bt_ord (rc_inv_start CTX)). }
+    assert (BDA : dtrmt b_t).
+    { eapply rexec_dtrmt_sb_dom; eauto.
+      exists a_t; unfolder. split; auto.
+      unfold sb; unfolder; splits; auto.
+      apply (rsr_at_bt_sb (rc_inv_start CTX)). }
+    assert (BCMT : cmt b_t).
+    { now apply (WCore.dtrmt_cmt GREEXEC). }
+    unfold cmt', dtrmt', extra_d, extra_b; desf; desf.
     rewrite set_union_empty_r.
     arewrite (dtrmt \₁ ∅ ≡₁ dtrmt) by basic_solver.
-    rewrite 2!rsr_setE_iff; eauto.
+    do 2 (rewrite rsr_setE_iff; eauto).
     apply (WCore.dtrmt_sb_max GREEXEC). }
-  assert (INB : E_t' b_t) by tauto; clear INB'.
-  destruct classic with (~ E_t' a_t) as [NINA | INA'].
-  { assert (NCA : ~cmt a_t).
-    { intro FALSO. now apply NINA, (WCore.reexec_embd_dom GREEXEC). }
-    assert (NDA : ~dtrmt a_t).
-    { intro FALSO. eapply NINA, rexec_dtrmt_in_fin; eauto. }
-    unfold dtrmt', extra_b, extra_d, cmt'; desf; desf.
-    all: rewrite set_union_empty_r.
-    { admit. }
+  destruct classic with (cmt a_t) as [AC | NAC].
+  { assert (AIN : E_t' a_t).
+    { now apply (WCore.reexec_embd_dom GREEXEC). }
+    assert (BIN : E_t' b_t).
+    { now apply (rsr_at_bt_ord (rc_inv_end CTX)). }
+    assert (SBA : immediate (nin_sb G_t') b_t a_t).
+    { unfold nin_sb.
+      enough (SB : immediate sb_t' b_t a_t).
+      { apply seq_eqv_imm. forward apply SB. basic_solver. }
+      apply (rsr_at_bt_imm (rc_inv_end CTX)). basic_solver. }
+    assert (ND : ~dtrmt b_t).
+    { intro FALSO. apply AND.
+      eapply rexec_dtrmt_sbimm_codom; eauto.
+      exists b_t. forward apply SBA. basic_solver 11. }
+    unfold dtrmt', cmt', extra_b; desf; desf.
     arewrite (dtrmt \₁ ∅ ≡₁ dtrmt) by basic_solver.
-    admit. }
+    unfold extra_d; desf; [| rewrite set_union_empty_r].
+    { rewrite id_union, !seq_union_l. unfold a_s. desf.
+      arewrite_false (⦗eq b_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗mapper ↑₁ cmt⦘).
+      { admit. (* TODO: refine the right to bt *) }
+      rewrite union_false_r. apply inclusion_union_r. left.
+      rewrite rsr_setE_iff, rsr_setE_ex; eauto.
+      rewrite id_union, !seq_union_r.
+      apply union_mori; [| reflexivity].
+      arewrite (
+        ⦗dtrmt⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗cmt \₁ eq a_t⦘ ≡
+        ⦗dtrmt⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗cmt⦘ ⨾ ⦗cmt \₁ eq a_t⦘
+      ).
+      { clear. basic_solver. }
+      sin_rewrite (WCore.dtrmt_sb_max GREEXEC).
+      clear. basic_solver. }
+    rewrite rsr_setE_iff; eauto.
+    destruct classic with (cmt b_t) as [BC|NBC].
+    { rewrite rsr_setE_iff; eauto.
+      apply (WCore.dtrmt_sb_max GREEXEC). }
+    assert (NBD :
+      ~ dom_rel (immediate (nin_sb G_t') ⨾ ⦗eq b_t⦘) ⊆₁ dtrmt
+    ) by tauto.
+    rewrite rsr_setE_ex, id_union, !seq_union_r; eauto.
+    arewrite (
+      ⦗dtrmt⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗cmt \₁ eq a_t⦘ ≡
+      ⦗dtrmt⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗cmt⦘ ⨾ ⦗cmt \₁ eq a_t⦘
+    ).
+    { clear. basic_solver. }
+    sin_rewrite (WCore.dtrmt_sb_max GREEXEC).
+    apply inclusion_union_l; [basic_solver |].
+    arewrite_false (⦗dtrmt⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗eq b_t⦘);
+      [| basic_solver].
+    enough (HH : dom_rel (⦗dtrmt⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗eq b_t⦘) ⊆₁ ∅).
+    { forward apply HH. clear. basic_solver 7. }
+    clear - NBD. admit. }
   admit.
 Admitted.
 
