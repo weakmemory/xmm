@@ -635,6 +635,48 @@ Proof using.
   unfold transp. auto.
 Qed.
 
+Lemma imm_sb_d_s_from_b_helper
+    (CTX : reexec_conds) :
+  ⦗eq b_t⦘ ⨾ immediate (nin_sb G_t') ⊆
+    ⦗eq b_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘.
+Proof using.
+  assert (NINIT : ~is_init b_t) by apply CTX.
+  assert (IMM :
+    (eq b_t ∩₁ E_t') × (eq a_t ∩₁ E_t') ⊆
+      immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘
+  ).
+  { transitivity (
+      ⦗set_compl is_init⦘ ⨾ (eq b_t ∩₁ E_t') × (eq a_t ∩₁ E_t') ⨾ ⦗eq a_t⦘
+    ); [basic_solver |].
+    rewrite (rsr_at_bt_imm (rc_inv_end CTX)).
+    unfold nin_sb. basic_solver. }
+  rewrite <- seqA. intros x y HREL.
+  exists y. split; [apply HREL |]. unfolder.
+  split; auto.
+  assert (INB : E_t' b_t).
+  { enough (SB' : sb_t' b_t y).
+    { hahn_rewrite wf_sbE in SB'.
+      forward apply SB'. clear. basic_solver. }
+    unfold nin_sb in HREL.
+    forward apply HREL. basic_solver. }
+  destruct classic with (~E_t' a_t) as [NINA|INA'].
+  { exfalso. eapply (rsr_bt_max (rc_inv_end CTX)); eauto.
+    enough (SB : sb_t' b_t y).
+    { unfolder. splits; eauto. }
+    forward apply HREL. clear.
+    unfold nin_sb. basic_solver. }
+  assert (INA : E_t' a_t) by tauto. clear INA'.
+  destruct HREL as (a' & EQ & SB).
+  unfolder in EQ; desf.
+  eapply nin_sb_functional_r with (G := G_t').
+  { apply CTX. }
+  { unfold transp.
+    enough (SB' : (immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘) b_t a_t).
+    { forward apply SB'. basic_solver. }
+    apply (IMM b_t a_t). basic_solver. }
+  auto.
+Qed.
+
 Lemma imm_sb_d_s thrdle
     (GREEXEC : WCore.reexec_gen X_t X_t' f dtrmt cmt thrdle)
     (CTX : reexec_conds) :
@@ -697,7 +739,8 @@ Proof using.
       arewrite_false (⦗eq b_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗eq b_t⦘).
       { apply imm_sb_d_s_refl_helper. }
       arewrite_false (⦗eq b_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗cmt \₁ eq a_t⦘).
-      { admit. }
+      { sin_rewrite (imm_sb_d_s_from_b_helper CTX).
+        clear. basic_solver. }
       rewrite !union_false_r. apply inclusion_union_r. left.
       apply union_mori; [| reflexivity].
       arewrite (
@@ -783,7 +826,7 @@ Proof using.
   arewrite (dtrmt \₁ ∅ ≡₁ dtrmt) by basic_solver.
   do 2 (rewrite rsr_setE_iff; eauto).
   apply (WCore.dtrmt_sb_max GREEXEC).
-Admitted.
+Qed.
 
 Lemma reexec_step
     (CTX : reexec_conds) :

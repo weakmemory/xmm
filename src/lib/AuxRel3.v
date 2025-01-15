@@ -72,3 +72,41 @@ Lemma nin_sb_functional_l G
 Proof using.
   now apply dwt_imm_f, sb_downward_total.
 Qed.
+
+Lemma imm_nin_sbE G :
+  immediate (nin_sb G) ≡
+    ⦗set_compl is_init⦘ ⨾ immediate (sb G).
+Proof using.
+  unfold nin_sb.
+  split; [| apply seq_eqv_imm].
+  rewrite !immediateE.
+  unfolder. intros x y ((XNINT & SBXY) & NON).
+  splits; auto. intro FALSO; desf.
+  apply NON. split; auto. exists z; splits; auto.
+  forward apply (proj1 (no_sb_to_init G) x z); auto.
+  basic_solver.
+Qed.
+
+Lemma nin_sb_functional_r G
+    (WF : Wf G) :
+  functional (immediate (nin_sb G)).
+Proof using.
+  unfold nin_sb, functional.
+  intros x y z IMM1' IMM2'.
+  assert (IMM1 : immediate (sb G) x y).
+  { apply imm_nin_sbE in IMM1'.
+    forward apply IMM1'. basic_solver. }
+  assert (IMM2 : immediate (sb G) x z).
+  { apply imm_nin_sbE in IMM2'.
+    forward apply IMM2'. basic_solver. }
+  assert (SB1 : sb G x y) by apply IMM1.
+  assert (SB2 : sb G x z) by apply IMM2.
+  destruct classic with (y = z) as [EQ|NEQ]; auto.
+  destruct sb_semi_total_l
+      with (x := x) (y := y) (z := z) (G := G)
+        as [YZ|ZY].
+  all: auto.
+  { forward apply IMM1'. clear. basic_solver. }
+  { exfalso. apply IMM2 with y; auto. }
+  exfalso. apply IMM1 with z; auto.
+Qed.
