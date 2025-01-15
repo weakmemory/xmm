@@ -590,6 +590,14 @@ Proof using.
   exact (WCore.dtrmt_cmt GREEXEC).
 Qed.
 
+Lemma imm_sb_d_s_refl_helper x :
+  ⦗eq x⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗eq x⦘ ⊆ ∅₂.
+Proof using.
+  unfold nin_sb. rewrite immediateE.
+  transitivity (⦗eq x⦘ ⨾ sb_t' ⨾ ⦗eq x⦘); [basic_solver|].
+  unfolder. ins. desf. eapply sb_irr; eauto.
+Qed.
+
 Lemma imm_sb_d_s thrdle
     (GREEXEC : WCore.reexec_gen X_t X_t' f dtrmt cmt thrdle)
     (CTX : reexec_conds) :
@@ -650,7 +658,7 @@ Proof using.
       rewrite rsr_setE_iff, rsr_setE_ex; eauto.
       rewrite !id_union, !seq_union_l, !seq_union_r.
       arewrite_false (⦗eq b_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗eq b_t⦘).
-      { admit. }
+      { apply imm_sb_d_s_refl_helper. }
       arewrite_false (⦗eq b_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗cmt \₁ eq a_t⦘).
       { admit. }
       rewrite !union_false_r. apply inclusion_union_r. left.
@@ -708,7 +716,7 @@ Proof using.
     arewrite_false (⦗eq a_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗cmt \₁ eq b_t⦘).
     { admit. }
     arewrite_false (⦗eq a_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘).
-    { admit. }
+    { apply imm_sb_d_s_refl_helper. }
     rewrite !union_false_r.
     apply inclusion_union_r. left.
     arewrite (
