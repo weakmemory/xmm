@@ -598,6 +598,43 @@ Proof using.
   unfolder. ins. desf. eapply sb_irr; eauto.
 Qed.
 
+Lemma imm_sb_d_s_to_a_helper
+    (CTX : reexec_conds) :
+  immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘ ⊆
+    ⦗eq b_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘.
+Proof using.
+  assert (NINIT : ~is_init b_t) by apply CTX.
+  assert (IMM :
+    (eq b_t ∩₁ E_t') × (eq a_t ∩₁ E_t') ⊆
+      immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘
+  ).
+  { transitivity (
+      ⦗set_compl is_init⦘ ⨾ (eq b_t ∩₁ E_t') × (eq a_t ∩₁ E_t') ⨾ ⦗eq a_t⦘
+    ); [basic_solver |].
+    rewrite (rsr_at_bt_imm (rc_inv_end CTX)).
+    unfold nin_sb. basic_solver. }
+  intros x y HREL.
+  exists x. split; [| apply HREL]. unfolder.
+  split; auto.
+  destruct HREL as (a' & SB & EQ).
+  unfolder in EQ; desf.
+  assert (INA : E_t' a_t).
+  { enough (SB' : sb_t' x a_t).
+    { hahn_rewrite wf_sbE in SB'.
+      forward apply SB'. clear. basic_solver. }
+    unfold nin_sb in SB.
+    forward apply SB. basic_solver. }
+  assert (INB : E_t' b_t).
+  { now apply (rsr_at_bt_ord (rc_inv_end CTX)). }
+  eapply nin_sb_functional_l with (G := G_t').
+  { apply CTX. }
+  { unfold transp.
+    enough (SB' : (immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘) b_t a_t).
+    { forward apply SB'. basic_solver. }
+    apply (IMM b_t a_t). basic_solver. }
+  unfold transp. auto.
+Qed.
+
 Lemma imm_sb_d_s thrdle
     (GREEXEC : WCore.reexec_gen X_t X_t' f dtrmt cmt thrdle)
     (CTX : reexec_conds) :
@@ -710,7 +747,8 @@ Proof using.
       rewrite rsr_setE_niff; eauto.
       rewrite id_union, !seq_union_r.
       arewrite_false (⦗dtrmt \₁ eq b_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘).
-      { admit. }
+      { sin_rewrite (imm_sb_d_s_to_a_helper CTX).
+        clear. basic_solver. }
       rewrite union_false_r.
       arewrite (
         ⦗dtrmt \₁ eq b_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗cmt \₁ eq b_t⦘ ≡
@@ -723,7 +761,8 @@ Proof using.
     do 2 (rewrite rsr_setE_niff; eauto).
     rewrite 2!id_union, !seq_union_l, !seq_union_r.
     arewrite_false (⦗dtrmt \₁ eq b_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘).
-    { admit. }
+    { sin_rewrite (imm_sb_d_s_to_a_helper CTX).
+      clear. basic_solver. }
     arewrite_false (⦗eq a_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗cmt \₁ eq b_t⦘).
     { admit. }
     arewrite_false (⦗eq a_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘).
@@ -746,7 +785,8 @@ Proof using.
     rewrite rsr_setE_niff; eauto.
     rewrite id_union, !seq_union_r.
     arewrite_false (⦗dtrmt⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘).
-    { admit. }
+    { sin_rewrite (imm_sb_d_s_to_a_helper CTX).
+      clear - NDB. basic_solver. }
     rewrite union_false_r.
     arewrite (
       ⦗dtrmt⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗cmt \₁ eq b_t⦘ ≡
