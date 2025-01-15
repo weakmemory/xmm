@@ -179,7 +179,6 @@ Record reexec_conds : Prop := {
   rc_inv_start : reord_step_pred X_t a_t b_t;
   rc_inv_end : reord_step_pred X_t' a_t b_t;
   rc_end_cons : WCore.is_cons G_t' ∅₂;
-  rc_new_cons : WCore.is_cons G_s' ∅₂;
   rc_vf : forall (IMB : E_t' b_t) (NINA : ~ E_t' a_t),
             vf_s' ⨾ sb_s' ⨾ ⦗eq a_s⦘ ≡ vf G_s'' ⨾ sb_s' ⨾ ⦗eq a_s⦘;
   (**)
@@ -1024,7 +1023,7 @@ Proof using.
   { eapply G_s_rfc with (X_t := X_t').
     { apply CTX. }
     now apply reexec_simrel. }
-  { apply CTX. }
+  { admit. }
   { admit. (* difference between acts and dtrmt is fin *) }
   { admit. (* Prefix. Trivial? *) }
   { eapply G_s_wf with (X_t := X_t').
