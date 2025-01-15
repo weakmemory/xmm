@@ -680,7 +680,66 @@ Proof using.
     enough (HH : dom_rel (⦗dtrmt⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗eq b_t⦘) ⊆₁ ∅).
     { forward apply HH. clear. basic_solver 7. }
     clear - NBD. admit. }
-  admit.
+  destruct classic with (dtrmt b_t) as [DB|NDB].
+  { assert (BC : cmt b_t).
+    { now apply (WCore.dtrmt_cmt GREEXEC). }
+    unfold dtrmt', cmt', extra_b, extra_d.
+    desf; desf; rewrite set_union_empty_r.
+    { rewrite rsr_setE_iff; eauto; [| unfolder; tauto].
+      rewrite rsr_setE_niff; eauto.
+      rewrite id_union, !seq_union_r.
+      arewrite_false (⦗dtrmt \₁ eq b_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘).
+      { admit. }
+      rewrite union_false_r.
+      arewrite (
+        ⦗dtrmt \₁ eq b_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗cmt \₁ eq b_t⦘ ≡
+        ⦗dtrmt \₁ eq b_t⦘ ⨾ ⦗dtrmt⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗cmt⦘ ⨾ ⦗cmt \₁ eq b_t⦘
+      ).
+      { clear. basic_solver. }
+      sin_rewrite (WCore.dtrmt_sb_max GREEXEC).
+      clear. basic_solver. }
+    arewrite (dtrmt \₁ ∅ ≡₁ dtrmt) by basic_solver.
+    do 2 (rewrite rsr_setE_niff; eauto).
+    rewrite 2!id_union, !seq_union_l, !seq_union_r.
+    arewrite_false (⦗dtrmt \₁ eq b_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘).
+    { admit. }
+    arewrite_false (⦗eq a_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗cmt \₁ eq b_t⦘).
+    { admit. }
+    arewrite_false (⦗eq a_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘).
+    { admit. }
+    rewrite !union_false_r.
+    apply inclusion_union_r. left.
+    arewrite (
+      ⦗dtrmt \₁ eq b_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗cmt \₁ eq b_t⦘ ≡
+      ⦗dtrmt \₁ eq b_t⦘ ⨾ ⦗dtrmt⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗cmt⦘ ⨾ ⦗cmt \₁ eq b_t⦘
+    ).
+    { clear. basic_solver. }
+    sin_rewrite (WCore.dtrmt_sb_max GREEXEC).
+    clear. basic_solver. }
+  destruct classic with (cmt b_t) as [CB|NCB].
+  { unfold dtrmt', cmt', extra_b, extra_d.
+    desf; desf.
+    rewrite set_union_empty_r.
+    arewrite (dtrmt \₁ ∅ ≡₁ dtrmt) by basic_solver.
+    rewrite rsr_setE_iff; eauto.
+    rewrite rsr_setE_niff; eauto.
+    rewrite id_union, !seq_union_r.
+    arewrite_false (⦗dtrmt⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘).
+    { admit. }
+    rewrite union_false_r.
+    arewrite (
+      ⦗dtrmt⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗cmt \₁ eq b_t⦘ ≡
+      ⦗dtrmt⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗cmt⦘ ⨾ ⦗cmt \₁ eq b_t⦘
+    ).
+    { clear. basic_solver. }
+    sin_rewrite (WCore.dtrmt_sb_max GREEXEC).
+    clear. basic_solver. }
+  unfold dtrmt', cmt', extra_b, extra_d.
+  desf; desf.
+  rewrite set_union_empty_r.
+  arewrite (dtrmt \₁ ∅ ≡₁ dtrmt) by basic_solver.
+  do 2 (rewrite rsr_setE_iff; eauto).
+  apply (WCore.dtrmt_sb_max GREEXEC).
 Admitted.
 
 Lemma reexec_step
