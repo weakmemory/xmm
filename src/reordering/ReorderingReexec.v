@@ -3,6 +3,7 @@ Require Import AuxDef.
 Require Import Core.
 Require Import AuxRel AuxRel2 AuxRel3.
 Require Import Srf Rhb.
+Require Import HbPrefix.
 Require Import SimrelCommon.
 Require Import StepOps.
 Require Import AuxInj.
@@ -179,8 +180,6 @@ Record reexec_conds : Prop := {
   rc_inv_start : reord_step_pred X_t a_t b_t;
   rc_inv_end : reord_step_pred X_t' a_t b_t;
   rc_end_cons : WCore.is_cons G_t' ∅₂;
-  rc_vf : forall (IMB : E_t' b_t) (NINA : ~ E_t' a_t),
-            vf_s' ⨾ sb_s' ⨾ ⦗eq a_s⦘ ≡ vf G_s'' ⨾ sb_s' ⨾ ⦗eq a_s⦘;
   (**)
   rc_as : A_s' ⊆₁ extra_a_pred X_s' a_t b_t;
   rc_extra_lab : fake_srf G_s'' a_s (lab_s' a_s) ⨾ ⦗A_s' ∩₁ WCore.lab_is_r (lab_s' a_s)⦘ ⊆ same_val_s';
@@ -247,6 +246,38 @@ Proof using.
   admit. (* This graph is very conveniently mapped by m *)
 Admitted.
 
+Lemma intermediate_graph_cons
+    (INB : E_t' b_t)
+    (NINA : ~ E_t' a_t)
+    (CTX : reexec_conds) :
+  irreflexive ((hb G_s'') ⨾ (eco G_s'')^?).
+Proof using.
+  admit.
+Admitted.
+
+Lemma rc_vf
+    (INB : E_t' b_t)
+    (NINA : ~ E_t' a_t)
+    (CTX : reexec_conds) :
+  vf_s' ⨾ sb_s' ⨾ ⦗eq a_s⦘ ≡
+    vf G_s'' ⨾ sb_s' ⨾ ⦗eq a_s⦘.
+Proof using.
+  assert (BNINIT : ~is_init b_t) by apply CTX.
+  apply hb_pref_vfsb; ins.
+  { admit. }
+  { apply (rc_acts CTX). right.
+    unfold a_s. now apply extra_a_some. }
+  { admit. }
+  { admit. }
+  { rewrite set_minus_minus_l. ins.
+    rewrite (rc_acts CTX), extra_a_some; auto.
+    rewrite set_minusK. basic_solver. }
+  rewrite (rc_acts CTX), set_inter_union_l. unfold a_s.
+  arewrite (A_s' ∩₁ is_init ⊆₁ ∅); [| basic_solver].
+  rewrite extra_a_some; auto.
+  basic_solver.
+Admitted.
+
 Lemma reexec_simrel
     (CTX : reexec_conds) :
   reord_simrel X_s' X_t' a_t b_t mapper.
@@ -272,7 +303,7 @@ Proof using.
     { rewrite (rc_lab CTX).
       unfold lab_s_'; desf; [| exfalso; eauto].
       now unfold a_s; rewrite upds. }
-    { apply CTX; auto. }
+    { apply rc_vf; auto. }
     rewrite (rc_co CTX), seq_union_l.
     rewrite extra_a_some; auto.
     rewrite add_max_seq_r, set_interC, set_interA.
