@@ -31,6 +31,7 @@ Section ReorderingReexecInternal.
 
 Variable X_t X_t' X_s X_s' : WCore.t.
 Variable a_t b_t : actid.
+Variable l_a : label.
 Variable f : actid -> actid.
 Variable dtrmt cmt : actid -> Prop.
 
@@ -168,6 +169,10 @@ Definition G_s'' : execution := {|
   addr := addr_s;
 |}.
 
+Definition lab_s_' :=
+  ifP ~E_t' a_t /\ E_t' b_t then upd (lab_t' ∘ mapper_inv) b_t l_a
+  else (lab_t' ∘ mapper).
+
 Record reexec_conds : Prop := {
   rc_simrel : reord_simrel X_s X_t a_t b_t mapper;
   rc_step : WCore.reexec X_t X_t' f dtrmt cmt;
@@ -178,10 +183,9 @@ Record reexec_conds : Prop := {
   rc_vf : forall (IMB : E_t' b_t) (NINA : ~ E_t' a_t),
             vf_s' ⨾ sb_s' ⨾ ⦗eq a_s⦘ ≡ vf G_s'' ⨾ sb_s' ⨾ ⦗eq a_s⦘;
   (**)
-  rc_l_a_nacq : eq b_t ∩₁ E_s' ⊆₁ set_compl Acq_s';
-  rc_at_bt_loc : ⦗eq a_t ∩₁ E_s'⦘ ⨾ same_loc_s' ⨾ ⦗eq b_t ∩₁ E_s'⦘ ⊆ ∅₂;
+  rc_as : A_s' ⊆₁ extra_a_pred X_s' a_t b_t;
   rc_extra_lab : fake_srf G_s'' a_s (lab_s' a_s) ⨾ ⦗A_s' ∩₁ WCore.lab_is_r (lab_s' a_s)⦘ ⊆ same_val_s';
-  rc_lab : eq_dom E_t' (lab_s' ∘ mapper) lab_t';
+  rc_lab : lab_s' = lab_s_';
   rc_acts : E_s' ≡₁ mapper ↑₁ E_t' ∪₁ extra_a X_t' a_t b_t a_s;
   rc_rf : rf_s' ≡ mapper ↑ rf_t' ∪ fake_srf G_s'' a_s (lab_s' a_s) ⨾ ⦗A_s' ∩₁ WCore.lab_is_r (lab_s' a_s)⦘;
   rc_co : co_s' ≡ mapper ↑ co_t' ∪
@@ -266,8 +270,9 @@ Proof using.
     { unfold G_s''.
       intros (x & XIN & XEQ). enough (x = a_t); desf.
       eapply rsr_mapper_inv_bt; eauto. }
-    { unfold G_s''. ins.
-      admit. (* TODO: weaken cond*) }
+    { rewrite (rc_lab CTX).
+      unfold lab_s_'; desf; [| exfalso; eauto].
+      now unfold a_s; rewrite upds. }
     { apply CTX; auto. }
     rewrite (rc_co CTX), seq_union_l.
     rewrite extra_a_some; auto.
@@ -281,24 +286,6 @@ Proof using.
   constructor; ins.
   all: try now apply CTX.
   { apply mapinj. apply CTX. }
-  { unfolder. unfold extra_a; ins; desf.
-    assert (INA : E_s' a_t).
-    { apply (rc_acts CTX). left.
-      apply rsr_setE_niff; desf.
-      now right. }
-    assert (INB : E_s' b_t).
-    { apply (rc_acts CTX). right.
-      apply set_subset_single_l.
-      rewrite extra_a_some; desf. }
-    constructor; [red; auto | desf | |].
-    { rewrite extra_a_some in SRF; auto.
-      rewrite <- SRF, <- (rc_extra_lab CTX).
-      rewrite extra_a_some; auto with hahn. }
-    { intro FALSO. eapply (@rc_at_bt_loc CTX a_t b_t).
-      forward apply FALSO. clear - INA INB.
-      basic_solver 11. }
-    intro FALSO. eapply (@rc_l_a_nacq CTX b_t).
-    all: basic_solver. }
   { rewrite (rc_acts CTX), set_minus_union_l.
     unfold a_s. rewrite set_minusK, set_union_empty_r.
     unfold extra_a; desf; [| clear; basic_solver].
@@ -307,6 +294,17 @@ Proof using.
     enough (y = a_t); desf. eapply rsr_mapper_inv_bt; eauto. }
   { eapply eq_dom_mori; eauto with xmm.
     red. auto with hahn. }
+  { rewrite (rc_lab CTX). unfold lab_s_'. desf.
+    { rewrite <- rsr_mapper_at with (a_t := a_t) (b_t := b_t) at 1.
+      all: auto.
+      rewrite <- upd_compose; eauto with xmm.
+      rewrite Combinators.compose_assoc, mapper_inv_r_inv,
+              Combinators.compose_id_right; auto.
+      unfolder. ins. rewrite updo; auto.
+      desf. congruence. }
+    rewrite Combinators.compose_assoc, rsr_mapper_compose,
+            Combinators.compose_id_right; auto.
+    reflexivity. }
   { admit. }
   { rewrite <- SRF, (rc_rf CTX). auto. }
   { rewrite (rc_co CTX), (rc_acts CTX).
