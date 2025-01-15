@@ -22,8 +22,8 @@
         - [x] Prove the inclusion of srf into the thrdle relation [commit](weakmemory/xmm/148c9e30a13db554e305380252be3949e712169b)
         - [x] Prove the inclusion of other `rf` edges (merge into `main` past this step)
         - [ ] Prove the well-formedness of the starting configuration
-        - [ ] Prove all other conditions of the `re-execute` step
-            - [ ] Commit-embeded up-to rpo [commit](https://github.com/weakmemory/xmm/commit/259a1698508bc26ffa74edc193c5dcff92a16d5b)
+        - [x] Prove all other conditions of the `re-execute` step
+            - [x] Commit-embeded up-to rpo [commit](https://github.com/weakmemory/xmm/commit/259a1698508bc26ffa74edc193c5dcff92a16d5b)
             - [x] Add the new constraints and patch all lemmas up-to-rexec [commit1](https://github.com/weakmemory/xmm/commit/aaa3968807c1239e1496273ae67e82a1d518d401), [commit2](https://github.com/weakmemory/xmm/commit/e739362f70188d3259b694b08a877ce58a7320f8)
             - [x] Prove the new constraint about act set [commit](https://github.com/weakmemory/xmm/commit/a7c242f8423800ba8c8b31e559ca9a085c6cc8ed)
-            - [ ] Prove the new constraint about po-maximality of determined events
+            - [x] Prove the new constraint about po-maximality of determined events
