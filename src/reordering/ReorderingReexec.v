@@ -863,22 +863,21 @@ Proof using.
   red. exists thrdle.
   constructor.
   { eapply dtrmt_in_cmt; eauto. }
-  { admit. }
-  (* { unfold f', dtrmt'.
-    assert (EQDOM : eq_dom (dtrmt \₁ extra_b) mapper mapper).
-    { arewrite (dtrmt \₁ extra_b ⊆₁ dtrmt) by basic_solver.
-      unfolder. ins. symmetry. now apply mapd. }
-    rewrite set_collect_eq_dom with (g := mapper); auto.
-    rewrite Combinators.compose_assoc.
-    apply fixset_swap.
-    apply fixset_eq_dom
-      with (g := f ∘ mapper_inv ∘ mapper).
-    { admit. }
-    eapply fixset_mori; try now apply GREEXEC.
-    { red. clear. basic_solver. }
-    now rewrite Combinators.compose_assoc,
-                mapper_inv_r_inv,
-                Combinators.compose_id_right. } *)
+  { unfold f', dtrmt'.
+    apply fixset_union. split.
+    { rewrite Combinators.compose_assoc.
+      apply fixset_swap.
+      rewrite Combinators.compose_assoc,
+              mapper_inv_r_inv,
+              Combinators.compose_id_right.
+      all: auto.
+      eapply fixset_mori; auto; try now apply GREEXEC.
+      clear. red. basic_solver. }
+    unfold extra_d. desf. unfold a_s.
+    unfolder. unfold compose. ins. desf.
+    unfold mapper_inv.
+    rewrite (rsr_mapper_bt NEQ).
+    rewrite (rc_f_a_t CTX); auto. }
   { unfold cmt'.
     rewrite (rc_acts CTX), (WCore.reexec_embd_dom GREEXEC).
     auto with hahn. }
