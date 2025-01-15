@@ -757,25 +757,7 @@ Proof using.
       { clear. basic_solver. }
       sin_rewrite (WCore.dtrmt_sb_max GREEXEC).
       clear. basic_solver. }
-    arewrite (dtrmt \₁ ∅ ≡₁ dtrmt) by basic_solver.
-    do 2 (rewrite rsr_setE_niff; eauto).
-    rewrite 2!id_union, !seq_union_l, !seq_union_r.
-    arewrite_false (⦗dtrmt \₁ eq b_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘).
-    { sin_rewrite (imm_sb_d_s_to_a_helper CTX).
-      clear. basic_solver. }
-    arewrite_false (⦗eq a_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗cmt \₁ eq b_t⦘).
-    { admit. }
-    arewrite_false (⦗eq a_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘).
-    { apply imm_sb_d_s_refl_helper. }
-    rewrite !union_false_r.
-    apply inclusion_union_r. left.
-    arewrite (
-      ⦗dtrmt \₁ eq b_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗cmt \₁ eq b_t⦘ ≡
-      ⦗dtrmt \₁ eq b_t⦘ ⨾ ⦗dtrmt⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗cmt⦘ ⨾ ⦗cmt \₁ eq b_t⦘
-    ).
-    { clear. basic_solver. }
-    sin_rewrite (WCore.dtrmt_sb_max GREEXEC).
-    clear. basic_solver. }
+    exfalso. tauto. }
   destruct classic with (cmt b_t) as [CB|NCB].
   { unfold dtrmt', cmt', extra_b, extra_d.
     desf; desf.
