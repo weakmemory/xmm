@@ -646,12 +646,14 @@ Proof using.
     unfold dtrmt', cmt', extra_b; desf; desf.
     arewrite (dtrmt \₁ ∅ ≡₁ dtrmt) by basic_solver.
     unfold extra_d; desf; [| rewrite set_union_empty_r].
-    { rewrite id_union, !seq_union_l. unfold a_s. desf.
-      arewrite_false (⦗eq b_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗mapper ↑₁ cmt⦘).
-      { admit. (* TODO: refine the right to bt *) }
-      rewrite union_false_r. apply inclusion_union_r. left.
+    { unfold a_s. desf.
       rewrite rsr_setE_iff, rsr_setE_ex; eauto.
-      rewrite id_union, !seq_union_r.
+      rewrite !id_union, !seq_union_l, !seq_union_r.
+      arewrite_false (⦗eq b_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗eq b_t⦘).
+      { admit. }
+      arewrite_false (⦗eq b_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗cmt \₁ eq a_t⦘).
+      { admit. }
+      rewrite !union_false_r. apply inclusion_union_r. left.
       apply union_mori; [| reflexivity].
       arewrite (
         ⦗dtrmt⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗cmt \₁ eq a_t⦘ ≡
