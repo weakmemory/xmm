@@ -519,22 +519,24 @@ Proof using INV INV'.
     { apply (rsr_sb_froma INV' SIMREL').
       all: clear - EMP; desf. }
     assert (AINS : (acts_set G_s') a_t).
-    { admit. }
+    { apply (rsr_acts SIMREL'). left.
+      exists b_t. split; [apply EMP|].
+      apply (rsr_map_bt (proj2 EMP) SIMREL'). }
     assert (BINS : (acts_set G_s') b_t).
-    { admit. }
+    { apply (rsr_acts SIMREL'). right.
+      apply extra_a_some; desf. }
     assert (AINRW : eq a_t ⊆₁ R G_s' ∪₁ W G_s').
     { change G_s' with (WCore.G X_s').
       rewrite <- (simrel_a_lab_wr INV' SIMREL').
       clear - AINS. basic_solver. }
     assert (BINRW : eq b_t ⊆₁ R G_s' ∪₁ W G_s').
     { change G_s' with (WCore.G X_s').
-      (* rewrite <- (simrel_b_lab_wr INV' SIMREL').
-      clear - AINS. basic_solver. *) admit. }
+      rewrite <- (simrel_b_lab_wr INV' SIMREL').
+      clear - BINS. basic_solver. }
     assert (AINNREL : eq a_t ⊆₁ set_compl (Rel G_s')).
     { change G_s' with (WCore.G X_s').
-      (* rewrite <- (rsr_bs_nrel INV' SIMREL').
-      clear - AINS. basic_solver. *)
-      admit. }
+      rewrite <- (rsr_bs_nrel INV' SIMREL').
+      clear - AINS. basic_solver. }
     assert (BINACQ : eq b_t ⊆₁ set_compl (Acq G_s')).
     { change G_s' with (WCore.G X_s').
       rewrite <- (rsr_as_nacq INV' SIMREL').
