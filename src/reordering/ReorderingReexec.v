@@ -11,10 +11,11 @@ Require Import SubToFullExec.
 Require Import ReorderingFakeSrf.
 Require Import Thrdle.
 Require Import StepOps.
+Require Import ConsistencyReadExtentGen.
 
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
-From imm Require Import Events Execution Execution_eco.
+From imm Require Import Events Execution Execution_eco SubExecution.
 Require Import Setoid Morphisms Program.Basics.
 Require Import xmm_s_hb.
 
@@ -237,45 +238,137 @@ Proof using.
   unfold mapper_inv. now apply rsr_mapper_compose.
 Qed.
 
-Lemma intermediate_graph_wf
+Lemma new_G_s_wf
     (INB : E_t' b_t)
     (NINA : ~ E_t' a_t)
     (CTX : reexec_conds) :
-  Wf G_s''.
+  Wf G_s'.
 Proof using.
-  admit. (* This graph is very conveniently mapped by m *)
-Admitted.
-
-Lemma intermediate_graph_cons
-    (INB : E_t' b_t)
-    (NINA : ~ E_t' a_t)
-    (CTX : reexec_conds) :
-  irreflexive ((hb G_s'') ⨾ (eco G_s'')^?).
-Proof using.
-  admit.
 Admitted.
 
 Lemma rc_vf
+    (ISR : R_s' a_s)
     (INB : E_t' b_t)
     (NINA : ~ E_t' a_t)
     (CTX : reexec_conds) :
   vf_s' ⨾ sb_s' ⨾ ⦗eq a_s⦘ ≡
     vf G_s'' ⨾ sb_s' ⨾ ⦗eq a_s⦘.
 Proof using.
-  assert (BNINIT : ~is_init b_t) by apply CTX.
-  apply hb_pref_vfsb; ins.
+  assert (EQE : acts_set G_s'' ≡₁ E_s' \₁ eq a_s).
   { admit. }
-  { apply (rc_acts CTX). right.
-    unfold a_s. now apply extra_a_some. }
+  assert (SUB : sub_execution G_s' G_s'' ∅₂ ∅₂).
+  { admit. }
+  split; [| rewrite (sub_vf_in SUB); reflexivity].
+  seq_rewrite sbvf_as_rhb.
+  arewrite (
+    vf G_s'' ⨾ sb_s' ⨾ ⦗eq a_s⦘ ≡
+      vf_rhb G_s'' ⨾ sb_s' ⨾ ⦗eq a_s⦘
+  ).
+  { rewrite vf_as_rhb, !seq_union_l.
+    split; [| auto with hahn].
+    apply inclusion_union_l; [reflexivity |].
+    unfold vf_rhb. rewrite !seqA.
+    rewrite (sub_sb SUB), !seqA.
+    arewrite (
+      ⦗acts_set G_s''⦘ ⨾ sb_s' ⨾ ⦗acts_set G_s''⦘ ⨾ sb_s' ⊆
+        sb_s' ⨾ sb_s'
+    ) by basic_solver.
+    sin_rewrite sb_sb.
+    clear. basic_solver 11. }
+  arewrite (
+    sb_s' ⨾ ⦗eq a_s⦘ ⊆
+      ⦗E_s' \₁ eq a_s⦘ ⨾ sb_s' ⨾ ⦗eq a_s⦘
+  ) at 1.
+  { rewrite wf_sbE at 1.
+    unfolder. intros x y (XIN & SB & YEQ & YIN).
+    splits; auto.
+    intro FALSO; desf.
+    eapply sb_irr; eauto. }
+  unfold vf_rhb. rewrite !seqA.
+  arewrite (
+    rhb_s'^? ⨾ ⦗E_s' \₁ eq a_s⦘ ⊆
+      ⦗E_s' \₁ eq a_s⦘ ⨾ rhb_s'^? ⨾ ⦗E_s' \₁ eq a_s⦘
+  ).
+  { rewrite !crE, !seq_union_l, !seq_union_r.
+    apply union_mori; [basic_solver |].
+    apply XmmCons.read_rhb_start
+      with (m := id) (G_t := G_s'') (drf := fake_srf G_s'' a_s (lab_s' a_s)).
+    { clear. basic_solver. }
+    { rewrite (rc_acts CTX), extra_a_some; eauto.
+      clear. rewrite set_collect_id. basic_solver. }
+    { exact ISR. }
+    { apply CTX. now apply extra_a_some. }
+    { rewrite set_collect_id, EQE.
+      clear. basic_solver. }
+    { admit. (* Interesting *) }
+    { admit. (* should be easy *) }
+    { admit. }
+    { admit. }
+    { rewrite collect_rel_id, (rc_rf CTX).
+      apply union_more; [reflexivity |].
+      rewrite extra_a_some; auto.
+      unfold WCore.lab_is_r, is_r in *.
+      clear - ISR. basic_solver. }
+    { rewrite collect_rel_id, (rc_co CTX).
+      rewrite extra_a_some; auto.
+      arewrite (eq b_t ∩₁ WCore.lab_is_w (lab_s' a_s) ≡₁ ∅).
+      { unfold WCore.lab_is_w, is_r in *.
+        clear - ISR. basic_solver. }
+      rewrite add_max_empty_r, union_false_r.
+      reflexivity. }
+    { rewrite collect_rel_id, (rc_rmw CTX). reflexivity. }
+    { eapply sub_WF; eauto using new_G_s_wf.
+      admit. }
+    { eapply new_G_s_wf; eauto. }
+    admit. }
+  arewrite (
+    rf_s'^? ⨾ ⦗E_s' \₁ eq a_s⦘ ⊆
+      ⦗E_s' \₁ eq a_s⦘ ⨾ (rf G_s'')^?
+  ).
+  { admit. }
+  arewrite (
+    ⦗E_s'⦘ ⨾ ⦗W_s'⦘ ⨾ ⦗E_s' \₁ eq a_s⦘ ⊆
+      ⦗acts_set G_s''⦘ ⨾ ⦗W G_s''⦘
+  ).
+  { admit. }
+  arewrite (
+    rhb_s'^? ⨾ ⦗E_s' \₁ eq a_s⦘ ⊆
+      (rhb G_s'')^? ⨾ ⦗E_s' \₁ eq a_s⦘
+  ); [| do 3 (apply seq_mori; auto with hahn); basic_solver 7].
+  rewrite !crE, !seq_union_l.
+  apply union_mori; [reflexivity |].
+  rewrite XmmCons.read_rhb_sub
+      with (m := id) (G_t := G_s'') (drf := fake_srf G_s'' a_s (lab_s' a_s)).
+  { rewrite collect_rel_id.
+    admit. }
+  { clear. basic_solver. }
+  { rewrite (rc_acts CTX), extra_a_some; eauto.
+    clear. rewrite set_collect_id. basic_solver. }
+  { exact ISR. }
+  { apply CTX. now apply extra_a_some. }
+  { rewrite set_collect_id, EQE.
+    clear. basic_solver. }
+  { admit. (* Interesting *) }
+  { admit. (* should be easy *) }
   { admit. }
   { admit. }
-  { rewrite set_minus_minus_l. ins.
-    rewrite (rc_acts CTX), extra_a_some; auto.
-    rewrite set_minusK. basic_solver. }
-  rewrite (rc_acts CTX), set_inter_union_l. unfold a_s.
-  arewrite (A_s' ∩₁ is_init ⊆₁ ∅); [| basic_solver].
-  rewrite extra_a_some; auto.
-  basic_solver.
+  { rewrite collect_rel_id, (rc_rf CTX).
+    apply union_more; [reflexivity |].
+    rewrite extra_a_some; auto.
+    unfold WCore.lab_is_r, is_r in *.
+    clear - ISR. basic_solver. }
+  { rewrite collect_rel_id, (rc_co CTX).
+    rewrite extra_a_some; auto.
+    arewrite (eq b_t ∩₁ WCore.lab_is_w (lab_s' a_s) ≡₁ ∅).
+    { unfold WCore.lab_is_w, is_r in *.
+      clear - ISR. basic_solver. }
+    rewrite add_max_empty_r, union_false_r.
+    reflexivity. }
+  { rewrite collect_rel_id, (rc_rmw CTX). reflexivity. }
+  { eapply sub_WF; eauto using new_G_s_wf.
+    admit. }
+  { eapply new_G_s_wf; eauto. }
+  admit.
 Admitted.
 
 Lemma reexec_simrel
