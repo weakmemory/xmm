@@ -516,187 +516,126 @@ Proof using INV INV'.
     assert (BIN : E_t b_t).
     { clear - B_PRESERVED EMP. tauto. }
     assert (SBFROMA : ⦗eq b_t⦘ ⨾ sb G_s' ⊆ eq b_t × eq a_t).
-    { unfold G_s', sb; ins.
-      rewrite NEWSB.
-      rewrite !seq_union_r.
-      arewrite (⦗eq b_t⦘ ⨾ sb_s ⊆ eq b_t × eq a_t).
-      { transitivity (⦗eq b_t⦘ ⨾ sb_s ⨾ ⦗E_s \₁ eq b_t⦘).
-        { rewrite wf_sbE at 1. clear. unfolder.
-          ins. desf. splits; auto.
-          intro FALSO; desf; eapply sb_irr; eauto. }
-        rewrite (rsr_sb SIMREL).
-        rewrite extra_a_some by assumption.
-        rewrite rsr_map_bt
-           with (X_s := X_s) (X_t := X_t)
-                (a_t := a_t) (b_t := b_t).
-        all: auto.
-        arewrite (eq a_t ∩₁ E_t ≡₁ ∅).
-        { clear - ANONTIN. basic_solver. }
-        rewrite swap_rel_empty_r.
-        rewrite !seq_union_l, !seq_union_r.
-        repeat apply inclusion_union_l.
-        { rewrite wf_sbE, collect_rel_seqi.
-          rewrite collect_rel_eqv, (rsr_codom SIMREL).
-          rewrite extra_a_some by assumption.
-          clear. basic_solver. }
-        all: clear; basic_solver. }
-      apply inclusion_union_l; auto with hahn.
-      arewrite_false (⦗eq b_t⦘ ⨾ WCore.sb_delta e E_s)
-        ; [| clear; basic_solver].
-      unfold WCore.sb_delta.
-      intros x y PATH. destruct PATH as [x0 [[EQ EQB] CONDS]].
-      subst x x0.
-      destruct CONDS as [CONDS EQ]. subst y.
-      destruct CONDS as [INIT | TIDS].
-      { destruct INV; basic_solver 4. }
-      destruct TIDS as [INE TIDB].
-      unfold same_tid in TIDB.
-      apply ETID in TIDB. basic_solver. }
-    assert (AINRW : eq a_t ∩₁ (acts_set G_s') ⊆₁ (R G_s' ∪₁ W G_s')).
-    { intros x XIN.
-      destruct simrel_a_lab_wr with (X_s := X_s') (X_t := X_t')
-          (a_t := a_t) (b_t := b_t) (mapper := mapper') (x := x); vauto.
-      apply EQACTS; basic_solver. }
-    assert (AINNREL : eq a_t ∩₁ (acts_set G_s') ⊆₁ set_compl (Rel G_s')).
-    { intros x COND.
-      apply simrel_a_lab_notrel with (X_s := X_s') (X_t := X_t')
-          (a_t := a_t) (b_t := b_t) (mapper := mapper') (x := x); vauto.
-      apply EQACTS; basic_solver. }
+    { apply (rsr_sb_froma INV' SIMREL').
+      all: clear - EMP; desf. }
+    assert (AINS : (acts_set G_s') a_t).
+    { admit. }
+    assert (BINS : (acts_set G_s') b_t).
+    { admit. }
+    assert (AINRW : eq a_t ⊆₁ R G_s' ∪₁ W G_s').
+    { change G_s' with (WCore.G X_s').
+      rewrite <- (simrel_a_lab_wr INV' SIMREL').
+      clear - AINS. basic_solver. }
+    assert (BINRW : eq b_t ⊆₁ R G_s' ∪₁ W G_s').
+    { change G_s' with (WCore.G X_s').
+      (* rewrite <- (simrel_b_lab_wr INV' SIMREL').
+      clear - AINS. basic_solver. *) admit. }
+    assert (AINNREL : eq a_t ⊆₁ set_compl (Rel G_s')).
+    { change G_s' with (WCore.G X_s').
+      (* rewrite <- (rsr_bs_nrel INV' SIMREL').
+      clear - AINS. basic_solver. *)
+      admit. }
+    assert (BINACQ : eq b_t ⊆₁ set_compl (Acq G_s')).
+    { change G_s' with (WCore.G X_s').
+      rewrite <- (rsr_as_nacq INV' SIMREL').
+      clear - BINS. basic_solver. }
+    assert (SLOC : ~ same_loc (lab (WCore.G X_s')) b_t a_t).
+    { intro FALSO.
+      enough (SL : same_loc (lab (WCore.G X_s')) a_t b_t).
+      { apply (rsr_as_bs_loc INV' SIMREL') with a_t b_t.
+        clear - AINS BINS SL. basic_solver. }
+      clear - FALSO. now unfold same_loc in *. }
+    assert (SUB : acts_set (WCore.G X_s') \₁ eq b_t ⊆₁ mapper' ↑₁ E_t').
+    { rewrite (rsr_acts SIMREL').
+      rewrite extra_a_some; desf.
+      clear. basic_solver. }
     assert (MAPE : e = mapper' e).
-      { unfold mapper'. now rewrite upds. }
-    destruct rsr_a_s_is_r_or_w with (X_t := X_t') (X_s := X_s')
-        (a_t := a_t) (b_t := b_t) (mapper := mapper') (x := b_t) as [RR | WW]; vauto.
-    { arewrite (WCore.G X_s' = G_s'). unfold G_s'; ins.
-      split; vauto. left. apply (rsr_acts SIMREL).
-      right. apply EXTRAOLD; vauto. }
+    { unfold mapper'. now rewrite upds. }
+    destruct (BINRW b_t) as [RR | WW]; vauto.
     { apply XmmCons.read_extent with (G_t := G_t')
         (sc_t := WCore.sc X_t') (a := b_t) (m := mapper'); eauto.
       { apply SIMREL'. }
       { rewrite (rsr_acts SIMREL').
-        rewrite EXTRA; clear; basic_solver. }
+        rewrite extra_a_some; auto with hahn.
+        all: tauto. }
       { apply SIMREL'; vauto. }
-      { arewrite ((WCore.G X_s') = G_s'). intros FALSE.
-        destruct rsr_as_nacq with (X_s := X_s') (X_t := X_t')
-            (a_t := a_t) (b_t := b_t) (mapper := mapper') (x := b_t); vauto.
-        arewrite ((WCore.G X_s') = G_s'). unfold G_s'; ins.
-        rewrite EXTRAOLD in EXIN. clear - EXIN. basic_solver. }
-      { rewrite EQACTS.
-        rewrite set_collect_union, MAPER_E, MAPSUB, (rsr_codom SIMREL).
-        rewrite EXEQ. rewrite EXTRA; rels. intros FLS.
-        destruct FLS as [FLS | FLS].
-        { destruct SIMREL.
-          destruct FLS; vauto. }
-        destruct E_NOT_B; vauto. }
-      { apply reord_map_rpo with (a := a_t).
+      { eapply rsr_as_nacq with (X_t := X_t') (X_s := X_s'); eauto.
+        clear - BINS. basic_solver. }
+      { apply set_disjointE. split; auto with hahn.
+        rewrite (rsr_codom SIMREL'), extra_a_some.
+        { basic_solver. }
+        all: tauto. }
+      { split; auto with hahn.
+        rewrite reord_rpo_emp; eauto.
+        clear. basic_solver. }
+      { apply reord_map_rpo with (a := a_t); auto.
         { apply (G_s_wf CORR' SIMREL'). }
-        { admit. }
-        { rewrite (rsr_acts SIMREL').
-          rewrite extra_a_some; desf.
-          clear. basic_solver. }
         { symmetry. apply (rsr_lab SIMREL'). }
         { apply (rsr_inj SIMREL'). }
-        { admit. }
-        { admit. }
-        { admit. }
-        { admit. }
-        { exact SBFROMA. }
         admit. }
       { apply reord_ab_loc_codom with (a := a_t).
-        { admit. }
-        exact SBFROMA. }
+        all: auto. }
       { apply reord_sbloc_to_nb with (a := a_t).
-        { admit. }
-        { admit. }
+        all: auto.
         { apply (rsr_inj SIMREL'). }
-        { admit. }
         { symmetry. apply (rsr_lab SIMREL'). }
-        { exact SBFROMA. }
         admit. }
-      { rewrite (rsr_rf SIMREL'). apply union_more; vauto.
-        apply seq_more; vauto.
-        rewrite EXTRA. unfold is_r.
-        arewrite (WCore.G X_s' = G_s').
-        unfold G_s'; ins. unfold upd.
-        apply eqv_rel_more. unfold set_inter.
-        split.
-        { red; intros x COND.
-          destruct COND as [COND1 COND2]; vauto. }
-        red; intros x COND. split; vauto. }
-      { rewrite (rsr_co SIMREL'). unfold add_max.
-        rewrite EXTRA.
-        arewrite ((extra_co_D (acts_set (WCore.G X_s')) (lab (WCore.G X_s'))
-                  (loc (lab (WCore.G X_s')) b_t) \₁ eq b_t ∩₁ W (WCore.G X_s'))
-                    × (eq b_t ∩₁ W (WCore.G X_s')) ≡ ∅₂); [| basic_solver 8].
-        arewrite (eq b_t ∩₁ W (WCore.G X_s') ≡₁ ∅); [| basic_solver 8].
-        unfold is_w. red. arewrite (WCore.G X_s' = G_s'). split; vauto.
-        red. intros x COND.
-        destruct COND as [COND1 COND2].
-        subst x.
-        unfold G_s'; ins. rewrite updo in COND2.
-        { unfold is_r in RR. rewrite updo in RR. desf.
-          clear - E_NOT_B; basic_solver. }
-        basic_solver. }
+      { rewrite (rsr_rf SIMREL').
+        rewrite extra_a_some by tauto.
+        clear - RR. basic_solver 11. }
+      { rewrite (rsr_co SIMREL').
+        rewrite extra_a_some by tauto.
+        arewrite (eq b_t ∩₁ W (WCore.G X_s') ≡₁ ∅).
+        { split; auto with hahn.
+          clear - RR. unfold is_r, is_w in *.
+          unfolder. ins. desf. }
+        now rewrite add_max_empty_r, union_false_r. }
       apply G_s_wf with (X_t := X_t') (a_t := a_t)
                 (b_t := b_t) (mapper := mapper'); vauto. }
     apply XmmCons.write_extent with (G_t := G_t')
       (sc_t := WCore.sc X_t') (a := b_t) (m := mapper'); eauto.
     { apply SIMREL'. }
     { rewrite (rsr_acts SIMREL').
-      rewrite EXTRA; clear; basic_solver. }
-    { destruct SIMREL'; vauto. }
-    { rewrite EQACTS.
-      rewrite set_collect_union, MAPER_E, MAPSUB, (rsr_codom SIMREL).
-      rewrite EXEQ. rewrite EXTRA; rels. intros FLS.
-      destruct FLS as [FLS | FLS].
-      { destruct SIMREL.
-        destruct FLS; vauto. }
-      destruct E_NOT_B; vauto. }
-    { apply reord_map_rpo with (a := a_t).
+      rewrite extra_a_some; auto with hahn.
+      all: tauto. }
+    { apply (rsr_lab SIMREL'). }
+    { apply set_disjointE. split; auto with hahn.
+      rewrite (rsr_codom SIMREL'), extra_a_some.
+      { basic_solver. }
+      all: tauto. }
+    { split; auto with hahn.
+      rewrite reord_rpo_emp; eauto.
+      clear. basic_solver. }
+    { apply reord_map_rpo with (a := a_t); auto.
       { apply (G_s_wf CORR' SIMREL'). }
-      { admit. }
-      { rewrite (rsr_acts SIMREL').
-        rewrite extra_a_some; desf.
-        clear. basic_solver. }
       { symmetry. apply (rsr_lab SIMREL'). }
       { apply (rsr_inj SIMREL'). }
-      { admit. }
-      { admit. }
-      { admit. }
-      { admit. }
-      { exact SBFROMA. }
       admit. }
     { apply reord_ab_loc_codom with (a := a_t).
-      { admit. }
-      exact SBFROMA. }
+      all: auto. }
     { apply reord_sbloc_to_nb with (a := a_t).
-      { admit. }
-      { admit. }
+      all: auto.
       { apply (rsr_inj SIMREL'). }
-      { admit. }
       { symmetry. apply (rsr_lab SIMREL'). }
-      { exact SBFROMA. }
       admit. }
-    { rewrite (rsr_rf SIMREL'). split; [|basic_solver 8].
-      rewrite EXTRA. unfold is_r.
-      arewrite (WCore.G X_s' = G_s').
-      unfold G_s' at 2; ins.
-      arewrite (mapper' ↑ rf_t' ≡ mapper' ↑ rf_t' ∪ ∅₂).
-      { clear. basic_solver 8. }
-      apply union_mori; [basic_solver 8|].
-      intros x y COND. destruct COND as [z [COND1 COND2]].
-      destruct COND2 as [EQ [P1 P2]].
-      subst. clear - WW P2 E_NOT_B.
-      unfold is_w in WW. basic_solver. }
-    { rewrite (rsr_co SIMREL'). unfold add_max.
-      rewrite EXTRA. apply union_more; vauto.
-      apply cross_more.
-      { unfold extra_co_D. unfold same_loc.
-        arewrite (eq b_t ∩₁ W (WCore.G X_s') ≡₁ eq b_t).
-        { split; [basic_solver 8|]. unfold is_w.
-        red. arewrite (WCore.G X_s' = G_s'). split; vauto. }
-        clear; basic_solver 42. }
-      split; [basic_solver 8|].
-      unfold is_w. red. arewrite (WCore.G X_s' = G_s'). split; vauto. }
+    { rewrite (rsr_rf SIMREL').
+      rewrite extra_a_some by tauto.
+      arewrite (eq b_t ∩₁ R (WCore.G X_s') ≡₁ ∅).
+      { split; auto with hahn.
+        clear - WW. unfold is_r, is_w in *.
+        unfolder. ins. desf. }
+      now rewrite eqv_empty, seq_false_r, union_false_r. }
+    { rewrite (rsr_co SIMREL').
+      rewrite extra_a_some by tauto.
+      apply union_more; vauto.
+      arewrite (eq b_t ∩₁ W (WCore.G X_s') ≡₁ eq b_t).
+      { clear - WW; basic_solver. }
+      unfold extra_co_D.
+      arewrite ((fun x =>
+          loc (lab (WCore.G X_s')) x = loc (lab (WCore.G X_s')) b_t
+        ) ≡₁ same_loc (lab (WCore.G X_s')) b_t
+      ).
+      all: clear; basic_solver 11. }
   apply G_s_wf with (X_t := X_t') (a_t := a_t)
             (b_t := b_t) (mapper := mapper'); vauto. }
   assert (EXTRA : extra_a X_t' a_t b_t b_t ≡₁ ∅).

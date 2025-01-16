@@ -43,6 +43,15 @@ Proof using.
   basic_solver.
 Qed.
 
+Lemma wf_rpo_immE
+    (WF : Wf G) :
+  rpo_imm ≡ ⦗E⦘ ⨾ rpo_imm ⨾ ⦗E⦘.
+Proof using.
+  split; [| basic_solver].
+  unfold rpo_imm. rewrite wf_sbE; vauto.
+  basic_solver 21.
+Qed.
+
 Lemma no_rpo_imm_to_init :
   rpo_imm ≡ rpo_imm ⨾ ⦗fun e => ~is_init e⦘.
 Proof using.

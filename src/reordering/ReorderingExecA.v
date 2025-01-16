@@ -619,7 +619,7 @@ Proof using INV INV'.
       { split; vauto. intros FALSE.
         unfold set_minus in FALSE.
         destruct FALSE as (INE & FALSE).
-        desf. } 
+        desf. }
       rewrite <- rsr_map_bt with (X_s := X_s)
         (X_t := X_t) (a_t := a_t) (b_t := b_t) (mapper := mapper) in EQ; vauto.
       split; vauto. intros FALSE.
@@ -830,8 +830,7 @@ Proof using INV INV'.
           intros x y PATH.
           destruct PATH as [x0 [MAP [x1 C1]]].
           destruct MAP. subst x0.
-          destruct simrel_b_lab_notacq with (X_s := X_s') (X_t := X_t')
-            (a_t := a_t) (b_t := b_t) (mapper := mapper') (x := b_t); vauto. }
+          eapply (rsr_as_nacq INV' SIMREL') with b_t; desf. }
         arewrite_false (⦗acts_set G_s'⦘
                           ⨾ mapper' ↑ eq a_t × eq b_t ⨾ ⦗acts_set G_s'⦘ ⨾ ⦗Rel G_s'⦘).
         { arewrite (G_s' = WCore.G X_s'). rewrite (rsr_acts SIMREL').
@@ -842,15 +841,9 @@ Proof using INV INV'.
           intros x y PATH.
           destruct PATH as [x0 [MAP [x1 C1]]].
           destruct MAP. subst x0.
-          destruct simrel_a_lab_notrel with (X_s := X_s') (X_t := X_t')
-            (a_t := a_t) (b_t := b_t) (mapper := mapper') (x := a_t); vauto.
-          split; vauto.
-          arewrite (WCore.G X_s' = G_s').
-          unfold G_s'; ins.
-          arewrite (y = mapper' b_t).
-          { rewrite rsr_map_bt with (X_s := X_s') (X_t := X_t') (a_t := y); vauto. }
-          apply (rsr_acts SIMREL'). left.
-          clear - INB'. basic_solver. }
+          eapply (rsr_bs_nrel INV' SIMREL') with a_t; desf.
+          split; auto.
+          admit. }
         arewrite_false (⦗F G_s' ∩₁ Rel G_s'⦘
                           ⨾ ⦗acts_set G_s'⦘
                             ⨾ mapper' ↑ eq a_t × eq b_t
@@ -924,7 +917,7 @@ Proof using INV INV'.
           destruct COND as [INE REL].
           unfold set_collect.
           destruct INE as [x' [INE MAP]].
-          exists x'. exists x'. splits; vauto. 
+          exists x'. exists x'. splits; vauto.
           split; vauto. split; vauto.
           unfold G_s' in REL; ins.
           unfold is_rel. unfold mod. destruct (rsr_lab SIMREL') with x'; vauto. }
@@ -1052,7 +1045,7 @@ Proof using INV INV'.
     { rewrite rsr_rf. rewrite NOEXA. basic_solver 8. }
     { rewrite rsr_co. rewrite NOEXA. basic_solver 8. }
     { rewrite rsr_rmw; vauto. }
-    { assert (IND1 : (sb G_s' ∩ same_loc (lab G_s') ∪ rpo G_s' ∪ sw G_s') 
+    { assert (IND1 : (sb G_s' ∩ same_loc (lab G_s') ∪ rpo G_s' ∪ sw G_s')
             ⊆ mapper' ↑ (sb_t' ∩ same_loc_t' ∪ rpo_t' ∪ sw G_t')⁺).
       { rewrite <- ct_step.
         rewrite !collect_rel_union.
@@ -1150,8 +1143,8 @@ Proof using INV INV'.
                   ⨾ ⦗W_t'⦘ ⨾ ⦗E_t'⦘
                     ⨾ (rf_t' ⨾ rmw_t')＊
                       ⨾ rf_t' ⨾ ⦗E_t'⦘
-                        ⨾ ⦗Rlx G_t'⦘ ⨾ ⦗E_t'⦘ 
-                          ⨾ (sb_t' ⨾ ⦗F G_t'⦘)^? ⨾ ⦗E_t'⦘ 
+                        ⨾ ⦗Rlx G_t'⦘ ⨾ ⦗E_t'⦘
+                          ⨾ (sb_t' ⨾ ⦗F G_t'⦘)^? ⨾ ⦗E_t'⦘
                             ⨾ ⦗Acq G_t'⦘ ⨾ ⦗E_t'⦘)).
         { arewrite (⦗Rel G_t'⦘ ⨾ ⦗E_t'⦘ ≡ ⦗Rel G_t' ∩₁ E_t'⦘).
           { clear; basic_solver. }
@@ -1313,7 +1306,7 @@ Proof using INV INV'.
                                   { rewrite NOEXA. basic_solver. }
                                   rewrite NOEXA. basic_solver. }
                                 rewrite <- seqA.
-                                transitivity (mapper' ↑ ((⦗E_t'⦘ 
+                                transitivity (mapper' ↑ ((⦗E_t'⦘
                                     ⨾ (sb_t' ⨾ ⦗F G_t'⦘)^?) ⨾ ⦗E_t'⦘ ⨾ ⦗Acq G_t'⦘ ⨾ ⦗E_t'⦘)).
                                 { rewrite collect_rel_seq.
                                   { apply seq_mori.
@@ -1438,7 +1431,7 @@ Proof using INV INV'.
           unfold seq. exists x0'. splits; vauto. }
         rewrite <- TRIN at 2. apply seq_mori; vauto. }
       apply inclusion_t_ind_right; vauto. }
-    apply G_s_wf with (X_t := X_t') (X_s := X_s') 
+    apply G_s_wf with (X_t := X_t') (X_s := X_s')
         (a_t := a_t) (b_t := b_t) (mapper := mapper'); vauto. }
   { admit. (* TODO *)}
   apply sub_to_full_exec_listless with (thrdle := thrdle'); ins.
