@@ -254,9 +254,56 @@ Lemma rc_vf
   vf_s' ⨾ sb_s' ⨾ ⦗eq a_s⦘ ≡
     vf G_s'' ⨾ sb_s' ⨾ ⦗eq a_s⦘.
 Proof using.
+  assert (NEQ : a_t <> b_t) by apply CTX.
   assert (EQE : acts_set G_s'' ≡₁ E_s' \₁ eq a_s).
   { admit. }
   assert (SUB : sub_execution G_s' G_s'' ∅₂ ∅₂).
+  { admit. }
+  assert (RF :
+    rf_s' ≡
+      id ↑ rf G_s'' ∪
+      fake_srf G_s'' a_s (lab_s' a_s) ⨾ ⦗eq a_s⦘
+  ).
+  { rewrite collect_rel_id, (rc_rf CTX).
+    apply union_more; [reflexivity |].
+    rewrite extra_a_some; auto.
+    unfold WCore.lab_is_r, is_r in *.
+    clear - ISR. basic_solver. }
+  assert (INJ : inj_dom (acts_set G_s'') id).
+  { clear. basic_solver. }
+  assert (ACTS : E_s' ≡₁ id ↑₁ acts_set G_s'' ∪₁ eq a_s).
+  { rewrite (rc_acts CTX), extra_a_some; eauto.
+    clear. rewrite set_collect_id. basic_solver. }
+  assert (DISJ : set_disjoint (id ↑₁ acts_set G_s'') (eq a_s)).
+  { rewrite set_collect_id, EQE.
+    clear. basic_solver. }
+  assert (NACQ : ~is_acq lab_s' a_s).
+  { apply CTX. now apply extra_a_some. }
+  assert (CO : co_s' ≡ id ↑ co G_s'').
+  { rewrite collect_rel_id, (rc_co CTX).
+    rewrite extra_a_some; auto.
+    arewrite (eq b_t ∩₁ WCore.lab_is_w (lab_s' a_s) ≡₁ ∅).
+    { unfold WCore.lab_is_w, is_r in *.
+      clear - ISR. basic_solver. }
+    rewrite add_max_empty_r, union_false_r.
+    reflexivity. }
+  assert (NINA' : ~(acts_set G_s'') a_s).
+  { simpl. unfold a_s. intros (x & XIN & FALSO).
+    enough (x = a_t) by desf.
+    now apply (rsr_mapper_inv_bt _ NEQ). }
+  assert (LAB : eq_dom (acts_set G_s'') lab_s' (lab G_s'')).
+  { rewrite (rc_lab CTX). unfold lab_s_'; desf.
+    unfolder. ins. unfold mapper_inv.
+    now rewrite updo by (unfold a_s in NINA'; congruence). }
+  assert (RPOEX : codom_rel (⦗eq a_s⦘ ⨾ rpo_s') ≡₁ ∅).
+  { admit. }
+  assert (RPONA : rpo_s' ⨾ ⦗E_s' \₁ eq a_s⦘ ⊆ id ↑ rpo G_s'').
+  { admit. }
+  assert (RMW : rmw_s' ≡ id ↑ rmw G_s'').
+  { rewrite collect_rel_id, (rc_rmw CTX). reflexivity. }
+  assert (SBLOCEX : codom_rel (⦗eq a_s⦘ ⨾ sb_s' ∩ same_loc_s') ≡₁ ∅).
+  { admit. }
+  assert (SBLOCA : sb_s' ∩ same_loc_s' ⨾ ⦗E_s' \₁ eq a_s⦘ ⊆ id ↑ (sb G_s'' ∩ same_loc (lab G_s''))).
   { admit. }
   split; [| rewrite (sub_vf_in SUB); reflexivity].
   seq_rewrite sbvf_as_rhb.
@@ -293,34 +340,10 @@ Proof using.
     apply union_mori; [basic_solver |].
     apply XmmCons.read_rhb_start
       with (m := id) (G_t := G_s'') (drf := fake_srf G_s'' a_s (lab_s' a_s)).
-    { clear. basic_solver. }
-    { rewrite (rc_acts CTX), extra_a_some; eauto.
-      clear. rewrite set_collect_id. basic_solver. }
-    { exact ISR. }
-    { apply CTX. now apply extra_a_some. }
-    { rewrite set_collect_id, EQE.
-      clear. basic_solver. }
-    { admit. (* Interesting *) }
-    { admit. (* should be easy *) }
-    { admit. }
-    { admit. }
-    { rewrite collect_rel_id, (rc_rf CTX).
-      apply union_more; [reflexivity |].
-      rewrite extra_a_some; auto.
-      unfold WCore.lab_is_r, is_r in *.
-      clear - ISR. basic_solver. }
-    { rewrite collect_rel_id, (rc_co CTX).
-      rewrite extra_a_some; auto.
-      arewrite (eq b_t ∩₁ WCore.lab_is_w (lab_s' a_s) ≡₁ ∅).
-      { unfold WCore.lab_is_w, is_r in *.
-        clear - ISR. basic_solver. }
-      rewrite add_max_empty_r, union_false_r.
-      reflexivity. }
-    { rewrite collect_rel_id, (rc_rmw CTX). reflexivity. }
+    all: auto.
     { eapply sub_WF; eauto using new_G_s_wf.
       admit. }
-    { eapply new_G_s_wf; eauto. }
-    admit. }
+    eapply new_G_s_wf; eauto. }
   arewrite (
     rf_s'^? ⨾ ⦗E_s' \₁ eq a_s⦘ ⊆
       ⦗E_s' \₁ eq a_s⦘ ⨾ (rf G_s'')^?
@@ -339,36 +362,12 @@ Proof using.
   apply union_mori; [reflexivity |].
   rewrite XmmCons.read_rhb_sub
       with (m := id) (G_t := G_s'') (drf := fake_srf G_s'' a_s (lab_s' a_s)).
+  all: auto.
   { rewrite collect_rel_id.
     admit. }
-  { clear. basic_solver. }
-  { rewrite (rc_acts CTX), extra_a_some; eauto.
-    clear. rewrite set_collect_id. basic_solver. }
-  { exact ISR. }
-  { apply CTX. now apply extra_a_some. }
-  { rewrite set_collect_id, EQE.
-    clear. basic_solver. }
-  { admit. (* Interesting *) }
-  { admit. (* should be easy *) }
-  { admit. }
-  { admit. }
-  { rewrite collect_rel_id, (rc_rf CTX).
-    apply union_more; [reflexivity |].
-    rewrite extra_a_some; auto.
-    unfold WCore.lab_is_r, is_r in *.
-    clear - ISR. basic_solver. }
-  { rewrite collect_rel_id, (rc_co CTX).
-    rewrite extra_a_some; auto.
-    arewrite (eq b_t ∩₁ WCore.lab_is_w (lab_s' a_s) ≡₁ ∅).
-    { unfold WCore.lab_is_w, is_r in *.
-      clear - ISR. basic_solver. }
-    rewrite add_max_empty_r, union_false_r.
-    reflexivity. }
-  { rewrite collect_rel_id, (rc_rmw CTX). reflexivity. }
   { eapply sub_WF; eauto using new_G_s_wf.
     admit. }
-  { eapply new_G_s_wf; eauto. }
-  admit.
+  eapply new_G_s_wf; eauto.
 Admitted.
 
 Lemma reexec_simrel
