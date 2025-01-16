@@ -511,54 +511,47 @@ Proof using INV INV'.
     eapply G_s_wf with (X_s := X_s') (X_t := X_t'); eauto. }
   { eapply G_s_rfc; eauto. }
   destruct (classic (~ E_t' a_t /\ E_t' b_t)) as [EMP|NEMP].
-  { assert (EXTRA : extra_a X_t' a_t b_t b_t ≡₁ eq b_t).
-    { unfold extra_a. desf. basic_solver. }
-    assert (ANONTIN : ~ E_t a_t).
-    { clear - A_PRESERVED EMP. basic_solver 8. }
+  { assert (ANONTIN : ~ E_t a_t).
+    { clear - A_PRESERVED EMP. tauto. }
     assert (BIN : E_t b_t).
-    { clear - B_PRESERVED EMP. basic_solver 8. }
-    assert (EXTRAOLD : extra_a X_t a_t b_t b_t ≡₁ eq b_t).
-    { unfold extra_a. desf. basic_solver. }
+    { clear - B_PRESERVED EMP. tauto. }
     assert (SBFROMA : ⦗eq b_t⦘ ⨾ sb G_s' ⊆ eq b_t × eq a_t).
     { unfold G_s', sb; ins.
       rewrite NEWSB.
       rewrite !seq_union_r.
-      assert (SBHELP : ⦗eq b_t⦘ ⨾ sb_s ⊆ eq b_t × eq a_t).
+      arewrite (⦗eq b_t⦘ ⨾ sb_s ⊆ eq b_t × eq a_t).
       { transitivity (⦗eq b_t⦘ ⨾ sb_s ⨾ ⦗E_s \₁ eq b_t⦘).
-        { unfold set_minus. unfolder. intros x y.
+        { rewrite wf_sbE at 1. clear. unfolder.
           ins. desf. splits; auto.
-          { apply wf_sbE in H0. destruct H0 as
-                [x0 [H0 [x1 [H1 [EQ INE]]]]]; vauto. }
-          intros FALSE. subst y. apply sb_irr in H0; vauto. }
+          intro FALSO; desf; eapply sb_irr; eauto. }
         rewrite (rsr_sb SIMREL).
-        unfold swap_rel.
+        rewrite extra_a_some by assumption.
+        rewrite rsr_map_bt
+           with (X_s := X_s) (X_t := X_t)
+                (a_t := a_t) (b_t := b_t).
+        all: auto.
         arewrite (eq a_t ∩₁ E_t ≡₁ ∅).
-        { split; [basic_solver|].
-          clear. basic_solver. }
-        rels. rewrite EXTRAOLD.
+        { clear - ANONTIN. basic_solver. }
+        rewrite swap_rel_empty_r.
         rewrite !seq_union_l, !seq_union_r.
-        apply inclusion_union_l.
-        { apply inclusion_union_l.
-          { rewrite wf_sbE.
-            rewrite collect_rel_seqi.
-            rewrite seqA. rewrite collect_rel_eqv.
-            rewrite (rsr_codom SIMREL). rewrite EXTRAOLD.
-            clear. basic_solver. }
+        repeat apply inclusion_union_l.
+        { rewrite wf_sbE, collect_rel_seqi.
+          rewrite collect_rel_eqv, (rsr_codom SIMREL).
+          rewrite extra_a_some by assumption.
           clear. basic_solver. }
-        assert (BMAP : mapper b_t = a_t).
-        { apply rsr_map_bt with (X_t := X_t) (X_s := X_s); eauto. }
-        rewrite BMAP. basic_solver. }
-      arewrite_false (⦗eq b_t⦘ ⨾ WCore.sb_delta e E_s).
-      { unfold WCore.sb_delta.
-        intros x y PATH. destruct PATH as [x0 [[EQ EQB] CONDS]].
-        subst x x0.
-        destruct CONDS as [CONDS EQ]. subst y.
-        destruct CONDS as [INIT | TIDS].
-        { destruct INV; basic_solver 4. }
-        destruct TIDS as [INE TIDB].
-        unfold same_tid in TIDB.
-        apply ETID in TIDB. basic_solver. }
-      rewrite SBHELP. basic_solver. }
+        all: clear; basic_solver. }
+      apply inclusion_union_l; auto with hahn.
+      arewrite_false (⦗eq b_t⦘ ⨾ WCore.sb_delta e E_s)
+        ; [| clear; basic_solver].
+      unfold WCore.sb_delta.
+      intros x y PATH. destruct PATH as [x0 [[EQ EQB] CONDS]].
+      subst x x0.
+      destruct CONDS as [CONDS EQ]. subst y.
+      destruct CONDS as [INIT | TIDS].
+      { destruct INV; basic_solver 4. }
+      destruct TIDS as [INE TIDB].
+      unfold same_tid in TIDB.
+      apply ETID in TIDB. basic_solver. }
     assert (AINRW : eq a_t ∩₁ (acts_set G_s') ⊆₁ (R G_s' ∪₁ W G_s')).
     { intros x XIN.
       destruct simrel_a_lab_wr with (X_s := X_s') (X_t := X_t')
@@ -569,29 +562,8 @@ Proof using INV INV'.
       apply simrel_a_lab_notrel with (X_s := X_s') (X_t := X_t')
           (a_t := a_t) (b_t := b_t) (mapper := mapper') (x := x); vauto.
       apply EQACTS; basic_solver. }
-    assert (RPOIMMEMP : ⦗eq b_t⦘ ⨾ rpo_imm G_s' ⊆ ∅₂).
-    { admit. }
     assert (MAPE : e = mapper' e).
       { unfold mapper'. now rewrite upds. }
-    assert (RPOEMP : ⦗eq b_t⦘ ⨾ rpo G_s' ⊆ ∅₂).
-      { unfold rpo. rewrite ct_begin.
-        rewrite <- seqA.
-        rewrite RPOIMMEMP. clear. basic_solver. }
-    assert (RPOCODOM : codom_rel (⦗eq b_t⦘ ⨾ rpo G_s') ≡₁ ∅).
-      { split; [| basic_solver].
-        rewrite RPOEMP. clear; basic_solver. }
-    assert (RPOIMMCODOM : codom_rel (⦗eq b_t⦘ ⨾ rpo_imm G_s') ≡₁ ∅).
-      { split; [| basic_solver]. arewrite (rpo_imm G_s' ⊆ rpo G_s').
-        destruct RPOCODOM; vauto. }
-    assert (RPOIMMST : ⦗E_s ∪₁ eq e⦘ ⨾ rpo_imm G_s' ≡ rpo_imm G_s').
-      { split; [basic_solver |].
-        arewrite (rpo_imm G_s' ⊆ ⦗acts_set G_s'⦘ ⨾ rpo_imm G_s').
-        { rewrite wf_rpo_immE at 1.
-          { basic_solver. }
-          change G_s' with (WCore.G X_s').
-          apply G_s_wf with (a_t := a_t) (b_t := b_t) (mapper := mapper')
-                      (X_t := X_t'); vauto. }
-        unfold G_s' at 1; ins. }
     destruct rsr_a_s_is_r_or_w with (X_t := X_t') (X_s := X_s')
         (a_t := a_t) (b_t := b_t) (mapper := mapper') (x := b_t) as [RR | WW]; vauto.
     { arewrite (WCore.G X_s' = G_s'). unfold G_s'; ins.
