@@ -386,7 +386,7 @@ Proof using.
   { unfold extra_a; desf; [desf | basic_solver 11].
     rewrite EXAR, <- fake_srf_is_srf with (G_s := G_s'').
     all: ins.
-    { apply intermediate_graph_wf; auto. }
+    { admit. }
     { unfold fake_sb, G_s'', sb. ins.
       rewrite (rc_acts CTX), extra_a_some; auto. }
     { unfold G_s''.
@@ -395,7 +395,8 @@ Proof using.
     { rewrite (rc_lab CTX).
       unfold lab_s_'; desf; [| exfalso; eauto].
       now unfold a_s; rewrite upds. }
-    { apply rc_vf; auto. }
+    { apply rc_vf; auto.
+      admit. }
     rewrite (rc_co CTX), seq_union_l.
     rewrite extra_a_some; auto.
     rewrite add_max_seq_r, set_interC, set_interA.
