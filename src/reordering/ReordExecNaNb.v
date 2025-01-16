@@ -629,61 +629,17 @@ Proof using INV INV'.
         { admit. }
         { exact SBFROMA. }
         admit. }
-      { split; [|basic_solver].
-        rewrite <- seq_eqv_inter_ll.
-        arewrite (WCore.G X_s' = G_s').
-        rewrite SBFROMA. intros x FALSE.
-        exfalso. destruct rsr_as_bs_loc with (X_s := X_s') (X_t := X_t')
-            (a_t := a_t) (b_t := b_t) (mapper := mapper') (x := x) (y := b_t); vauto.
-        unfold seq. exists x. splits.
-        { destruct FALSE as [x0 [[LT RT] SL]].
-          split; vauto. split; vauto.
-          arewrite (WCore.G X_s' = G_s'). unfold G_s'; ins.
-          left. apply (rsr_acts SIMREL). left.
-          rewrite <- rsr_map_bt with (X_s := X_s) (X_t := X_t)
-            (b_t := x0) (mapper := mapper); vauto. }
-        exists b_t. splits; vauto.
-        { destruct FALSE as [x0 [[LT RT] SL]].
-          subst x x0. clear - SL. basic_solver. }
-        split; vauto. split; vauto.
-        unfold G_s'; ins. left. apply (rsr_acts SIMREL).
-        right. apply EXTRAOLD; basic_solver. }
-      { rewrite (rsr_sb SIMREL'). rewrite !inter_union_l.
-        rewrite !seq_union_l. apply inclusion_union_l.
-        { apply inclusion_union_l.
-          { unfold swap_rel.
-            arewrite (eq a_t ∩₁ E_t' ≡₁ ∅).
-            { clear -EMP. basic_solver. }
-            rels.
-            intros x y (z & (PTH & (EQ & CND))); subst z.
-            destruct PTH as ((x0 & y0 & P & M1 & M2) & SL).
-            unfold collect_rel. exists x0, y0; splits; vauto.
-            split; vauto.
-            unfold same_loc in *. unfold loc.
-            rewrite <- !(rsr_lab SIMREL').
-            { basic_solver 8. }
-            all : apply wf_sbE in P.
-            all : destruct P as [x1 [[EQ1 INE1] [x2 [PTH [EQ2 INE2]]]]].
-            all : basic_solver. }
-          rewrite EXTRA. clear; basic_solver. }
-        rewrite EXTRA. rewrite rsr_map_bt with (X_s := X_s') (X_t := X_t')
-            (a_t := a_t) (b_t := b_t) (mapper := mapper'); vauto.
-        { intros x y COND. exfalso. destruct rsr_as_bs_loc with (X_s := X_s') (X_t := X_t')
-            (a_t := a_t) (b_t := b_t) (mapper := mapper') (x := a_t) (y := b_t); vauto.
-          unfold seq. exists a_t. splits.
-          { destruct COND as [x0 [[[LT RT] SL] INEE]].
-            split; vauto. split; vauto.
-            arewrite (WCore.G X_s' = G_s'). unfold G_s'; ins.
-            left. apply (rsr_acts SIMREL). left.
-            rewrite <- rsr_map_bt with (X_s := X_s) (X_t := X_t)
-              (b_t := x) (mapper := mapper); vauto. }
-          exists b_t. splits; vauto.
-          { destruct COND as [x0 [[[LT RT] SL] INEE]].
-            subst x x0. clear - SL. basic_solver. }
-          split; vauto. split; vauto.
-          unfold G_s'; ins. left. apply (rsr_acts SIMREL).
-          right. apply EXTRAOLD; basic_solver. }
-        clear - EMP. basic_solver. }
+      { apply reord_ab_loc_codom with (a := a_t).
+        { admit. }
+        exact SBFROMA. }
+      { apply reord_sbloc_to_nb with (a := a_t).
+        { admit. }
+        { admit. }
+        { apply (rsr_inj SIMREL'). }
+        { admit. }
+        { symmetry. apply (rsr_lab SIMREL'). }
+        { exact SBFROMA. }
+        admit. }
       { rewrite (rsr_rf SIMREL'). apply union_more; vauto.
         apply seq_more; vauto.
         rewrite EXTRA. unfold is_r.
@@ -737,61 +693,17 @@ Proof using INV INV'.
       { admit. }
       { exact SBFROMA. }
       admit. }
-    { split; [|basic_solver].
-      rewrite <- seq_eqv_inter_ll.
-      arewrite (WCore.G X_s' = G_s').
-      rewrite SBFROMA. intros x FALSE.
-      exfalso. destruct rsr_as_bs_loc with (X_s := X_s') (X_t := X_t')
-          (a_t := a_t) (b_t := b_t) (mapper := mapper') (x := x) (y := b_t); vauto.
-      unfold seq. exists x. splits.
-      { destruct FALSE as [x0 [[LT RT] SL]].
-        split; vauto. split; vauto.
-        arewrite (WCore.G X_s' = G_s'). unfold G_s'; ins.
-        left. apply (rsr_acts SIMREL). left.
-        rewrite <- rsr_map_bt with (X_s := X_s) (X_t := X_t)
-          (b_t := x0) (mapper := mapper); vauto. }
-      exists b_t. splits; vauto.
-      { destruct FALSE as [x0 [[LT RT] SL]].
-        subst x x0. clear - SL. basic_solver. }
-      split; vauto. split; vauto.
-      unfold G_s'; ins. left. apply (rsr_acts SIMREL).
-      right. apply EXTRAOLD; basic_solver. }
-      { rewrite (rsr_sb SIMREL'). rewrite !inter_union_l.
-      rewrite !seq_union_l. apply inclusion_union_l.
-      { apply inclusion_union_l.
-        { unfold swap_rel.
-          arewrite (eq a_t ∩₁ E_t' ≡₁ ∅).
-          { clear -EMP. basic_solver. }
-          rels.
-          intros x y (z & (PTH & (EQ & CND))); subst z.
-          destruct PTH as ((x0 & y0 & P & M1 & M2) & SL).
-          unfold collect_rel. exists x0, y0; splits; vauto.
-          split; vauto.
-          unfold same_loc in *. unfold loc.
-          rewrite <- !(rsr_lab SIMREL').
-          { basic_solver 8. }
-          all : apply wf_sbE in P.
-          all : destruct P as [x1 [[EQ1 INE1] [x2 [PTH [EQ2 INE2]]]]].
-          all : basic_solver. }
-        rewrite EXTRA. clear; basic_solver. }
-      rewrite EXTRA. rewrite rsr_map_bt with (X_s := X_s') (X_t := X_t')
-          (a_t := a_t) (b_t := b_t) (mapper := mapper'); vauto.
-    { intros x y COND. exfalso. destruct rsr_as_bs_loc with (X_s := X_s') (X_t := X_t')
-          (a_t := a_t) (b_t := b_t) (mapper := mapper') (x := a_t) (y := b_t); vauto.
-        unfold seq. exists a_t. splits.
-        { destruct COND as [x0 [[[LT RT] SL] INEE]].
-          split; vauto. split; vauto.
-          arewrite (WCore.G X_s' = G_s'). unfold G_s'; ins.
-          left. apply (rsr_acts SIMREL). left.
-          rewrite <- rsr_map_bt with (X_s := X_s) (X_t := X_t)
-            (b_t := x) (mapper := mapper); vauto. }
-        exists b_t. splits; vauto.
-        { destruct COND as [x0 [[[LT RT] SL] INEE]].
-          subst x x0. clear - SL. basic_solver. }
-        split; vauto. split; vauto.
-        unfold G_s'; ins. left. apply (rsr_acts SIMREL).
-        right. apply EXTRAOLD; basic_solver. }
-      clear - EMP. basic_solver. }
+    { apply reord_ab_loc_codom with (a := a_t).
+      { admit. }
+      exact SBFROMA. }
+    { apply reord_sbloc_to_nb with (a := a_t).
+      { admit. }
+      { admit. }
+      { apply (rsr_inj SIMREL'). }
+      { admit. }
+      { symmetry. apply (rsr_lab SIMREL'). }
+      { exact SBFROMA. }
+      admit. }
     { rewrite (rsr_rf SIMREL'). split; [|basic_solver 8].
       rewrite EXTRA. unfold is_r.
       arewrite (WCore.G X_s' = G_s').
@@ -813,8 +725,8 @@ Proof using INV INV'.
         clear; basic_solver 42. }
       split; [basic_solver 8|].
       unfold is_w. red. arewrite (WCore.G X_s' = G_s'). split; vauto. }
-    apply G_s_wf with (X_t := X_t') (a_t := a_t)
-              (b_t := b_t) (mapper := mapper'); vauto. }
+  apply G_s_wf with (X_t := X_t') (a_t := a_t)
+            (b_t := b_t) (mapper := mapper'); vauto. }
   assert (EXTRA : extra_a X_t' a_t b_t b_t ≡₁ ∅).
   { unfold extra_a. desf. }
   assert (RPOMAP : rpo G_s' ⊆ mapper' ↑ (rpo G_t')).

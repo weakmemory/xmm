@@ -1,6 +1,6 @@
 Require Import AuxDef.
 Require Import Core.
-Require Import AuxRel AuxRel2.
+Require Import AuxRel AuxRel2 AuxInj.
 Require Import SimrelCommon ReordSimrel.
 Require Import Rhb.
 
@@ -273,6 +273,65 @@ Proof using.
   eapply inj_dom_mori; eauto.
   red. change rpo_imm⁺ with rpo.
   rewrite wf_rpoE. basic_solver.
+Qed.
+
+Lemma reord_ab_loc
+    (NLOC : ~same_loc' b a)
+    (SBFROMB : ⦗eq b⦘ ⨾ sb' ⊆ eq b × eq a) :
+  ⦗eq b⦘ ⨾ sb' ∩ same_loc' ⊆ ∅₂.
+Proof using.
+  rewrite <- seq_eqv_inter_ll, SBFROMB.
+  basic_solver.
+Qed.
+
+Lemma reord_ab_loc_codom
+    (NLOC : ~same_loc' b a)
+    (SBFROMB : ⦗eq b⦘ ⨾ sb' ⊆ eq b × eq a) :
+  codom_rel (⦗eq b⦘ ⨾ sb' ∩ same_loc') ≡₁ ∅.
+Proof using.
+  split; [| auto with hahn].
+  rewrite reord_ab_loc; auto; basic_solver.
+Qed.
+
+Lemma reord_sbloc_to_nb
+    (BIN : E' b)
+    (NLOC : ~same_loc' b a)
+    (INJ : inj_dom E mapper)
+    (MAPIN : E' \₁ eq b ⊆₁ mapper ↑₁ E)
+    (LABEQ : eq_dom E lab (lab' ∘ mapper))
+    (SBFROMB : ⦗eq b⦘ ⨾ sb' ⊆ eq b × eq a)
+    (SBSUB : ⦗E' \₁ eq b⦘ ⨾ sb' ⨾ ⦗E' \₁ eq b⦘ ⊆
+                ⦗E' \₁ eq b⦘ ⨾ mapper ↑ sb ⨾ ⦗E' \₁ eq b⦘) :
+  sb' ∩ same_loc' ⨾ ⦗E' \₁ eq b⦘ ⊆
+    mapper ↑ (sb ∩ same_loc).
+Proof using.
+  rewrite <- seq_eqv_inter_lr.
+  arewrite (sb' ⨾ ⦗E' \₁ eq b⦘ ⊆ ⦗E'⦘ ⨾ sb' ⨾ ⦗E' \₁ eq b⦘).
+  { rewrite wf_sbE at 1. basic_solver. }
+  rewrite set_union_minus
+      with (s := E') (s' := eq b)
+        at 1; [| basic_solver].
+  rewrite id_union, !seq_union_l, inter_union_l.
+  arewrite_false ((⦗eq b⦘ ⨾ sb' ⨾ ⦗E' \₁ eq b⦘) ∩ same_loc').
+  { rewrite <- seqA, seq_eqv_inter_lr.
+    rewrite seq_eqv_inter_ll, reord_ab_loc.
+    all: auto.
+    now rewrite seq_false_l. }
+  rewrite union_false_r, SBSUB, MAPIN.
+  rewrite seq_eqv_inter_ll, seq_eqv_inter_lr.
+  rewrite <- seq_eqv_inter_rr, <- seq_eqv_inter_rl.
+  arewrite (
+    ⦗mapper ↑₁ E⦘ ⨾ same_loc' ⨾ ⦗mapper ↑₁ E⦘ ⊆
+      mapper ↑ (⦗E⦘ ⨾ same_loc ⨾ ⦗E⦘)
+  ).
+  { unfolder. intros x' y' ((x & XIN & XEQ) & LOC & (y & YIN & YEQ)).
+    subst x' y'. exists x, y. splits; auto.
+    unfold same_loc, loc in *.
+    rewrite !LABEQ; auto. }
+  rewrite <- collect_rel_interE.
+  { apply collect_rel_mori; auto. basic_solver. }
+  eapply inj_dom_mori; eauto.
+  rewrite wf_sbE. red. basic_solver.
 Qed.
 
 End ReordRpo.
