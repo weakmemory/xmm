@@ -225,20 +225,20 @@ Proof using.
     { admit. }
     rewrite !collect_rel_union.
     admit. }
-    assert (IND2 : mapper ↑ rpo_imm⁺ ⨾ ⦗E' \₁ eq b⦘ ⨾ (rpo_imm' ⨾ ⦗E' \₁ eq b⦘)
-      ⊆ mapper ↑ rpo_imm⁺).
-    { assert (TRIN : mapper ↑ rpo_imm⁺ ⨾ mapper ↑ rpo_imm⁺
-                    ⊆ mapper ↑ rpo_imm⁺).
-      { intros x y PATH. destruct PATH as (x0 & P1 & P2).
-        unfold collect_rel in P1, P2. unfold collect_rel.
-        destruct P1 as (x' & x0' & (P1 & M1 & M2)).
-        destruct P2 as (x0'' & y' & (P2 & M3 & M4)).
-        exists x', y'. splits; vauto.
-        assert (EQ : x0'' = x0').
-        { admit. }
-        subst x0''. apply ct_ct.
-        unfold seq. exists x0'. splits; vauto. }
-      rewrite <- TRIN at 2. apply seq_mori; vauto. }
+  assert (IND2 : mapper ↑ rpo_imm⁺ ⨾ ⦗E' \₁ eq b⦘ ⨾ (rpo_imm' ⨾ ⦗E' \₁ eq b⦘)
+    ⊆ mapper ↑ rpo_imm⁺).
+  { assert (TRIN : mapper ↑ rpo_imm⁺ ⨾ mapper ↑ rpo_imm⁺
+                  ⊆ mapper ↑ rpo_imm⁺).
+    { intros x y PATH. destruct PATH as (x0 & P1 & P2).
+      unfold collect_rel in P1, P2. unfold collect_rel.
+      destruct P1 as (x' & x0' & (P1 & M1 & M2)).
+      destruct P2 as (x0'' & y' & (P2 & M3 & M4)).
+      exists x', y'. splits; vauto.
+      assert (EQ : x0'' = x0').
+      { admit. }
+      subst x0''. apply ct_ct.
+      unfold seq. exists x0'. splits; vauto. }
+    rewrite <- TRIN at 2. apply seq_mori; vauto. }
   apply inclusion_t_ind_right; vauto.
 Admitted.
 
