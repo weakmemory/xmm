@@ -327,7 +327,7 @@ Proof using.
     clear. basic_solver. }
   assert (RPONA : rpo_s' ⨾ ⦗E_s' \₁ eq a_s⦘ ⊆ id ↑ rpo G_s'').
   { apply reord_map_rpo with (a := a_t); auto.
-    { admit. }
+    { eapply new_G_s_wf; eauto. }
     { rewrite ACTS. clear. basic_solver. }
     { symmetry. now rewrite Combinators.compose_id_right. }
     admit. }
