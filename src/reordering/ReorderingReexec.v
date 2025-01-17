@@ -359,6 +359,8 @@ Proof using.
   { admit. }
   assert (SBLOCA : sb_s' ∩ same_loc_s' ⨾ ⦗E_s' \₁ eq a_s⦘ ⊆ id ↑ (sb G_s'' ∩ same_loc (lab G_s''))).
   { admit. }
+  assert (WF : Wf G_s'').
+  { eapply sub_WF; eauto using new_G_s_wf. }
   split; [| rewrite (sub_vf_in SUBEX); reflexivity].
   seq_rewrite sbvf_as_rhb.
   arewrite (
@@ -394,14 +396,20 @@ Proof using.
     apply union_mori; [basic_solver |].
     apply XmmCons.read_rhb_start
       with (m := id) (G_t := G_s'') (drf := fake_srf G_s'' a_s (lab_s' a_s)).
-    all: auto.
-    { eapply sub_WF; eauto using new_G_s_wf. }
-    eapply new_G_s_wf; eauto. }
+    all: eauto using new_G_s_wf. }
   arewrite (
     rf_s'^? ⨾ ⦗E_s' \₁ eq a_s⦘ ⊆
       ⦗E_s' \₁ eq a_s⦘ ⨾ (rf G_s'')^?
   ).
-  { admit. }
+  { rewrite !crE, !seq_union_l, !seq_union_r.
+    apply union_mori; [clear; basic_solver |].
+    rewrite (rc_rf CTX), seq_union_l, extra_a_some,
+            !seqA; auto.
+    arewrite_false (⦗eq b_t ∩₁ WCore.lab_is_r (lab_s' a_s)⦘ ⨾ ⦗E_s' \₁ eq a_s⦘).
+    { unfold a_s. clear. basic_solver. }
+    rewrite seq_false_r, <- EQE.
+    change (mapper ↑ rf_t') with (rf G_s'').
+    rewrite (wf_rfE WF) at 1. clear. basic_solver. }
   arewrite (
     ⦗E_s'⦘ ⨾ ⦗W_s'⦘ ⨾ ⦗E_s' \₁ eq a_s⦘ ⊆
       ⦗acts_set G_s''⦘ ⨾ ⦗W G_s''⦘
@@ -420,7 +428,6 @@ Proof using.
       with (m := id) (G_t := G_s'') (drf := fake_srf G_s'' a_s (lab_s' a_s)).
   all: auto.
   { now rewrite collect_rel_id. }
-  { eapply sub_WF; eauto using new_G_s_wf. }
   eapply new_G_s_wf; eauto.
 Admitted.
 
