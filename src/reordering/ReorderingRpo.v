@@ -13,11 +13,10 @@ Set Implicit Arguments.
 
 Section ReordRpo.
 
-Variable X X' : WCore.t.
+Variable G G' : execution.
 Variable a b : actid.
 Variable mapper : actid -> actid.
 
-Notation "'G''" := (WCore.G X').
 Notation "'lab''" := (lab G').
 Notation "'loc''" := (loc lab').
 Notation "'val''" := (val lab').
@@ -43,7 +42,6 @@ Notation "'Rlx''" := (fun e => is_true (is_rlx lab' e)).
 Notation "'rpo_imm''" := (rpo_imm G').
 Notation "'rpo''" := (rpo G').
 
-Notation "'G'" := (WCore.G X).
 Notation "'lab'" := (lab G).
 Notation "'val'" := (val lab).
 Notation "'loc'" := (loc lab).
