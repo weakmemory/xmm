@@ -258,54 +258,24 @@ Lemma hb_helper :
     hb ≡ sb ∪ rhb.
 Proof using.
   split; [| rewrite rhb_in_hb, sb_in_hb; auto with hahn].
-  unfold hb, rhb. intros x y HH. apply clos_trans_t1n in HH.
-  assert (IN : sw＊ ⨾ (rpo ⨾ sw＊)⁺ ⊆ sw＊ ⨾ ((sb ∩ same_loc ∪ rpo) ⨾ sw＊)⁺).
-  { apply inclusion_seq_mon; [basic_solver |].
-    apply inclusion_t_t. apply inclusion_seq_mon; basic_solver. }
-  induction HH as [x y START | x y z STEP1 STEP2 IHSTEP].
-  { destruct START as [P1 | P2]; try basic_solver.
-    right. apply ct_step. basic_solver. }
-  destruct STEP1 as [P1 | P2]; destruct IHSTEP as [P3 | P4].
-  { left. assert (TRANS : transitive sb). apply sb_trans.
-    unfold transitive in TRANS. basic_solver. }
-  { assert (TRANS : transitive sb) by apply sb_trans.
-    rewrite <- clos_trans_t1n_iff in STEP2.
-    assert (PATH : (sb ⨾ (sb ∪ sw)⁺) x z) by basic_solver.
-    apply trans_helper in PATH; eauto.
-    destruct PATH as [PATH1 | PATH2]; [left; basic_solver |].
-    destruct PATH2 as (x0 & (PTH1 & [EQ | NEQ])). 2 :
-    { apply sb_sw_trans_trans in PTH1. assert (PTH1' := PTH1).
-      apply ct_end in PTH1. destruct PTH1 as (x1 & PTH1 & (x2 & PTH2 & PTH3)).
-      apply ct_end in PTH3. destruct PTH3 as (x3 & PTH3 & PTH4).
-      assert (RPO : rpo x0 z).
-      { apply rpo_sb_end with (x0 := x0) (x := x3); eauto. }
-      right. apply ct_ct. unfold seq. exists x0. split.
-      { apply ct_unionE. right. apply IN.
-        unfold seq. exists x. split; vauto.
-        assert (EQ : (fun x4 y0 : actid =>
-              exists z0 : actid, rpo x4 z0 /\ sw＊ z0 y0)⁺ ≡ (rpo ⨾ sw＊)⁺).
-        { unfold seq. basic_solver. }
-        apply EQ.
-        apply inclusion_t_t with (r := rpo ⨾ sw⁺); vauto.
-        apply inclusion_seq_mon; vauto.
-        apply inclusion_t_rt. }
-      apply ct_step. basic_solver. }
-    destruct EQ. apply sb_sw_trans_trans in PTH1. assert (PTH1' := PTH1).
-    right. apply ct_unionE. right. apply IN. unfold seq. exists x. split; vauto.
-    assert (EQ : (fun x4 y0 : actid =>
-          exists z0 : actid, rpo x4 z0 /\ sw＊ z0 y0)⁺ ≡ (rpo ⨾ sw＊)⁺).
-    { unfold seq. basic_solver. }
-    apply EQ.
-    apply inclusion_t_t with (r := rpo ⨾ sw⁺); basic_solver. }
-  { enough (RR : sw x y /\ rpo y z).
-    { right.
-      apply rhb_trans with y.
-      all: try now apply sw_in_rhb, RR.
-      all: try now apply rpo_in_rhb, RR. }
-    split; auto.
-    apply rpo_sb_end with (x := x); eauto. }
-  right. apply rhb_trans with y; auto.
-  now apply sw_in_rhb.
+  unfold hb. rewrite path_union.
+  rewrite ct_of_trans by apply sb_trans.
+  apply union_mori; [reflexivity |].
+  rewrite <- cr_of_ct, ct_of_trans with (r := sb)
+       by apply sb_trans.
+  arewrite ((sb^? ⨾ sw)⁺ ⨾ sb^? ⊆ (sb^? ⨾ sw)⁺ ⨾ rpo^?).
+  { rewrite crE at 2. rewrite crE with (r := rpo).
+    rewrite !seq_union_r. apply union_mori; [reflexivity |].
+    rewrite !ct_end, !seqA. now rewrite sw_sb_in_rpo. }
+  arewrite (sb^? ⨾ sw ⊆ rpo^? ⨾ sw).
+  { rewrite !crE, !seq_union_l. apply union_mori; [reflexivity |].
+    apply sb_sw_in_rpo_sw. }
+  rewrite rpo_in_rhb, sw_in_rhb.
+  rewrite !crE, !seq_union_l, !seq_union_r.
+  rewrite seq_id_l, seq_id_r.
+  rewrite rewrite_trans, unionK by apply rhb_trans.
+  rewrite ct_of_trans by apply rhb_trans.
+  now rewrite rewrite_trans, unionK by apply rhb_trans.
 Qed.
 
 Lemma hb_locs :
