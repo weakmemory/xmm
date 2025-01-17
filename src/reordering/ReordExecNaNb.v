@@ -574,8 +574,10 @@ Proof using INV INV'.
         { apply (G_s_wf CORR' SIMREL'). }
         { symmetry. apply (rsr_lab SIMREL'). }
         { apply (rsr_inj SIMREL'). }
-        eapply rsr_sb_nexa.
-        { apply SIMREL'. }
+        eapply rsr_sb_nexa with (a := a_t).
+        { rewrite (rsr_sb SIMREL'), extra_a_some,
+                  rsr_map_bt with (X_s := X_s') (X_t := X_t') (a_t := a_t).
+          all: auto; tauto. }
         all: tauto. }
       { apply reord_ab_loc_codom with (a := a_t).
         all: auto. }
@@ -583,8 +585,10 @@ Proof using INV INV'.
         all: auto.
         { apply (rsr_inj SIMREL'). }
         { symmetry. apply (rsr_lab SIMREL'). }
-        eapply rsr_sb_nexa.
-        { apply SIMREL'. }
+        eapply rsr_sb_nexa with (a := a_t).
+        { rewrite (rsr_sb SIMREL'), extra_a_some,
+                  rsr_map_bt with (X_s := X_s') (X_t := X_t') (a_t := a_t).
+          all: auto; tauto. }
         all: tauto. }
       { rewrite (rsr_rf SIMREL').
         rewrite extra_a_some by tauto.
@@ -616,8 +620,10 @@ Proof using INV INV'.
       { apply (G_s_wf CORR' SIMREL'). }
       { symmetry. apply (rsr_lab SIMREL'). }
       { apply (rsr_inj SIMREL'). }
-      eapply rsr_sb_nexa.
-      { apply SIMREL'. }
+      eapply rsr_sb_nexa with (a := a_t).
+      { rewrite (rsr_sb SIMREL'), extra_a_some,
+                rsr_map_bt with (X_s := X_s') (X_t := X_t') (a_t := a_t).
+        all: auto; tauto. }
       all: tauto. }
     { apply reord_ab_loc_codom with (a := a_t).
       all: auto. }
@@ -625,8 +631,10 @@ Proof using INV INV'.
       all: auto.
       { apply (rsr_inj SIMREL'). }
       { symmetry. apply (rsr_lab SIMREL'). }
-      eapply rsr_sb_nexa.
-      { apply SIMREL'. }
+      eapply rsr_sb_nexa with (a := a_t).
+      { rewrite (rsr_sb SIMREL'), extra_a_some,
+                rsr_map_bt with (X_s := X_s') (X_t := X_t') (a_t := a_t).
+        all: auto; tauto. }
       all: tauto. }
     { rewrite (rsr_rf SIMREL').
       rewrite extra_a_some by tauto.

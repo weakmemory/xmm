@@ -186,6 +186,10 @@ Record reexec_conds : Prop := {
   rc_extra_lab : fake_srf G_s'' a_s (lab_s' a_s) ⨾ ⦗A_s' ∩₁ WCore.lab_is_r (lab_s' a_s)⦘ ⊆ same_val_s';
   rc_lab : lab_s' = lab_s_';
   rc_acts : E_s' ≡₁ mapper ↑₁ E_t' ∪₁ extra_a X_t' a_t b_t a_s;
+  rc_sb : sb_s' ≡
+      mapper ↑ swap_rel sb_t' (eq b_t ∩₁ E_t') (eq a_t ∩₁ E_t') ∪
+      (mapper ↑₁ dom_rel (sb_t' ⨾ ⦗eq b_t⦘)) × A_s' ∪
+      A_s' × eq (mapper b_t);
   rc_rf : rf_s' ≡ mapper ↑ rf_t' ∪ fake_srf G_s'' a_s (lab_s' a_s) ⨾ ⦗A_s' ∩₁ WCore.lab_is_r (lab_s' a_s)⦘;
   rc_co : co_s' ≡ mapper ↑ co_t' ∪
           add_max
@@ -255,8 +259,16 @@ Lemma rc_vf
     vf G_s'' ⨾ sb_s' ⨾ ⦗eq a_s⦘.
 Proof using.
   assert (NEQ : a_t <> b_t) by apply CTX.
+  assert (NINMB : ~ (mapper ↑₁ E_t') b_t).
+  { unfolder. intros (y & YIN & YEQ).
+    enough (y = a_t) by desf.
+    eapply rsr_mapper_inv_bt; eauto. }
   assert (EQE : acts_set G_s'' ≡₁ E_s' \₁ eq a_s).
-  { admit. }
+  { rewrite (rc_acts CTX), extra_a_some; auto.
+    unfold a_s. ins. rewrite set_minus_union_l.
+    rewrite set_minusK, set_union_empty_r.
+    rewrite set_minus_disjoint; [reflexivity |].
+    basic_solver. }
   assert (SUBEX : sub_execution G_s' G_s'' ∅₂ ∅₂).
   { admit. }
   assert (RF :
@@ -313,6 +325,10 @@ Proof using.
       clear - ISR. basic_solver. }
     rewrite add_max_empty_r, union_false_r.
     reflexivity. }
+  assert (INB' : (acts_set G_s'') b_s).
+  { simpl. unfold b_s. exists b_t.
+    split; auto.
+    apply (rsr_mapper_bt NEQ). }
   assert (NINA' : ~(acts_set G_s'') a_s).
   { simpl. unfold a_s. intros (x & XIN & FALSO).
     enough (x = a_t) by desf.
@@ -330,7 +346,13 @@ Proof using.
     { eapply new_G_s_wf; eauto. }
     { rewrite ACTS. clear. basic_solver. }
     { symmetry. now rewrite Combinators.compose_id_right. }
-    admit. }
+    rewrite collect_rel_id. unfold sb.
+    rewrite EQE. clear. basic_solver. }
+  assert (ANINIT : ~is_init a_s).
+  { unfold a_s. apply CTX. }
+  assert (SUBINIT : is_init ∩₁ E_s' ⊆₁ acts_set G_s'').
+  { rewrite EQE. clear - ANINIT. unfolder.
+    ins. desf. split; auto. congruence. }
   assert (RMW : rmw_s' ≡ id ↑ rmw G_s'').
   { rewrite collect_rel_id, (rc_rmw CTX). reflexivity. }
   assert (SBLOCEX : codom_rel (⦗eq a_s⦘ ⨾ sb_s' ∩ same_loc_s') ≡₁ ∅).
@@ -373,8 +395,7 @@ Proof using.
     apply XmmCons.read_rhb_start
       with (m := id) (G_t := G_s'') (drf := fake_srf G_s'' a_s (lab_s' a_s)).
     all: auto.
-    { eapply sub_WF; eauto using new_G_s_wf.
-      admit. }
+    { eapply sub_WF; eauto using new_G_s_wf. }
     eapply new_G_s_wf; eauto. }
   arewrite (
     rf_s'^? ⨾ ⦗E_s' \₁ eq a_s⦘ ⊆
@@ -399,8 +420,7 @@ Proof using.
       with (m := id) (G_t := G_s'') (drf := fake_srf G_s'' a_s (lab_s' a_s)).
   all: auto.
   { now rewrite collect_rel_id. }
-  { eapply sub_WF; eauto using new_G_s_wf.
-    admit. }
+  { eapply sub_WF; eauto using new_G_s_wf. }
   eapply new_G_s_wf; eauto.
 Admitted.
 
@@ -462,7 +482,6 @@ Proof using.
     rewrite Combinators.compose_assoc, rsr_mapper_compose,
             Combinators.compose_id_right; auto.
     reflexivity. }
-  { admit. }
   { rewrite <- SRF, (rc_rf CTX). auto. }
   { rewrite (rc_co CTX), (rc_acts CTX).
     apply union_more; auto.

@@ -332,4 +332,25 @@ Proof using.
   rewrite wf_sbE. red. basic_solver.
 Qed.
 
+Lemma rsr_sb_nexa
+    (SB : sb' ≡
+      mapper ↑ swap_rel sb (eq b ∩₁ E) (eq a ∩₁ E) ∪
+      (mapper ↑₁ dom_rel (sb ⨾ ⦗eq b⦘)) × eq b ∪
+      eq b × eq a)
+    (NINA : ~E a)
+    (INB : E b) :
+  ⦗E' \₁ eq b⦘ ⨾ sb' ⨾ ⦗E' \₁ eq b⦘ ⊆
+    ⦗E' \₁ eq b⦘ ⨾ mapper ↑ sb ⨾ ⦗E' \₁ eq b⦘.
+Proof using.
+  rewrite SB, !seq_union_l, !seq_union_r.
+  arewrite (eq a ∩₁ E ≡₁ ∅) by basic_solver.
+  rewrite swap_rel_empty_r.
+  rewrite <- !cross_inter_r, <- !cross_inter_l.
+  arewrite (eq b ∩₁ (E' \₁ eq b) ≡₁ ∅) by basic_solver.
+  arewrite ((E' \₁ eq b) ∩₁ eq b ≡₁ ∅) by basic_solver.
+  rewrite cross_false_r, cross_false_l.
+  now rewrite !union_false_r.
+Qed.
+
+
 End ReordRpo.
