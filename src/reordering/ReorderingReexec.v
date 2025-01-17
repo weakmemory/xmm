@@ -1,4 +1,4 @@
-Require Import ReordSimrel ReorderingEq ReorderingMapper.
+Require Import ReordSimrel ReorderingEq ReorderingMapper ReorderingRpo.
 Require Import AuxDef.
 Require Import Core.
 Require Import AuxRel AuxRel2 AuxRel3.
@@ -257,7 +257,7 @@ Proof using.
   assert (NEQ : a_t <> b_t) by apply CTX.
   assert (EQE : acts_set G_s'' ≡₁ E_s' \₁ eq a_s).
   { admit. }
-  assert (SUB : sub_execution G_s' G_s'' ∅₂ ∅₂).
+  assert (SUBEX : sub_execution G_s' G_s'' ∅₂ ∅₂).
   { admit. }
   assert (RF :
     rf_s' ≡
@@ -279,6 +279,32 @@ Proof using.
     clear. basic_solver. }
   assert (NACQ : ~is_acq lab_s' a_s).
   { apply CTX. now apply extra_a_some. }
+  assert (SBFROMA : ⦗eq b_t⦘ ⨾ sb G_s' ⊆ eq b_t × eq a_t).
+  { admit. }
+  assert (AINS : (acts_set G_s') a_t).
+  { apply (rc_acts CTX). left.
+    exists b_t. split; [auto |].
+    apply (rsr_mapper_bt NEQ). }
+  assert (BINS : (acts_set G_s') b_t).
+  { apply (rc_acts CTX). right.
+    apply extra_a_some; desf. }
+  assert (AINRW : eq a_t ⊆₁ R G_s' ∪₁ W G_s').
+  { admit. }
+  assert (BINRW : eq b_t ⊆₁ R G_s' ∪₁ W G_s').
+  { admit. }
+  assert (AINNREL : eq a_t ⊆₁ set_compl (Rel G_s')).
+  { admit. }
+  assert (BINACQ : eq b_t ⊆₁ set_compl (Acq G_s')).
+  { admit. }
+  assert (SLOC : ~ same_loc (lab (WCore.G X_s')) b_t a_t).
+  { intro FALSO.
+    enough (SL : same_loc (lab (WCore.G X_s')) a_t b_t).
+    { admit. }
+    clear - FALSO. now unfold same_loc in *. }
+  assert (SUB : acts_set (WCore.G X_s') \₁ eq b_t ⊆₁ mapper ↑₁ E_t').
+  { rewrite (rc_acts CTX).
+    rewrite extra_a_some; desf.
+    clear. basic_solver. }
   assert (CO : co_s' ≡ id ↑ co G_s'').
   { rewrite collect_rel_id, (rc_co CTX).
     rewrite extra_a_some; auto.
@@ -296,16 +322,22 @@ Proof using.
     unfolder. ins. unfold mapper_inv.
     now rewrite updo by (unfold a_s in NINA'; congruence). }
   assert (RPOEX : codom_rel (⦗eq a_s⦘ ⨾ rpo_s') ≡₁ ∅).
-  { admit. }
+  { split; auto with hahn.
+    rewrite reord_rpo_emp; eauto.
+    clear. basic_solver. }
   assert (RPONA : rpo_s' ⨾ ⦗E_s' \₁ eq a_s⦘ ⊆ id ↑ rpo G_s'').
-  { admit. }
+  { apply reord_map_rpo with (a := a_t); auto.
+    { admit. }
+    { rewrite ACTS. clear. basic_solver. }
+    { symmetry. now rewrite Combinators.compose_id_right. }
+    admit. }
   assert (RMW : rmw_s' ≡ id ↑ rmw G_s'').
   { rewrite collect_rel_id, (rc_rmw CTX). reflexivity. }
   assert (SBLOCEX : codom_rel (⦗eq a_s⦘ ⨾ sb_s' ∩ same_loc_s') ≡₁ ∅).
   { admit. }
   assert (SBLOCA : sb_s' ∩ same_loc_s' ⨾ ⦗E_s' \₁ eq a_s⦘ ⊆ id ↑ (sb G_s'' ∩ same_loc (lab G_s''))).
   { admit. }
-  split; [| rewrite (sub_vf_in SUB); reflexivity].
+  split; [| rewrite (sub_vf_in SUBEX); reflexivity].
   seq_rewrite sbvf_as_rhb.
   arewrite (
     vf G_s'' ⨾ sb_s' ⨾ ⦗eq a_s⦘ ≡
@@ -315,7 +347,7 @@ Proof using.
     split; [| auto with hahn].
     apply inclusion_union_l; [reflexivity |].
     unfold vf_rhb. rewrite !seqA.
-    rewrite (sub_sb SUB), !seqA.
+    rewrite (sub_sb SUBEX), !seqA.
     arewrite (
       ⦗acts_set G_s''⦘ ⨾ sb_s' ⨾ ⦗acts_set G_s''⦘ ⨾ sb_s' ⊆
         sb_s' ⨾ sb_s'
@@ -360,11 +392,13 @@ Proof using.
   ); [| do 3 (apply seq_mori; auto with hahn); basic_solver 7].
   rewrite !crE, !seq_union_l.
   apply union_mori; [reflexivity |].
+  transitivity (rhb_s' ⨾ ⦗E_s' \₁ eq a_s⦘ ⨾ ⦗E_s' \₁ eq a_s⦘ ).
+  { clear. basic_solver. }
+  rewrite <- seqA.
   rewrite XmmCons.read_rhb_sub
       with (m := id) (G_t := G_s'') (drf := fake_srf G_s'' a_s (lab_s' a_s)).
   all: auto.
-  { rewrite collect_rel_id.
-    admit. }
+  { now rewrite collect_rel_id. }
   { eapply sub_WF; eauto using new_G_s_wf.
     admit. }
   eapply new_G_s_wf; eauto.
