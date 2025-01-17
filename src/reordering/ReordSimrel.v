@@ -1046,4 +1046,24 @@ Proof using.
   apply rsr_mapinv_at; auto.
 Qed.
 
+Lemma rsr_sb_nexa
+    (SB : sb_s ≡
+      mapper ↑ swap_rel sb_t (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t) ∪
+      (mapper ↑₁ dom_rel (sb_t ⨾ ⦗eq b_t⦘)) × (extra_a b_t) ∪
+      (extra_a b_t) × eq b_s)
+    (NINA : ~E_t a_t)
+    (INB : E_t b_t) :
+  ⦗E_s \₁ eq b_t⦘ ⨾ sb_s ⨾ ⦗E_s \₁ eq b_t⦘ ⊆
+    ⦗E_s \₁ eq b_t⦘ ⨾ mapper ↑ sb_t ⨾ ⦗E_s \₁ eq b_t⦘.
+Proof using.
+  rewrite SB, !seq_union_l, !seq_union_r.
+  arewrite (eq a_t ∩₁ E_t ≡₁ ∅) by basic_solver.
+  rewrite swap_rel_empty_r, extra_a_some by auto.
+  rewrite <- !cross_inter_r, <- !cross_inter_l.
+  arewrite (eq b_t ∩₁ (E_s \₁ eq b_t) ≡₁ ∅) by basic_solver.
+  arewrite ((E_s \₁ eq b_t) ∩₁ eq b_t ≡₁ ∅) by basic_solver.
+  rewrite cross_false_r, cross_false_l.
+  now rewrite !union_false_r.
+Qed.
+
 End SimRel.
