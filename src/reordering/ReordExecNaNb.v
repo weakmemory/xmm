@@ -574,14 +574,18 @@ Proof using INV INV'.
         { apply (G_s_wf CORR' SIMREL'). }
         { symmetry. apply (rsr_lab SIMREL'). }
         { apply (rsr_inj SIMREL'). }
-        admit. }
+        eapply rsr_sb_nexa.
+        { apply SIMREL'. }
+        all: tauto. }
       { apply reord_ab_loc_codom with (a := a_t).
         all: auto. }
       { apply reord_sbloc_to_nb with (a := a_t).
         all: auto.
         { apply (rsr_inj SIMREL'). }
         { symmetry. apply (rsr_lab SIMREL'). }
-        admit. }
+        eapply rsr_sb_nexa.
+        { apply SIMREL'. }
+        all: tauto. }
       { rewrite (rsr_rf SIMREL').
         rewrite extra_a_some by tauto.
         clear - RR. basic_solver 11. }
@@ -612,14 +616,18 @@ Proof using INV INV'.
       { apply (G_s_wf CORR' SIMREL'). }
       { symmetry. apply (rsr_lab SIMREL'). }
       { apply (rsr_inj SIMREL'). }
-      admit. }
+      eapply rsr_sb_nexa.
+      { apply SIMREL'. }
+      all: tauto. }
     { apply reord_ab_loc_codom with (a := a_t).
       all: auto. }
     { apply reord_sbloc_to_nb with (a := a_t).
       all: auto.
       { apply (rsr_inj SIMREL'). }
       { symmetry. apply (rsr_lab SIMREL'). }
-      admit. }
+      eapply rsr_sb_nexa.
+      { apply SIMREL'. }
+      all: tauto. }
     { rewrite (rsr_rf SIMREL').
       rewrite extra_a_some by tauto.
       arewrite (eq b_t ∩₁ R (WCore.G X_s') ≡₁ ∅).
