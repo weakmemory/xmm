@@ -1,8 +1,9 @@
-Require Import ReordSimrel ReorderingEq ReorderingMapper.
+Require Import ReordSimrel ReorderingEq ReorderingMapper ReorderingRpo.
 Require Import AuxDef.
 Require Import Core.
 Require Import AuxRel AuxRel2 AuxRel3.
 Require Import Srf Rhb.
+Require Import HbPrefix.
 Require Import SimrelCommon.
 Require Import StepOps.
 Require Import AuxInj.
@@ -10,10 +11,11 @@ Require Import SubToFullExec.
 Require Import ReorderingFakeSrf.
 Require Import Thrdle.
 Require Import StepOps.
+Require Import ConsistencyReadExtentGen.
 
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
-From imm Require Import Events Execution Execution_eco.
+From imm Require Import Events Execution Execution_eco SubExecution.
 Require Import Setoid Morphisms Program.Basics.
 Require Import xmm_s_hb.
 
@@ -31,6 +33,7 @@ Section ReorderingReexecInternal.
 
 Variable X_t X_t' X_s X_s' : WCore.t.
 Variable a_t b_t : actid.
+Variable l_a : label.
 Variable f : actid -> actid.
 Variable dtrmt cmt : actid -> Prop.
 
@@ -168,20 +171,25 @@ Definition G_s'' : execution := {|
   addr := addr_s;
 |}.
 
+Definition lab_s_' :=
+  ifP ~E_t' a_t /\ E_t' b_t then upd (lab_t' ∘ mapper_inv) b_t l_a
+  else (lab_t' ∘ mapper).
+
 Record reexec_conds : Prop := {
   rc_simrel : reord_simrel X_s X_t a_t b_t mapper;
   rc_step : WCore.reexec X_t X_t' f dtrmt cmt;
   rc_inv_start : reord_step_pred X_t a_t b_t;
   rc_inv_end : reord_step_pred X_t' a_t b_t;
-  rc_l_a_nacq : Rlx_s' a_s;
   rc_end_cons : WCore.is_cons G_t' ∅₂;
-  rc_new_cons : WCore.is_cons G_s' ∅₂;
-  rc_vf : forall (IMB : E_t' b_t) (NINA : ~ E_t' a_t),
-            vf_s' ⨾ sb_s' ⨾ ⦗eq a_s⦘ ≡ vf G_s'' ⨾ sb_s' ⨾ ⦗eq a_s⦘;
   (**)
+  rc_as : A_s' ⊆₁ extra_a_pred X_s' a_t b_t;
   rc_extra_lab : fake_srf G_s'' a_s (lab_s' a_s) ⨾ ⦗A_s' ∩₁ WCore.lab_is_r (lab_s' a_s)⦘ ⊆ same_val_s';
-  rc_lab : eq_dom E_t' (lab_s' ∘ mapper) lab_t';
+  rc_lab : lab_s' = lab_s_';
   rc_acts : E_s' ≡₁ mapper ↑₁ E_t' ∪₁ extra_a X_t' a_t b_t a_s;
+  rc_sb : sb_s' ≡
+      mapper ↑ swap_rel sb_t' (eq b_t ∩₁ E_t') (eq a_t ∩₁ E_t') ∪
+      (mapper ↑₁ dom_rel (sb_t' ⨾ ⦗eq b_t⦘)) × A_s' ∪
+      A_s' × eq (mapper b_t);
   rc_rf : rf_s' ≡ mapper ↑ rf_t' ∪ fake_srf G_s'' a_s (lab_s' a_s) ⨾ ⦗A_s' ∩₁ WCore.lab_is_r (lab_s' a_s)⦘;
   rc_co : co_s' ≡ mapper ↑ co_t' ∪
           add_max
@@ -234,13 +242,193 @@ Proof using.
   unfold mapper_inv. now apply rsr_mapper_compose.
 Qed.
 
-Lemma intermediate_graph_wf
+Lemma new_G_s_wf
     (INB : E_t' b_t)
     (NINA : ~ E_t' a_t)
     (CTX : reexec_conds) :
-  Wf G_s''.
+  Wf G_s'.
 Proof using.
-  admit. (* This graph is very conveniently mapped by m *)
+Admitted.
+
+Lemma rc_vf
+    (ISR : R_s' a_s)
+    (INB : E_t' b_t)
+    (NINA : ~ E_t' a_t)
+    (CTX : reexec_conds) :
+  vf_s' ⨾ sb_s' ⨾ ⦗eq a_s⦘ ≡
+    vf G_s'' ⨾ sb_s' ⨾ ⦗eq a_s⦘.
+Proof using.
+  assert (NEQ : a_t <> b_t) by apply CTX.
+  assert (NINMB : ~ (mapper ↑₁ E_t') b_t).
+  { unfolder. intros (y & YIN & YEQ).
+    enough (y = a_t) by desf.
+    eapply rsr_mapper_inv_bt; eauto. }
+  assert (EQE : acts_set G_s'' ≡₁ E_s' \₁ eq a_s).
+  { rewrite (rc_acts CTX), extra_a_some; auto.
+    unfold a_s. ins. rewrite set_minus_union_l.
+    rewrite set_minusK, set_union_empty_r.
+    rewrite set_minus_disjoint; [reflexivity |].
+    basic_solver. }
+  assert (SUBEX : sub_execution G_s' G_s'' ∅₂ ∅₂).
+  { admit. }
+  assert (RF :
+    rf_s' ≡
+      id ↑ rf G_s'' ∪
+      fake_srf G_s'' a_s (lab_s' a_s) ⨾ ⦗eq a_s⦘
+  ).
+  { rewrite collect_rel_id, (rc_rf CTX).
+    apply union_more; [reflexivity |].
+    rewrite extra_a_some; auto.
+    unfold WCore.lab_is_r, is_r in *.
+    clear - ISR. basic_solver. }
+  assert (INJ : inj_dom (acts_set G_s'') id).
+  { clear. basic_solver. }
+  assert (ACTS : E_s' ≡₁ id ↑₁ acts_set G_s'' ∪₁ eq a_s).
+  { rewrite (rc_acts CTX), extra_a_some; eauto.
+    clear. rewrite set_collect_id. basic_solver. }
+  assert (DISJ : set_disjoint (id ↑₁ acts_set G_s'') (eq a_s)).
+  { rewrite set_collect_id, EQE.
+    clear. basic_solver. }
+  assert (NACQ : ~is_acq lab_s' a_s).
+  { apply CTX. now apply extra_a_some. }
+  assert (SBFROMA : ⦗eq b_t⦘ ⨾ sb G_s' ⊆ eq b_t × eq a_t).
+  { admit. }
+  assert (AINS : (acts_set G_s') a_t).
+  { apply (rc_acts CTX). left.
+    exists b_t. split; [auto |].
+    apply (rsr_mapper_bt NEQ). }
+  assert (BINS : (acts_set G_s') b_t).
+  { apply (rc_acts CTX). right.
+    apply extra_a_some; desf. }
+  assert (AINRW : eq a_t ⊆₁ R G_s' ∪₁ W G_s').
+  { admit. }
+  assert (BINRW : eq b_t ⊆₁ R G_s' ∪₁ W G_s').
+  { admit. }
+  assert (AINNREL : eq a_t ⊆₁ set_compl (Rel G_s')).
+  { admit. }
+  assert (BINACQ : eq b_t ⊆₁ set_compl (Acq G_s')).
+  { admit. }
+  assert (SLOC : ~ same_loc (lab (WCore.G X_s')) b_t a_t).
+  { intro FALSO.
+    enough (SL : same_loc (lab (WCore.G X_s')) a_t b_t).
+    { admit. }
+    clear - FALSO. now unfold same_loc in *. }
+  assert (SUB : acts_set (WCore.G X_s') \₁ eq b_t ⊆₁ mapper ↑₁ E_t').
+  { rewrite (rc_acts CTX).
+    rewrite extra_a_some; desf.
+    clear. basic_solver. }
+  assert (CO : co_s' ≡ id ↑ co G_s'').
+  { rewrite collect_rel_id, (rc_co CTX).
+    rewrite extra_a_some; auto.
+    arewrite (eq b_t ∩₁ WCore.lab_is_w (lab_s' a_s) ≡₁ ∅).
+    { unfold WCore.lab_is_w, is_r in *.
+      clear - ISR. basic_solver. }
+    rewrite add_max_empty_r, union_false_r.
+    reflexivity. }
+  assert (INB' : (acts_set G_s'') b_s).
+  { simpl. unfold b_s. exists b_t.
+    split; auto.
+    apply (rsr_mapper_bt NEQ). }
+  assert (NINA' : ~(acts_set G_s'') a_s).
+  { simpl. unfold a_s. intros (x & XIN & FALSO).
+    enough (x = a_t) by desf.
+    now apply (rsr_mapper_inv_bt _ NEQ). }
+  assert (LAB : eq_dom (acts_set G_s'') lab_s' (lab G_s'')).
+  { rewrite (rc_lab CTX). unfold lab_s_'; desf.
+    unfolder. ins. unfold mapper_inv.
+    now rewrite updo by (unfold a_s in NINA'; congruence). }
+  assert (RPOEX : codom_rel (⦗eq a_s⦘ ⨾ rpo_s') ≡₁ ∅).
+  { split; auto with hahn.
+    rewrite reord_rpo_emp; eauto.
+    clear. basic_solver. }
+  assert (RPONA : rpo_s' ⨾ ⦗E_s' \₁ eq a_s⦘ ⊆ id ↑ rpo G_s'').
+  { apply reord_map_rpo with (a := a_t); auto.
+    { eapply new_G_s_wf; eauto. }
+    { rewrite ACTS. clear. basic_solver. }
+    { symmetry. now rewrite Combinators.compose_id_right. }
+    rewrite collect_rel_id. unfold sb.
+    rewrite EQE. clear. basic_solver. }
+  assert (ANINIT : ~is_init a_s).
+  { unfold a_s. apply CTX. }
+  assert (SUBINIT : is_init ∩₁ E_s' ⊆₁ acts_set G_s'').
+  { rewrite EQE. clear - ANINIT. unfolder.
+    ins. desf. split; auto. congruence. }
+  assert (RMW : rmw_s' ≡ id ↑ rmw G_s'').
+  { rewrite collect_rel_id, (rc_rmw CTX). reflexivity. }
+  assert (SBLOCEX : codom_rel (⦗eq a_s⦘ ⨾ sb_s' ∩ same_loc_s') ≡₁ ∅).
+  { admit. }
+  assert (SBLOCA : sb_s' ∩ same_loc_s' ⨾ ⦗E_s' \₁ eq a_s⦘ ⊆ id ↑ (sb G_s'' ∩ same_loc (lab G_s''))).
+  { admit. }
+  assert (WF : Wf G_s'').
+  { eapply sub_WF; eauto using new_G_s_wf. }
+  split; [| rewrite (sub_vf_in SUBEX); reflexivity].
+  seq_rewrite sbvf_as_rhb.
+  arewrite (
+    vf G_s'' ⨾ sb_s' ⨾ ⦗eq a_s⦘ ≡
+      vf_rhb G_s'' ⨾ sb_s' ⨾ ⦗eq a_s⦘
+  ).
+  { rewrite vf_as_rhb, !seq_union_l.
+    split; [| auto with hahn].
+    apply inclusion_union_l; [reflexivity |].
+    unfold vf_rhb. rewrite !seqA.
+    rewrite (sub_sb SUBEX), !seqA.
+    arewrite (
+      ⦗acts_set G_s''⦘ ⨾ sb_s' ⨾ ⦗acts_set G_s''⦘ ⨾ sb_s' ⊆
+        sb_s' ⨾ sb_s'
+    ) by basic_solver.
+    sin_rewrite sb_sb.
+    clear. basic_solver 11. }
+  arewrite (
+    sb_s' ⨾ ⦗eq a_s⦘ ⊆
+      ⦗E_s' \₁ eq a_s⦘ ⨾ sb_s' ⨾ ⦗eq a_s⦘
+  ) at 1.
+  { rewrite wf_sbE at 1.
+    unfolder. intros x y (XIN & SB & YEQ & YIN).
+    splits; auto.
+    intro FALSO; desf.
+    eapply sb_irr; eauto. }
+  unfold vf_rhb. rewrite !seqA.
+  arewrite (
+    rhb_s'^? ⨾ ⦗E_s' \₁ eq a_s⦘ ⊆
+      ⦗E_s' \₁ eq a_s⦘ ⨾ rhb_s'^? ⨾ ⦗E_s' \₁ eq a_s⦘
+  ).
+  { rewrite !crE, !seq_union_l, !seq_union_r.
+    apply union_mori; [basic_solver |].
+    apply XmmCons.read_rhb_start
+      with (m := id) (G_t := G_s'') (drf := fake_srf G_s'' a_s (lab_s' a_s)).
+    all: eauto using new_G_s_wf. }
+  arewrite (
+    rf_s'^? ⨾ ⦗E_s' \₁ eq a_s⦘ ⊆
+      ⦗E_s' \₁ eq a_s⦘ ⨾ (rf G_s'')^?
+  ).
+  { rewrite !crE, !seq_union_l, !seq_union_r.
+    apply union_mori; [clear; basic_solver |].
+    rewrite (rc_rf CTX), seq_union_l, extra_a_some,
+            !seqA; auto.
+    arewrite_false (⦗eq b_t ∩₁ WCore.lab_is_r (lab_s' a_s)⦘ ⨾ ⦗E_s' \₁ eq a_s⦘).
+    { unfold a_s. clear. basic_solver. }
+    rewrite seq_false_r, <- EQE.
+    change (mapper ↑ rf_t') with (rf G_s'').
+    rewrite (wf_rfE WF) at 1. clear. basic_solver. }
+  arewrite (
+    ⦗E_s'⦘ ⨾ ⦗W_s'⦘ ⨾ ⦗E_s' \₁ eq a_s⦘ ⊆
+      ⦗acts_set G_s''⦘ ⨾ ⦗W G_s''⦘
+  ).
+  { admit. }
+  arewrite (
+    rhb_s'^? ⨾ ⦗E_s' \₁ eq a_s⦘ ⊆
+      (rhb G_s'')^? ⨾ ⦗E_s' \₁ eq a_s⦘
+  ); [| do 3 (apply seq_mori; auto with hahn); basic_solver 7].
+  rewrite !crE, !seq_union_l.
+  apply union_mori; [reflexivity |].
+  transitivity (rhb_s' ⨾ ⦗E_s' \₁ eq a_s⦘ ⨾ ⦗E_s' \₁ eq a_s⦘ ).
+  { clear. basic_solver. }
+  rewrite <- seqA.
+  rewrite XmmCons.read_rhb_sub
+      with (m := id) (G_t := G_s'') (drf := fake_srf G_s'' a_s (lab_s' a_s)).
+  all: auto.
+  { now rewrite collect_rel_id. }
+  eapply new_G_s_wf; eauto.
 Admitted.
 
 Lemma reexec_simrel
@@ -259,15 +447,17 @@ Proof using.
   { unfold extra_a; desf; [desf | basic_solver 11].
     rewrite EXAR, <- fake_srf_is_srf with (G_s := G_s'').
     all: ins.
-    { apply intermediate_graph_wf; auto. }
+    { admit. }
     { unfold fake_sb, G_s'', sb. ins.
       rewrite (rc_acts CTX), extra_a_some; auto. }
     { unfold G_s''.
       intros (x & XIN & XEQ). enough (x = a_t); desf.
       eapply rsr_mapper_inv_bt; eauto. }
-    { unfold G_s''. ins.
-      admit. (* TODO: weaken cond*) }
-    { apply CTX; auto. }
+    { rewrite (rc_lab CTX).
+      unfold lab_s_'; desf; [| exfalso; eauto].
+      now unfold a_s; rewrite upds. }
+    { apply rc_vf; auto.
+      admit. }
     rewrite (rc_co CTX), seq_union_l.
     rewrite extra_a_some; auto.
     rewrite add_max_seq_r, set_interC, set_interA.
@@ -280,13 +470,6 @@ Proof using.
   constructor; ins.
   all: try now apply CTX.
   { apply mapinj. apply CTX. }
-  { unfolder. unfold extra_a; ins; desf.
-    constructor; [red; auto | desf | |].
-    { rewrite extra_a_some in SRF; auto.
-      rewrite <- SRF, <- (rc_extra_lab CTX).
-      rewrite extra_a_some; auto with hahn. }
-    { admit. (* TODO: add loc property to CTX *) }
-    admit. (* TODO: update the nacq prop in CTX *) }
   { rewrite (rc_acts CTX), set_minus_union_l.
     unfold a_s. rewrite set_minusK, set_union_empty_r.
     unfold extra_a; desf; [| clear; basic_solver].
@@ -295,7 +478,17 @@ Proof using.
     enough (y = a_t); desf. eapply rsr_mapper_inv_bt; eauto. }
   { eapply eq_dom_mori; eauto with xmm.
     red. auto with hahn. }
-  { admit. }
+  { rewrite (rc_lab CTX). unfold lab_s_'. desf.
+    { rewrite <- rsr_mapper_at with (a_t := a_t) (b_t := b_t) at 1.
+      all: auto.
+      rewrite <- upd_compose; eauto with xmm.
+      rewrite Combinators.compose_assoc, mapper_inv_r_inv,
+              Combinators.compose_id_right; auto.
+      unfolder. ins. rewrite updo; auto.
+      desf. congruence. }
+    rewrite Combinators.compose_assoc, rsr_mapper_compose,
+            Combinators.compose_id_right; auto.
+    reflexivity. }
   { rewrite <- SRF, (rc_rf CTX). auto. }
   { rewrite (rc_co CTX), (rc_acts CTX).
     apply union_more; auto.
@@ -1014,7 +1207,7 @@ Proof using.
   { eapply G_s_rfc with (X_t := X_t').
     { apply CTX. }
     now apply reexec_simrel. }
-  { apply CTX. }
+  { admit. }
   { admit. (* difference between acts and dtrmt is fin *) }
   { admit. (* Prefix. Trivial? *) }
   { eapply G_s_wf with (X_t := X_t').
