@@ -198,7 +198,9 @@ Proof using INV INV'.
     { basic_solver. }
     exfalso; eauto. }
   assert (BINS : E_s (mapper b_t)).
-  { admit. }
+  { rewrite (rsr_map_bt INB SIMREL).
+    apply (rsr_acts SIMREL). left.
+    exists b_t. split; eauto using rsr_map_bt. }
   assert (NOEXA : extra_a X_t' a_t b_t b_t ≡₁ ∅).
   { unfold extra_a; desf. desf. }
   assert (OLDEXA : extra_a X_t a_t b_t b_t ≡₁ eq b_t).
@@ -843,7 +845,8 @@ Proof using INV INV'.
           destruct MAP. subst x0.
           eapply (rsr_bs_nrel INV' SIMREL') with a_t; desf.
           split; auto.
-          admit. }
+          apply (rsr_acts SIMREL'). left.
+          exists b_t. split; eauto using rsr_map_bt. }
         arewrite_false (⦗F G_s' ∩₁ Rel G_s'⦘
                           ⨾ ⦗acts_set G_s'⦘
                             ⨾ mapper' ↑ eq a_t × eq b_t
