@@ -1334,6 +1334,7 @@ Lemma simrel_exec_b l l_a
     (NEQLOC : WCore.lab_loc l <> WCore.lab_loc l_a)
     (EQA : a_t = a_t')
     (EQB : b_t = b_t')
+    (WR : (WCore.lab_is_r l_a ∪₁ WCore.lab_is_w l_a) b_t)
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
     (STEP : WCore.exec_inst X_t X_t' b_t l)
     (CONSIST : WCore.is_cons G_t (WCore.sc X_t)) :
@@ -1580,7 +1581,12 @@ Proof using.
     eq b_t ⊆₁ is_r (upd (upd lab_s b_t l_a') a_t l) ∪₁
               is_w (upd (upd lab_s b_t l_a') a_t l)
   ).
-  { admit. }
+  { clear - WR LABU2V ANOTB. unfolder.
+    ins. desf. unfold is_r, is_w.
+    rewrite updo, upds by congruence.
+    unfolder in WR. unfold WCore.lab_is_r, WCore.lab_is_w in WR.
+    unfold same_label_u2v in LABU2V.
+    desf; ins; eauto. }
   assert (SIMREL' : reord_simrel X_s' X_t' a_t b_t mapper').
   { constructor; ins.
     { rewrite (WCore.add_event_acts ADD). apply inj_dom_union.
@@ -1801,9 +1807,10 @@ Proof using.
     eapply G_s_wf with (X_s := X_s') (X_t := X_t'); eauto. }
   { eapply G_s_rfc with (X_s := X_s') (X_t := X_t'); eauto. }
   assert (AINS : (acts_set G_s') a_t).
-  { admit. }
+  { apply (rsr_acts SIMREL'). left. exists b_t.
+    split; auto. apply EQACTS. clear. now right. }
   assert (BINS : (acts_set G_s') b_t).
-  { admit. }
+  { simpl. clear. basic_solver. }
   assert (AINRW : eq a_t ∩₁ (acts_set G_s') ⊆₁ (R G_s' ∪₁ W G_s')).
   { intros x XIN.
     destruct simrel_a_lab_wr with (X_s := X_s') (X_t := X_t')
