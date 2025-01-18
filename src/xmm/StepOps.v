@@ -584,4 +584,54 @@ Proof using.
   clear. basic_solver.
 Qed.
 
+Lemma xmm_execute_wf e' l'
+    (WF : Wf G)
+    (STEP : WCore.exec_inst X X' e' l') :
+  Wf G'.
+Proof using.
+  admit.
+Admitted.
+
+Lemma xmm_reexecute_wf f dtrmt cmt
+    (WF : Wf G)
+    (STEP : WCore.reexec X X' f dtrmt cmt) :
+  Wf G'.
+Proof using.
+  admit.
+Admitted.
+
+Lemma xmm_step_wf
+    (WF : Wf G)
+    (STEP : xmm_step X X') :
+  Wf G'.
+Proof using.
+  destruct STEP.
+  all: eauto using xmm_execute_wf, xmm_reexecute_wf.
+Qed.
+
+Lemma xmm_execute_rfc e' l'
+    (RFC : rf_complete G)
+    (STEP : WCore.exec_inst X X' e' l') :
+  rf_complete G'.
+Proof using.
+  admit.
+Admitted.
+
+Lemma xmm_reexecute_rfc f dtrmt cmt
+    (WF : rf_complete G)
+    (STEP : WCore.reexec X X' f dtrmt cmt) :
+  rf_complete G'.
+Proof using.
+  admit.
+Admitted.
+
+Lemma xmm_step_rfc
+    (RFC : rf_complete G)
+    (STEP : xmm_step X X') :
+  rf_complete G'.
+Proof using.
+  destruct STEP.
+  all: eauto using xmm_execute_rfc, xmm_reexecute_rfc.
+Qed.
+
 End DeltaOps.
