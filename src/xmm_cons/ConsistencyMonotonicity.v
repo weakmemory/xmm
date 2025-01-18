@@ -20,7 +20,7 @@ Section ConsistencyMonotonicity.
 
 Variable G_s G_t : execution.
 Variable sc_s sc_t : relation actid.
-Variable a : actid.
+Variable m : actid -> actid.
 
 Notation "'lab_s'" := (lab G_s).
 Notation "'val_s'" := (val lab_s).
@@ -74,87 +74,68 @@ Notation "'psc_t'" := (imm.psc G_t).
 Notation "'fr_t'" := (fr G_t).
 Notation "'sw_t'" := (sw G_t).
 
+Hypothesis (INJ : inj_dom E_t m).
+Hypothesis (E_MAP : E_s ≡₁ m ↑₁ E_t).
+Hypothesis (RPO_MAP : rpo_s ⊆ m ↑ rpo_t).
+Hypothesis (RF_MAP : rf_s ⊆ m ↑ rf_t).
+Hypothesis (CO_MAP : co_s ⊆ m ↑ co_t).
+Hypothesis (RMW_MAP : rmw_s ⊆ m ↑ rmw_t).
+Hypothesis (WF_t : Wf G_t).
+Hypothesis (WF_s : Wf G_s).
+
 (*MONOTONICITY*)
 
-Lemma monoton_fr_sub (m : actid -> actid)
-        (INJ : inj_dom E_t m)
-        (E_MAP : E_s ≡₁ m ↑₁ E_t)
-        (RPO_MAP : rpo_s ⊆ m ↑ rpo_t)
-        (RF_MAP : rf_s ⊆ m ↑ rf_t)
-        (CO_MAP : co_s ⊆ m ↑ co_t)
-        (RMW_MAP : rmw_s ⊆ m ↑ rmw_t)
-        (HB_MAP : rhb_s ⊆ m ↑ rhb_t)
-        (CONS : WCore.is_cons G_t sc_t)
-        (WF_t : Wf G_t)
-        (WF_s : Wf G_s) :
-    fr_s ⊆ m ↑ fr_t.
-Proof using.
-    unfold fr. rewrite RF_MAP. rewrite CO_MAP.
-    rewrite <- collect_rel_transp.
-    rewrite collect_rel_seq; vauto.
-    assert (IN1 : codom_rel rf_t⁻¹ ⊆₁ E_t).
-    { rewrite codom_transp. induction 1 as (x0 & COND).
-      apply wf_rfE in COND; eauto.
-      destruct COND as (x1 & INE & COND); apply INE. }
-    assert (IN2 : dom_rel co_t ⊆₁ E_t).
-    { induction 1 as (x0 & COND). apply wf_coE in COND; eauto.
-      destruct COND as (x1 & INE & COND); apply INE. }
-    rewrite IN1, IN2. basic_solver.
+Lemma monoton_fr_sub :
+  fr_s ⊆ m ↑ fr_t.
+Proof using RF_MAP CO_MAP INJ WF_t.
+  unfold fr. rewrite RF_MAP. rewrite CO_MAP.
+  rewrite <- collect_rel_transp.
+  rewrite collect_rel_seq; vauto.
+  assert (IN1 : codom_rel rf_t⁻¹ ⊆₁ E_t).
+  { rewrite codom_transp. induction 1 as (x0 & COND).
+    apply wf_rfE in COND; eauto.
+    destruct COND as (x1 & INE & COND); apply INE. }
+  assert (IN2 : dom_rel co_t ⊆₁ E_t).
+  { induction 1 as (x0 & COND). apply wf_coE in COND; eauto.
+    destruct COND as (x1 & INE & COND); apply INE. }
+  rewrite IN1, IN2. basic_solver.
 Qed.
 
-Lemma monoton_eco_sub (m : actid -> actid)
-        (INJ : inj_dom E_t m)
-        (E_MAP : E_s ≡₁ m ↑₁ E_t)
-        (RPO_MAP : rpo_s ⊆ m ↑ rpo_t)
-        (RF_MAP : rf_s ⊆ m ↑ rf_t)
-        (CO_MAP : co_s ⊆ m ↑ co_t)
-        (RMW_MAP : rmw_s ⊆ m ↑ rmw_t)
-        (HB_MAP : rhb_s ⊆ m ↑ rhb_t)
-        (CONS : WCore.is_cons G_t sc_t)
-        (WF_t : Wf G_t)
-        (WF_s : Wf G_s) :
-    eco_s ⊆ m ↑ eco_t.
-Proof using.
-    unfold eco. repeat rewrite collect_rel_union.
-    repeat apply inclusion_union_l.
-    { rewrite RF_MAP; vauto. }
-    { rewrite CO_MAP, RF_MAP.
-      case_refl _.
-      { basic_solver 12. }
-      rewrite crE. rewrite seq_union_r.
-      rewrite collect_rel_union. rewrite <- !unionA.
-      rewrite collect_rel_seq with (rr := co_t) (rr' := rf_t); vauto.
-      assert (IN1 : codom_rel co_t ⊆₁ E_t).
-      { rewrite wf_coE; eauto. basic_solver. }
-      assert (IN2 : dom_rel rf_t ⊆₁ E_t).
-      { rewrite wf_rfE; eauto. basic_solver. }
-      rewrite IN1, IN2. basic_solver. }
-    rewrite monoton_fr_sub, RF_MAP; eauto.
+Lemma monoton_eco_sub :
+  eco_s ⊆ m ↑ eco_t.
+Proof using RF_MAP CO_MAP INJ WF_t.
+  unfold eco. repeat rewrite collect_rel_union.
+  repeat apply inclusion_union_l.
+  { rewrite RF_MAP; vauto. }
+  { rewrite CO_MAP, RF_MAP.
     case_refl _.
     { basic_solver 12. }
-    rewrite crE. rewrite !seq_union_r.
-    rewrite !collect_rel_union. rewrite <- !unionA.
-    rewrite collect_rel_seq with (rr := fr_t) (rr' := rf_t); vauto.
-    assert (IN1 : codom_rel fr_t ⊆₁ E_t).
-    { rewrite wf_frE; eauto. basic_solver. }
+    rewrite crE. rewrite seq_union_r.
+    rewrite collect_rel_union. rewrite <- !unionA.
+    rewrite collect_rel_seq with (rr := co_t) (rr' := rf_t); vauto.
+    assert (IN1 : codom_rel co_t ⊆₁ E_t).
+    { rewrite wf_coE; eauto. basic_solver. }
     assert (IN2 : dom_rel rf_t ⊆₁ E_t).
     { rewrite wf_rfE; eauto. basic_solver. }
-    rewrite IN1, IN2. basic_solver.
+    rewrite IN1, IN2. basic_solver. }
+  rewrite monoton_fr_sub, RF_MAP; eauto.
+  case_refl _.
+  { basic_solver 12. }
+  rewrite crE. rewrite !seq_union_r.
+  rewrite !collect_rel_union. rewrite <- !unionA.
+  rewrite collect_rel_seq with (rr := fr_t) (rr' := rf_t); vauto.
+  assert (IN1 : codom_rel fr_t ⊆₁ E_t).
+  { rewrite wf_frE; eauto. basic_solver. }
+  assert (IN2 : dom_rel rf_t ⊆₁ E_t).
+  { rewrite wf_rfE; eauto. basic_solver. }
+  rewrite IN1, IN2. basic_solver.
 Qed.
 
-Lemma monoton_cons (m : actid -> actid)
-        (INJ : inj_dom E_t m)
-        (E_MAP : E_s ≡₁ m ↑₁ E_t)
-        (RPO_MAP : rpo_s ⊆ m ↑ rpo_t)
-        (RF_MAP : rf_s ⊆ m ↑ rf_t)
-        (CO_MAP : co_s ⊆ m ↑ co_t)
-        (RMW_MAP : rmw_s ⊆ m ↑ rmw_t)
-        (HB_MAP : rhb_s ⊆ m ↑ rhb_t)
-        (CONS : WCore.is_cons G_t sc_t)
-        (WF_t : Wf G_t)
-        (WF_s : Wf G_s) :
-    WCore.is_cons G_s sc_s.
-Proof using.
+Lemma monoton_cons
+    (HB_MAP : rhb_s ⊆ m ↑ rhb_t)
+    (CONS : WCore.is_cons G_t sc_t) :
+  WCore.is_cons G_s sc_s.
+Proof using RF_MAP CO_MAP INJ WF_t.
   constructor.
   { case_refl _.
     { rewrite hb_helper; eauto. rewrite irreflexive_union. split.
@@ -191,7 +172,7 @@ Proof using.
       { rewrite <- REST. rewrite rhb_eco_irr_equiv; eauto.
         destruct CONS. unfold irreflexive; intros x COND.
         unfold irreflexive in cons_coherence.
-        assert (F : (hb_t ⨾ eco_t^?) x x -> False). 
+        assert (F : (hb_t ⨾ eco_t^?) x x -> False).
           { apply cons_coherence. }
           apply F. unfold seq. unfold seq in COND.
           destruct COND as (x0 & C1 & C2).
@@ -200,7 +181,7 @@ Proof using.
   { split; [| basic_solver].
     rewrite RMW_MAP, CO_MAP, monoton_fr_sub; eauto.
     rewrite <- collect_rel_seq.
-    { rewrite <- XmmCons.coll_rel_inter; eauto. 
+    { rewrite <- XmmCons.coll_rel_inter; eauto.
       { destruct CONS. rewrite cons_atomicity.
         basic_solver. }
       assert (IN1 : dom_rel rmw_t ⊆₁ E_t).
