@@ -11,6 +11,7 @@ From RecordUpdate Require Import RecordSet.
 
 Require Import xmm_s xmm_s_hb.
 Require Import AuxDef Rhb Srf.
+Require Import ThreadTrace.
 
 Open Scope program_scope.
 
@@ -469,6 +470,9 @@ End WCore.
 
 Section XmmStep.
 
+Definition trace_storage :=
+  thread_id -> trace label -> Prop.
+
 Inductive xmm_step (X X' : WCore.t) : Prop :=
 | xmm_exec (e : actid) (l : label)
     (STEP : WCore.exec_inst X X' e l) :
@@ -477,6 +481,30 @@ Inductive xmm_step (X X' : WCore.t) : Prop :=
     (cmt : actid -> Prop) (STEP : WCore.reexec X X' f dtrmt cmt) :
       xmm_step X X'
 .
+
+Record xmm_step_trace (s : trace_storage) (X X' : WCore.t) : Prop :=
+{ xmm_step_trace_step : xmm_step X X';
+  xmm_step_trace_contl : contigious_actids (WCore.G X);
+  xmm_step_trace_contr : contigious_actids (WCore.G X');
+  xmm_step_trace_cohl : trace_coherent s (WCore.G X);
+  xmm_step_trace_cohr : trace_coherent s (WCore.G X'); }.
+
+Definition init_exec_trace_coh s t
+    (INHAB : forall t (NINI : t <> tid_init),
+      exists tr, s t tr) :
+  trace_coherent s (WCore.init_exec t).
+Proof using.
+  unfold trace_coherent. ins.
+  destruct (INHAB _ NOT_INIT) as (tr & IN).
+  exists tr. unfold NW. split; auto.
+  unfold thread_trace, thread_actid_trace. ins.
+  arewrite (is_init ∩₁ (fun e => thr = tid e) ≡₁ ∅).
+  { split; auto with hahn.
+    unfold is_init. unfolder. ins. desf. }
+  rewrite (proj2 (set_size_empty ∅)); [| reflexivity].
+  rewrite seq0. ins. desf; eauto.
+  ins. lia.
+Qed.
 
 End XmmStep.
 
