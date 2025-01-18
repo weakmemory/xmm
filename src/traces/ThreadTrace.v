@@ -245,9 +245,8 @@ Qed.
 End ThreadTrace.
 
 Definition trace_coherent traces G : Prop :=
-  forall thr (NOT_INIT : thr <> tid_init), exists tr,
-    ⟪ IN_TRACES : traces thr tr ⟫ /\
-    ⟪ PREFIX : trace_prefix (thread_trace G thr) tr ⟫.
+  forall thr (NOT_INIT : thr <> tid_init),
+    traces thr (thread_trace G thr).
 
 Definition exec_trace_prefix G G' : Prop :=
   forall thr, trace_prefix (thread_actid_trace G' thr) (thread_actid_trace G thr).
@@ -419,7 +418,7 @@ Proof using.
 Qed.
 
 (* TODO: make G' prefix G *)
-Lemma trace_coherent_sub traces G G' sc sc'
+(* Lemma trace_coherent_sub traces G G' sc sc'
     (TRACE_COH : trace_coherent traces G)
     (PREFIX : exec_trace_prefix G G')
     (SUB : sub_execution G G' sc sc') :
@@ -443,4 +442,4 @@ Proof using.
       unfold trace_prefix. ins. now f_equal. }
   eapply trace_prefix_trans. { apply THREAD_PREF. }
   apply PREFIX0.
-Qed.
+Qed. *)

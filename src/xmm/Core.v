@@ -489,23 +489,6 @@ Record xmm_step_trace (s : trace_storage) (X X' : WCore.t) : Prop :=
   xmm_step_trace_cohl : trace_coherent s (WCore.G X);
   xmm_step_trace_cohr : trace_coherent s (WCore.G X'); }.
 
-Definition init_exec_trace_coh s t
-    (INHAB : forall t (NINI : t <> tid_init),
-      exists tr, s t tr) :
-  trace_coherent s (WCore.init_exec t).
-Proof using.
-  unfold trace_coherent. ins.
-  destruct (INHAB _ NOT_INIT) as (tr & IN).
-  exists tr. unfold NW. split; auto.
-  unfold thread_trace, thread_actid_trace. ins.
-  arewrite (is_init ∩₁ (fun e => thr = tid e) ≡₁ ∅).
-  { split; auto with hahn.
-    unfold is_init. unfolder. ins. desf. }
-  rewrite (proj2 (set_size_empty ∅)); [| reflexivity].
-  rewrite seq0. ins. desf; eauto.
-  ins. lia.
-Qed.
-
 End XmmStep.
 
 Add Parametric Morphism : WCore.sb_delta with signature
