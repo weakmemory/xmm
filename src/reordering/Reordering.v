@@ -72,6 +72,7 @@ Definition correct_mod_at : Prop :=
     )).
 
 Record correct_traces_t : Prop := {
+  prf_at_tid : tid a_t <> tid_init;
   prf_tid : tid b_t = tid a_t;
   prf_at_bt_neq : a_t <> b_t;
   prf_bt_at_imm : immediate ext_sb b_t a_t;
