@@ -467,6 +467,19 @@ End ReexecStep.
 
 End WCore.
 
+Section XmmStep.
+
+Inductive xmm_step (X X' : WCore.t) : Prop :=
+| xmm_exec (e : actid) (l : label)
+    (STEP : WCore.exec_inst X X' e l) :
+      xmm_step X X'
+| xmm_rexec (f : actid -> actid) (dtrmt : actid -> Prop)
+    (cmt : actid -> Prop) (STEP : WCore.reexec X X' f dtrmt cmt) :
+      xmm_step X X'
+.
+
+End XmmStep.
+
 Add Parametric Morphism : WCore.sb_delta with signature
   eq ==> set_equiv ==> same_relation as sb_delta_more.
 Proof using.
