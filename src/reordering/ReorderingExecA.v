@@ -22,7 +22,7 @@ Require Import Setoid Morphisms Program.Basics.
 Section ExecA.
 
 Variable X_t X_t' X_s : WCore.t.
-Variable a_t b_t a_t' b_t' : actid.
+Variable a_t b_t : actid.
 Variable mapper : actid -> actid.
 
 Notation "'G_t'" := (WCore.G X_t).
@@ -103,7 +103,7 @@ Notation "'Rel_s'" := (Rel G_s).
 Notation "'Tid_' t" := (fun e => tid e = t) (at level 1).
 
 Hypothesis INV : reord_step_pred X_t a_t b_t.
-Hypothesis INV' : reord_step_pred X_t' a_t' b_t'.
+Hypothesis INV' : reord_step_pred X_t' a_t b_t.
 
 Lemma prefix_exec_restr_eq X X' d
     (SUB : d ⊆₁ acts_set (WCore.G X))
@@ -126,15 +126,12 @@ Proof using.
 Qed.
 
 Lemma simrel_exec_a l
-    (EQA : a_t = a_t')
-    (EQB : b_t = b_t')
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
     (STEP : WCore.exec_inst X_t X_t' a_t l) :
   exists mapper' X_s' f' dtrmt' cmt',
-    << SIMREL : reord_simrel X_s' X_t' a_t' b_t' mapper' >> /\
+    << SIMREL : reord_simrel X_s' X_t' a_t b_t mapper' >> /\
     << STEP : WCore.reexec X_s X_s' f' dtrmt' cmt' >>.
 Proof using INV INV'.
-  subst a_t'. subst b_t'.
   assert (CORR : reord_step_pred X_t a_t b_t); ins.
   assert (CORR' : reord_step_pred X_t' a_t b_t); ins.
   (* Setup vars *)
