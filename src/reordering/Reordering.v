@@ -9,6 +9,19 @@ From hahnExt Require Import HahnExt.
 From imm Require Import Events Execution.
 Require Import Setoid Morphisms Program.Basics.
 
+Section Behavior.
+
+Variable G : execution.
+Notation "'lab'" := (lab G).
+Notation "'loc'" := (loc lab).
+Notation "'val'" := (val lab).
+Notation "'E'" := (acts_set G).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'W'" := (fun e => is_true (is_w lab e)).
+Notation "'Loc_' l" := (fun e => loc e = l) (at level 1).
+
 Definition event_mem (a : actid) (t : trace label) : Prop :=
   match t, a with
   | _, InitEvent _ => False
@@ -16,11 +29,11 @@ Definition event_mem (a : actid) (t : trace label) : Prop :=
   | trace_fin l, ThreadEvent _ n => n < length l
   end.
 
-Lemma event_memE G e
+Lemma event_memE e
     (NINIT : tid e <> tid_init)
     (CONT : contigious_actids G) :
   event_mem e (thread_trace G (tid e)) <->
-    acts_set G e.
+    E e.
 Proof using.
   destruct e as [el | et en]; ins.
   red in CONT. destruct (CONT _ NINIT) as [N EQ].
@@ -39,6 +52,139 @@ Proof using.
   ins. autorewrite with calc_length.
   eapply thread_set_iff, EQ. basic_solver.
 Qed.
+
+Definition behavior := location -> value.
+
+Definition last_val_spec (l : location) (v : value) : Prop :=
+  exists (e : actid),
+    << INE : E e >> /\
+    << WIN : W e >> /\
+    << ELOC : loc e = Some l >> /\
+    << VAL : val e = Some v >> /\
+    << MAX : max_elt co e >>.
+
+Definition behavior_spec (b : behavior) : Prop :=
+  forall (l : location), last_val_spec l (b l).
+
+Lemma last_val_exists l
+    (WF : Wf G)
+    (INIT : is_init ⊆₁ E)
+    (FIN : set_finite (acts_set G \₁ is_init)) :
+  exists v, last_val_spec l v.
+Proof using.
+  assert (COEQ : co＊ ≡ co^?).
+  { rewrite <- cr_of_ct, ct_of_trans; auto.
+    apply WF. }
+  assert (ILOC : loc (InitEvent l) = Some l).
+  { unfold loc. now rewrite (wf_init_lab WF). }
+  assert (IVAL : val (InitEvent l) = Some 0).
+  { unfold val. now rewrite (wf_init_lab WF). }
+  assert (IISW : W (InitEvent l)).
+  { unfold is_w. now rewrite (wf_init_lab WF). }
+  assert (FINDOM : exists dom,
+    (fun x => In x dom) ≡₁ E ∩₁ W ∩₁ Loc_ (Some l)
+  ).
+  { apply set_finiteE in FIN.
+    destruct FIN as (dom & NODUP & EQ).
+    exists ([InitEvent l] ++ filterP (W ∩₁ Loc_ (Some l)) dom).
+    rewrite set_union_minus with (s' := is_init) (s := E); auto.
+    rewrite set_unionC, !set_inter_union_l.
+    arewrite (is_init ∩₁ W ∩₁ Loc_ (Some l) ≡₁ eq (InitEvent l)).
+    { split; [| basic_solver ]. unfold is_init. unfolder; ins; desf.
+      unfold loc in *. rewrite (wf_init_lab WF _) in *. desf. }
+    arewrite (
+      (fun x => In x ([InitEvent l] ++ filterP (W ∩₁ Loc_ (Some l)) dom)) ≡₁
+        eq (InitEvent l) ∪₁
+        (fun x => In x (filterP (W ∩₁ Loc_ (Some l)) dom))
+    ).
+    apply set_union_more; [reflexivity |].
+    arewrite (
+      (fun x => In x (filterP (W ∩₁ Loc_ (Some l)) dom)) ≡₁
+        (fun x => In x dom) ∩₁ W ∩₁ Loc_ (Some l)
+    ); [| now rewrite EQ].
+    split; intros x XIN;
+      [apply in_filterP_iff in XIN | apply in_filterP_iff].
+    all: unfolder; unfolder in XIN; desf. }
+  destruct FINDOM as [dom FINDOM].
+  destruct last_exists
+      with (dom := dom) (s := co) (a := InitEvent l)
+        as (a0 & CO & MAX).
+  { apply trans_irr_acyclic; apply WF. }
+  { intros c CO. apply COEQ, crE in CO.
+    apply FINDOM. destruct CO as [EQ | CO].
+    { unfolder in EQ. desf.
+      unfolder. unfold is_w, loc.
+      rewrite (wf_init_lab WF l). splits; auto. }
+    apply (wf_coD WF) in CO.
+    unfolder in CO. destruct CO as (_ & CO & ISW).
+    apply (wf_coE WF) in CO.
+    unfolder in CO. destruct CO as (_ & CO & CIN).
+    apply (wf_col WF) in CO.
+    unfolder. splits; auto.
+    unfold same_loc, loc in CO.
+    rewrite (wf_init_lab WF l) in CO. desf. }
+  apply COEQ, crE in CO.
+  assert (ALOC : loc a0 = Some l).
+  { unfolder in CO. destruct CO as [[EQ _] | CO]; [desf |].
+    apply (wf_col WF) in CO. unfold same_loc, loc in *.
+    rewrite (wf_init_lab WF l) in CO. desf. }
+  assert (AVAL : exists v, val a0 = Some v).
+  { unfolder in CO. destruct CO as [[EQ _] | CO]; [desf; eauto |].
+    apply (wf_coD WF) in CO. unfolder in CO.
+    unfold is_w, val in *. desf; eauto. }
+  destruct AVAL as (v & VEQ).
+  exists v. red. exists a0.
+  unfold NW. splits; auto.
+  { unfolder in CO. destruct CO as [EQ | CO].
+    { desf. now apply INIT. }
+    apply (wf_coE WF) in CO. unfolder in CO. desf. }
+  unfolder in CO. destruct CO as [EQ | CO].
+  { desf. }
+  apply (wf_coD WF) in CO. unfolder in CO. desf.
+Qed.
+
+Lemma last_val_unique l v1 v2
+    (WF : Wf G)
+    (INIT : is_init ⊆₁ E)
+    (FIN : set_finite (acts_set G \₁ is_init))
+    (SP1 : last_val_spec l v1)
+    (SP2 : last_val_spec l v2) :
+  v1 = v2.
+Proof using.
+  red in SP1, SP2.
+  destruct SP1 as (e1 & SP1), SP2 as (e2 & SP2).
+  enough (e1 = e2) by desf.
+  destruct classic with (e1 = e2) as [EQ | NEQ]; auto.
+  exfalso.
+  destruct (
+    wf_co_total WF
+  ) with (ol := Some l) (a := e1) (b := e2)
+    as [COL | COR]; auto.
+  { unfolder. splits; apply SP1. }
+  { unfolder. splits; apply SP2. }
+  { eapply SP1; eauto. }
+  eapply SP2; eauto.
+Qed.
+
+Lemma behavior_exists
+    (WF : Wf G)
+    (INIT : is_init ⊆₁ E)
+    (FIN : set_finite (acts_set G \₁ is_init)) :
+  exists (b : behavior), behavior_spec b.
+Proof using.
+  destruct unique_choice
+      with (R := last_val_spec)
+        as [b SPEC].
+  { intro l.
+    destruct last_val_exists
+        with (l := l)
+          as [v SPEC]; auto.
+    exists v. red. split; auto.
+    intros v' SPEC'. eapply last_val_unique; eauto. }
+  exists b. red. auto.
+Qed.
+
+End Behavior.
 
 Section ReorderingSteps.
 
