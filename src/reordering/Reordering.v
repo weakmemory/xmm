@@ -12,6 +12,7 @@ Require Import Setoid Morphisms Program.Basics.
 Section Behavior.
 
 Variable G : execution.
+
 Notation "'lab'" := (lab G).
 Notation "'loc'" := (loc lab).
 Notation "'val'" := (val lab).
@@ -185,6 +186,85 @@ Proof using.
 Qed.
 
 End Behavior.
+
+Section SameBehavior.
+
+Variable G G' : execution.
+
+Notation "'lab''" := (lab G').
+Notation "'loc''" := (loc lab').
+Notation "'val''" := (val lab').
+Notation "'E''" := (acts_set G').
+Notation "'sb''" := (sb G').
+Notation "'rf''" := (rf G').
+Notation "'co''" := (co G').
+Notation "'W''" := (fun e => is_true (is_w lab' e)).
+Notation "'Loc_'' l" := (fun e => loc' e = l) (at level 1).
+
+Notation "'lab'" := (lab G).
+Notation "'loc'" := (loc lab).
+Notation "'val'" := (val lab).
+Notation "'E'" := (acts_set G).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'W'" := (fun e => is_true (is_w lab e)).
+Notation "'Loc_' l" := (fun e => loc e = l) (at level 1).
+
+Lemma same_last_val m l v
+    (WF : Wf G)
+    (WF' : Wf G')
+    (INIT : is_init ⊆₁ E)
+    (FIN : set_finite (acts_set G \₁ is_init))
+    (MAP : m ↑₁ E ≡₁ E')
+    (EQ : eq_dom E (lab' ∘ m) lab)
+    (INJ : inj_dom E m)
+    (MAPCO : co' ⊆ m ↑ co)
+    (LAST : last_val_spec G l v) :
+  last_val_spec G' l v.
+Proof using.
+  unfold last_val_spec in *.
+  desf. exists (m e). unfold NW; splits.
+  { apply MAP. basic_solver. }
+  { unfold is_w in *.
+    rewrite <- EQ in WIN; auto. }
+  { unfold loc in *.
+    rewrite <- EQ in ELOC; auto. }
+  { unfold val in *.
+    rewrite <- EQ in VAL; auto. }
+  unfolder. intros b' CO.
+  assert (BEQ : exists b,
+      << BEQ : b' = m b >> /\
+      << BIN : E b >>
+  ); [| desf].
+  { apply (wf_coE WF') in CO.
+    unfolder in CO. destruct CO as (_ & _ & IN).
+    apply MAP in IN. unfolder in IN. desf; eauto. }
+  apply MAPCO in CO. unfolder in CO.
+  destruct CO as (e' & b' & CO & EQ1 & EQ2).
+  apply INJ in EQ1, EQ2; desf.
+  { eapply MAX; eauto. }
+  all: apply (wf_coE WF) in CO.
+  all: unfolder in CO; desf.
+Qed.
+
+Lemma same_behavior b m
+    (WF : Wf G)
+    (WF' : Wf G')
+    (INIT : is_init ⊆₁ E)
+    (FIN : set_finite (acts_set G \₁ is_init))
+    (MAP : m ↑₁ E ≡₁ E')
+    (EQ : eq_dom E (lab' ∘ m) lab)
+    (INJ : inj_dom E m)
+    (MAPCO : co' ⊆ m ↑ co)
+    (BEH1 : behavior_spec G b) :
+  behavior_spec G' b.
+Proof using.
+  unfold behavior_spec in *.
+  intro l. eapply same_last_val; eauto.
+Qed.
+
+End SameBehavior.
 
 Section ReorderingSteps.
 
