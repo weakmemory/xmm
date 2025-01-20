@@ -631,6 +631,7 @@ Proof using INV INV'.
     arewrite (id ↑₁ cmt' ≡₁ cmt').
     { clear. basic_solver. }
     unfold cmt'. clear. basic_solver. }
+  { apply (G_s_rfc INV' SIMREL'). }
   { assert (EXTRA : extra_a X_t' a_t b_t b_t ≡₁ ∅).
     { unfold extra_a. desf. }
     assert (RPOMAP : rpo G_s' ⊆ mapper ↑ (rpo G_t')).

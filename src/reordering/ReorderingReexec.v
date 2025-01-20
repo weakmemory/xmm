@@ -1198,6 +1198,7 @@ Proof using.
     rewrite set_collect_compose.
     rewrite (WCore.reexec_embd_acts (WCore.reexec_embd_corr GREEXEC)).
     rewrite (rsr_acts (rc_simrel CTX)); auto with hahn. }
+  { apply (G_s_rfc (rc_inv_end CTX) (reexec_simrel CTX)). }
   { exact WF_START. (* wf start *) }
   { admit. (* Consistency *) }
   { eapply reexec_acts_s; eauto. }

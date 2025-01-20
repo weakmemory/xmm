@@ -456,6 +456,7 @@ Record reexec_gen thrdle : Prop :=
   (* Correct embedding *)
   reexec_embd_corr : commit_embedded;
   (* Reproducable steps *)
+  rexec_rfc : rf_complete G';
   reexec_start_wf : wf (X_start dtrmt) X' cmt;
   rexec_final_cons : is_cons G' sc;
   rexec_acts : E ≡₁ dtrmt ∪₁ E ∩₁ tid ↓₁ reexec_thread;
