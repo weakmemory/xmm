@@ -4,7 +4,7 @@ From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 
 Require Import AuxDef AuxRel Lia.
-Require Import Core Srf.
+Require Import Core Srf AddEventWf.
 Require Import xmm_s_hb.
 
 Require Import Program.Basics.
@@ -367,9 +367,9 @@ Proof using.
     ins. desf. unfold is_r in *.
     rewrite LAB, updo in *; congruence. }
   assert (LOCSET' : (fun x => same_loc' x e) ⊆₁ (fun x => same_loc' e x)).
-  { clear. unfolder. ins. now apply same_loc_sym. }
+  { clear. unfold same_loc; basic_solver. }
   assert (LOCSET : (fun x => same_loc x e) ⊆₁ (fun x => same_loc e x)).
-  { clear. unfolder. ins. now apply same_loc_sym. }
+  { clear. unfold same_loc; basic_solver. }
   assert (SUBLOC : E ∩₁ (fun x => same_loc' e x) ⊆₁ Loc_ (WCore.lab_loc l)).
   { clear - NEW LAB. unfolder. unfold same_loc, loc, WCore.lab_loc.
     rewrite LAB. intros x (XINE & LOC).
@@ -584,54 +584,155 @@ Proof using.
   clear. basic_solver.
 Qed.
 
-Lemma xmm_execute_wf e' l'
-    (WF : Wf G)
-    (STEP : WCore.exec_inst X X' e' l') :
-  Wf G'.
-Proof using.
-  admit.
-Admitted.
+Record xmm_graph_proper G0 : Prop := {
+    xgp_wf : Wf G0;
+    xgp_init : is_init ⊆₁ acts_set G0;
+    xgp_rmw_dep : @rmw_dep G0 ≡ ∅₂;
+    xgp_data : @data G0 ≡ ∅₂;
+    xgp_ctrl : @ctrl G0 ≡ ∅₂;
+    xgp_addr : @addr G0 ≡ ∅₂;
+    xgp_fin : set_finite (acts_set G0 \₁ is_init);
+    xgp_init_tid : acts_set G0 ∩₁ (fun e => tid e = tid_init) ⊆₁ is_init;
+}.
 
-Lemma xmm_reexecute_wf f dtrmt cmt
-    (WF : Wf G)
-    (STEP : WCore.reexec X X' f dtrmt cmt) :
-  Wf G'.
-Proof using.
-  admit.
-Admitted.
+Definition xmm_graph_correct G0 : Prop :=
+  rf_complete G0 /\ xmm_graph_proper G0.
 
-Lemma xmm_step_wf
-    (WF : Wf G)
-    (STEP : xmm_step X X') :
-  Wf G'.
+Lemma xmm_add_event_gen_proper r R1 w W1 W2 e' l'
+    (STEP : WCore.add_event_gen X X' e' l' r R1 w W1 W2)
+    (PROP : xmm_graph_proper G) :
+  xmm_graph_proper G'.
 Proof using.
-  destruct STEP.
-  all: eauto using xmm_execute_wf, xmm_reexecute_wf.
+  constructor.
+  { eapply add_event_wf; eauto using xgp_wf. }
+  { rewrite (WCore.add_event_acts STEP), (xgp_init PROP).
+    auto with hahn. }
+  { rewrite (WCore.add_event_rmw_dep STEP).
+    apply PROP. }
+  { rewrite (WCore.add_event_data STEP).
+    apply PROP. }
+  { rewrite (WCore.add_event_ctrl STEP).
+    apply PROP. }
+  { rewrite (WCore.add_event_addr STEP).
+    apply PROP. }
+  { rewrite (WCore.add_event_acts STEP),
+            set_minus_union_l.
+    apply set_finite_union. split; [apply PROP|].
+    eapply set_finite_mori; eauto with hahn.
+    red. basic_solver. }
+  rewrite (WCore.add_event_acts STEP), set_inter_union_l.
+  rewrite (xgp_init_tid PROP).
+  apply set_subset_union_l. split; [reflexivity |].
+  unfolder. ins. desf. exfalso.
+  now apply (WCore.add_event_tid_e STEP).
 Qed.
 
-Lemma xmm_execute_rfc e' l'
-    (RFC : rf_complete G)
-    (STEP : WCore.exec_inst X X' e' l') :
-  rf_complete G'.
+Lemma xmm_add_event_proper e' l'
+    (STEP : WCore.add_event X X' e' l')
+    (PROP : xmm_graph_proper G) :
+  xmm_graph_proper G'.
 Proof using.
-  admit.
-Admitted.
+  red in STEP. desf.
+  eauto using xmm_add_event_gen_proper.
+Qed.
 
-Lemma xmm_reexecute_rfc f dtrmt cmt
-    (WF : rf_complete G)
-    (STEP : WCore.reexec X X' f dtrmt cmt) :
-  rf_complete G'.
+Lemma xmm_guided_step_gen_proper XC cmt e' l'
+    (STEP : WCore.guided_step_gen cmt XC X X' e' l')
+    (PROP : xmm_graph_proper G) :
+  xmm_graph_proper G'.
 Proof using.
-  admit.
-Admitted.
+  eapply xmm_add_event_proper; eauto using WCore.gsg_add_step.
+Qed.
 
-Lemma xmm_step_rfc
-    (RFC : rf_complete G)
-    (STEP : xmm_step X X') :
-  rf_complete G'.
+Lemma xmm_guided_step_proper XC cmt
+    (STEP : WCore.guided_step cmt XC X X')
+    (PROP : xmm_graph_proper G) :
+  xmm_graph_proper G'.
 Proof using.
-  destruct STEP.
-  all: eauto using xmm_execute_rfc, xmm_reexecute_rfc.
+  red in STEP. desf.
+  apply (xmm_guided_step_gen_proper STEP); auto.
 Qed.
 
 End DeltaOps.
+
+Section OtherStepInvariants.
+
+Variable X X' : WCore.t.
+Variable e : actid.
+Variable l : label.
+
+Notation "'G''" := (WCore.G X').
+Notation "'G'" := (WCore.G X).
+
+Notation "'E''" := (acts_set G').
+Notation "'threads_set''" := (threads_set G').
+Notation "'lab''" := (lab G').
+Notation "'sb''" := (sb G').
+Notation "'rf''" := (rf G').
+Notation "'co''" := (co G').
+Notation "'rmw''" := (rmw G').
+Notation "'vf''" := (vf G').
+Notation "'data''" := (data G').
+Notation "'addr''" := (addr G').
+Notation "'ctrl''" := (ctrl G').
+Notation "'rmw_dep''" := (rmw_dep G').
+Notation "'W''" := (is_w lab').
+Notation "'R''" := (is_r lab').
+Notation "'same_loc''" := (same_loc lab').
+Notation "'same_val''" := (same_val lab').
+
+Notation "'E'" := (acts_set G).
+Notation "'threads_set'" := (threads_set G).
+Notation "'lab'" := (lab G).
+Notation "'loc'" := (loc lab).
+Notation "'val'" := (val lab).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'rmw'" := (rmw G).
+Notation "'data'" := (data G).
+Notation "'addr'" := (addr G).
+Notation "'ctrl'" := (ctrl G).
+Notation "'rmw_dep'" := (rmw_dep G).
+Notation "'W'" := (is_w lab).
+Notation "'R'" := (is_r lab).
+Notation "'same_loc'" := (same_loc lab).
+Notation "'same_val'" := (same_val lab).
+Notation "'Loc_' l" := (fun e => loc e = l) (at level 1).
+Notation "'Val_' v" := (fun e => val e = v) (at level 1).
+
+Lemma xmm_exec_correct e' l'
+    (STEP : WCore.exec_inst X X' e' l')
+    (PROP : xmm_graph_correct G) :
+  xmm_graph_correct G'.
+Proof using.
+  destruct PROP as [RFC PROP].
+  red. split; [apply STEP |].
+  eapply xmm_add_event_proper.
+  all: eauto using xmm_add_event_proper.
+  all: apply STEP.
+Qed.
+
+Lemma xmm_guided_step_proper_trans XC cmt X1 X2
+    (STEP : (WCore.guided_step cmt XC)＊ X1 X2)
+    (PROP : xmm_graph_proper (WCore.G X1)) :
+  xmm_graph_proper (WCore.G X2).
+Proof using.
+  apply clos_rt_rtn1 in STEP.
+  induction STEP as [ | X2 X3 STEP1 STEP2 IH].
+  { auto. }
+  eapply xmm_guided_step_proper; eauto.
+Qed.
+
+Lemma xmm_rexec_gen_correct f dtrmt cmt thrdle
+    (STEP : WCore.reexec_gen X X' f dtrmt cmt thrdle)
+    (PROP : xmm_graph_correct G) :
+  xmm_graph_correct G'.
+Proof using.
+  red. split; [apply STEP |].
+  eapply xmm_guided_step_proper_trans.
+  { apply STEP. }
+  admit.
+Admitted.
+
+End OtherStepInvariants.
