@@ -1,4 +1,4 @@
-Require Import AuxDef Core Lia.
+Require Import AuxDef AuxRel2 Core Lia.
 Require Import ReordSimrel ReorderingMapper.
 Require Import ReorderingExecA ReorderingExecB.
 Require Import ReordExecNaNb ReorderingReexec.
@@ -299,6 +299,30 @@ Notation "'Rel_t'" := (fun e => is_true (is_rel lab_t e)).
 Notation "'Rlx_t'" := (fun e => is_true (is_rlx lab_t e)).
 Notation "'Sc_t'" := (fun e => is_true (is_sc lab_t e)).
 
+Notation "'G_s'" := (WCore.G X_s).
+Notation "'lab_s'" := (lab G_s).
+Notation "'val_s'" := (val lab_s).
+Notation "'loc_s'" := (loc lab_s).
+Notation "'E_s'" := (acts_set G_s).
+Notation "'sb_s'" := (sb G_s).
+Notation "'rf_s'" := (rf G_s).
+Notation "'co_s'" := (co G_s).
+Notation "'rmw_dep_s'" := (rmw_dep G_s).
+Notation "'data_s'" := (data G_s).
+Notation "'ctrl_s'" := (ctrl G_s).
+Notation "'addr_s'" := (addr G_s).
+Notation "'W_s'" := (fun e => is_true (is_w lab_s e)).
+Notation "'R_s'" := (fun e => is_true (is_r lab_s e)).
+Notation "'F_s'" := (fun e => is_true (is_f lab_s e)).
+Notation "'Loc_s_' l" := (fun e => loc_s e = l) (at level 1).
+Notation "'Val_s_' l" := (fun e => val_s e = l) (at level 1).
+Notation "'same_loc_s'" := (same_loc lab_s).
+Notation "'same_val_s'" := (same_val lab_s).
+Notation "'Acq_s'" := (fun e => is_true (is_acq lab_s e)).
+Notation "'Rel_s'" := (fun e => is_true (is_rel lab_s e)).
+Notation "'Rlx_s'" := (fun e => is_true (is_rlx lab_s e)).
+Notation "'Sc_s'" := (fun e => is_true (is_sc lab_s e)).
+
 Notation "'b_t'" := (ThreadEvent rtid i_b).
 Notation "'a_t'" := (ThreadEvent rtid i_a).
 Notation "'mapper'" := (mapper a_t b_t).
@@ -373,6 +397,24 @@ Lemma simrel_xmm_step
 Proof using.
   admit.
 Admitted.
+
+Lemma simrel_behavior b
+    (INV : reord_step_pred X_t a_t b_t)
+    (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
+    (INB : E_t b_t)
+    (INA : E_t a_t)
+    (BEH : behavior_spec G_t b) :
+  behavior_spec G_s b.
+Proof using.
+  apply same_behavior with (G := G_t) (m := mapper); auto.
+  all: try now apply INV.
+  all: try now apply SIMREL.
+  { eapply G_s_wf; eauto. }
+  { rewrite (rsr_acts SIMREL), extra_a_none_l; auto.
+    now rewrite set_union_empty_r. }
+  rewrite (rsr_co SIMREL), extra_a_none_l; auto.
+  now rewrite set_inter_empty_l, add_max_empty_r, union_false_r.
+Qed.
 
 Lemma corr_coh_inv
     (WF : Wf G_t)
