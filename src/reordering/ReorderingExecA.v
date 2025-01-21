@@ -14,6 +14,7 @@ Require Import ConsistencyMonotonicity.
 Require Import ConsistencyReadExtent.
 Require Import ConsistencyWriteExtent.
 Require Import ReorderingRpo ReorderingMapper.
+Require Import ReorderingEq.
 
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
@@ -514,7 +515,26 @@ Proof using INV INV'.
   constructor; ins.
   { subst dtrmt' cmt'. basic_solver. }
   { subst cmt'. basic_solver. }
-  { admit. (* TODO : ask *) }
+  { rewrite (rsr_sbE INV SIMREL).
+    rewrite extra_a_some; auto.
+    rewrite !seq_union_l, !seq_union_r.
+    rewrite <- cross_inter_r.
+    arewrite (eq a_t ∩₁ dtrmt' ≡₁ ∅).
+    { unfold dtrmt'. rewrite rsr_mapper_bt; auto.
+      clear. basic_solver. }
+    rewrite !cross_false_r, seq_false_r, !union_false_r.
+    unfold dtrmt'.
+    rewrite (rsr_actsE INV SIMREL), extra_a_some; auto.
+    rewrite rsr_mapper_bt; auto.
+    clear - INB NOTINA INV. unfolder.
+    intros x y (SB & (YIN & YEQ) & YNEQ).
+    splits; auto.
+    { red in SB; unfolder in SB; desf. eauto. }
+    { intro FALSO. subst x.
+      apply (rsr_bt_max INV) with b_t y; auto.
+      basic_solver. }
+    intro FALSO. subst x.
+    red in SB; unfolder in SB; desf. }
   { admit. }
   { enough (RPOD : dom_rel (rpo G_s' ⨾ ⦗E_s \₁ dtrmt'⦘) ⊆₁ dtrmt').
     { forward apply RPOD. clear. basic_solver 11. }
