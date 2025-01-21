@@ -175,14 +175,21 @@ Proof using RPO_MAP RF_MAP RMW_MAP INJ WF_t.
     ⦗E_s⦘ ⨾ ⦗Rel_s⦘ ⨾ (⦗F_s⦘ ⨾ sb_s)^? ⨾ ⦗Rlx_s⦘ ⨾ ⦗W_s⦘ ⨾ rs_s ⨾ ⦗W_s⦘ ⊆
       ⦗E_s⦘ ⨾ ⦗Rel_s⦘ ⨾ (⦗F_s⦘ ⨾ sb_s)^? ⨾ ⦗Rlx_s⦘ ⨾ ⦗W_s⦘ ⨾ ⦗E_s⦘ ⨾ rs_s ⨾ ⦗W_s⦘
   ).
-  { admit. }
+  { do 2 hahn_frame_r.
+    rewrite !crE, !seq_union_l, !seq_union_r, !seq_id_l.
+    apply union_mori; [clear; basic_solver |].
+    rewrite wf_sbE. do 2 hahn_frame_l. basic_solver. }
   arewrite (
     ⦗Rel_s⦘ ⨾ (⦗F_s⦘ ⨾ sb_s)^? ⨾ ⦗Rlx_s⦘ ⨾ ⦗W_s⦘ ⊆
       ⦗Rel_s⦘ ⨾ (⦗F_s⦘ ⨾ rpo_s)^? ⨾ ⦗Rlx_s⦘ ⨾ ⦗W_s⦘
   ).
-  { admit. }
+  { rewrite !crE, !seq_union_l, !seq_union_r, !seq_id_l.
+    apply union_mori; [reflexivity |].
+    rewrite !seqA. seq_rewrite <- !id_inter.
+    unfold rpo. rewrite <- ct_step.
+    unfold rpo_imm. basic_solver 11. }
   sin_rewrite monoton_sw_helper_rs.
-  rewrite RPO_MAP.
+  rewrite RPO_MAP, E_MAP, <- collect_rel_eqv.
   admit.
 Admitted.
 
@@ -196,9 +203,14 @@ Proof using RPO_MAP RF_MAP RMW_MAP INJ WF_t.
     rf_s ⨾ ⦗Rlx_s⦘ ⨾ (sb_s ⨾ ⦗F_s⦘)^? ⨾ ⦗Acq_s⦘ ⊆
       rf_s ⨾ ⦗Rlx_s⦘ ⨾ (rpo_s ⨾ ⦗F_s⦘)^? ⨾ ⦗Acq_s⦘
   ).
-  { admit. }
+  { rewrite !crE, !seq_union_l, !seq_union_r, !seq_id_l.
+    apply union_mori; [reflexivity |].
+    rewrite (wf_rfD WF_s), !seqA. do 2 hahn_frame_l.
+    seq_rewrite <- !id_inter.
+    unfold rpo. rewrite <- ct_step.
+    unfold rpo_imm. basic_solver 11. }
   sin_rewrite RF_MAP.
-  rewrite RPO_MAP.
+  rewrite RPO_MAP, E_MAP, <- collect_rel_eqv.
   admit.
 Admitted.
 
