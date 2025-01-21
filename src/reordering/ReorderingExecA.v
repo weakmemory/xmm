@@ -316,7 +316,8 @@ Proof using INV INV'.
     { rewrite (WCore.add_event_addr ADD). apply SIMREL. }
     { rewrite (WCore.add_event_rmw_dep ADD). apply SIMREL. }
     { admit. }
-    { admit. }
+    { unfolder. ins. desf.
+      unfold id. auto with xmm. }
     { unfolder. ins. desf.
       rewrite rsr_mapper_bt; auto. }
     unfolder. ins. desf.
@@ -662,7 +663,27 @@ Proof using INV INV'.
     all: change (G_s') with (WCore.G X_s').
     { rewrite (rsr_rf SIMREL'), EXTRA. basic_solver 8. }
     rewrite (rsr_co SIMREL'), EXTRA. basic_solver 8. }
-  { admit. (* TODO *)}
+  { arewrite (WCore.reexec_thread X_s' dtrmt' ≡₁ eq (tid b_t)).
+    { unfold dtrmt', WCore.reexec_thread. ins.
+      rewrite rsr_mapper_bt, !set_minus_minus_r; auto.
+      rewrite set_minusK, set_inter_absorb_l; [| basic_solver].
+      rewrite set_union_empty_l, set_collect_union, set_union_absorb_r.
+      { clear. basic_solver. }
+      clear - TEQ. basic_solver. }
+    unfold dtrmt'. rewrite (rsr_acts SIMREL), OLDEXA.
+    rewrite rsr_mapper_bt; auto.
+    clear - TEQ NEQ INB NOTINA. rewrite !set_minus_union_l.
+    rewrite !set_minus_minus_l. split; [| basic_solver].
+    unfolder.
+    intros x' [(x & (XIN & XEQ)) | XEQ]; [| desf; eauto].
+    subst x'.
+    assert (XNA : x <> a_t) by congruence.
+    destruct classic with (x = b_t) as [XEQ | XNB].
+    { subst x. right. split; eauto.
+      erewrite <- rsr_mapper_tid; eauto.
+      all: done. }
+    do 2 left. split; eauto. rewrite rsr_mappero; auto.
+    apply and_not_or; split; congruence. }
   apply sub_to_full_exec_listless with (thrdle := thrdle'); ins.
   { eapply G_s_rfc with (X_s := X_s'); eauto. }
   { admit. }
