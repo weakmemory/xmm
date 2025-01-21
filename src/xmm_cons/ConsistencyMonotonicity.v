@@ -224,9 +224,12 @@ Proof using SBLOC_MAP RPO_MAP RF_MAP RMW_MAP INJ WF_t.
     sb_t ∩ same_loc_t ∪ rpo_t ∪ sw_t ≡
       restr_rel E_t (sb_t ∩ same_loc_t ∪ rpo_t ∪ sw_t)
   ).
-  { admit. }
+  { rewrite wf_sbE, wf_rpoE, (wf_swE WF_t) at 1.
+    rewrite seq_eqv_inter_ll, seq_eqv_inter_lr.
+    rewrite <- !seq_union_r, <- !seq_union_l.
+    now rewrite restr_relE. }
   rewrite collect_rel_ct_inj; auto with hahn.
-Admitted.
+Qed.
 
 Lemma monoton_cons
     (CONS : WCore.is_cons G_t sc_t) :
