@@ -3,6 +3,7 @@ Require Import Core.
 Require Import AuxRel AuxRel2 AuxInj.
 Require Import SimrelCommon ReordSimrel.
 Require Import Rhb.
+Require Import MapDoms.
 
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
@@ -129,66 +130,6 @@ Proof using.
   now rewrite seq_false_l.
 Qed.
 
-Lemma reord_map_rlx s
-    (SUB : s ⊆₁ E)
-    (LABEQ : eq_dom E lab (lab' ∘ mapper)) :
-  Rlx' ∩₁ mapper ↑₁ s ⊆₁ mapper ↑₁ (Rlx ∩₁ s).
-Proof using.
-  unfolder. intros x' (RLX & (x & XIN & XEQ)).
-  subst x'. exists x; splits; auto.
-  unfold is_rlx, mod in *. rewrite LABEQ; auto.
-Qed.
-
-Lemma reord_map_rel s
-    (SUB : s ⊆₁ E)
-    (LABEQ : eq_dom E lab (lab' ∘ mapper)) :
-  Rel' ∩₁ mapper ↑₁ s ⊆₁ mapper ↑₁ (Rel ∩₁ s).
-Proof using.
-  unfolder. intros x' (REL & (x & XIN & XEQ)).
-  subst x'. exists x; splits; auto.
-  unfold is_rel, mod in *. rewrite LABEQ; auto.
-Qed.
-
-Lemma reord_map_acq s
-    (SUB : s ⊆₁ E)
-    (LABEQ : eq_dom E lab (lab' ∘ mapper)) :
-  Acq' ∩₁ mapper ↑₁ s ⊆₁ mapper ↑₁ (Acq ∩₁ s).
-Proof using.
-  unfolder. intros x' (ACQ & (x & XIN & XEQ)).
-  subst x'. exists x; splits; auto.
-  unfold is_acq, mod in *. rewrite LABEQ; auto.
-Qed.
-
-Lemma reord_map_r s
-    (SUB : s ⊆₁ E)
-    (LABEQ : eq_dom E lab (lab' ∘ mapper)) :
-  R' ∩₁ mapper ↑₁ s ⊆₁ mapper ↑₁ (R ∩₁ s).
-Proof using.
-  unfolder. intros x' (ISR & (x & XIN & XEQ)).
-  subst x'. exists x; splits; auto.
-  unfold is_r in *. rewrite LABEQ; auto.
-Qed.
-
-Lemma reord_map_w s
-    (SUB : s ⊆₁ E)
-    (LABEQ : eq_dom E lab (lab' ∘ mapper)) :
-  W' ∩₁ mapper ↑₁ s ⊆₁ mapper ↑₁ (W ∩₁ s).
-Proof using.
-  unfolder. intros x' (ISW & (x & XIN & XEQ)).
-  subst x'. exists x; splits; auto.
-  unfold is_w in *. rewrite LABEQ; auto.
-Qed.
-
-Lemma reord_map_f s
-    (SUB : s ⊆₁ E)
-    (LABEQ : eq_dom E lab (lab' ∘ mapper)) :
-  F' ∩₁ mapper ↑₁ s ⊆₁ mapper ↑₁ (F ∩₁ s).
-Proof using.
-  unfolder. intros x' (ISF & (x & XIN & XEQ)).
-  subst x'. exists x; splits; auto.
-  unfold is_f in *. rewrite LABEQ; auto.
-Qed.
-
 Lemma reord_map_rpo_helper
     (INJ : inj_dom E mapper)
     (LABEQ : eq_dom E lab (lab' ∘ mapper)) :
@@ -204,24 +145,11 @@ Proof using.
   seq_rewrite (seq_eqvC (mapper ↑₁ E) (F' ∩₁ Acq')).
   seq_rewrite (seq_eqvC (mapper ↑₁ E) Rel').
   seq_rewrite <- !id_inter. rewrite !set_interA.
-  arewrite (Rlx' ∩₁ mapper ↑₁ E ⊆₁ mapper ↑₁ (Rlx ∩₁ E)).
-  { apply reord_map_rlx; auto with hahn. }
-  arewrite (Acq' ∩₁ mapper ↑₁ E ⊆₁ mapper ↑₁ (Acq ∩₁ E)).
-  { apply reord_map_acq; auto with hahn. }
-  arewrite (Rel' ∩₁ mapper ↑₁ E ⊆₁ mapper ↑₁ (Rel ∩₁ E)).
-  { apply reord_map_rel; auto with hahn. }
-  arewrite (R' ∩₁ mapper ↑₁ (Rlx ∩₁ E) ⊆₁ mapper ↑₁ (R ∩₁ Rlx ∩₁ E)).
-  { rewrite reord_map_r; auto; [apply set_collect_mori |].
-    all: clear; basic_solver. }
-  arewrite (W' ∩₁ mapper ↑₁ (Rlx ∩₁ E) ⊆₁ mapper ↑₁ (W ∩₁ Rlx ∩₁ E)).
-  { rewrite reord_map_w; auto; [apply set_collect_mori |].
-    all: clear; basic_solver. }
-  arewrite (F' ∩₁ mapper ↑₁ (Acq ∩₁ E) ⊆₁ mapper ↑₁ (F ∩₁ Acq ∩₁ E)).
-  { rewrite reord_map_f; auto; [apply set_collect_mori |].
-    all: clear; basic_solver. }
-  arewrite (F' ∩₁ mapper ↑₁ (Rel ∩₁ E) ⊆₁ mapper ↑₁ (F ∩₁ Rel ∩₁ E)).
-  { rewrite reord_map_f; auto; [apply set_collect_mori |].
-    all: clear; basic_solver. }
+  rewrite set_collect_rlx, set_collect_acq,
+          set_collect_rel; eauto.
+  rewrite set_collect_is_r, set_collect_is_w,
+          2!set_collect_is_f; eauto.
+  all: try basic_solver 2.
   unfold rpo, rpo_imm. rewrite <- ct_step.
   rewrite !collect_rel_union.
   repeat apply union_mori.
@@ -391,25 +319,25 @@ Proof using.
       arewrite (mapper ↑₁ (eq b ∩₁ E) ∩₁ (F' ∩₁ Acq') ⊆₁ ∅);
         [| basic_solver].
       rewrite set_interC with (s := F'), set_interC.
-      rewrite set_interA, reord_map_f, BRW; try basic_solver.
+      rewrite set_interA, set_collect_is_f, BRW; try basic_solver.
       clear. unfold is_r, is_w, is_f. basic_solver. }
     arewrite_false (⦗Acq'⦘ ⨾ mapper ↑ (eq a ∩₁ E) × (eq b ∩₁ E)).
     { rewrite collect_rel_cross. seq_rewrite <- cross_inter_l.
       arewrite (Acq' ∩₁ mapper ↑₁ (eq a ∩₁ E) ⊆₁ ∅);
         [| basic_solver].
-      rewrite reord_map_acq, ANAQ; basic_solver. }
+      rewrite set_collect_acq, ANAQ; basic_solver. }
     arewrite_false (mapper ↑ (eq a ∩₁ E) × (eq b ∩₁ E) ⨾ ⦗Rel'⦘).
     { rewrite collect_rel_cross. seq_rewrite <- cross_inter_r.
       arewrite (mapper ↑₁ (eq b ∩₁ E) ∩₁ Rel' ⊆₁ ∅);
         [| basic_solver].
       rewrite set_interC with (s' := Rel').
-      rewrite reord_map_rel, BNREL; basic_solver. }
+      rewrite set_collect_rel, BNREL; basic_solver. }
     arewrite_false (⦗F' ∩₁ Rel'⦘ ⨾ mapper ↑ (eq a ∩₁ E) × (eq b ∩₁ E)).
     { rewrite collect_rel_cross. seq_rewrite <- cross_inter_l.
       arewrite ((F' ∩₁ Rel') ∩₁ mapper ↑₁ (eq a ∩₁ E) ⊆₁ ∅);
         [| basic_solver].
       rewrite set_interC with (s := F').
-      rewrite set_interA, reord_map_f, ARW; try basic_solver.
+      rewrite set_interA, set_collect_is_f, ARW; try basic_solver.
       clear. unfold is_r, is_w, is_f. basic_solver. }
     rewrite seq_false_r, seq_false_l, !union_false_r.
     rewrite <- reord_map_rpo_helper; auto.

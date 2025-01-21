@@ -4,6 +4,7 @@ Require Import Core.
 Require Import AuxRel AuxRel3 AuxInj.
 Require Import Srf Rhb.
 Require Import ConsistencyCommon.
+Require Import MapDoms.
 
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
@@ -149,12 +150,11 @@ Proof using RF_MAP RMW_MAP INJ WF_t LAB_MAP E_MAP.
   unfold rs.
   rewrite monoton_sw_helper_rf_rmw.
   arewrite (⦗E_s⦘ ⨾ ⦗W_s⦘ ⊆ m ↑ (⦗E_t⦘ ⨾ ⦗W_t⦘)).
-  { rewrite <- !id_inter, collect_rel_eqv.
+  { rewrite E_MAP, <- !id_inter, collect_rel_eqv.
     apply eqv_rel_mori.
-    unfolder. intros x' (XIN & ISW).
-    apply E_MAP in XIN. destruct XIN as (x & XIN & XEQ).
-    subst x'. exists x; splits; auto.
-    unfold is_w in *. rewrite <- LAB_MAP; auto. }
+    rewrite set_interC, set_interC with (s := E_t).
+    rewrite set_collect_is_w; auto.
+    now symmetry. }
   rewrite <- !cr_of_ct, !crE, !seq_union_r, !seq_id_r.
   rewrite collect_rel_union. apply union_mori; [reflexivity |].
   arewrite (rf_t ⨾ rmw_t ≡ restr_rel E_t (rf_t ⨾ rmw_t)).
@@ -168,7 +168,9 @@ Qed.
 
 Lemma monoton_sw_helper_release :
   ⦗E_s⦘ ⨾ release_s ⊆ m ↑ (⦗E_t⦘ ⨾ release_t).
-Proof using RPO_MAP RF_MAP RMW_MAP INJ WF_t.
+Proof using RPO_MAP RF_MAP RMW_MAP INJ WF_t LAB_MAP WF_s E_MAP.
+  assert (LAB_MAP' : eq_dom E_t lab_t (lab_s ∘ m)).
+  { by symmetry. }
   unfold release.
   rewrite (wf_rsD WF_s).
   arewrite (
@@ -181,21 +183,41 @@ Proof using RPO_MAP RF_MAP RMW_MAP INJ WF_t.
     rewrite wf_sbE. do 2 hahn_frame_l. basic_solver. }
   arewrite (
     ⦗Rel_s⦘ ⨾ (⦗F_s⦘ ⨾ sb_s)^? ⨾ ⦗Rlx_s⦘ ⨾ ⦗W_s⦘ ⊆
-      ⦗Rel_s⦘ ⨾ (⦗F_s⦘ ⨾ rpo_s)^? ⨾ ⦗Rlx_s⦘ ⨾ ⦗W_s⦘
+      ⦗Rel_s⦘ ⨾ (⦗F_s⦘ ⨾ rpo_s)^? ⨾ ⦗Rlx_s⦘
   ).
   { rewrite !crE, !seq_union_l, !seq_union_r, !seq_id_l.
-    apply union_mori; [reflexivity |].
+    apply union_mori; [basic_solver |].
     rewrite !seqA. seq_rewrite <- !id_inter.
     unfold rpo. rewrite <- ct_step.
     unfold rpo_imm. basic_solver 11. }
+  rewrite (@inclusion_seq_eqv_r _ rs_s W_s).
   sin_rewrite monoton_sw_helper_rs.
-  rewrite RPO_MAP, E_MAP, <- collect_rel_eqv.
-  admit.
-Admitted.
+  rewrite RPO_MAP, E_MAP, <- collect_rel_eqv, rpo_in_sb.
+  rewrite mapdom_rewrite_rel
+    with (r := ⦗E_t⦘ ⨾ rs_t) (G := G_t);
+    [| rewrite (wf_rsE WF_t); clear; basic_solver 11].
+  seq_rewrite mapdom_rewrite_l.
+  rewrite set_collect_rel; eauto.
+  seq_rewrite <- (id_inter Rlx_s (m ↑₁ E_t)).
+  rewrite set_collect_rlx; eauto.
+  rewrite mapdom_rewrite_rel with (r := sb_t); eauto using wf_sbE.
+  seq_rewrite <- (id_inter F_s (m ↑₁ E_t)).
+  rewrite set_collect_is_f; eauto.
+  rewrite !crE, !seq_union_l, !seq_union_r,
+          !seq_id_l, collect_rel_union.
+  apply union_mori.
+  all: rewrite <- !collect_rel_eqv, <- !collect_rel_seq.
+  all: try eapply inj_dom_mori; eauto.
+  all: try (apply collect_rel_mori; auto; basic_solver 11).
+  all: rewrite 1?(wf_rsE WF_t), 1?(wf_sbE G_t).
+  all: unfold flip; basic_solver.
+Qed.
 
 Lemma monoton_sw_sub_helper :
   sw_s ⊆ m ↑ sw_t.
-Proof using RPO_MAP RF_MAP RMW_MAP INJ WF_t.
+Proof using RPO_MAP RF_MAP RMW_MAP INJ WF_t LAB_MAP WF_s E_MAP.
+  assert (LAB_MAP' : eq_dom E_t lab_t (lab_s ∘ m)).
+  { by symmetry. }
   rewrite (wf_swE WF_s).
   unfold sw. rewrite !seqA.
   sin_rewrite monoton_sw_helper_release.
@@ -211,12 +233,32 @@ Proof using RPO_MAP RF_MAP RMW_MAP INJ WF_t.
     unfold rpo_imm. basic_solver 11. }
   sin_rewrite RF_MAP.
   rewrite RPO_MAP, E_MAP, <- collect_rel_eqv.
-  admit.
-Admitted.
+  rewrite rpo_in_sb.
+  rewrite mapdom_rewrite_rel
+    with (r := rf_t) (G := G_t);
+    [| apply (wf_rfE WF_t)].
+  rewrite !seqA.
+  seq_rewrite mapdom_rewrite_l'.
+  rewrite set_collect_rlx; eauto.
+  rewrite mapdom_rewrite_rel with (r := sb_t); eauto using wf_sbE.
+  rewrite !seqA, mapdom_rewrite_l'.
+  rewrite set_collect_is_f; eauto.
+  seq_rewrite mapdom_rewrite_r.
+  rewrite set_collect_acq; eauto.
+  rewrite !crE, !seq_union_l, !seq_union_r,
+          !seq_id_l, collect_rel_union.
+  apply union_mori.
+  all: rewrite <- !collect_rel_eqv, <- !collect_rel_seq.
+  all: try eapply inj_dom_mori; eauto.
+  all: try (apply collect_rel_mori; auto; basic_solver 11).
+  all: rewrite 1?(wf_releaseE WF_t), 1?(wf_rfE WF_t),
+               1?(wf_sbE G_t).
+  all: unfold flip; basic_solver.
+Qed.
 
 Lemma monoton_rhb_sub :
   rhb_s ⊆ m ↑ rhb_t.
-Proof using SBLOC_MAP RPO_MAP RF_MAP RMW_MAP INJ WF_t.
+Proof using SBLOC_MAP RPO_MAP RF_MAP RMW_MAP INJ WF_t LAB_MAP WF_s E_MAP.
   unfold rhb.
   rewrite monoton_sw_sub_helper, SBLOC_MAP, RPO_MAP.
   rewrite <- !collect_rel_union.
@@ -234,7 +276,7 @@ Qed.
 Lemma monoton_cons
     (CONS : WCore.is_cons G_t sc_t) :
   WCore.is_cons G_s sc_s.
-Proof using RF_MAP CO_MAP INJ WF_t.
+Proof using SBLOC_MAP RPO_MAP RF_MAP RMW_MAP INJ WF_t LAB_MAP WF_s E_MAP.
   constructor.
   { case_refl _.
     { rewrite hb_helper; eauto. rewrite irreflexive_union. split.

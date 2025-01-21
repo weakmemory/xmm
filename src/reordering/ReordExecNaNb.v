@@ -628,9 +628,10 @@ Proof using INV INV'.
     now rewrite !union_false_r. }
   apply XmmCons.monoton_cons with (G_t := G_t')
               (sc_t := WCore.sc X_t') (m := mapper); eauto.
-  { apply SIMREL'. }
+  all: try now apply SIMREL'.
+  { now rewrite (rsr_acts SIMREL'), EXTRA, set_union_empty_r. }
   { rewrite (rsr_rf SIMREL'), EXTRA. basic_solver 8. }
-  rewrite (rsr_co SIMREL'), EXTRA. basic_solver 8.
+  eapply G_s_wf with (X_t := X_t'); eauto.
 Admitted.
 
 End ExecNotANotB.
