@@ -1055,6 +1055,7 @@ Proof using.
   (**)
   red. exists thrdle.
   constructor.
+  { admit. }
   { eapply dtrmt_in_cmt; eauto. }
   { unfold f', dtrmt'.
     apply fixset_union. split.

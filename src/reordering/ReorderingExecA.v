@@ -513,6 +513,11 @@ Proof using INV INV'.
   split; red; ins.
   red. exists thrdle'.
   constructor; ins.
+  { assert (BNINI : ~is_init b_t) by apply INV.
+    unfold dtrmt'. rewrite <- (rsr_init_acts_s INV SIMREL).
+    rewrite rsr_mapper_bt; auto.
+    clear - ENINIT BNINI.
+    unfolder. ins. desf. splits; congruence. }
   { subst dtrmt' cmt'. basic_solver. }
   { subst cmt'. basic_solver. }
   { rewrite (rsr_sbE INV SIMREL).

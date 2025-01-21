@@ -732,7 +732,28 @@ Proof using.
   red. split; [apply STEP |].
   eapply xmm_guided_step_proper_trans.
   { apply STEP. }
-  admit.
-Admitted.
+  red in PROP. destruct PROP as (RFC & PROP).
+  constructor; ins.
+  { apply sub_WF with (G := G) (sc := ∅₂) (sc' := ∅₂).
+    { ins. rewrite (WCore.dtrmt_init STEP).
+      reflexivity. }
+    { apply PROP. }
+    apply restrict_sub; [basic_solver |].
+    apply (rexec_dtrmt_in_start STEP). }
+  { rewrite (WCore.dtrmt_init STEP).
+    rewrite <- (rexec_dtrmt_in_start STEP).
+    basic_solver. }
+  { rewrite (xgp_rmw_dep PROP).
+    now rewrite seq_false_l, seq_false_r. }
+  { rewrite (xgp_data PROP).
+    now rewrite seq_false_l, seq_false_r. }
+  { rewrite (xgp_ctrl PROP).
+    now rewrite seq_false_l, seq_false_r. }
+  { rewrite (xgp_addr PROP).
+    now rewrite seq_false_l, seq_false_r. }
+  { eapply set_finite_mori; [| apply PROP].
+    red. basic_solver. }
+  rewrite <- (xgp_init_tid PROP). basic_solver.
+Qed.
 
 End OtherStepInvariants.

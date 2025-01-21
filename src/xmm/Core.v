@@ -444,6 +444,7 @@ Record commit_embedded : Prop :=
 
 Record reexec_gen thrdle : Prop :=
 { (* Correct start *)
+  dtrmt_init : is_init ⊆₁ dtrmt;
   dtrmt_cmt : dtrmt ⊆₁ cmt;
   dtrmt_fixed : fixset dtrmt f;
   reexec_embd_dom : cmt ⊆₁ E';
