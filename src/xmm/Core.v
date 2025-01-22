@@ -409,6 +409,9 @@ Notation "'rmw''" := (rmw G').
 Notation "'hb''" := (hb G').
 Notation "'co''" := (co G').
 Notation "'vf''" := (vf G').
+Notation "'Rlx''" := (fun e => is_true (is_rlx lab' e)).
+Notation "'Acq''" := (fun e => is_true (is_acq lab' e)).
+Notation "'Rel''" := (fun e => is_true (is_rel lab' e)).
 
 Notation "'G'" := (G X).
 Notation "'lab'" := (lab G).
@@ -453,7 +456,7 @@ Record reexec_gen thrdle : Prop :=
   dtrmt_sb_max :
     ⦗dtrmt⦘ ⨾ immediate (nin_sb G') ⨾ ⦗cmt⦘ ⊆
       ⦗dtrmt⦘ ⨾ immediate (nin_sb G') ⨾ ⦗dtrmt⦘;
-  reexec_dtrmt_rpo : rpo' ⨾ ⦗E' \₁ dtrmt⦘ ⊆ ⦗dtrmt⦘ ⨾ rpo' ⨾ ⦗E' \₁ dtrmt⦘;
+  reexec_dtrmt_rpo : E' \₁ dtrmt ⊆₁ set_compl (Rel' ∪₁ Acq');
   (* Correct embedding *)
   reexec_embd_corr : commit_embedded;
   (* Reproducable steps *)

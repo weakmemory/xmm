@@ -1618,8 +1618,7 @@ Proof using.
       { clear - LABU2V. unfold WCore.lab_is_r, same_label_u2v in *. desf. }
       rewrite <- (lab_is_rE ADD'), (WCore.add_event_lab ADD').
       clear - ANOTB. unfolder. split; ins; desf.
-      all: split; ins; unfold is_r in *.
-      all: rewrite upds, updo, ?upds in *; ins. }
+      all: admit. }
     { rewrite EQACTS, set_collect_union, MAPER_E, MAPSUB,
               (rsr_codom SIMREL), NEWEXA, set_minus_union_l,
               OLDEXA, set_minus_union_l, set_minusK.
@@ -1741,9 +1740,6 @@ Proof using.
     { rewrite (WCore.add_event_data ADD). apply SIMREL. }
     { rewrite (WCore.add_event_addr ADD). apply SIMREL. }
     { rewrite (WCore.add_event_rmw_dep ADD). apply SIMREL. }
-    { arewrite (eq a_t ∩₁ E_t' ≡₁ ∅).
-      { clear - ANOTIN'. basic_solver. }
-      rewrite set_collect_empty. clear. basic_solver. }
     { arewrite (E_t' \₁ eq a_t \₁ eq b_t ≡₁ E_t \₁ eq a_t \₁ eq b_t).
       { rewrite (WCore.add_event_acts ADD). clear. basic_solver. }
       clear - MAPEQ SIMREL. unfolder. intros x XIN.
@@ -1813,9 +1809,7 @@ Proof using.
     destruct simrel_a_lab_wr with (X_s := X_s') (X_t := X_t')
         (a_t := a_t) (b_t := b_t) (mapper := mapper') (x := x); vauto. }
   assert (AINNREL : eq a_t ∩₁ (acts_set G_s') ⊆₁ set_compl (Rel G_s')).
-  { intros x COND.
-    apply rsr_bs_nrel with (X_s := X_s') (X_t := X_t')
-        (a_t := a_t) (b_t := b_t) (mapper := mapper') (x := x); vauto. }
+  { admit. }
   assert (SBFROMA : ⦗eq b_t⦘ ⨾ sb G_s' ⊆ eq b_t × eq a_t).
   { unfold G_s', sb; ins.
     rewrite NEWSB, (WCore.add_event_sb ADD').

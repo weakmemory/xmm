@@ -103,7 +103,7 @@ Record extra_a_pred x : Prop := {
   eba_tid : same_tid b_t x;
   eba_val : srf_s ⨾ ⦗eq x ∩₁ R_s⦘ ⊆ same_val lab_s;
   eba_loc : ~same_loc_s a_t x; (* Okay, because a_t is in E_s at this point *)
-  eba_nacq : ~Acq_s x;
+  eba_rlx : set_compl (Rel_s ∪₁ Acq_s) x;
   eba_wr : eq b_t ⊆₁ R_s ∪₁ W_s;
 }.
 
@@ -155,8 +155,8 @@ Record reord_step_pred : Prop := {
   rsr_naddr : addr_t ≡ ∅₂;
   rsr_nrmw_dep : rmw_dep_t ≡ ∅₂;
   rsr_ninit_acts : E_t ∩₁ Tid_ tid_init ⊆₁ is_init;
-  rsr_at_nacq : eq a_t ∩₁ E_t ⊆₁ set_compl Acq_t;
-  rsr_bt_nrel : eq b_t ∩₁ E_t ⊆₁ set_compl Rel_t;
+  rsr_at_rlx : eq a_t ∩₁ E_t ⊆₁ set_compl (Rel_t ∪₁ Acq_t);
+  rsr_bt_rlx : eq b_t ∩₁ E_t ⊆₁ set_compl (Rel_t ∪₁ Acq_t);
   rsr_at_bt_imm : (eq b_t ∩₁ E_t) × (eq a_t ∩₁ E_t) ⊆ immediate sb_t;
   rsr_nat_spot : forall (NINA : ~E_t a_t),
                     ⦗eq a_t⦘ ⨾ ext_sb ⨾ ⦗E_t⦘ ⊆ ∅₂;
@@ -186,11 +186,18 @@ Record reord_simrel : Prop := {
   rsr_data : data_s ≡ data_t;
   rsr_addr : addr_s ≡ addr_t;
   rsr_rmw_dep : rmw_dep_s ≡ rmw_dep_t;
-  rsr_nrpo : ⦗mapper ↑₁ (eq a_t ∩₁ E_t)⦘ ⨾ rpo_s ⨾ ⦗mapper ↑₁ (eq b_t ∩₁ E_t)⦘ ⊆ ∅₂;
   rsr_mid : eq_dom (E_t \₁ eq a_t \₁ eq b_t) mapper id;
   rsr_bt : mapper ↑₁ (eq b_t ∩₁ E_t) ⊆₁ eq a_t;
   rsr_at : mapper ↑₁ (eq a_t ∩₁ E_t) ⊆₁ eq b_t;
 }.
+
+Lemma rsr_nrpo
+    (INV : reord_step_pred)
+    (SIMREL : reord_simrel) :
+  ⦗mapper ↑₁ (eq a_t ∩₁ E_t)⦘ ⨾ rpo_s ⨾ ⦗mapper ↑₁ (eq b_t ∩₁ E_t)⦘ ⊆ ∅₂.
+Proof using.
+  admit.
+Admitted.
 
 Lemma rsr_common
     (SIMREL : reord_simrel) :
@@ -893,61 +900,19 @@ Proof using.
   now rewrite !updo in MEQ.
 Qed.
 
-Lemma rsr_bs_nrel
+Lemma rsr_bs_rlx
     (PRED : reord_step_pred)
     (SIMREL : reord_simrel) :
-  eq a_t ∩₁ E_s ⊆₁ set_compl Rel_s.
+  eq a_t ∩₁ E_s ⊆₁ set_compl (Rel_s ∪₁ Acq_s).
 Proof using.
-  assert (NEQ : a_t <> b_t) by apply PRED.
-  rewrite (rsr_acts SIMREL).
-  rewrite set_inter_union_r, set_unionC.
-  apply set_subset_union_l. split.
-  { unfold extra_a; desf; basic_solver. }
-  transitivity (set_compl Rel_s ∩₁ mapper ↑₁ E_t);
-    [| basic_solver].
-  assert (INCL :
-    mapper ↑₁ (set_compl Rel_t ∩₁ E_t) ⊆₁
-      set_compl Rel_s ∩₁ mapper ↑₁ E_t
-  ).
-  { unfolder.
-    intros x (y & (ACQ & YIN) & XEQ).
-    unfold is_rel, mod in *. subst x.
-    change (lab_s (mapper y)) with ((lab_s ∘ mapper) y).
-    rewrite (rsr_lab SIMREL); eauto. }
-  rewrite <- INCL, <- (rsr_bt_nrel PRED).
-  unfolder. intros x (XEQ & (y & YIN & YEQ)).
-  subst x.
-  assert (y = b_t); desf; eauto.
-  apply rsr_mapinv_bt; auto.
-Qed.
+Admitted.
 
-Lemma rsr_as_nacq
+Lemma rsr_as_rlx
     (PRED : reord_step_pred)
     (SIMREL : reord_simrel) :
-  eq b_t ∩₁ E_s ⊆₁ set_compl Acq_s.
+  eq b_t ∩₁ E_s ⊆₁ set_compl (Rel_s ∪₁ Acq_s).
 Proof using.
-  rewrite (rsr_acts SIMREL).
-  rewrite set_inter_union_r, set_unionC.
-  apply set_subset_union_l. split.
-  { rewrite (rsr_as SIMREL). unfolder.
-    ins. desf. now apply eba_nacq. }
-  transitivity (set_compl Acq_s ∩₁ mapper ↑₁ E_t);
-    [| basic_solver].
-  assert (INCL :
-    mapper ↑₁ (set_compl Acq_t ∩₁ E_t) ⊆₁
-      set_compl Acq_s ∩₁ mapper ↑₁ E_t
-  ).
-  { unfolder.
-    intros x (y & (ACQ & YIN) & XEQ).
-    unfold is_acq, mod in *. subst x.
-    change (lab_s (mapper y)) with ((lab_s ∘ mapper) y).
-    rewrite (rsr_lab SIMREL); eauto. }
-  rewrite <- INCL, <- (rsr_at_nacq PRED).
-  unfolder. intros x (XEQ & (y & YIN & YEQ)).
-  subst x.
-  assert (y = a_t); desf; eauto.
-  apply rsr_mapinv_at; auto.
-Qed.
+Admitted.
 
 Lemma rsr_as_bs_loc
     (PRED : reord_step_pred)

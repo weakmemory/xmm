@@ -93,9 +93,6 @@ Proof using.
     rewrite (rsr_sb SIMREL). apply union_more; auto.
     unfold extra_a; desf; [| basic_solver].
     rewrite EQ1; desf. }
-  { rewrite set_collect_eq_dom with (f := mapper) (g := mapper').
-    { apply SIMREL. }
-    eapply eq_dom_mori; eauto; unfold flip; basic_solver 11. }
   transitivity mapper'; [| apply SIMREL].
   eapply eq_dom_mori; eauto.
   unfold flip; basic_solver.

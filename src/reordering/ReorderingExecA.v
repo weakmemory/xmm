@@ -321,7 +321,6 @@ Proof using INV INV'.
     { rewrite (WCore.add_event_data ADD). apply SIMREL. }
     { rewrite (WCore.add_event_addr ADD). apply SIMREL. }
     { rewrite (WCore.add_event_rmw_dep ADD). apply SIMREL. }
-    { admit. }
     { unfolder. ins. desf.
       unfold id. auto with xmm. }
     { unfolder. ins. desf.
@@ -524,9 +523,11 @@ Proof using INV INV'.
       { now rewrite (rsr_acts SIMREL'), EXTRA, set_union_empty_r. }
       { symmetry. apply SIMREL'. }
       { apply SIMREL'. }
-      rewrite (rsr_sb SIMREL'), EXTRA,
+      { rewrite (rsr_sb SIMREL'), EXTRA,
               cross_false_l, cross_false_r.
-      now rewrite !union_false_r. }
+        now rewrite !union_false_r. }
+      { rewrite (rsr_at_rlx INV'). clear. basic_solver. }
+      rewrite (rsr_bt_rlx INV'). clear. basic_solver. }
     assert (SLOCMAP : sb G_s' ∩ same_loc (lab G_s') ⊆ mapper ↑ (sb_t' ∩ same_loc_t')).
     { apply reord_sbloc' with (a := a_t) (b := b_t).
       all: rewrite 1?set_unionC with (s := R_t').
@@ -614,52 +615,7 @@ Proof using INV INV'.
       { unfolder. split; auto. apply INV'. }
       eapply (rsr_at_bt_imm INV'). basic_solver. }
     unfold dtrmt'. clear. basic_solver. }
-  { enough (RPOD : dom_rel (rpo G_s' ⨾ ⦗E_s \₁ dtrmt'⦘) ⊆₁ dtrmt').
-    { forward apply RPOD. clear. basic_solver 11. }
-    unfold dtrmt'.
-    assert (EVEQ : E_s \₁ ((E_s \₁ eq b_t) \₁ eq (mapper b_t)) ≡₁ eq b_t ∪₁ eq a_t).
-    { rewrite rsr_mapper_bt; auto. rewrite rsr_mapper_bt in BINS; auto.
-      rewrite !set_minus_minus_r, set_minusK, set_union_empty_l.
-      clear - AINS BINS INV SIMREL INB. basic_solver. }
-    rewrite EVEQ, id_union, seq_union_r, dom_union.
-    rewrite set_subset_union_l; split.
-    { intros x COND.
-      unfold dom_rel in COND. destruct COND as [y COND].
-      destruct COND as (z & SB & XIN & YIN); subst z y.
-      unfold set_minus. splits.
-      { apply wf_rpoE in SB.
-        destruct SB as (x0 & (EQ & INE) & _); vauto. }
-      { apply rpo_in_sb in SB.
-        intros FALSE; subst x.
-        apply sb_irr in SB; vauto. }
-      intros FALSE.
-      rewrite rsr_map_bt with (X_s := X_s)
-          (X_t := X_t) (a_t := a_t) (b_t := b_t) (mapper := mapper) in FALSE.
-      { subst x. apply rpo_in_sb in SB.
-        unfold sb in SB. unfolder in SB; desf.
-        destruct INV. clear - SB0 rsr_at_bt_sb.
-        assert (TRANS : ext_sb a_t a_t).
-        { apply ext_sb_trans with (x := a_t)
-              (y := b_t) (z := a_t); vauto. }
-        apply ext_sb_irr in TRANS; vauto. }
-      all : vauto. }
-    intros x COND.
-    unfold dom_rel in COND. destruct COND as [y COND].
-    destruct COND as (z & SB & XIN & YIN); subst z y.
-    unfold set_minus. splits.
-    { apply wf_rpoE in SB.
-      destruct SB as (x0 & (EQ & INE) & _); vauto. }
-    { intros FALSE; subst x.
-      apply (rsr_nrpo SIMREL') with b_t a_t.
-      unfolder; ins. splits; vauto.
-      { exists a_t; splits; ins. auto with xmm. }
-      exists b_t; splits; ins. auto with xmm. }
-    intros FALSE.
-    rewrite rsr_map_bt with (X_s := X_s)
-      (X_t := X_t) (a_t := a_t) (b_t := b_t) (mapper := mapper) in FALSE.
-    { subst x. apply rpo_in_sb in SB.
-      apply sb_irr in SB; vauto. }
-    all : vauto. }
+  { admit. }
   { constructor; ins.
     { unfold id; ins. rupd. intro FALSO.
       now apply CMT. }

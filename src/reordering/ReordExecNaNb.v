@@ -295,7 +295,8 @@ Proof using INV INV'.
       all: red in XIN; desf; ins.
       { unfold same_loc, loc. rewrite !updo by congruence.
         apply SIMREL. apply extra_a_some; desf. }
-      { unfold is_acq, mod. rewrite !updo by congruence.
+      { unfold is_rel, is_acq, mod, set_union, set_compl.
+        rewrite !updo by congruence.
         apply SIMREL. apply extra_a_some; desf. }
       unfolder. ins. desf.
       unfold is_r, is_w. rewrite !updo by congruence.
@@ -370,31 +371,6 @@ Proof using INV INV'.
     { rewrite (WCore.add_event_data ADD). apply SIMREL. }
     { rewrite (WCore.add_event_addr ADD). apply SIMREL. }
     { rewrite (WCore.add_event_rmw_dep ADD). apply SIMREL. }
-    { destruct classic with (E_t' b_t)
-            as [INB|NINB]; [| clear - NINB; basic_solver].
-      destruct classic with (E_t' a_t)
-            as [INA|NINA]; [| clear - NINA; basic_solver].
-      arewrite (eq a_t ∩₁ E_t' ≡₁ eq a_t ∩₁ E_t).
-      { clear - A_PRESERVED. basic_solver. }
-      arewrite (eq b_t ∩₁ E_t' ≡₁ eq b_t ∩₁ E_t).
-      { clear - B_PRESERVED. basic_solver. }
-      assert (INBS : mapper ↑₁ (eq b_t ∩₁ E_t) ⊆₁ E_s).
-      { transitivity (mapper ↑₁ E_t); [basic_solver |].
-        rewrite (rsr_codom SIMREL). clear. basic_solver. }
-      arewrite (rpo G_s' ⨾ ⦗mapper ↑₁ (eq b_t ∩₁ E_t)⦘ ⊆
-                rpo G_s' ⨾ ⦗E_s⦘ ⨾ ⦗mapper ↑₁ (eq b_t ∩₁ E_t)⦘).
-      { rewrite <- id_inter, set_inter_absorb_l with (s' := E_s).
-        all: ins. }
-      arewrite (rpo G_s' ⨾ ⦗E_s⦘ ≡ rpo_s ⨾ ⦗E_s⦘).
-      { apply (porf_pref_rpo G_s G_s'); simpl.
-        { eapply G_s_wf with (X_t := X_t); eauto. }
-        { exact LABEQ. }
-        unfold sb at 1. ins. rewrite NEWSB.
-        rewrite seq_union_l. clear - NOTIN.
-        basic_solver 11. }
-      rewrite <- id_inter, set_inter_absorb_l with (s' := E_s).
-      { apply SIMREL. }
-      ins. }
     { rewrite EQACTS, !set_minus_union_l.
       apply eq_dom_union. split.
       { intros x XIN. desf. rewrite rsr_mappero.
@@ -478,12 +454,16 @@ Proof using INV INV'.
       rewrite <- (simrel_b_lab_wr INV' SIMREL').
       clear - BINS. basic_solver. }
     assert (AINNREL : eq a_t ⊆₁ set_compl (Rel G_s')).
-    { change G_s' with (WCore.G X_s').
-      rewrite <- (rsr_bs_nrel INV' SIMREL').
+    { transitivity (set_compl (Rel G_s' ∪₁ Acq G_s'))
+        ; [| basic_solver].
+      change G_s' with (WCore.G X_s').
+      rewrite <- (rsr_bs_rlx INV' SIMREL').
       clear - AINS. basic_solver. }
     assert (BINACQ : eq b_t ⊆₁ set_compl (Acq G_s')).
-    { change G_s' with (WCore.G X_s').
-      rewrite <- (rsr_as_nacq INV' SIMREL').
+    { transitivity (set_compl (Rel G_s' ∪₁ Acq G_s'))
+        ; [| basic_solver].
+      change G_s' with (WCore.G X_s').
+      rewrite <- (rsr_as_rlx INV' SIMREL').
       clear - BINS. basic_solver. }
     assert (SLOC : ~ same_loc (lab (WCore.G X_s')) b_t a_t).
     { intro FALSO.
@@ -505,8 +485,7 @@ Proof using INV INV'.
         rewrite extra_a_some; auto with hahn.
         all: tauto. }
       { apply SIMREL'; vauto. }
-      { eapply rsr_as_nacq with (X_t := X_t') (X_s := X_s'); eauto.
-        clear - BINS. basic_solver. }
+      { now apply BINACQ. }
       { apply set_disjointE. split; auto with hahn.
         rewrite (rsr_codom SIMREL'), extra_a_some.
         { basic_solver. }
@@ -611,9 +590,11 @@ Proof using INV INV'.
     { now rewrite (rsr_acts SIMREL'), EXTRA, set_union_empty_r. }
     { symmetry. apply SIMREL'. }
     { apply SIMREL'. }
-    rewrite (rsr_sb SIMREL'), EXTRA,
+    { rewrite (rsr_sb SIMREL'), EXTRA,
             cross_false_l, cross_false_r.
-    now rewrite !union_false_r. }
+      now rewrite !union_false_r. }
+    { rewrite (rsr_at_rlx INV'). clear. basic_solver. }
+    rewrite (rsr_bt_rlx INV'). clear. basic_solver. }
   assert (SLOCMAP : sb G_s' ∩ same_loc (lab G_s') ⊆ mapper ↑ (sb_t' ∩ same_loc_t')).
   { apply reord_sbloc' with (a := a_t) (b := b_t).
     all: rewrite 1?set_unionC with (s := R_t').
