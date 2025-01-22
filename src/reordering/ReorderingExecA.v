@@ -477,8 +477,7 @@ Proof using INV INV'.
         unfolder in RFT; desf. }
       unfolder in SRF. destruct SRF as (_ & EXA & _).
       apply OLDEXA in EXA. congruence. }
-    { unfold dtrmt', cmt'. basic_solver 11. }
-    admit. (* sc... *) }
+    unfold dtrmt', cmt'. basic_solver 11. }
   assert (STAB : WCore.stable_uncmt_reads_gen X_s' cmt' thrdle').
   { constructor; ins.
     { unfold thrdle'. clear. basic_solver. }
@@ -718,11 +717,13 @@ Proof using INV INV'.
               cross_false_l, cross_false_r.
       now rewrite !union_false_r. }
     apply XmmCons.monoton_cons with (G_t := G_t')
-                (sc_t := WCore.sc X_t') (m := mapper); eauto.
+                (m := mapper); eauto.
     all: try now apply SIMREL'.
     all: change (G_s') with (WCore.G X_s').
     { now rewrite (rsr_acts SIMREL'), NOEXA, set_union_empty_r. }
     { rewrite (rsr_rf SIMREL'), EXTRA. basic_solver 8. }
+    { rewrite (rsr_co SIMREL'), EXTRA.
+      now rewrite set_inter_empty_l, add_max_empty_r, union_false_r. }
     eapply G_s_wf with (X_t := X_t'); eauto. }
   { arewrite (WCore.reexec_thread X_s' dtrmt' ≡₁ eq (tid b_t)).
     { unfold dtrmt', WCore.reexec_thread. ins.

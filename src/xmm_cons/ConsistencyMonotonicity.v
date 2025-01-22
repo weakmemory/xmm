@@ -274,9 +274,9 @@ Proof using SBLOC_MAP RPO_MAP RF_MAP RMW_MAP INJ WF_t LAB_MAP WF_s E_MAP.
 Qed.
 
 Lemma monoton_cons
-    (CONS : WCore.is_cons G_t sc_t) :
-  WCore.is_cons G_s sc_s.
-Proof using SBLOC_MAP RPO_MAP RF_MAP RMW_MAP INJ WF_t LAB_MAP WF_s E_MAP.
+    (CONS : WCore.is_cons G_t) :
+  WCore.is_cons G_s.
+Proof using SBLOC_MAP CO_MAP RPO_MAP RF_MAP RMW_MAP INJ WF_t LAB_MAP WF_s E_MAP.
   constructor.
   { case_refl _.
     { rewrite hb_helper; eauto. rewrite irreflexive_union. split.
@@ -302,28 +302,27 @@ Proof using SBLOC_MAP RPO_MAP RF_MAP RMW_MAP INJ WF_t LAB_MAP WF_s E_MAP.
     arewrite (restr_rel E_t (rhb_t ⨾ eco_t) ⊆ rhb_t ⨾ eco_t).
     arewrite (rhb_t ⨾ eco_t ⊆ hb_t ⨾ eco_t^?); [| apply CONS].
     rewrite rhb_in_hb. basic_solver. }
-  { split; [| basic_solver].
-    rewrite RMW_MAP, CO_MAP, monoton_fr_sub; eauto.
-    rewrite <- collect_rel_seq.
-    { rewrite <- XmmCons.coll_rel_inter; eauto.
-      { destruct CONS. rewrite cons_atomicity.
-        basic_solver. }
-      assert (IN1 : dom_rel rmw_t ⊆₁ E_t).
-      { rewrite wf_rmwE; eauto. basic_solver. }
-      assert (IN2 : codom_rel rmw_t ⊆₁ E_t).
-      { rewrite wf_rmwE; eauto. basic_solver. }
-      assert (IN3 : dom_rel (fr_t ⨾ co_t) ⊆₁ E_t).
-      { rewrite wf_frE, wf_coE; eauto. basic_solver. }
-      assert (IN4 : codom_rel (fr_t ⨾ co_t) ⊆₁ E_t).
-      { rewrite wf_frE, wf_coE; eauto. basic_solver. }
-      rewrite IN1, IN2, IN3, IN4. basic_solver. }
-    assert (IN1 : codom_rel fr_t ⊆₁ E_t).
-    { rewrite wf_frE; eauto. basic_solver. }
-    assert (IN2 : dom_rel co_t ⊆₁ E_t).
-    { rewrite wf_coE; eauto. basic_solver. }
-    rewrite IN1, IN2. basic_solver. }
-  admit. (* sc *)
-Admitted.
+  split; [| basic_solver].
+  rewrite RMW_MAP, CO_MAP, monoton_fr_sub; eauto.
+  rewrite <- collect_rel_seq.
+  { rewrite <- XmmCons.coll_rel_inter; eauto.
+    { destruct CONS. rewrite cons_atomicity.
+      basic_solver. }
+    assert (IN1 : dom_rel rmw_t ⊆₁ E_t).
+    { rewrite wf_rmwE; eauto. basic_solver. }
+    assert (IN2 : codom_rel rmw_t ⊆₁ E_t).
+    { rewrite wf_rmwE; eauto. basic_solver. }
+    assert (IN3 : dom_rel (fr_t ⨾ co_t) ⊆₁ E_t).
+    { rewrite wf_frE, wf_coE; eauto. basic_solver. }
+    assert (IN4 : codom_rel (fr_t ⨾ co_t) ⊆₁ E_t).
+    { rewrite wf_frE, wf_coE; eauto. basic_solver. }
+    rewrite IN1, IN2, IN3, IN4. basic_solver. }
+  assert (IN1 : codom_rel fr_t ⊆₁ E_t).
+  { rewrite wf_frE; eauto. basic_solver. }
+  assert (IN2 : dom_rel co_t ⊆₁ E_t).
+  { rewrite wf_coE; eauto. basic_solver. }
+  rewrite IN1, IN2. basic_solver.
+Qed.
 
 End ConsistencyMonotonicity.
 

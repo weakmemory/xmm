@@ -180,7 +180,7 @@ Record reexec_conds : Prop := {
   rc_step : WCore.reexec X_t X_t' f dtrmt cmt;
   rc_inv_start : reord_step_pred X_t a_t b_t;
   rc_inv_end : reord_step_pred X_t' a_t b_t;
-  rc_end_cons : WCore.is_cons G_t' ∅₂;
+  rc_end_cons : WCore.is_cons G_t';
   (**)
   rc_as : A_s' ⊆₁ extra_a_pred X_s' a_t b_t;
   rc_extra_lab : fake_srf G_s'' a_s (lab_s' a_s) ⨾ ⦗A_s' ∩₁ WCore.lab_is_r (lab_s' a_s)⦘ ⊆ same_val_s';

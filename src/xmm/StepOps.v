@@ -482,7 +482,7 @@ Qed.
 
 Lemma rfi_in_sb
     (WF : Wf G')
-    (CONS : WCore.is_cons G' ∅₂) :
+    (CONS : WCore.is_cons G') :
   rf' ∩ same_tid ⊆ sb'.
 Proof using.
   arewrite (
@@ -522,7 +522,7 @@ Qed.
 
 Lemma rf_uncmt cmt thrdle
     (WF : Wf G')
-    (CONS : WCore.is_cons G' ∅₂)
+    (CONS : WCore.is_cons G')
     (STAB : WCore.stable_uncmt_reads_gen X' cmt thrdle) :
   rf' ⨾ ⦗E' \₁ cmt⦘ ⊆ tid ↓ thrdle ∪ sb'.
 Proof using.

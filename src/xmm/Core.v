@@ -97,7 +97,7 @@ Notation "'rmw'" := (rmw G).
 Record is_cons : Prop := {
   cons_coherence : irreflexive (hb ⨾ eco^?);
   cons_atomicity : rmw ∩ (fr ⨾ co) ≡ ∅₂;
-  cons_sc : acyclic sc;
+  (* cons_sc : acyclic sc; *)
 }.
 
 End Consistency.
@@ -195,7 +195,7 @@ Record wf := {
   wf_ereq : exec_restr_eq X X' (E ∩₁ cmt);
   wf_rfc : rf_complete (restrict G' cmt);
   wf_sub_rfD : E ∩₁ R ⊆₁ codom_rel rf ∪₁ cmt;
-  wf_sc : wf_sc G sc;
+  (* wf_sc : wf_sc G sc; *)
 }.
 
 End Wf.
@@ -388,7 +388,7 @@ Notation "'G''" := (G X').
 Record exec_inst e l := {
   exec_add_event : add_event X X' e l;
   exec_rfc : rf_complete G';
-  exec_new_cons : is_cons G' sc';
+  exec_new_cons : is_cons G';
 }.
 
 End ExecuteStep.
@@ -459,7 +459,7 @@ Record reexec_gen thrdle : Prop :=
   (* Reproducable steps *)
   rexec_rfc : rf_complete G';
   reexec_start_wf : wf (X_start dtrmt) X' cmt;
-  rexec_final_cons : is_cons G' sc;
+  rexec_final_cons : is_cons G';
   rexec_acts : E ≡₁ dtrmt ∪₁ E ∩₁ tid ↓₁ reexec_thread;
   reexec_steps : (guided_step cmt X')＊ (X_start dtrmt) X'; }.
 

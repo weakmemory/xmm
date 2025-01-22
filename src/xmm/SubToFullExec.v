@@ -635,25 +635,24 @@ Proof using.
       apply delta_G_prefix; ins. }
     all: rewrite restr_restr; basic_solver. }
   { apply XWF. }
-  { unfold delta_E.
-    arewrite ((E ∪₁ eq e) ∩₁ is_r delta_lab ≡₁
-              (E ∪₁ eq e) ∩₁ R').
-    { apply same_lab_u2v_dom_is_r with (s := E ∪₁ eq e).
-      unfold same_lab_u2v_dom, same_label_u2v. intros x XIN.
-      rewrite (prf_lab (delta_G_prefix INE NOTINE NINIT EMAX2 PFX)).
-      all: basic_solver. }
-    rewrite set_inter_union_l.
-    apply set_subset_union_l; split.
-    { arewrite (E ∩₁ R' ⊆₁ E ∩₁ R).
-      { apply set_subset_inter_r; split; [basic_solver |].
-        apply eq_dom_is_r with (lab := lab'); [basic_solver |].
-        eapply eq_dom_mori; eauto. unfold flip. basic_solver. }
-      rewrite (WCore.wf_sub_rfD XWF), (prf_rf PFX).
-      basic_solver 7. }
-    rewrite RF, restr_set_union, !codom_union.
-    basic_solver 12. }
-  admit. (* TODO *)
-Admitted.
+  unfold delta_E.
+  arewrite ((E ∪₁ eq e) ∩₁ is_r delta_lab ≡₁
+            (E ∪₁ eq e) ∩₁ R').
+  { apply same_lab_u2v_dom_is_r with (s := E ∪₁ eq e).
+    unfold same_lab_u2v_dom, same_label_u2v. intros x XIN.
+    rewrite (prf_lab (delta_G_prefix INE NOTINE NINIT EMAX2 PFX)).
+    all: basic_solver. }
+  rewrite set_inter_union_l.
+  apply set_subset_union_l; split.
+  { arewrite (E ∩₁ R' ⊆₁ E ∩₁ R).
+    { apply set_subset_inter_r; split; [basic_solver |].
+      apply eq_dom_is_r with (lab := lab'); [basic_solver |].
+      eapply eq_dom_mori; eauto. unfold flip. basic_solver. }
+    rewrite (WCore.wf_sub_rfD XWF), (prf_rf PFX).
+    basic_solver 7. }
+  rewrite RF, restr_set_union, !codom_union.
+  basic_solver 12.
+Qed.
 
 End DeltaGraph.
 
@@ -887,7 +886,7 @@ Lemma enumd_diff_listless
     (WF : WCore.wf X X' cmt)
     (RFCO : rf_complete G')
     (FIN : set_finite (E' \₁ E))
-    (CONS : WCore.is_cons G' ∅₂)
+    (CONS : WCore.is_cons G')
     (WFG : Wf G')
     (NTID : E' \₁ E ⊆₁ (fun x => tid x <> tid_init))
     (STAB : WCore.stable_uncmt_reads_gen X' cmt thrdle) :
@@ -929,7 +928,7 @@ Qed.
 Lemma sub_to_full_exec_listless
     (XWF : WCore.wf X X' cmt)
     (RFCO : rf_complete G')
-    (CONS : WCore.is_cons G' ∅₂)
+    (CONS : WCore.is_cons G')
     (FIN : set_finite (E' \₁ E))
     (PFX : prefix X X')
     (WF : Wf G')

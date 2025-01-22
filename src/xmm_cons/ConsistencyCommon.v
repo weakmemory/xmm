@@ -42,7 +42,7 @@ Notation "'srf'" := (srf G).
 
 Lemma hb_eco_irr
     (WF  : Wf G)
-    (CONS : WCore.is_cons G sc) :
+    (CONS : WCore.is_cons G) :
   irreflexive (hb ⨾ eco).
 Proof using.
   destruct CONS.
@@ -53,7 +53,7 @@ Qed.
 
 Lemma vf_hb_irr
     (WF  : Wf G)
-    (CONS : WCore.is_cons G sc) :
+    (CONS : WCore.is_cons G) :
   irreflexive (vf ⨾ hb).
 Proof using.
   unfold vf. arewrite_id ⦗W⦘; arewrite_id ⦗E⦘.
@@ -66,7 +66,7 @@ Qed.
 
 Lemma srf_hb_irr
     (WF  : Wf G)
-    (CONS : WCore.is_cons G sc) :
+    (CONS : WCore.is_cons G) :
   irreflexive (srf ⨾ hb).
 Proof using.
   rewrite srf_in_vf; try apply vf_hb_irr; eauto.

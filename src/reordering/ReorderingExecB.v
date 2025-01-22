@@ -106,7 +106,7 @@ Hypothesis INV' : reord_step_pred X_t' a_t b_t.
 Lemma simrel_exec_b_step_1 l_a
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
     (THREADS : threads_set G_t (tid b_t))
-    (CONSIST : WCore.is_cons G_t (WCore.sc X_t))
+    (CONSIST : WCore.is_cons G_t)
     (TACTS : E_t' ≡₁ E_t ∪₁ eq b_t)
     (TSTEP : sb_t' ≡ sb_t ∪ WCore.sb_delta b_t E_t)
     (BNOTIN : ~E_t b_t) :
@@ -433,7 +433,7 @@ Proof using INV INV'.
       basic_solver 21. }
     destruct l_a'.
     { apply XmmCons.read_extent with (G_t := G_t)
-                  (sc_t := WCore.sc X_t) (a := b_t) (m := mapper); eauto.
+                  (a := b_t) (m := mapper); eauto.
       { apply SIMREL; vauto. }
       { unfold G_s''; ins.
         rewrite (rsr_acts SIMREL). unfold extra_a. basic_solver 12. }
@@ -858,7 +858,7 @@ Proof using INV INV'.
         rewrite set_inter_empty_l; rels. }
       destruct INV; eauto. }
     { apply XmmCons.write_extent with (G_t := G_t)
-                  (sc_t := WCore.sc X_t) (a := b_t) (m := mapper); eauto.
+                  (a := b_t) (m := mapper); eauto.
       { apply SIMREL; vauto. }
       { unfold G_s''; ins.
         rewrite (rsr_acts SIMREL). unfold extra_a. basic_solver 12. }
@@ -1335,7 +1335,7 @@ Lemma simrel_exec_b l l_a
     (WR : (WCore.lab_is_r l_a ∪₁ WCore.lab_is_w l_a) b_t)
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
     (STEP : WCore.exec_inst X_t X_t' b_t l)
-    (CONSIST : WCore.is_cons G_t (WCore.sc X_t)) :
+    (CONSIST : WCore.is_cons G_t) :
   exists l_a' a_s X_s'' mapper' X_s',
     << SIMREL : reord_simrel X_s' X_t' a_t b_t mapper' >> /\
     << STEP1 : WCore.exec_inst X_s  X_s'' a_s l_a' >> /\
@@ -1907,7 +1907,7 @@ Proof using.
     clear - BINS. basic_solver. }
   destruct (BINRW b_t) as [RR | WW]; vauto.
   { apply XmmCons.read_extent with (G_t := G_t')
-              (sc_t := WCore.sc X_t') (a := b_t) (m := mapper'); eauto.
+              (a := b_t) (m := mapper'); eauto.
     { apply SIMREL'; vauto. }
     { unfold G_s'; ins.
       rewrite (rsr_acts SIMREL). rewrite OLDEXA.
@@ -2416,7 +2416,7 @@ Proof using.
     apply G_s_wf with (X_t := X_t') (X_s := X_s')
           (a_t := a_t) (b_t := b_t) (mapper := mapper'); vauto. }
   apply XmmCons.write_extent with (G_t := G_t')
-            (sc_t := WCore.sc X_t') (a := b_t) (m := mapper'); eauto.
+            (a := b_t) (m := mapper'); eauto.
   { apply SIMREL'; vauto. }
   { unfold G_s'; ins.
     rewrite (rsr_acts SIMREL). rewrite OLDEXA.
