@@ -1,7 +1,7 @@
 Require Import ReordSimrel.
 Require Import AuxDef.
 Require Import Core.
-Require Import AuxRel AuxRel2.
+Require Import AuxRel AuxRel2 AuxRel3.
 Require Import Srf Rhb.
 Require Import SimrelCommon.
 Require Import StepOps.
@@ -509,6 +509,8 @@ Proof using INV INV'.
     unfolder. unfold thrdle', same_tid.
     clear. basic_solver. }
   (* The proof *)
+  assert (DINC : dtrmt' ⊆₁ cmt').
+  { subst dtrmt' cmt'. basic_solver. }
   exists X_s', id, dtrmt', cmt'.
   split; red; ins.
   red. exists thrdle'.
@@ -518,7 +520,6 @@ Proof using INV INV'.
     rewrite rsr_mapper_bt; auto.
     clear - ENINIT BNINI.
     unfolder. ins. desf. splits; congruence. }
-  { subst dtrmt' cmt'. basic_solver. }
   { subst cmt'. basic_solver. }
   { rewrite (rsr_sbE INV SIMREL).
     rewrite extra_a_some; auto.
@@ -540,7 +541,41 @@ Proof using INV INV'.
       basic_solver. }
     intro FALSO. subst x.
     red in SB; unfolder in SB; desf. }
-  { admit. }
+  { enough (SUB :
+      ⦗dtrmt'⦘ ⨾ immediate (nin_sb G_s') ⨾ ⦗cmt' \₁ dtrmt'⦘ ⊆ ∅₂
+    ).
+    { rewrite (set_union_minus DINC).
+      rewrite id_union, !seq_union_r.
+      apply inclusion_union_l; auto with hahn.
+      rewrite SUB. clear. basic_solver. }
+    change G_s' with (WCore.G X_s').
+    rewrite (rsr_sbE_imm INV' SIMREL'), (extra_sbE INV' SIMREL').
+    rewrite NOEXA, cross_false_l, union_false_r.
+    arewrite (cmt' \₁ dtrmt' ≡₁ eq a_t).
+    { unfold cmt', dtrmt'. rewrite rsr_mapper_bt; auto.
+      rewrite !set_minus_minus_r.
+      rewrite (rsr_actsE INV SIMREL), extra_a_some; auto.
+      clear - NOTINA INB NEQ. split; [| basic_solver 11].
+      arewrite (((E_t ∪₁ eq a_t) \₁ eq b_t) ∩₁ eq a_t ≡₁ eq a_t).
+      { basic_solver. }
+      arewrite (((E_t ∪₁ eq a_t) \₁ eq b_t) ∩₁ eq b_t ≡₁ ∅).
+      { basic_solver. }
+      rewrite set_minus_minus_l, set_minus_union_r,
+              set_minusK, set_inter_empty_r.
+      now rewrite !set_union_empty_l. }
+    arewrite (
+      immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘ ⊆
+        ⦗eq b_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘
+    ).
+    { clear - INV' INA INB'. red. intros x y IMM.
+      exists x. split; auto. unfolder. split; auto.
+      red in IMM. destruct IMM as (y' & IMM & (EQ & EQ')).
+      subst y' y.
+      eapply nin_sb_functional_l; eauto; [apply INV' |].
+      apply seq_eqv_imm. exists b_t. split.
+      { unfolder. split; auto. apply INV'. }
+      eapply (rsr_at_bt_imm INV'). basic_solver. }
+    unfold dtrmt'. clear. basic_solver. }
   { enough (RPOD : dom_rel (rpo G_s' ⨾ ⦗E_s \₁ dtrmt'⦘) ⊆₁ dtrmt').
     { forward apply RPOD. clear. basic_solver 11. }
     unfold dtrmt'.
