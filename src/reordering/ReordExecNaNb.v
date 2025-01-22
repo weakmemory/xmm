@@ -102,6 +102,7 @@ Notation "'Rlx_s'" := (Rlx G_s).
 Notation "'Acq_s'" := (Acq G_s).
 Notation "'Rel_s'" := (Rel G_s).
 
+Notation "'is_init'" := (fun e => is_true (is_init e)).
 Notation "'Tid_' t" := (fun e => tid e = t) (at level 1).
 Notation "'mapper'" := (mapper a_t b_t).
 
@@ -141,13 +142,10 @@ Proof using INV INV'.
     apply ADD. now left. }
   assert (ETID : forall (WITHA : tid e = tid b_t), ~(~E_t a_t /\ E_t b_t)).
   { intros ETID (NINA & INB).
-    enough (FSB : (⦗eq b_t ∩₁ E_t'⦘ ⨾ sb_t') b_t e).
-    { eapply (rsr_bt_max CORR' _ _ FSB). }
-    enough (FSB : sb_t' b_t e).
-    { clear - FSB INB B_PRESERVED. basic_solver. }
-    apply (WCore.add_event_sb ADD). clear - INB ETID.
-    right. unfold WCore.sb_delta, same_tid.
-    basic_solver. }
+    assert (BIN : E_t' b_t) by tauto.
+    eapply (rsr_bt_max INV') with b_t e; try tauto.
+    hahn_rewrite (WCore.add_event_sb ADD).
+    unfolder. splits; auto. }
   assert (ENOTIN : ~E_t e) by apply ADD.
   assert (NEWE :
   << NINIT : ~is_init e >> /\
@@ -162,48 +160,41 @@ Proof using INV INV'.
           in FALSO; eauto.
       destruct FALSO as [INE|EQEXA]; [now apply ADD|].
       unfold extra_a in EQEXA; desf. }
-    destruct classic with (tid e = tid b_t)
-          as [EQT|NQT].
-    { unfold sb.
-      rewrite (rsr_actsE CORR SIMREL).
-      unfold extra_a; desf; [exfalso; now apply ETID|].
-      rewrite set_union_empty_r.
-      rewrite <- EQACTS. apply ADD. }
-    unfold sb.
-    rewrite rsr_actsE
-      with (X_s := X_s) (X_t := X_t)
-           (a_t := a_t) (b_t := b_t); eauto.
-    unfold extra_a; desf.
-    { rewrite <- (rsr_at_bt_tid CORR) in NQT.
-      rewrite id_union, !seq_union_l, !seq_union_r.
-      arewrite_false (⦗eq e⦘ ⨾ ext_sb ⨾ ⦗eq e⦘).
-      { clear. unfolder. ins. desf.
-        eapply ext_sb_irr; eauto. }
-      arewrite_false (⦗eq e⦘ ⨾ ext_sb ⨾ ⦗E_t ∪₁ eq a_t⦘).
-      { admit. }
-      rewrite id_union at 3. rewrite seq_union_l.
-      arewrite_false (⦗eq a_t⦘ ⨾ ext_sb ⨾ ⦗eq e⦘).
-      { clear - NQT CORR. unfolder. unfold ext_sb.
-        ins. desf; ins; [| desf].
-        apply (rsr_at_ninit CORR). auto. }
-      rewrite sb_delta_union.
-      assert (SUB : WCore.sb_delta e (eq a_t) ⊆ WCore.sb_delta e E_t).
-      { clear - NQT. unfolder. ins. desf. auto. }
-      rewrite union_absorb_r with (r := WCore.sb_delta e (eq a_t)); auto.
-      rewrite !union_false_r. apply union_more; [reflexivity |].
-      arewrite (⦗E_t⦘ ⨾ ext_sb ⨾ ⦗eq e⦘ ≡ ⦗E_t⦘ ⨾ sb_t' ⨾ ⦗eq e⦘).
-      { unfold sb. rewrite !seqA. seq_rewrite <- !id_inter.
-        rewrite EQACTS. clear - ENOTIN. basic_solver 11. }
-      rewrite (WCore.add_event_sb ADD), seq_union_l.
-      arewrite_false (sb_t ⨾ ⦗eq e⦘).
-      { clear - ENOTIN. rewrite wf_sbE. basic_solver. }
-      rewrite union_false_l. unfold WCore.sb_delta.
-      seq_rewrite <- cross_inter_l.
-      rewrite set_inter_union_r, 2!set_inter_absorb_l.
-      all: try now apply CORR.
-      all: basic_solver 11. }
-    rewrite !set_union_empty_r.
-    rewrite <- EQACTS. apply ADD. }
+    rewrite !id_union, !seq_union_l, !seq_union_r.
+    change (⦗E_s⦘ ⨾ ext_sb ⨾ ⦗E_s⦘) with sb_s.
+    arewrite_false (⦗eq e⦘ ⨾ ext_sb ⨾ ⦗eq e⦘).
+    { clear. unfolder. ins. desf.
+      eapply ext_sb_irr; eauto. }
+    rewrite union_false_r, unionA.
+    rewrite (rsr_actsE INV SIMREL), (rsr_sbE INV SIMREL).
+    destruct classic with (~ (~ E_t a_t /\ E_t b_t)) as [EMP|NEMP'].
+    { unfold extra_a; desf. rewrite set_union_empty_r.
+      rewrite !cross_false_r, !union_false_r.
+      rewrite (sb_deltaEE ADD), (sb_deltaEN ADD).
+      now rewrite union_false_r. }
+    assert (NEMP : ~ E_t a_t /\ E_t b_t) by tauto.
+    rewrite extra_a_some by desf.
+    arewrite (tid b_t = tid a_t) by (symmetry; apply INV).
+    arewrite ((is_init ∪₁ E_t ∩₁ Tid_ (tid a_t)) × eq a_t ≡ WCore.sb_delta a_t E_t).
+    { clear. unfold WCore.sb_delta. unfold same_tid. basic_solver. }
+    rewrite id_union, !seq_union_l, !seq_union_r.
+    destruct classic with (tid e = tid b_t) as [TEQ' | NT].
+    { clear - TEQ' ETID NEMP. exfalso. tauto. }
+    rewrite <- TEQ in NT.
+    assert (ANINIT : ~ is_init a_t) by apply INV.
+    arewrite_false (⦗eq e⦘ ⨾ ext_sb ⨾ ⦗eq a_t⦘).
+    { clear - NT ENINIT. unfold ext_sb. unfolder.
+      do 2 (ins; desf). }
+    arewrite_false (⦗eq a_t⦘ ⨾ ext_sb ⨾ ⦗eq e⦘).
+    { clear - NT ANINIT. unfold ext_sb. unfolder.
+      do 2 (ins; desf). }
+    rewrite (sb_deltaEE ADD), (sb_deltaEN ADD).
+    arewrite (WCore.sb_delta e (E_t ∪₁ eq a_t) ≡ WCore.sb_delta e E_t).
+    { unfold WCore.sb_delta. rewrite set_inter_union_l.
+      arewrite (eq a_t ∩₁ same_tid e ≡₁ ∅);
+        [| now rewrite set_union_empty_r].
+      clear - NT. basic_solver. }
+    now rewrite !union_false_r. }
   unfold NW in NEWE.
   destruct NEWE as (NINIT & NOTIN & TID & NEWSB).
   (* Asserts *)
@@ -301,8 +292,15 @@ Proof using INV INV'.
         clear - NOTIN. unfolder. ins. desf.
         unfold same_val, val in *.
         now rewrite !updo by congruence. }
-      (* TODO: finish *)
-      all : admit. }
+      all: red in XIN; desf; ins.
+      { unfold same_loc, loc. rewrite !updo by congruence.
+        apply SIMREL. apply extra_a_some; desf. }
+      { unfold is_acq, mod. rewrite !updo by congruence.
+        apply SIMREL. apply extra_a_some; desf. }
+      unfolder. ins. desf.
+      unfold is_r, is_w. rewrite !updo by congruence.
+      eapply (rsr_as SIMREL); auto.
+      apply extra_a_some; desf. }
     { rewrite (WCore.add_event_acts ADD).
       rewrite set_collect_union, set_collect_eq, set_minus_union_l.
       rewrite (rsr_codom SIMREL), EXEQ, rsr_mappero; auto.
@@ -634,6 +632,6 @@ Proof using INV INV'.
   { rewrite (rsr_co SIMREL'), EXTRA.
     now rewrite set_inter_empty_l, add_max_empty_r, union_false_r. }
   eapply G_s_wf with (X_t := X_t'); eauto.
-Admitted.
+Qed.
 
 End ExecNotANotB.

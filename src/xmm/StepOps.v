@@ -122,6 +122,35 @@ Proof using.
   apply ADD.
 Qed.
 
+Lemma sb_deltaEE r R1 w W1 W2
+    (ADD : WCore.add_event_gen X X' e l r R1 w W1 W2) :
+  ⦗E⦘ ⨾ ext_sb ⨾ ⦗eq e⦘ ≡ WCore.sb_delta e E.
+Proof using.
+  arewrite (⦗E⦘ ⨾ ext_sb ⨾ ⦗eq e⦘ ≡ sb' ⨾ ⦗eq e⦘)
+    ; [|eapply sb_deltaE; eauto].
+  unfold sb. rewrite !seqA, (WCore.add_event_acts ADD).
+  arewrite (⦗E ∪₁ eq e⦘ ⨾ ⦗eq e⦘ ≡ ⦗eq e⦘).
+  { enough (NIN : ~E e) by basic_solver.
+    apply ADD. }
+  rewrite id_union, !seq_union_l.
+  arewrite_false (⦗eq e⦘ ⨾ ext_sb ⨾ ⦗eq e⦘).
+  { unfolder. ins. desf. eapply ext_sb_irr; eauto. }
+  now rewrite union_false_r.
+Qed.
+
+Lemma sb_deltaEN r R1 w W1 W2
+    (ADD : WCore.add_event_gen X X' e l r R1 w W1 W2) :
+  ⦗eq e⦘ ⨾ ext_sb ⨾ ⦗E⦘ ≡ ∅₂.
+Proof using.
+  arewrite (⦗eq e⦘ ⨾ ext_sb ⨾ ⦗E⦘ ≡ ⦗eq e⦘ ⨾ sb' ⨾ ⦗E⦘).
+  { unfold sb. rewrite (WCore.add_event_acts ADD).
+    enough (NIN : ~E e) by basic_solver 11.
+    apply ADD. }
+  rewrite (WCore.add_event_sb ADD). unfold sb.
+  enough (NIN : ~E e) by basic_solver 11.
+  apply ADD.
+Qed.
+
 Lemma rf_delta_RE r R1 w W1 W2
     (WF : Wf G)
     (ADD : WCore.add_event_gen X X' e l r R1 w W1 W2) :
