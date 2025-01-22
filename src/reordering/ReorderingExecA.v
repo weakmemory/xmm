@@ -128,6 +128,7 @@ Proof using.
 Qed.
 
 Lemma simrel_exec_a l
+    (NSC : WCore.sc X_s ≡ ∅₂)
     (SIMREL : reord_simrel X_s X_t a_t b_t mapper)
     (STEP : WCore.exec_inst X_t X_t' a_t l) :
   exists X_s' f' dtrmt' cmt',
@@ -184,9 +185,9 @@ Proof using INV INV'.
     { basic_solver. }
     exfalso; eauto. }
   assert (BINS : E_s (mapper b_t)).
-  { rewrite (rsr_map_bt INB SIMREL).
+  { rewrite rsr_mapper_bt; auto.
     apply (rsr_acts SIMREL). left.
-    exists b_t. split; eauto using rsr_map_bt. }
+    exists b_t. split; eauto with xmm. }
   assert (NOEXA : extra_a X_t' a_t b_t b_t ≡₁ ∅).
   { unfold extra_a; desf. desf. }
   assert (OLDEXA : extra_a X_t a_t b_t b_t ≡₁ eq b_t).
@@ -264,10 +265,14 @@ Proof using INV INV'.
     { eapply eq_dom_mori; eauto with xmm.
       red. auto with hahn. }
     { rewrite (WCore.add_event_acts ADD), (WCore.add_event_lab ADD).
-      apply eq_dom_union; split.
+      apply eq_dom_union; split; ins.
       { unfolder. intros x XIN.
-        unfold compose. rupd; try congruence; eauto.
-        rewrite <- (rsr_lab SIMREL); ins. }
+        rewrite <- rsr_mapper_at
+           with (a_t := a_t) (b_t := b_t)
+             at 1; auto.
+        rewrite <- upd_compose; auto with xmm.
+        rewrite !updo by congruence.
+        apply (rsr_lab SIMREL); ins. }
       unfolder. ins. desf. unfold compose.
       rewrite rsr_mapper_at; auto. now rupd. }
     { rewrite (WCore.add_event_acts ADD), NOEXA,
@@ -384,7 +389,7 @@ Proof using INV INV'.
     { rewrite (rsr_ctrl SIMREL), (rsr_nctrl CORR). basic_solver. }
     { rewrite (rsr_addr SIMREL), (rsr_naddr CORR). basic_solver. }
     { rewrite (rsr_rmw_dep SIMREL), (rsr_nrmw_dep CORR). basic_solver. }
-    { now rewrite DT. }
+    { rewrite NSC. clear. basic_solver. }
     unfold SubExecution.restrict. rewrite wf_sbE; ins.
     unfold sb at 2. ins.
     rewrite !seqA, <- id_inter, set_interC, !DT.
@@ -772,7 +777,6 @@ Proof using INV INV'.
       rewrite (rsr_tid SIMREL) in FALSO; ins.
       apply (rsr_ninit_acts CORR). split; ins. }
     apply (rsr_bt_ninit CORR); ins. }
-  { admit. (* TODO: sc... *) }
   { now rewrite (rsr_data SIMREL), (rsr_ndata CORR). }
   { now rewrite (rsr_addr SIMREL), (rsr_naddr CORR). }
   { now rewrite (rsr_ctrl SIMREL), (rsr_nctrl CORR). }

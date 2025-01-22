@@ -1216,7 +1216,6 @@ Proof using.
     { apply CTX. }
     now apply reexec_simrel. }
   { admit. (* init acts *) }
-  { admit. (* Unprovable SC *) }
   { now rewrite (rc_data CTX), (rsr_ndata (rc_inv_end CTX)). }
   { now rewrite (rc_addr CTX), (rsr_naddr (rc_inv_end CTX)). }
   { now rewrite (rc_ctrl CTX), (rsr_nctrl (rc_inv_end CTX)). }

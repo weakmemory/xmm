@@ -66,7 +66,7 @@ Record prefix : Prop := {
   prf_ctrl : ctrl ≡ ctrl';
   prf_addr : addr ≡ addr';
   prf_rmw_dep : rmw_dep ≡ rmw_dep';
-  prf_sc : sc ≡ restr_rel E sc';
+  prf_sc : sc ≡ sc';
   prf_sb : sb' ⨾ ⦗E⦘ ⊆ sb
 }.
 
@@ -96,14 +96,11 @@ Proof using.
 Qed.
 
 Lemma prefix_full_sc
-    (WF : xmm_s.wf_sc G' sc')
     (PFX : prefix)
     (FULL : E ≡₁ E') :
   sc = sc'.
 Proof using.
-  apply rel_extensionality.
-  rewrite (prf_sc PFX), restr_relE, FULL.
-  symmetry. apply WF.
+  apply rel_extensionality, PFX.
 Qed.
 
 Lemma prf_sb'
@@ -271,7 +268,7 @@ Definition delta_G := {|
   rmw_dep := rmw_dep';
 |}.
 
-Definition delta_sc := restr_rel delta_E sc'.
+Definition delta_sc := sc'.
 
 Definition delta_X := {|
   WCore.G := delta_G;
@@ -766,7 +763,6 @@ Notation "'delta_E'" := (SubToFullExecInternal.delta_E X).
 
 Lemma sub_to_full_exec_end_wf l
     (PFX : prefix X X')
-    (SCWF : xmm_s.wf_sc G' sc')
     (WF : Wf G')
     (XWF : WCore.wf X X' cmt)
     (ENUM : SubToFullExecInternal.enumd_diff X X' cmt l) :
@@ -793,7 +789,6 @@ Lemma sub_to_full_exec l
     (WF : Wf (WCore.G X'))
     (XWF : WCore.wf X X' cmt)
     (PFX : prefix X X')
-    (SCWF : xmm_s.wf_sc G' sc')
     (NDATA : data' ⊆ ∅₂)
     (NADDR : addr' ⊆ ∅₂)
     (NCTRL : ctrl' ⊆ ∅₂)
@@ -933,7 +928,6 @@ Lemma sub_to_full_exec_listless
     (PFX : prefix X X')
     (WF : Wf G')
     (NTID : E' \₁ E ⊆₁ (fun x => tid x <> tid_init))
-    (SCWF : xmm_s.wf_sc G' sc')
     (NDATA : data' ⊆ ∅₂)
     (NADDR : addr' ⊆ ∅₂)
     (NCTRL : ctrl' ⊆ ∅₂)
