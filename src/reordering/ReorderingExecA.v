@@ -507,9 +507,43 @@ Proof using INV INV'.
     apply union_mori; [| basic_solver].
     unfolder. unfold thrdle', same_tid.
     clear. basic_solver. }
-  (* The proof *)
+  assert (CONS' : WCore.is_cons G_s').
+  { assert (EXTRA : extra_a X_t' a_t b_t b_t ≡₁ ∅).
+    { unfold extra_a. desf. }
+    assert (RPOMAP : rpo G_s' ⊆ mapper ↑ (rpo G_t')).
+    { apply reord_rpo_map' with (a := a_t) (b := b_t).
+      all: rewrite 1?set_unionC with (s := R_t').
+      all: try now apply INV'.
+      all: try change G_s' with (WCore.G X_s').
+      { eapply G_s_wf; eauto. }
+      { now rewrite (rsr_acts SIMREL'), EXTRA, set_union_empty_r. }
+      { symmetry. apply SIMREL'. }
+      { apply SIMREL'. }
+      rewrite (rsr_sb SIMREL'), EXTRA,
+              cross_false_l, cross_false_r.
+      now rewrite !union_false_r. }
+    assert (SLOCMAP : sb G_s' ∩ same_loc (lab G_s') ⊆ mapper ↑ (sb_t' ∩ same_loc_t')).
+    { apply reord_sbloc' with (a := a_t) (b := b_t).
+      all: rewrite 1?set_unionC with (s := R_t').
+      all: try now apply INV'.
+      all: try change G_s' with (WCore.G X_s').
+      { now rewrite (rsr_acts SIMREL'), EXTRA, set_union_empty_r. }
+      { symmetry. apply SIMREL'. }
+      rewrite (rsr_sb SIMREL'), EXTRA,
+              cross_false_l, cross_false_r.
+      now rewrite !union_false_r. }
+    apply XmmCons.monoton_cons with (G_t := G_t')
+                (m := mapper); eauto.
+    all: try now apply SIMREL'.
+    all: change (G_s') with (WCore.G X_s').
+    { now rewrite (rsr_acts SIMREL'), NOEXA, set_union_empty_r. }
+    { rewrite (rsr_rf SIMREL'), EXTRA. basic_solver 8. }
+    { rewrite (rsr_co SIMREL'), EXTRA.
+      now rewrite set_inter_empty_l, add_max_empty_r, union_false_r. }
+    eapply G_s_wf with (X_t := X_t'); eauto. }
   assert (DINC : dtrmt' ⊆₁ cmt').
   { subst dtrmt' cmt'. basic_solver. }
+  (* The proof *)
   exists X_s', id, dtrmt', cmt'.
   split; red; ins.
   red. exists thrdle'.
@@ -692,39 +726,6 @@ Proof using INV INV'.
     { clear. basic_solver. }
     unfold cmt'. clear. basic_solver. }
   { apply (G_s_rfc INV' SIMREL'). }
-  { assert (EXTRA : extra_a X_t' a_t b_t b_t ≡₁ ∅).
-    { unfold extra_a. desf. }
-    assert (RPOMAP : rpo G_s' ⊆ mapper ↑ (rpo G_t')).
-    { apply reord_rpo_map' with (a := a_t) (b := b_t).
-      all: rewrite 1?set_unionC with (s := R_t').
-      all: try now apply INV'.
-      all: try change G_s' with (WCore.G X_s').
-      { eapply G_s_wf; eauto. }
-      { now rewrite (rsr_acts SIMREL'), EXTRA, set_union_empty_r. }
-      { symmetry. apply SIMREL'. }
-      { apply SIMREL'. }
-      rewrite (rsr_sb SIMREL'), EXTRA,
-              cross_false_l, cross_false_r.
-      now rewrite !union_false_r. }
-    assert (SLOCMAP : sb G_s' ∩ same_loc (lab G_s') ⊆ mapper ↑ (sb_t' ∩ same_loc_t')).
-    { apply reord_sbloc' with (a := a_t) (b := b_t).
-      all: rewrite 1?set_unionC with (s := R_t').
-      all: try now apply INV'.
-      all: try change G_s' with (WCore.G X_s').
-      { now rewrite (rsr_acts SIMREL'), EXTRA, set_union_empty_r. }
-      { symmetry. apply SIMREL'. }
-      rewrite (rsr_sb SIMREL'), EXTRA,
-              cross_false_l, cross_false_r.
-      now rewrite !union_false_r. }
-    apply XmmCons.monoton_cons with (G_t := G_t')
-                (m := mapper); eauto.
-    all: try now apply SIMREL'.
-    all: change (G_s') with (WCore.G X_s').
-    { now rewrite (rsr_acts SIMREL'), NOEXA, set_union_empty_r. }
-    { rewrite (rsr_rf SIMREL'), EXTRA. basic_solver 8. }
-    { rewrite (rsr_co SIMREL'), EXTRA.
-      now rewrite set_inter_empty_l, add_max_empty_r, union_false_r. }
-    eapply G_s_wf with (X_t := X_t'); eauto. }
   { arewrite (WCore.reexec_thread X_s' dtrmt' ≡₁ eq (tid b_t)).
     { unfold dtrmt', WCore.reexec_thread. ins.
       rewrite rsr_mapper_bt, !set_minus_minus_r; auto.
@@ -748,7 +749,6 @@ Proof using INV INV'.
     apply and_not_or; split; congruence. }
   apply sub_to_full_exec_listless with (thrdle := thrdle'); ins.
   { eapply G_s_rfc with (X_s := X_s'); eauto. }
-  { admit. }
   { arewrite (E_s \₁ dtrmt' ∩₁ E_s ≡₁ eq b_t ∪₁ eq (mapper b_t)).
     { rewrite set_minus_inter_r, set_minusK, set_union_empty_r.
       subst dtrmt'.
