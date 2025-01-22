@@ -11,6 +11,7 @@ From RecordUpdate Require Import RecordSet.
 
 Require Import xmm_s xmm_s_hb.
 Require Import AuxDef Rhb Srf.
+Require Import ThreadTrace.
 
 Open Scope program_scope.
 
@@ -96,7 +97,7 @@ Notation "'rmw'" := (rmw G).
 Record is_cons : Prop := {
   cons_coherence : irreflexive (hb ⨾ eco^?);
   cons_atomicity : rmw ∩ (fr ⨾ co) ≡ ∅₂;
-  cons_sc : acyclic sc;
+  (* cons_sc : acyclic sc; *)
 }.
 
 End Consistency.
@@ -194,7 +195,7 @@ Record wf := {
   wf_ereq : exec_restr_eq X X' (E ∩₁ cmt);
   wf_rfc : rf_complete (restrict G' cmt);
   wf_sub_rfD : E ∩₁ R ⊆₁ codom_rel rf ∪₁ cmt;
-  wf_sc : wf_sc G sc;
+  (* wf_sc : wf_sc G sc; *)
 }.
 
 End Wf.
@@ -387,7 +388,7 @@ Notation "'G''" := (G X').
 Record exec_inst e l := {
   exec_add_event : add_event X X' e l;
   exec_rfc : rf_complete G';
-  exec_new_cons : is_cons G' sc';
+  exec_new_cons : is_cons G';
 }.
 
 End ExecuteStep.
@@ -443,6 +444,7 @@ Record commit_embedded : Prop :=
 
 Record reexec_gen thrdle : Prop :=
 { (* Correct start *)
+  dtrmt_init : is_init ⊆₁ dtrmt;
   dtrmt_cmt : dtrmt ⊆₁ cmt;
   dtrmt_fixed : fixset dtrmt f;
   reexec_embd_dom : cmt ⊆₁ E';
@@ -455,8 +457,9 @@ Record reexec_gen thrdle : Prop :=
   (* Correct embedding *)
   reexec_embd_corr : commit_embedded;
   (* Reproducable steps *)
+  rexec_rfc : rf_complete G';
   reexec_start_wf : wf (X_start dtrmt) X' cmt;
-  rexec_final_cons : is_cons G' sc;
+  rexec_final_cons : is_cons G';
   rexec_acts : E ≡₁ dtrmt ∪₁ E ∩₁ tid ↓₁ reexec_thread;
   reexec_steps : (guided_step cmt X')＊ (X_start dtrmt) X'; }.
 
@@ -466,6 +469,29 @@ Definition reexec : Prop :=
 End ReexecStep.
 
 End WCore.
+
+Section XmmStep.
+
+Definition trace_storage :=
+  thread_id -> trace label -> Prop.
+
+Inductive xmm_step (X X' : WCore.t) : Prop :=
+| xmm_exec (e : actid) (l : label)
+    (STEP : WCore.exec_inst X X' e l) :
+      xmm_step X X'
+| xmm_rexec (f : actid -> actid) (dtrmt : actid -> Prop)
+    (cmt : actid -> Prop) (STEP : WCore.reexec X X' f dtrmt cmt) :
+      xmm_step X X'
+.
+
+Record xmm_step_trace (s : trace_storage) (X X' : WCore.t) : Prop :=
+{ xmm_step_trace_step : xmm_step X X';
+  xmm_step_trace_contl : contigious_actids (WCore.G X);
+  xmm_step_trace_contr : contigious_actids (WCore.G X');
+  xmm_step_trace_cohl : trace_coherent s (WCore.G X);
+  xmm_step_trace_cohr : trace_coherent s (WCore.G X'); }.
+
+End XmmStep.
 
 Add Parametric Morphism : WCore.sb_delta with signature
   eq ==> set_equiv ==> same_relation as sb_delta_more.

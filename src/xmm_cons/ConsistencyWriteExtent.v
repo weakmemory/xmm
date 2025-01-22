@@ -108,13 +108,13 @@ Lemma write_fr_sub (m : actid -> actid)
         (RF_MAP : rf_s ≡ m ↑ rf_t)
         (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
-        (CONS : WCore.is_cons G_t sc_t)
+        (CONS : WCore.is_cons G_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
     fr_s ⊆ m ↑ fr_t ∪ m ↑ rf_t⁻¹ ⨾ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a.
 Proof using.
-    unfold fr. rewrite RF_MAP. rewrite CO_MAP. 
-    rewrite seq_union_r. rewrite <- collect_rel_transp.  
+    unfold fr. rewrite RF_MAP. rewrite CO_MAP.
+    rewrite seq_union_r. rewrite <- collect_rel_transp.
     rewrite collect_rel_seq.
     { apply inclusion_union_l; basic_solver 12. }
     assert (IN1 : codom_rel rf_t⁻¹ ⊆₁ E_t).
@@ -139,10 +139,10 @@ Lemma write_eco_sub (m : actid -> actid)
         (RF_MAP : rf_s ≡ m ↑ rf_t)
         (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
-        (CONS : WCore.is_cons G_t sc_t)
+        (CONS : WCore.is_cons G_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
-    eco_s ⊆ m ↑ eco_t 
+    eco_s ⊆ m ↑ eco_t
           ∪ (((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a) ⨾ rf_s^?
           ∪ (m ↑ rf_t⁻¹) ⨾ (((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a) ⨾ rf_s^?.
 Proof using.
@@ -204,7 +204,7 @@ Lemma write_codom_sw (m : actid -> actid)
         (RF_MAP : rf_s ≡ m ↑ rf_t)
         (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
-        (CONS : WCore.is_cons G_t sc_t)
+        (CONS : WCore.is_cons G_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
     codom_rel (⦗eq a⦘ ⨾ sw_s) ≡₁ ∅.
@@ -251,12 +251,12 @@ Lemma write_sw_helper_rf_rmw (m : actid -> actid)
         (RF_MAP : rf_s ≡ m ↑ rf_t)
         (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
-        (CONS : WCore.is_cons G_t sc_t)
+        (CONS : WCore.is_cons G_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
     rf_s ⨾ rmw_s ≡ m ↑ (rf_t ⨾ rmw_t).
 Proof using.
-    rewrite RF_MAP, RMW_MAP. 
+    rewrite RF_MAP, RMW_MAP.
     rewrite collect_rel_seq; vauto.
     assert (IN1 : codom_rel rf_t ⊆₁ E_t).
     { rewrite wf_rfE; eauto. basic_solver. }
@@ -278,7 +278,7 @@ Lemma write_sw_helper_release (m : actid -> actid)
         (RF_MAP : rf_s ≡ m ↑ rf_t)
         (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
-        (CONS : WCore.is_cons G_t sc_t)
+        (CONS : WCore.is_cons G_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
   ⦗E_s \₁ eq a⦘ ⨾ release_s  ⨾ ⦗E_s \₁ eq a⦘ ⊆
@@ -288,7 +288,7 @@ Proof using.
   unfold release. rewrite !crE. rewrite !seqA. rewrite !seq_union_l.
   rewrite !seq_union_r. rewrite collect_rel_union.
   apply union_mori.
-  { arewrite (⦗E_s \₁ eq a⦘ ⨾ ⦗Rel_s⦘ ⨾ ⦗fun _ : actid => True⦘ ⨾ ⦗Rlx_s⦘ ⨾ rs_s ⨾ ⦗E_s \₁ eq a⦘ 
+  { arewrite (⦗E_s \₁ eq a⦘ ⨾ ⦗Rel_s⦘ ⨾ ⦗fun _ : actid => True⦘ ⨾ ⦗Rlx_s⦘ ⨾ rs_s ⨾ ⦗E_s \₁ eq a⦘
               ⊆ ⦗E_s \₁ eq a⦘ ⨾ ⦗Rel_s⦘ ⨾ ⦗fun _ : actid => True⦘ ⨾ ⦗Rlx_s⦘ ⨾ rs_s) by basic_solver.
     rels. unfold rs.
     rels. seq_rewrite <- !id_inter.
@@ -299,7 +299,7 @@ Proof using.
     { apply rtE in HREL. destruct HREL as [EQ | PTH].
       { destruct EQ. subst; eauto. }
       apply ct_end in PTH. destruct PTH as (x0 & (P1 & (x1 & (P2 & P3)))).
-      apply RMW_MAP in P3. unfold collect_rel in P3. 
+      apply RMW_MAP in P3. unfold collect_rel in P3.
       destruct P3 as (x1' & y' & (P3 & M1 & M2)).
       apply wf_rmwE in P3; vauto.
       destruct P3 as (x2 & INE & (x3 & P3 & (EQ & INE'))); subst.
@@ -312,7 +312,7 @@ Proof using.
       rewrite <- LABS with x'; eauto. }
     assert (HREL' : singl_rel x y ⊆ (rf_s ⨾ rmw_s)＊).
     { intros x0 y0 HH. destruct HH; vauto. }
-    rewrite RF_MAP in HREL'. 
+    rewrite RF_MAP in HREL'.
     rewrite RMW_MAP in HREL'.
     rewrite <- collect_rel_seq in HREL'.
     2: { assert (IN1 : codom_rel rf_t ⊆₁ E_t).
@@ -325,10 +325,10 @@ Proof using.
       assert (EQ : x' = y').
       { apply INJ; vauto. }
       subst. apply rtE; left; vauto. }
-    apply rtE. right. 
+    apply rtE. right.
     assert (TREQ : (rf_s ⨾ rmw_s)⁺ ⊆ (m ↑ (rf_t ⨾ rmw_t))⁺).
     { apply clos_trans_mori; apply write_sw_helper_rf_rmw; eauto. }
-    apply TREQ in PTH. 
+    apply TREQ in PTH.
     assert (REST : (rf_t ⨾ rmw_t) ≡ restr_rel E_t (rf_t ⨾ rmw_t)).
     { rewrite restr_relE. rewrite wf_rfE, wf_rmwE; eauto.
       clear; basic_solver 12. }
@@ -338,7 +338,7 @@ Proof using.
     unfold collect_rel in PTH. destruct PTH as (x0 & y0 & (PTH & M1 & M2)).
     assert (TREQ'' : (restr_rel E_t (rf_t ⨾ rmw_t))⁺ ⊆ (rf_t ⨾ rmw_t)⁺).
     { apply clos_trans_mori; basic_solver. }
-    apply TREQ'' in PTH. 
+    apply TREQ'' in PTH.
     assert (X0IN : E_t x0).
     { apply ct_begin in PTH.
       destruct PTH as (x1 & (x2 & PTH1 & PTH2) & PTH3).
@@ -482,7 +482,7 @@ Lemma write_sw_helper_rf (m : actid -> actid)
         (RF_MAP : rf_s ≡ m ↑ rf_t)
         (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
-        (CONS : WCore.is_cons G_t sc_t)
+        (CONS : WCore.is_cons G_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
   rf_s ⨾ ⦗fun a0 : actid => is_rlx lab_s a0⦘ ⨾ (sb_s ⨾ ⦗F_s⦘)^? ⨾ ⦗Acq_s⦘ ⨾ ⦗E_s \₁ eq a⦘
@@ -492,7 +492,7 @@ Proof using.
   rewrite !crE. rewrite !seq_union_l.
   rewrite !seq_union_r. rewrite collect_rel_union.
   apply union_mori.
-  { rewrite RF_MAP. 
+  { rewrite RF_MAP.
     rels. rewrite MAPEQ. intros x y PATH.
     destruct PATH as (x0 & (PATH & (x1 & ((EQ1 & C1) & (x2 & ((EQ2 & C2) & (EQ3 & C3))))))).
     subst; unfolder.
@@ -500,11 +500,11 @@ Proof using.
     exists x', y'. splits; vauto.
     all : unfold is_acq, is_rlx, mod in *.
     all : rewrite <- LABS with y'; splits; eauto.
-    all : apply wf_rfE in PATH; eauto. 
+    all : apply wf_rfE in PATH; eauto.
     all : destruct PATH as (x2 & (INE & (x3 & (P1 & P2)))).
     all : destruct P2; vauto. }
-  rewrite RF_MAP. 
-  rewrite !seqA. 
+  rewrite RF_MAP.
+  rewrite !seqA.
   arewrite (m ↑ rf_t ⊆ m ↑ rf_t ⨾ ⦗R_s⦘).
   { rewrite wf_rfD; eauto. intros x y PATH. unfold collect_rel in PATH.
     destruct PATH as (x' & y' & (PATH & M1 & M2)).
@@ -516,10 +516,10 @@ Proof using.
     destruct PATH as (x2' & (P1 & (x3' & (P2 & P3)))).
     destruct P3 as (EQ & P3); subst. apply LABS in P3.
     unfold is_r in *. rewrite P3; vauto. }
-  arewrite ((⦗R_s⦘ ⨾ ⦗fun a0 : actid => is_rlx lab_s a0⦘ ⨾ sb_s ⨾ ⦗F_s⦘ ⨾ ⦗Acq_s⦘) 
+  arewrite ((⦗R_s⦘ ⨾ ⦗fun a0 : actid => is_rlx lab_s a0⦘ ⨾ sb_s ⨾ ⦗F_s⦘ ⨾ ⦗Acq_s⦘)
           ⊆ ⦗R_s⦘ ⨾ ⦗fun a0 : actid => is_rlx lab_s a0⦘ ⨾ rpo_s ⨾ ⦗F_s⦘ ⨾ ⦗Acq_s⦘).
     { unfold rpo; unfold rpo_imm. rewrite <- ct_step. clear; basic_solver 21. }
-  arewrite (rpo_s ⨾ ⦗F_s⦘ ⨾ ⦗Acq_s⦘ ⨾ ⦗E_s \₁ eq a⦘ 
+  arewrite (rpo_s ⨾ ⦗F_s⦘ ⨾ ⦗Acq_s⦘ ⨾ ⦗E_s \₁ eq a⦘
             ⊆ rpo_s ⨾ ⦗E_s \₁ eq a⦘ ⨾ ⦗F_s⦘ ⨾ ⦗Acq_s⦘) by basic_solver.
   do 2 rewrite <- seqA. rewrite <- seqA with (r3 := ⦗F_s⦘ ⨾ ⦗Acq_s⦘).
   rewrite RPO_MAP. rewrite !seqA.
@@ -541,7 +541,7 @@ Proof using.
     apply wf_rpoE in P2; vauto.
     destruct P2 as (x3' & (INE1 & (x4' & (P2 & INE2)))).
     destruct INE1; vauto. }
-  subst. splits; vauto. 
+  subst. splits; vauto.
   { red. splits; vauto.
     apply LABS in ZE. unfold compose in ZE.
     unfold is_rlx in *. unfold mod in *.
@@ -574,7 +574,7 @@ Lemma write_sw_sub_helper (m : actid -> actid)
         (RF_MAP : rf_s ≡ m ↑ rf_t)
         (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
-        (CONS : WCore.is_cons G_t sc_t)
+        (CONS : WCore.is_cons G_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
     sw_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ sw_t.
@@ -593,7 +593,7 @@ Proof using.
     { intros z EQ. subst. basic_solver 12. }
     destruct CODOM as (IN1 & IN2). rewrite <- VERT in IN1.
     destruct IN1 with (x := y); vauto. }
-  rewrite START. rewrite seqA. 
+  rewrite START. rewrite seqA.
   unfold sw. rewrite !seqA.
   rewrite <- seqA.
   arewrite (rf_s ⊆ ⦗E_s \₁ eq a⦘ ⨾ rf_s).
@@ -629,7 +629,7 @@ Lemma write_sw_sub (m : actid -> actid)
         (RF_MAP : rf_s ≡ m ↑ rf_t)
         (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
-        (CONS : WCore.is_cons G_t sc_t)
+        (CONS : WCore.is_cons G_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
     sw_s ⊆ m ↑ sw_t ∪ sw_s ⨾ ⦗eq a⦘.
@@ -659,7 +659,7 @@ Lemma write_rhb_codom (m : actid -> actid)
         (RF_MAP : rf_s ≡ m ↑ rf_t)
         (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
-        (CONS : WCore.is_cons G_t sc_t)
+        (CONS : WCore.is_cons G_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
     codom_rel(⦗eq a⦘ ⨾ rhb_s) ≡₁ ∅.
@@ -707,7 +707,7 @@ Lemma write_rhb_start (m : actid -> actid)
         (RF_MAP : rf_s ≡ m ↑ rf_t)
         (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
-        (CONS : WCore.is_cons G_t sc_t)
+        (CONS : WCore.is_cons G_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
     ⦗E_s \₁ eq a⦘ ⨾ rhb_s ⨾ ⦗E_s \₁ eq a⦘ ≡ rhb_s ⨾ ⦗E_s \₁ eq a⦘.
@@ -753,10 +753,10 @@ Lemma write_rhb_imm_start (m : actid -> actid)
         (RF_MAP : rf_s ≡ m ↑ rf_t)
         (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
-        (CONS : WCore.is_cons G_t sc_t)
+        (CONS : WCore.is_cons G_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
-  ⦗E_s \₁ eq a⦘ ⨾ (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s) ≡ 
+  ⦗E_s \₁ eq a⦘ ⨾ (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s) ≡
     (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s).
 Proof using.
   split; [basic_solver|]. unfold rhb.
@@ -799,7 +799,7 @@ Lemma write_rhb_fin (m : actid -> actid)
         (RF_MAP : rf_s ≡ m ↑ rf_t)
         (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
-        (CONS : WCore.is_cons G_t sc_t)
+        (CONS : WCore.is_cons G_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
     (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s) ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ (sb_t ∩ same_loc_t ∪ rpo_t ∪ sw_t).
@@ -827,19 +827,19 @@ Lemma write_rhb_sub (m : actid -> actid)
         (RF_MAP : rf_s ≡ m ↑ rf_t)
         (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
-        (CONS : WCore.is_cons G_t sc_t)
+        (CONS : WCore.is_cons G_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
     rhb_s ⨾ ⦗E_s \₁ eq a⦘ ⊆ m ↑ rhb_t.
 Proof using.
   unfold rhb.
-  assert (IND1 : (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s) ⨾ ⦗E_s \₁ eq a⦘ 
+  assert (IND1 : (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s) ⨾ ⦗E_s \₁ eq a⦘
                 ⊆ m ↑ (sb_t ∩ same_loc_t ∪ rpo_t ∪ sw_t)⁺).
-  { rewrite write_rhb_fin; vauto. intros x y HH. unfold collect_rel in *. 
+  { rewrite write_rhb_fin; vauto. intros x y HH. unfold collect_rel in *.
     destruct HH as (x' & y' & (H1 & H2 & H3)). exists x', y'. splits; vauto. }
   assert (IND2 : m ↑ (sb_t ∩ same_loc_t ∪ rpo_t ∪ sw_t)⁺ ⨾ (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s) ⨾ ⦗E_s \₁ eq a⦘
                 ⊆ m ↑ (sb_t ∩ same_loc_t ∪ rpo_t ∪ sw_t)⁺).
-  { assert (TRIN : m ↑ (sb_t ∩ same_loc_t ∪ rpo_t ∪ sw_t)⁺ ⨾ m ↑ (sb_t ∩ same_loc_t ∪ rpo_t ∪ sw_t)⁺ 
+  { assert (TRIN : m ↑ (sb_t ∩ same_loc_t ∪ rpo_t ∪ sw_t)⁺ ⨾ m ↑ (sb_t ∩ same_loc_t ∪ rpo_t ∪ sw_t)⁺
             ⊆ m ↑ (sb_t ∩ same_loc_t ∪ rpo_t ∪ sw_t)⁺).
     { intros x y PATH. destruct PATH as (x0 & P1 & P2).
       unfold collect_rel in P1, P2. unfold collect_rel.
@@ -863,7 +863,7 @@ Proof using.
   assert (IND3 : ((sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s) ⨾ ⦗E_s \₁ eq a⦘)⁺
                 ⊆ m ↑ (sb_t ∩ same_loc_t ∪ rpo_t ∪ sw_t)⁺).
   { apply inclusion_t_ind_right; vauto. }
-  assert (IND4 : (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s)⁺ ⨾ ⦗E_s \₁ eq a⦘ ⊆ 
+  assert (IND4 : (sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s)⁺ ⨾ ⦗E_s \₁ eq a⦘ ⊆
                 ((sb_s ∩ same_loc_s ∪ rpo_s ∪ sw_s) ⨾ ⦗E_s \₁ eq a⦘)⁺).
   { induction 1 as (x0 & (P1 & P2)). destruct P2 as (EQ & COND); subst.
     induction P1 as [x y STT | x].
@@ -891,10 +891,10 @@ Lemma write_extent (m : actid -> actid)
         (RF_MAP : rf_s ≡ m ↑ rf_t)
         (CO_MAP : co_s ≡ m ↑ co_t ∪ ((W_s ∩₁ E_s \₁ eq a) ∩₁ same_loc_s a) × eq a)
         (RMW_MAP : rmw_s ≡ m ↑ rmw_t)
-        (CONS : WCore.is_cons G_t sc_t)
+        (CONS : WCore.is_cons G_t)
         (WF_t : Wf G_t)
         (WF_s : Wf G_s) :
-    WCore.is_cons G_s sc_s.
+    WCore.is_cons G_s.
 Proof using.
   constructor.
   { case_refl _.
@@ -950,7 +950,7 @@ Proof using.
           rewrite IN1, IN2. rewrite set_unionK. basic_solver. }
         rewrite MAPPING. apply irreflexive_inclusion with (r' := m ↑ rhb_t ⨾ m ↑ eco_t); eauto.
         { rewrite <- seqA. rewrite write_rhb_sub; eauto; basic_solver. }
-        rewrite <- collect_rel_seq. 
+        rewrite <- collect_rel_seq.
         2 : { assert (IN1 : codom_rel rhb_t ⊆₁ E_t).
               { induction 1 as (y & COND). apply wf_rhbE in COND; eauto.
                 destruct COND as (x0 & INE1 & (x2 & COND & (EQ & INE2))); vauto. }
@@ -964,7 +964,7 @@ Proof using.
         assert (IRR : irreflexive (restr_rel E_t (rhb_t ⨾ eco_t))).
           { rewrite <- REST. rewrite rhb_eco_irr_equiv; eauto.
             destruct CONS. unfold irreflexive; intros x COND. unfold irreflexive in cons_coherence.
-            assert (F : (hb_t ⨾ eco_t^?) x x -> False). 
+            assert (F : (hb_t ⨾ eco_t^?) x x -> False).
               { apply cons_coherence. }
               apply F. unfold seq. unfold seq in COND.
               destruct COND as (x0 & C1 & C2).
@@ -975,7 +975,7 @@ Proof using.
         assert (EQA : x1 = a).
         { destruct P2; basic_solver. }
         rewrite EQA in P3. destruct P3 as [EQ | P3].
-        { destruct write_rhb_codom with (m := m) as (IN1 & IN2); eauto. 
+        { destruct write_rhb_codom with (m := m) as (IN1 & IN2); eauto.
           subst. destruct IN1 with x0.
           basic_solver 21. }
         apply RF_MAP in P3. unfold collect_rel in P3.
@@ -989,7 +989,7 @@ Proof using.
       assert (EQA : x2 = a).
       { destruct P3; basic_solver. }
       rewrite EQA in P4. destruct P4 as [EQ | P4].
-      { destruct write_rhb_codom with (m := m) as (IN1 & IN2); eauto. 
+      { destruct write_rhb_codom with (m := m) as (IN1 & IN2); eauto.
         subst. destruct IN1 with x0.
         basic_solver 21. }
       apply RF_MAP in P4. unfold collect_rel in P4.
@@ -998,69 +998,68 @@ Proof using.
       apply wf_rfE in P4'; eauto.
       destruct P4' as (x0' & (EQ & INE) & P4'); subst.
       basic_solver. }
-  { split; try basic_solver. rewrite RMW_MAP, CO_MAP; eauto. 
-    rewrite write_fr_sub; eauto. rewrite !seq_union_l. rewrite !seq_union_r. 
-    rewrite !inter_union_r. repeat apply inclusion_union_l.
-    { assert (IN2 : dom_rel co_t ⊆₁ E_t).
-      { induction 1 as (y & PATH). apply wf_coE in PATH; eauto.
-        destruct PATH as (x0 & INE & PATH); apply INE. }
-      assert (IN3 : codom_rel fr_t ⊆₁ E_t).
-      { induction 1 as (y & PATH). apply wf_frE in PATH; eauto.
-        destruct PATH as (x0 & INE1 & (x1 & PATH & (EQ & INE2))); vauto. }
-      erewrite <- collect_rel_seq.
-      { rewrite <- XmmCons.coll_rel_inter; eauto.
-        { destruct CONS. rewrite cons_atomicity; eauto. basic_solver. }
-        assert (IN1' : dom_rel rmw_t ⊆₁ E_t).
-        { rewrite wf_rmwE; eauto. clear; basic_solver. }
-        assert (IN2' : codom_rel rmw_t ⊆₁ E_t).
-        { rewrite wf_rmwE; eauto. clear; basic_solver. }
-        assert (IN3' : dom_rel (fr_t ⨾ co_t) ⊆₁ E_t).
-        { rewrite wf_frE, wf_coE; eauto. clear; basic_solver. }
-        assert (IN4' : codom_rel (fr_t ⨾ co_t) ⊆₁ E_t).
-        { rewrite wf_frE, wf_coE; eauto. clear; basic_solver. }
-        rewrite IN1', IN2', IN3', IN4'. basic_solver. }
-      rewrite IN2, IN3. rewrite set_unionK.
-      basic_solver. }
-    { intros x y PATH. destruct PATH as (P0 & x1 & P1 & P2).
-      assert (EQA : y = a).
-      { destruct P2; basic_solver. }
-      rewrite EQA in P0.
-      destruct P0 as (x' & a' & P0 & M1 & M2).
-      assert (ET : E_t x').
-      { apply wf_rmwE in P0; eauto.
-        destruct P0 as (x0' & INE & P0); apply INE. }
-      assert (ET' : (m ↑₁ E_t) a).
-      { rewrite <- M2. unfold set_collect.
-        exists a'; split; vauto.
-        apply wf_rmwE in P0; vauto.
-        destruct P0 as (x0' & INE1 & (x1' & P0 & (EQ & INE2))); vauto. }
-      basic_solver. }
-    { intros x y PATH. destruct PATH as (P0 & x1 & (x2 & P1 & P2) & P3).
-      assert (EQA : x1 = a).
-      { destruct P2; basic_solver. }
-      rewrite EQA in P3.
-      destruct P3 as (x' & a' & P3 & M1 & M2).
-      assert (ET : E_t x').
-      { apply wf_coE in P3; eauto.
-        destruct P3 as (x0' & INE & P3); apply INE. }
-      assert (ET' : (m ↑₁ E_t) a).
-      { rewrite <- M1. basic_solver. }
-      basic_solver. }
-    intros x y PATH. destruct PATH as (P0 & x1 & (x2 & P1 & P2) & P3).
+  split; try basic_solver. rewrite RMW_MAP, CO_MAP; eauto.
+  rewrite write_fr_sub; eauto. rewrite !seq_union_l. rewrite !seq_union_r.
+  rewrite !inter_union_r. repeat apply inclusion_union_l.
+  { assert (IN2 : dom_rel co_t ⊆₁ E_t).
+    { induction 1 as (y & PATH). apply wf_coE in PATH; eauto.
+      destruct PATH as (x0 & INE & PATH); apply INE. }
+    assert (IN3 : codom_rel fr_t ⊆₁ E_t).
+    { induction 1 as (y & PATH). apply wf_frE in PATH; eauto.
+      destruct PATH as (x0 & INE1 & (x1 & PATH & (EQ & INE2))); vauto. }
+    erewrite <- collect_rel_seq.
+    { rewrite <- XmmCons.coll_rel_inter; eauto.
+      { destruct CONS. rewrite cons_atomicity; eauto. basic_solver. }
+      assert (IN1' : dom_rel rmw_t ⊆₁ E_t).
+      { rewrite wf_rmwE; eauto. clear; basic_solver. }
+      assert (IN2' : codom_rel rmw_t ⊆₁ E_t).
+      { rewrite wf_rmwE; eauto. clear; basic_solver. }
+      assert (IN3' : dom_rel (fr_t ⨾ co_t) ⊆₁ E_t).
+      { rewrite wf_frE, wf_coE; eauto. clear; basic_solver. }
+      assert (IN4' : codom_rel (fr_t ⨾ co_t) ⊆₁ E_t).
+      { rewrite wf_frE, wf_coE; eauto. clear; basic_solver. }
+      rewrite IN1', IN2', IN3', IN4'. basic_solver. }
+    rewrite IN2, IN3. rewrite set_unionK.
+    basic_solver. }
+  { intros x y PATH. destruct PATH as (P0 & x1 & P1 & P2).
     assert (EQA : y = a).
-    { destruct P3; basic_solver. }
+    { destruct P2; basic_solver. }
     rewrite EQA in P0.
     destruct P0 as (x' & a' & P0 & M1 & M2).
     assert (ET : E_t x').
     { apply wf_rmwE in P0; eauto.
       destruct P0 as (x0' & INE & P0); apply INE. }
     assert (ET' : (m ↑₁ E_t) a).
-    { rewrite <- M2. unfold set_collect; exists a'; split; vauto.
+    { rewrite <- M2. unfold set_collect.
+      exists a'; split; vauto.
       apply wf_rmwE in P0; vauto.
       destruct P0 as (x0' & INE1 & (x1' & P0 & (EQ & INE2))); vauto. }
     basic_solver. }
-  admit.
-Admitted.
+  { intros x y PATH. destruct PATH as (P0 & x1 & (x2 & P1 & P2) & P3).
+    assert (EQA : x1 = a).
+    { destruct P2; basic_solver. }
+    rewrite EQA in P3.
+    destruct P3 as (x' & a' & P3 & M1 & M2).
+    assert (ET : E_t x').
+    { apply wf_coE in P3; eauto.
+      destruct P3 as (x0' & INE & P3); apply INE. }
+    assert (ET' : (m ↑₁ E_t) a).
+    { rewrite <- M1. basic_solver. }
+    basic_solver. }
+  intros x y PATH. destruct PATH as (P0 & x1 & (x2 & P1 & P2) & P3).
+  assert (EQA : y = a).
+  { destruct P3; basic_solver. }
+  rewrite EQA in P0.
+  destruct P0 as (x' & a' & P0 & M1 & M2).
+  assert (ET : E_t x').
+  { apply wf_rmwE in P0; eauto.
+    destruct P0 as (x0' & INE & P0); apply INE. }
+  assert (ET' : (m ↑₁ E_t) a).
+  { rewrite <- M2. unfold set_collect; exists a'; split; vauto.
+    apply wf_rmwE in P0; vauto.
+    destruct P0 as (x0' & INE1 & (x1' & P0 & (EQ & INE2))); vauto. }
+  basic_solver.
+Qed.
 
 End ConsistencyWriteExtent.
 

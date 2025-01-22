@@ -180,7 +180,7 @@ Record reexec_conds : Prop := {
   rc_step : WCore.reexec X_t X_t' f dtrmt cmt;
   rc_inv_start : reord_step_pred X_t a_t b_t;
   rc_inv_end : reord_step_pred X_t' a_t b_t;
-  rc_end_cons : WCore.is_cons G_t' ∅₂;
+  rc_end_cons : WCore.is_cons G_t';
   (**)
   rc_as : A_s' ⊆₁ extra_a_pred X_s' a_t b_t;
   rc_extra_lab : fake_srf G_s'' a_s (lab_s' a_s) ⨾ ⦗A_s' ∩₁ WCore.lab_is_r (lab_s' a_s)⦘ ⊆ same_val_s';
@@ -1055,6 +1055,7 @@ Proof using.
   (**)
   red. exists thrdle.
   constructor.
+  { admit. }
   { eapply dtrmt_in_cmt; eauto. }
   { unfold f', dtrmt'.
     apply fixset_union. split.
@@ -1198,6 +1199,7 @@ Proof using.
     rewrite set_collect_compose.
     rewrite (WCore.reexec_embd_acts (WCore.reexec_embd_corr GREEXEC)).
     rewrite (rsr_acts (rc_simrel CTX)); auto with hahn. }
+  { apply (G_s_rfc (rc_inv_end CTX) (reexec_simrel CTX)). }
   { exact WF_START. (* wf start *) }
   { admit. (* Consistency *) }
   { eapply reexec_acts_s; eauto. }
@@ -1214,7 +1216,6 @@ Proof using.
     { apply CTX. }
     now apply reexec_simrel. }
   { admit. (* init acts *) }
-  { admit. (* Unprovable SC *) }
   { now rewrite (rc_data CTX), (rsr_ndata (rc_inv_end CTX)). }
   { now rewrite (rc_addr CTX), (rsr_naddr (rc_inv_end CTX)). }
   { now rewrite (rc_ctrl CTX), (rsr_nctrl (rc_inv_end CTX)). }
