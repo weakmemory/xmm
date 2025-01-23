@@ -563,28 +563,23 @@ Proof using b_t a_t ADD E_NOT_B E_NOT_A SIMREL INV INV'.
   { apply rsr_exec_nb_nb_cons_exa_helper; desf.
     rewrite extra_a_some; auto. }
   assert (NEXA: A_s' ≡₁ ∅) by admit.
+  assert (SUB : E_s' ⊆₁ mapper ↑₁ E_t').
+  { now rewrite (rsr_acts rsr_nanb_sim), NEXA, set_union_empty_r. }
+  assert (SBEQ : sb_s' ≡ mapper ↑ swap_rel sb_t' (eq b_t ∩₁ E_t') (eq a_t ∩₁ E_t')).
+  { rewrite (rsr_sb rsr_nanb_sim), NEXA.
+    now rewrite cross_false_l, cross_false_r, !union_false_r. }
   assert (RPOMAP : rpo_s' ⊆ mapper ↑ (rpo G_t')).
   { apply reord_rpo_map' with (a := a_t) (b := b_t).
+    all: auto with xmm.
     all: rewrite 1?set_unionC with (s := R_t').
     all: try now apply INV'.
-    { apply rsr_new_Gs_wf. }
-    { admit. }
-    { symmetry. apply rsr_nanb_sim. }
-    { apply rsr_nanb_sim. }
-    { rewrite (rsr_sb rsr_nanb_sim), NEXA,
-            cross_false_l, cross_false_r.
-      now rewrite !union_false_r. }
     { rewrite (rsr_at_rlx INV'). clear. basic_solver. }
     rewrite (rsr_bt_rlx INV'). clear. basic_solver. }
   assert (SLOCMAP : sb G_s' ∩ same_loc (lab G_s') ⊆ mapper ↑ (sb_t' ∩ same_loc_t')).
   { apply reord_sbloc' with (a := a_t) (b := b_t).
+    all: auto with xmm.
     all: rewrite 1?set_unionC with (s := R_t').
-    all: try now apply INV'.
-    { now rewrite (rsr_acts rsr_nanb_sim), NEXA, set_union_empty_r. }
-    { symmetry. apply rsr_nanb_sim. }
-    rewrite (rsr_sb rsr_nanb_sim), NEXA,
-            cross_false_l, cross_false_r.
-    now rewrite !union_false_r. }
+    all: try now apply INV'. }
   apply XmmCons.monoton_cons with (G_t := G_t')
               (m := mapper); eauto.
   all: try now apply rsr_nanb_sim.
