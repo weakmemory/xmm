@@ -33,6 +33,12 @@ Proof using.
   unfolder. split; ins; desf; tauto.
 Qed.
 
+Lemma cross_minus_r {T : Type} (A B1 B2 : T -> Prop) :
+  A × (B1 \₁ B2) ≡ A × B1 \ A × B2.
+Proof using.
+  unfolder. split; ins; desf; tauto.
+Qed.
+
 Lemma set_minus_inter {A : Type} (s1 s2 s3 : A -> Prop) :
   (s1 \₁ s2 ∩₁ s3) ∩₁ s3 ≡₁ (s1 \₁ s2) ∩₁ s3.
 Proof using.
