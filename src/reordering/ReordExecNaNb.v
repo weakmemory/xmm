@@ -7,11 +7,7 @@ Require Import SimrelCommon.
 Require Import StepOps.
 Require Import AuxInj.
 Require Import PorfPrefix.
-Require Import ConsistencyCommon.
-Require Import ConsistencyMonotonicity.
-Require Import ConsistencyReadExtent.
-Require Import ConsistencyWriteExtent.
-Require Import ReorderingRpo.
+Require Import ReorderingCons.
 
 Require Import SubToFullExec.
 Require Import xmm_s_hb.
@@ -605,122 +601,6 @@ Qed.
 
 Hint Resolve rsr_new_Gs_wf : xmm.
 
-Lemma rsr_exec_nb_nb_cons_exa_helper
-    (BIN : E_t' b_t)
-    (ANOTIN : ~E_t' a_t)
-    (SMEXA : A_s' ≡₁ eq b_t) :
-  WCore.is_cons G_s'.
-Proof using b_t a_t ADD E_NOT_B E_NOT_A SIMREL INV INV' CONS.
-  assert (NEQ : a_t <> b_t) by apply (rsr_at_neq_bt INV).
-  assert (SBFROMA : ⦗eq b_t⦘ ⨾ sb G_s' ⊆ eq b_t × eq a_t).
-  { now apply (rsr_sb_froma INV' rsr_nanb_sim). }
-  assert (DISJ : set_disjoint (mapper ↑₁ E_t') (eq b_t)).
-  { apply set_disjointE. split; auto with hahn.
-    unfolder. intros x ((y & YIN & YEQ) & XEQ). subst x.
-    apply ANOTIN. rewrite <- (rsr_mapper_inv_bt y NEQ); auto. }
-  assert (AINS : E_s' a_t).
-  { apply (rsr_acts rsr_nanb_sim). left.
-    exists b_t. now rewrite rsr_mapper_bt; auto. }
-  assert (BINS : E_s' b_t).
-  { apply (rsr_acts rsr_nanb_sim). right.
-    now apply SMEXA. }
-  assert (AINRW : eq a_t ⊆₁ R_s' ∪₁ W_s').
-  { rewrite <- (simrel_a_lab_wr INV' rsr_nanb_sim).
-    clear - AINS. basic_solver. }
-  assert (BINRW : eq b_t ⊆₁ R_s' ∪₁ W_s').
-  { rewrite <- (simrel_b_lab_wr INV' rsr_nanb_sim).
-    clear - BINS. basic_solver. }
-  assert (AINNREL : eq a_t ⊆₁ set_compl Rel_s').
-  { transitivity (set_compl (Rel_s' ∪₁ Acq_s'))
-      ; [| basic_solver].
-    rewrite <- (rsr_bs_rlx INV' rsr_nanb_sim).
-    clear - AINS. basic_solver. }
-  assert (BINACQ : eq b_t ⊆₁ set_compl Acq_s').
-  { transitivity (set_compl (Rel_s' ∪₁ Acq_s'))
-      ; [| basic_solver].
-    rewrite <- (rsr_as_rlx INV' rsr_nanb_sim).
-    clear - BINS. basic_solver. }
-  assert (SLOC : ~ same_loc_s' b_t a_t).
-  { intro FALSO.
-    apply (rsr_as_bs_loc INV' rsr_nanb_sim) with a_t b_t.
-    clear - AINS BINS FALSO. basic_solver. }
-  assert (RPOCOD : codom_rel (⦗eq b_t⦘ ⨾ rpo_s') ≡₁ ∅).
-  { split; auto with hahn.
-    rewrite reord_rpo_emp; eauto.
-    clear. basic_solver. }
-  assert (EEQ : E_s' ≡₁ mapper ↑₁ E_t' ∪₁ eq b_t).
-  { now rewrite (rsr_acts rsr_nanb_sim), SMEXA. }
-  assert (SUB : E_s' \₁ eq b_t ⊆₁ mapper ↑₁ E_t').
-  { rewrite EEQ. basic_solver. }
-  assert (RPOMAP : rpo_s' ⨾ ⦗E_s' \₁ eq b_t⦘ ⊆ mapper ↑ rpo_t').
-  { apply reord_map_rpo with (a := a_t); auto with xmm.
-    eapply rsr_sb_nexa with (a := a_t); auto.
-    now rewrite (rsr_sb rsr_nanb_sim), SMEXA, rsr_mapper_bt. }
-  assert (SLOCD : codom_rel (⦗eq b_t⦘ ⨾ sb_s' ∩ same_loc_s') ≡₁ ∅).
-  { apply reord_ab_loc_codom with (a := a_t); auto. }
-  assert (SBLOCMAP : sb_s' ∩ same_loc_s' ⨾ ⦗E_s' \₁ eq b_t⦘ ⊆ mapper ↑ (sb_t' ∩ same_loc_t')).
-  { apply reord_sbloc_to_nb with (a := a_t); auto with xmm.
-    eapply rsr_sb_nexa with (a := a_t); auto.
-    now rewrite (rsr_sb rsr_nanb_sim), SMEXA, rsr_mapper_bt. }
-  destruct (simrel_b_lab_wr INV' rsr_nanb_sim)
-      with b_t
-        as [ISR | ISW].
-  { apply set_subset_single_l. rewrite (rsr_acts rsr_nanb_sim).
-    rewrite SMEXA. basic_solver. }
-  { apply XmmCons.read_extent with (G_t := G_t')
-        (a := b_t) (m := mapper); eauto with xmm.
-    { now apply BINACQ. }
-    all: rewrite ?(rsr_rf rsr_nanb_sim), ?(rsr_co rsr_nanb_sim),
-                 SMEXA.
-    { arewrite (eq b_t ∩₁ R_s' ≡₁ eq b_t); basic_solver. }
-    arewrite (eq b_t ∩₁ W_s' ≡₁ ∅); [| basic_solver 11].
-    split; auto with hahn.
-    clear - ISR. unfold is_r, is_w in *.
-    unfolder. ins. desf. }
-  apply XmmCons.write_extent with (G_t := G_t')
-      (a := b_t) (m := mapper); eauto with xmm.
-  all: rewrite ?(rsr_rf rsr_nanb_sim), ?(rsr_co rsr_nanb_sim),
-               SMEXA.
-  { arewrite (eq b_t ∩₁ R_s' ≡₁ ∅); [| basic_solver 11].
-    split; auto with hahn.
-    clear - ISW. unfold is_r, is_w in *.
-    unfolder. ins. desf. }
-  arewrite (eq b_t ∩₁ W_s' ≡₁ eq b_t) by basic_solver.
-  arewrite (same_loc_s' b_t ≡₁ Loc_s_' (loc_s' b_t)) by basic_solver.
-  unfold extra_co_D, add_max. basic_solver 11.
-Qed.
-
-Lemma rsr_exec_nanb_cons :
-  WCore.is_cons G_s'.
-Proof using b_t a_t ADD E_NOT_B E_NOT_A SIMREL INV INV' CONS.
-  destruct (classic (~ E_t' a_t /\ E_t' b_t)) as [EMP|NEMP].
-  { apply rsr_exec_nb_nb_cons_exa_helper; desf.
-    rewrite extra_a_some; auto. }
-  assert (NEXA : A_s' ≡₁ ∅) by now apply extra_a_none.
-  assert (SUB : E_s' ⊆₁ mapper ↑₁ E_t').
-  { now rewrite (rsr_acts rsr_nanb_sim), NEXA, set_union_empty_r. }
-  assert (SBEQ : sb_s' ≡ mapper ↑ swap_rel sb_t' (eq b_t ∩₁ E_t') (eq a_t ∩₁ E_t')).
-  { rewrite (rsr_sb rsr_nanb_sim), NEXA.
-    now rewrite cross_false_l, cross_false_r, !union_false_r. }
-  assert (RPOMAP : rpo_s' ⊆ mapper ↑ (rpo G_t')).
-  { apply reord_rpo_map' with (a := a_t) (b := b_t).
-    all: auto with xmm.
-    all: rewrite 1?set_unionC with (s := R_t').
-    all: try now apply INV'.
-    all: rewrite ?(rsr_at_rlx INV'), ?(rsr_bt_rlx INV').
-    all: clear; basic_solver. }
-  assert (SLOCMAP : sb G_s' ∩ same_loc (lab G_s') ⊆ mapper ↑ (sb_t' ∩ same_loc_t')).
-  { apply reord_sbloc' with (a := a_t) (b := b_t).
-    all: auto with xmm.
-    all: rewrite 1?set_unionC with (s := R_t').
-    all: try now apply INV'. }
-  apply XmmCons.monoton_cons with (G_t := G_t')
-              (m := mapper); eauto with xmm.
-  all: rewrite ?(rsr_acts rsr_nanb_sim), ?(rsr_rf rsr_nanb_sim),
-               ?(rsr_co rsr_nanb_sim).
-  all: simpl; rewrite ?NEXA; basic_solver 8.
-Qed.
-
 Lemma rsr_nanb_add_event :
   WCore.add_event X_s X_s' (mapper e) l.
 Proof using b_t a_t ADD E_NOT_B E_NOT_A SIMREL INV INV'.
@@ -757,7 +637,8 @@ Proof using b_t a_t ADD E_NOT_B E_NOT_A SIMREL INV INV' CONS.
   constructor.
   { apply rsr_nanb_add_event. }
   { eapply (G_s_rfc INV' rsr_nanb_sim). }
-  apply rsr_exec_nanb_cons.
+  eapply rsr_cons with (X_t := X_t').
+  all: eauto using rsr_nanb_sim.
 Qed.
 
 End ExecNotANotB.

@@ -9,12 +9,8 @@ Require Import AuxInj.
 Require Import SubToFullExec.
 Require Import xmm_s_hb.
 Require Import Thrdle.
-Require Import ConsistencyCommon.
-Require Import ConsistencyMonotonicity.
-Require Import ConsistencyReadExtent.
-Require Import ConsistencyWriteExtent.
 Require Import ReorderingRpo ReorderingMapper.
-Require Import ReorderingEq.
+Require Import ReorderingEq ReorderingCons.
 
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
@@ -512,41 +508,8 @@ Proof using INV INV'.
     unfolder. unfold thrdle', same_tid.
     clear. basic_solver. }
   assert (CONS' : WCore.is_cons G_s').
-  { assert (EXTRA : extra_a X_t' a_t b_t b_t ≡₁ ∅).
-    { unfold extra_a. desf. }
-    assert (RPOMAP : rpo G_s' ⊆ mapper ↑ (rpo G_t')).
-    { apply reord_rpo_map' with (a := a_t) (b := b_t).
-      all: rewrite 1?set_unionC with (s := R_t').
-      all: try now apply INV'.
-      all: try change G_s' with (WCore.G X_s').
-      { eapply G_s_wf; eauto. }
-      { now rewrite (rsr_acts SIMREL'), EXTRA, set_union_empty_r. }
-      { symmetry. apply SIMREL'. }
-      { apply SIMREL'. }
-      { rewrite (rsr_sb SIMREL'), EXTRA,
-              cross_false_l, cross_false_r.
-        now rewrite !union_false_r. }
-      { rewrite (rsr_at_rlx INV'). clear. basic_solver. }
-      rewrite (rsr_bt_rlx INV'). clear. basic_solver. }
-    assert (SLOCMAP : sb G_s' ∩ same_loc (lab G_s') ⊆ mapper ↑ (sb_t' ∩ same_loc_t')).
-    { apply reord_sbloc' with (a := a_t) (b := b_t).
-      all: rewrite 1?set_unionC with (s := R_t').
-      all: try now apply INV'.
-      all: try change G_s' with (WCore.G X_s').
-      { now rewrite (rsr_acts SIMREL'), EXTRA, set_union_empty_r. }
-      { symmetry. apply SIMREL'. }
-      rewrite (rsr_sb SIMREL'), EXTRA,
-              cross_false_l, cross_false_r.
-      now rewrite !union_false_r. }
-    apply XmmCons.monoton_cons with (G_t := G_t')
-                (m := mapper); eauto.
-    all: try now apply SIMREL'.
-    all: change (G_s') with (WCore.G X_s').
-    { now rewrite (rsr_acts SIMREL'), NOEXA, set_union_empty_r. }
-    { rewrite (rsr_rf SIMREL'), EXTRA. basic_solver 8. }
-    { rewrite (rsr_co SIMREL'), EXTRA.
-      now rewrite set_inter_empty_l, add_max_empty_r, union_false_r. }
-    eapply G_s_wf with (X_t := X_t'); eauto. }
+  { change G_s' with (WCore.G X_s').
+    eapply rsr_cons with (X_t := X_t'); eauto. }
   assert (DINC : dtrmt' ⊆₁ cmt').
   { subst dtrmt' cmt'. basic_solver. }
   (* The proof *)
