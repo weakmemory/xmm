@@ -215,6 +215,15 @@ Proof using.
   now apply (WCore.add_event_W1E ADD) in FALSO.
 Qed.
 
+Lemma co_deltaE r R1 w W1 W2
+    (WF : Wf G)
+    (ADD : WCore.add_event_gen X X' e l r R1 w W1 W2) :
+  ⦗eq e⦘ ⨾ co' ∪ co' ⨾ ⦗eq e⦘ ≡ WCore.co_delta e W1 W2.
+Proof using.
+  rewrite (co_deltaE1 WF ADD), (co_deltaE2 WF ADD).
+  unfold WCore.co_delta. reflexivity.
+Qed.
+
 Definition rmw_deltaE r R1 w W1 W2
     (WF : Wf G)
     (ADD : WCore.add_event_gen X X' e l r R1 w W1 W2) :

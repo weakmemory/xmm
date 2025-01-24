@@ -104,7 +104,7 @@ Record extra_a_pred x : Prop := {
   eba_val : srf_s ⨾ ⦗eq x ∩₁ R_s⦘ ⊆ same_val lab_s;
   eba_loc : ~same_loc_s a_t x; (* Okay, because a_t is in E_s at this point *)
   eba_rlx : set_compl (Rel_s ∪₁ Acq_s) x;
-  eba_wr : eq b_t ⊆₁ R_s ∪₁ W_s;
+  eba_wr : (R_s ∪₁ W_s) x;
 }.
 
 Definition extra_a (a_s : actid) :=
@@ -119,18 +119,25 @@ Proof using.
   unfold extra_a; desf. exfalso; eauto.
 Qed.
 
+Lemma extra_a_none a_s
+    (NIFF : ~(~E_t a_t /\ E_t b_t)) :
+  extra_a a_s ≡₁ ∅.
+Proof using.
+  unfold extra_a; desf.
+Qed.
+
 Lemma extra_a_none_l a_s
     (INA : E_t a_t) :
   extra_a a_s ≡₁ ∅.
 Proof using.
-  unfold extra_a; desf. exfalso; desf.
+  clear - INA. apply extra_a_none; tauto.
 Qed.
 
 Lemma extra_a_none_r a_s
-    (INA : ~E_t b_t) :
+    (BNIN : ~E_t b_t) :
   extra_a a_s ≡₁ ∅.
 Proof using.
-  unfold extra_a; desf. exfalso; desf.
+  clear - BNIN. apply extra_a_none; tauto.
 Qed.
 
 Record reord_step_pred : Prop := {
