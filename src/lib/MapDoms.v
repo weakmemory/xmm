@@ -149,4 +149,64 @@ Proof using.
   now rewrite !collect_rel_seqi, !collect_rel_eqv.
 Qed.
 
+Lemma set_inter_rlx s s'
+    (SUB : s ⊆₁ s')
+    (LABEQ : eq_dom s' lab lab') :
+  Rlx' ∩₁ s ⊆₁ Rlx ∩₁ s.
+Proof using.
+  unfolder. intros x (RLX & XIN).
+  splits; auto.
+  unfold is_rlx, mod in *. rewrite LABEQ; auto.
+Qed.
+
+Lemma set_inter_rel s s'
+    (SUB : s ⊆₁ s')
+    (LABEQ : eq_dom s' lab lab') :
+  Rel' ∩₁ s ⊆₁ Rel ∩₁ s.
+Proof using.
+  unfolder. intros x (RLX & XIN).
+  splits; auto.
+  unfold is_rel, mod in *. rewrite LABEQ; auto.
+Qed.
+
+Lemma set_inter_acq s s'
+    (SUB : s ⊆₁ s')
+    (LABEQ : eq_dom s' lab lab') :
+  Acq' ∩₁ s ⊆₁ Acq ∩₁ s.
+Proof using.
+  unfolder. intros x (RLX & XIN).
+  splits; auto.
+  unfold is_acq, mod in *. rewrite LABEQ; auto.
+Qed.
+
+Lemma set_inter_is_r s s'
+    (SUB : s ⊆₁ s')
+    (LABEQ : eq_dom s' lab lab') :
+  R' ∩₁ s ⊆₁ R ∩₁ s.
+Proof using.
+  unfolder. intros x (RLX & XIN).
+  splits; auto.
+  unfold is_r in *. rewrite LABEQ; auto.
+Qed.
+
+Lemma set_inter_is_w s s'
+    (SUB : s ⊆₁ s')
+    (LABEQ : eq_dom s' lab lab') :
+  W' ∩₁ s ⊆₁ W ∩₁ s.
+Proof using.
+  unfolder. intros x (RLX & XIN).
+  splits; auto.
+  unfold is_w in *. rewrite LABEQ; auto.
+Qed.
+
+Lemma set_inter_is_f s s'
+    (SUB : s ⊆₁ s')
+    (LABEQ : eq_dom s' lab lab') :
+  F' ∩₁ s ⊆₁ F ∩₁ s.
+Proof using.
+  unfolder. intros x (RLX & XIN).
+  splits; auto.
+  unfold is_f in *. rewrite LABEQ; auto.
+Qed.
+
 End MapDoms.

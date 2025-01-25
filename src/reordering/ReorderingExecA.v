@@ -1,7 +1,7 @@
 Require Import ReordSimrel.
 Require Import AuxDef.
 Require Import Core.
-Require Import AuxRel AuxRel2 AuxRel3.
+Require Import AuxRel AuxRel2 AuxRel3 MapDoms.
 Require Import Srf Rhb.
 Require Import SimrelCommon.
 Require Import StepOps.
@@ -74,6 +74,7 @@ Notation "'sb_s'" := (sb G_s).
 Notation "'rf_s'" := (rf G_s).
 Notation "'co_s'" := (co G_s).
 Notation "'rmw_s'" := (rmw G_s).
+Notation "'rpo_imm_s'" := (rpo_imm G_s).
 Notation "'rpo_s'" := (rpo G_s).
 Notation "'sw_s'" := (sw G_s).
 Notation "'rmw_dep_s'" := (rmw_dep G_s).
@@ -82,14 +83,14 @@ Notation "'ctrl_s'" := (ctrl G_s).
 Notation "'addr_s'" := (addr G_s).
 Notation "'W_s'" := (fun x => is_true (is_w lab_s x)).
 Notation "'R_s'" := (fun x => is_true (is_r lab_s x)).
-Notation "'F_s'" := (fun x => is_true (is_f G_s x)).
+Notation "'F_s'" := (fun x => is_true (is_f lab_s x)).
 Notation "'vf_s'" := (vf G_s).
 Notation "'srf_s'" := (srf G_s).
 Notation "'Loc_s_' l" := (fun e => loc_s e = l) (at level 1).
 Notation "'Val_s_' l" := (fun e => val_s e = l) (at level 1).
-Notation "'Rlx_s'" := (fun x => is_true (is_rlx G_s x)).
-Notation "'Acq_s'" := (fun x => is_true (is_acq G_s x)).
-Notation "'Rel_s'" := (fun x => is_true (is_rel G_s x)).
+Notation "'Rlx_s'" := (fun x => is_true (is_rlx lab_s x)).
+Notation "'Acq_s'" := (fun x => is_true (is_acq lab_s x)).
+Notation "'Rel_s'" := (fun x => is_true (is_rel lab_s x)).
 
 Notation "'is_init'" := (fun e => is_true (is_init e)).
 Notation "'Tid_' t" := (fun e => tid e = t) (at level 1).
@@ -131,6 +132,7 @@ Notation "'sb_s''" := (sb G_s').
 Notation "'rf_s''" := (rf G_s').
 Notation "'co_s''" := (co G_s').
 Notation "'rmw_s''" := (rmw G_s').
+Notation "'rpo_imm_s''" := (rpo_imm G_s').
 Notation "'rpo_s''" := (rpo G_s').
 Notation "'sw_s''" := (sw G_s').
 Notation "'rmw_dep_s''" := (rmw_dep G_s').
@@ -256,11 +258,29 @@ Definition thrdle :=
   eq tid_init × set_compl (eq tid_init) ∪
   set_compl (eq (tid b_t)) × eq (tid b_t).
 
-Lemma rsr_a_labeq : eq_dom dtrmt lab_s' lab_s.
+Lemma rsr_a_labeq : eq_dom cmt lab_s' lab_s.
 Proof using.
   simpl.
   apply eq_dom_upd_l; [| reflexivity].
-  unfold dtrmt. clear. unfolder. tauto.
+  unfold cmt. clear. unfolder. tauto.
+Qed.
+
+Lemma rsr_a_labeq' : eq_dom cmt lab_s lab_s'.
+Proof using.
+  symmetry. exact rsr_a_labeq.
+Qed.
+
+Lemma rsr_a_ain : E_s b_t.
+Proof using ADD INV' SIMREL.
+  apply (rsr_acts SIMREL). right.
+  now apply rsr_old_exa.
+Qed.
+
+Lemma rsr_a_bin : E_s a_t.
+Proof using ADD INV' SIMREL.
+  assert (NEQ : a_t <> b_t) by apply (rsr_at_neq_bt INV').
+  apply (rsr_acts SIMREL). left.
+  exists b_t; split; auto with xmm.
 Qed.
 
 Lemma rsr_a_sb_same : sb_s' ≡ sb_s.
@@ -311,6 +331,10 @@ Proof using ADD SIMREL INV INV'.
   enough (same_tid b_t x) by basic_solver.
   apply XIN.
 Qed.
+
+Lemma rsr_a_sb_fromb : ⦗eq a_t⦘ ⨾ sb_s ⊆ ∅₂.
+Proof using ADD SIMREL INV INV'.
+Admitted.
 
 Lemma rsr_a_sb :
   sb_s' ≡ mapper ↑ swap_rel sb_t' (eq b_t ∩₁ E_t') (eq a_t ∩₁ E_t').
@@ -411,7 +435,23 @@ Proof using ADD SIMREL INV INV'.
   rewrite rsr_mapper_at; auto with hahn.
 Qed.
 
-Hint Resolve rsr_a_labeq : xmm.
+Lemma rsr_a_acts_same : E_s' ≡₁ E_s.
+Proof using.
+  simpl. reflexivity.
+Qed.
+
+Lemma rsr_a_dtrmt_sub : dtrmt ⊆₁ E_s.
+Proof using.
+  unfold dtrmt. basic_solver.
+Qed.
+
+Lemma rsr_a_dtrmt_in_cmt : dtrmt ⊆₁ cmt.
+Proof using.
+  unfold dtrmt, cmt. basic_solver.
+Qed.
+
+Hint Resolve rsr_a_labeq rsr_a_labeq' rsr_a_ain rsr_a_bin
+              rsr_a_dtrmt_sub rsr_a_dtrmt_in_cmt : xmm.
 
 Lemma rsr_a_sim :
   reord_simrel X_s' X_t' a_t b_t mapper.
@@ -461,58 +501,333 @@ Proof using ADD SIMREL INV INV'.
   all: auto with hahn.
 Qed.
 
+Lemma rsr_a_ndtrmt : E_s' \₁ dtrmt ≡₁ eq b_t ∪₁ eq a_t.
+Proof using SIMREL INV' ADD.
+  simpl. unfold dtrmt.
+  rewrite set_minus_minus_r, set_minusK.
+  rewrite set_union_empty_l, set_inter_absorb_l.
+  { basic_solver. }
+  unfolder. intros x [XEQ | XEQ]; subst x.
+  all: auto with xmm.
+Qed.
+
+Lemma rsr_a_ncmt : E_s' \₁ cmt ≡₁ eq b_t.
+Proof using SIMREL INV' ADD.
+  simpl. unfold cmt.
+  rewrite set_minus_minus_r, set_minusK.
+  rewrite set_union_empty_l, set_inter_absorb_l.
+  { basic_solver. }
+  unfolder. intros x XEQ; subst x.
+  all: auto with xmm.
+Qed.
+
+Lemma rsr_a_ndtrmt_cmt : cmt \₁ dtrmt ≡₁ eq a_t.
+Proof using ADD INV INV' SIMREL.
+  assert (BIN : E_s a_t) by apply rsr_a_bin.
+  assert (NEQ : a_t <> b_t) by apply INV'.
+  unfold cmt, dtrmt.
+  rewrite set_minus_union_r, set_minus_inter_r.
+  rewrite set_minusK, set_union_empty_l.
+  rewrite set_minus_minus_r.
+  arewrite ((E_s \₁ eq b_t) \₁ E_s ≡₁ ∅).
+  { basic_solver. }
+  rewrite set_union_empty_l, set_inter_absorb_l.
+  { reflexivity. }
+  basic_solver.
+Qed.
+
+Lemma rsr_a_rex_thread :
+  WCore.reexec_thread X_s' dtrmt ≡₁ eq (tid b_t).
+Proof using SIMREL INV' ADD.
+  unfold WCore.reexec_thread.
+  rewrite rsr_a_ndtrmt.
+  rewrite set_collect_union, !set_collect_eq.
+  rewrite set_union_absorb_r; [reflexivity |].
+  unfolder. ins. desf. symmetry. apply INV'.
+Qed.
+
 Lemma rsr_a_pfx :
   SubToFullExec.prefix (WCore.X_start X_s dtrmt) X_s'.
 Proof using ADD SIMREL INV INV'.
+  constructor; ins.
 Admitted.
 
 Lemma rsr_a_restr_eq :
-  WCore.exec_restr_eq (WCore.X_start X_s dtrmt) X_s cmt.
+  WCore.exec_restr_eq (WCore.X_start X_s dtrmt) X_s' dtrmt.
 Proof using ADD SIMREL INV INV'.
-  (* constructor.
-  all: try now apply PFX.
-  { rewrite !set_inter_absorb_l; ins.
-    now rewrite <- (prf_acts PFX). }
-  { eapply eq_dom_mori; try now apply PFX.
-    all: ins.
-    unfold flip. rewrite SUB. basic_solver. }
-  { now rewrite (prf_rf PFX), restr_restr, set_inter_absorb_l. }
-  { now rewrite (prf_co PFX), restr_restr, set_inter_absorb_l. }
-  { now rewrite (prf_rmw PFX), restr_restr, set_inter_absorb_l. }
-  { now rewrite (prf_data PFX). }
-  { now rewrite (prf_ctrl PFX). }
-  now rewrite (prf_rmw_dep PFX). *)
-Admitted.
+  assert (SUB : dtrmt ⊆₁ dtrmt ∩₁ E_s).
+  { rewrite set_inter_absorb_r; auto with xmm hahn. }
+  assert (NEQ : a_t <> b_t) by apply INV'.
+  assert (NEQ' : b_t <> a_t) by now symmetry.
+  constructor; ins.
+  { rewrite set_inter_absorb_r; basic_solver. }
+  { unfold dtrmt. rewrite set_minus_union_r.
+    apply eq_dom_upd_r; [| reflexivity].
+    unfolder. intro FALSO; desf. }
+  { now rewrite (prf_rf rsr_a_pfx), restr_restr, set_inter_absorb_l. }
+  { now rewrite (prf_co rsr_a_pfx), restr_restr, set_inter_absorb_l. }
+  { now rewrite (prf_rmw rsr_a_pfx), restr_restr, set_inter_absorb_l. }
+  { now rewrite (prf_data rsr_a_pfx). }
+  { now rewrite (prf_ctrl rsr_a_pfx). }
+  now rewrite (prf_rmw_dep rsr_a_pfx).
+Qed.
 
 Lemma rsr_a_cfg_wf :
   WCore.wf (WCore.X_start X_s dtrmt) X_s' cmt.
 Proof using ADD SIMREL INV INV'.
+  constructor.
+  { admit. }
+  { admit. (* TODO: morph *) }
+  { admit. }
+  ins. rewrite <- rsr_a_dtrmt_in_cmt.
+  basic_solver.
 Admitted.
+
+Lemma rsr_a_thrdle :
+  strict_partial_order thrdle.
+Proof using INV.
+  assert (BTID : tid b_t <> tid_init) by apply (rsr_bt_tid INV).
+  constructor; unfold thrdle.
+  { basic_solver. }
+  unfolder. intros x y z HXY HYZ.
+  desf; eauto. congruence.
+Qed.
 
 Lemma rsr_a_surg :
   WCore.stable_uncmt_reads_gen X_s' cmt thrdle.
 Proof using ADD SIMREL INV INV'.
+  assert (BTID : tid b_t <> tid_init) by apply (rsr_bt_tid INV).
+  constructor.
+  { unfold thrdle. basic_solver. }
+  { unfold thrdle. unfolder.
+    intros b [(EQ & NIN) | (NB & IN)]; [congruence |].
+    now apply (rsr_bt_tid INV). }
+  { apply rsr_a_thrdle. }
+  rewrite rsr_a_ncmt.
+  seq_rewrite (
+    split_rel ⊤₁ ⊤₁
+      (vf_s' ⨾ same_tid)
+      same_tid
+  ).
+  rewrite unionC, seq_union_l.
+  apply union_mori; [| basic_solver].
+  remember (vf_s' ⨾ same_tid \ same_tid) as vfsbt.
+  arewrite (vfsbt ⊆ ⦗is_init⦘ ⨾ vfsbt ∪ ⦗set_compl is_init⦘ ⨾ vfsbt).
+  { rewrite <- seq_union_l, <- id_union.
+    now rewrite set_compl_union_id, seq_id_l. }
+  unfold thrdle.
+  rewrite seq_union_l, map_rel_union.
+  apply union_mori.
+  { unfold is_init. basic_solver. }
+  subst vfsbt.
+  unfold same_tid. basic_solver.
+Qed.
+
+Lemma rsr_a_restr_rpoimm :
+  restr_rel cmt rpo_imm_s' ⊆ rpo_imm_s.
+Proof using ADD SIMREL INV INV'.
+  unfold rpo_imm. rewrite rsr_a_sb_same.
+  rewrite !restr_union, !restr_relE, !seqA.
+  seq_rewrite (seq_eqvC cmt (F_s' ∩₁ Rel_s')).
+  seq_rewrite (seq_eqvC cmt (R_s' ∩₁ Rlx_s')).
+  seq_rewrite (seq_eqvC cmt Acq_s').
+  seq_rewrite <- !id_inter.
+  rewrite !set_interA.
+  rewrite !set_inter_rlx with (G' := G_s') (G := G_s),
+          !set_inter_rel with (G' := G_s') (G := G_s),
+          !set_inter_acq with (G' := G_s') (G := G_s),
+          !set_inter_is_r with (G' := G_s') (G := G_s) (s' := cmt),
+          !set_inter_is_w with (G' := G_s') (G := G_s) (s' := cmt),
+          !set_inter_is_f with (G' := G_s') (G := G_s) (s' := cmt).
+  all: auto with xmm.
+  { repeat apply union_mori.
+    all: basic_solver. }
+  all: basic_solver 2.
+Qed.
+
+Lemma rsr_a_sb_froma :
+  ⦗eq b_t⦘ ⨾ sb_s' ⊆ eq b_t × eq a_t.
+Proof using ADD SIMREL INV INV'.
+  rewrite rsr_a_sb_same.
+  apply (rsr_sb_froma INV SIMREL).
+  all: auto with xmm.
+Qed.
+
+Lemma rsr_a_rpoimm_upward :
+  upward_closed (rpo_imm G_s') cmt.
+Proof using ADD SIMREL INV INV'.
+  assert (NEQ : a_t <> b_t) by apply INV.
+  unfold upward_closed, cmt.
+  intros x y RPO CMT.
+  split.
+  { apply (wf_rpo_immE (G_s_wf INV' rsr_a_sim)) in RPO.
+    unfolder in RPO. desf. }
+  intro FALSO. subst x.
+  assert (SB : (⦗eq b_t⦘ ⨾ sb_s') b_t y).
+  { exists b_t. split; [basic_solver 1|].
+    now apply rpo_imm_in_sb. }
+  assert (YEQ : y = a_t).
+  { apply rsr_a_sb_froma in SB.
+    unfolder in SB. desf. }
+  subst y.
+  apply (rsr_nrpo INV' rsr_a_sim) with b_t a_t.
+  unfolder. splits; eauto with xmm.
+  unfold rpo. now apply ct_step.
+Qed.
+
+Lemma rsr_rpo_emb :
+  restr_rel cmt rpo_s' ⊆ rpo_s.
+Proof using ADD SIMREL INV INV'.
+  assert (AIN : E_s b_t) by apply rsr_a_ain.
+  assert (BIN : E_s a_t) by apply rsr_a_bin.
+  unfold rpo at 1.
+  rewrite restr_rel_ct; [| apply rsr_a_rpoimm_upward].
+  now rewrite rsr_a_restr_rpoimm.
+Qed.
+
+Lemma rsr_embed :
+  WCore.commit_embedded X_s X_s' f cmt.
+Proof using ADD SIMREL INV INV'.
+  destruct ADD as (r & R1 & w & W1 & W2 & ADD').
+  assert (NEQ : a_t <> b_t) by apply INV.
+  constructor.
+  all: unfold f.
+  all: rewrite ?collect_rel_id, ?set_collect_id.
+  { basic_solver. }
+  { basic_solver. }
+  { intros e EIN. unfold id.
+    now apply rsr_a_labeq. }
+  { apply rsr_rpo_emb. }
+  { simpl. rewrite restr_union.
+    apply inclusion_union_l; [basic_solver |].
+    rewrite collect_rel_seqi, collect_rel_eqv.
+    rewrite set_collect_eq, rsr_mapper_at; auto.
+    unfold cmt. basic_solver. }
+  { simpl. rewrite restr_union.
+    apply inclusion_union_l; [basic_solver |].
+    rewrite collect_rel_union, !collect_rel_seqi.
+    rewrite collect_rel_eqv, set_collect_eq, rsr_mapper_at; auto.
+    unfold cmt. basic_solver. }
+  { simpl. rewrite (WCore.add_event_rmw ADD'), (rsr_rmw SIMREL).
+    rewrite collect_rel_union, restr_union.
+    apply inclusion_union_l; [basic_solver 7 |].
+    unfold WCore.rmw_delta.
+    rewrite collect_rel_cross, set_collect_eq.
+    rewrite rsr_mapper_at; auto.
+    unfold cmt. basic_solver. }
+  unfold cmt. basic_solver.
+Qed.
+
+Lemma rsr_a_step_helper :
+  (WCore.guided_step cmt X_s')＊
+    (WCore.X_start X_s dtrmt) X_s'.
+Proof using ADD SIMREL INV INV' CONS.
+  assert (ATID : tid a_t <> tid_init) by apply INV.
+  assert (BTID : tid b_t <> tid_init) by apply (rsr_bt_tid INV).
+  apply sub_to_full_exec_listless with (thrdle := thrdle).
+  { apply rsr_a_cfg_wf. }
+  { apply (G_s_rfc INV' rsr_a_sim). }
+  { eapply rsr_cons with (X_t := X_t'); eauto.
+    apply rsr_a_sim. }
+  { ins.
+    arewrite (E_s \₁ dtrmt ∩₁ E_s ⊆₁ E_s \₁ dtrmt).
+    { basic_solver. }
+    rewrite rsr_a_ndtrmt. apply set_finite_union.
+    split; auto with hahn. }
+  { apply rsr_a_pfx. }
+  { apply (G_s_wf INV' rsr_a_sim). }
+  { ins.
+    arewrite (E_s \₁ dtrmt ∩₁ E_s ⊆₁ E_s \₁ dtrmt).
+    { basic_solver. }
+    rewrite rsr_a_ndtrmt. apply set_subset_union_l.
+    split; basic_solver. }
+  all: simpl.
+  all: rewrite ?(rsr_data SIMREL), ?(rsr_addr SIMREL),
+               ?(rsr_ctrl SIMREL), ?(rsr_rmw_dep SIMREL).
+  all: try now apply INV.
+  apply rsr_a_surg.
+Qed.
+
+Lemma rsr_a_rex_acts :
+  E_s ≡₁ dtrmt ∪₁
+    E_s ∩₁ tid ↓₁ WCore.reexec_thread X_s' dtrmt.
+Proof using ADD SIMREL INV INV' CONS.
+  assert (AIN : E_s b_t) by apply rsr_a_ain.
+  assert (BIN : E_s a_t) by apply rsr_a_bin.
+  assert (TEQ : tid a_t = tid b_t) by apply INV.
+  rewrite set_unionC, rsr_a_rex_thread.
+  rewrite set_union_minus
+      with (s := E_s) (s' := dtrmt).
+  all: auto with xmm.
+  rewrite set_inter_union_l, set_unionA.
+  rewrite set_union_absorb_l
+     with (s' := dtrmt) (s := dtrmt ∩₁ _)
+       by basic_solver.
+  apply set_union_more; [| reflexivity].
+  rewrite rsr_a_ndtrmt. basic_solver.
+Qed.
+
+Lemma rsr_a_dt_sb_closed :
+  sb_s ⨾ ⦗dtrmt⦘ ⊆ ⦗dtrmt⦘ ⨾ sb_s ⨾ ⦗dtrmt⦘.
+Proof using ADD SIMREL INV INV' CONS.
+  arewrite (
+    sb_s ⨾ ⦗dtrmt⦘ ⊆
+      ⦗dtrmt⦘ ⨾ sb_s ⨾ ⦗dtrmt⦘ ∪
+      ⦗E_s \₁ dtrmt⦘ ⨾ sb_s ⨾ ⦗dtrmt⦘
+  ) at 1.
+  { rewrite <- seq_union_l, <- id_union.
+    rewrite set_unionC, <- set_union_minus; auto with xmm.
+    rewrite wf_sbE, !seqA. basic_solver. }
+  arewrite_false (⦗E_s \₁ dtrmt⦘ ⨾ sb_s ⨾ ⦗dtrmt⦘).
+  all: try now rewrite union_false_r.
+  rewrite rsr_a_ndtrmt, id_union, seq_union_l.
+  sin_rewrite (rsr_sb_froma INV SIMREL); auto with xmm.
+  sin_rewrite rsr_a_sb_fromb.
+  unfold dtrmt. basic_solver.
+Qed.
+
+Lemma rsr_a_dt_sbmax :
+  ⦗dtrmt⦘ ⨾ immediate (nin_sb G_s') ⨾ ⦗cmt⦘ ⊆
+    ⦗dtrmt⦘ ⨾ immediate (nin_sb G_s') ⨾ ⦗dtrmt⦘.
+Proof using ADD SIMREL INV INV' CONS.
+  rewrite set_union_minus
+     with (s := cmt) (s' := dtrmt).
+  all: auto with xmm.
+  rewrite id_union, !seq_union_r.
+  apply inclusion_union_l; [| reflexivity].
+  rewrite rsr_a_ndtrmt_cmt.
 Admitted.
 
 Lemma rsr_a_step :
   WCore.reexec X_s X_s' f dtrmt cmt.
-Proof using.
+Proof using ADD SIMREL INV INV' CONS.
+  assert (AIN : E_s b_t) by apply rsr_a_ain.
+  assert (BIN : E_s a_t) by apply rsr_a_bin.
+  assert (ANINI : ~is_init b_t) by apply INV.
+  assert (BNINI : ~is_init a_t) by apply INV.
   red. exists thrdle. constructor.
-  { admit. }
-  { admit. }
-  { admit. }
-  { admit. }
+  all: auto with xmm.
+  { unfold dtrmt.
+    rewrite <- (rsr_init_acts_s INV SIMREL).
+    rewrite set_minus_disjoint; basic_solver. }
+  { clear. unfold f. basic_solver. }
+  { clear. unfold cmt. basic_solver. }
   { apply rsr_a_surg. }
-  { admit. }
-  { admit. }
-  { admit. }
-  { admit. }
+  { apply rsr_a_dt_sb_closed. }
+  { apply rsr_a_dt_sbmax. }
+  { rewrite rsr_a_ndtrmt.
+    apply set_subset_union_l. split.
+    { rewrite <- 1?(rsr_as_rlx INV' rsr_a_sim).
+      basic_solver. }
+    rewrite <- 1?(rsr_bs_rlx INV' rsr_a_sim).
+    basic_solver. }
+  { apply rsr_embed. }
   { apply (G_s_rfc INV' rsr_a_sim). }
   { apply rsr_a_cfg_wf. }
   { eapply rsr_cons with (X_t := X_t'); eauto.
     apply rsr_a_sim. }
-  { admit. }
-  admit.
-Admitted.
+  { apply rsr_a_rex_acts. }
+  apply rsr_a_step_helper.
+Qed.
 
 End ExecA.
