@@ -198,14 +198,6 @@ Record reord_simrel : Prop := {
   rsr_at : mapper ↑₁ (eq a_t ∩₁ E_t) ⊆₁ eq b_t;
 }.
 
-Lemma rsr_nrpo
-    (INV : reord_step_pred)
-    (SIMREL : reord_simrel) :
-  ⦗mapper ↑₁ (eq a_t ∩₁ E_t)⦘ ⨾ rpo_s ⨾ ⦗mapper ↑₁ (eq b_t ∩₁ E_t)⦘ ⊆ ∅₂.
-Proof using.
-  admit.
-Admitted.
-
 Lemma rsr_common
     (SIMREL : reord_simrel) :
   simrel_common X_s X_t mapper.
@@ -696,35 +688,6 @@ Proof using.
   apply rsr_fin_s; try red; eauto.
 Qed.
 
-Lemma rsr_as_bs_imm
-    (INB : E_t b_t)
-    (INA : E_t a_t)
-    (PRED : reord_step_pred)
-    (INJ : inj_dom E_t mapper)
-    (SIMREL : sb_s ≡ mapper ↑ swap_rel sb_t (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t)) :
-  immediate sb_s (mapper a_t) (mapper b_t).
-Proof using.
-  enough (HIN : singl_rel (mapper a_t) (mapper b_t) ⊆ immediate sb_s).
-  { now apply HIN. }
-  assert (NEQ : a_t <> b_t) by apply PRED.
-  assert (IMM : immediate sb_t b_t a_t).
-  { apply (rsr_at_bt_imm PRED). basic_solver. }
-  assert (NAB : ~sb_t a_t b_t).
-  { intro FALSO. eapply sb_irr, sb_trans; eauto.
-    apply IMM. }
-  rewrite SIMREL.
-  rewrite <- collect_rel_singl, collect_rel_immediate.
-  { apply collect_rel_mori; ins.
-    rewrite !set_inter_absorb_r by basic_solver.
-    unfold swap_rel. rewrite immediateE. unfolder.
-    ins; desf; splits; eauto.
-    intro FALSO; desf.
-    all: try now (eapply sb_irr; eauto).
-    apply NAB; eapply sb_trans; eauto. }
-  eapply inj_dom_mori with (x := E_t); eauto.
-  unfold flip, swap_rel. rewrite wf_sbE. basic_solver 11.
-Qed.
-
 Lemma rsr_init_acts_s
     (PRED : reord_step_pred)
     (SIMREL : reord_simrel) :
@@ -912,14 +875,37 @@ Lemma rsr_bs_rlx
     (SIMREL : reord_simrel) :
   eq a_t ∩₁ E_s ⊆₁ set_compl (Rel_s ∪₁ Acq_s).
 Proof using.
-Admitted.
+  intros x (XEQ & XIN). subst x.
+  unfolder. unfold is_rel, is_acq, mod.
+  apply (rsr_acts SIMREL) in XIN.
+  destruct XIN as [(x' & XIN & MAP) | EXA].
+  { rewrite <- MAP.
+    change (lab_s (mapper x')) with ((lab_s ∘ mapper) x').
+    rewrite (rsr_lab SIMREL); auto.
+    apply (rsr_bt_rlx PRED).
+    split; auto.
+    symmetry. now apply rsr_mapinv_bt. }
+  assert (NEQ : a_t <> b_t) by apply PRED.
+  exfalso. red in EXA. desf. congruence.
+Qed.
 
 Lemma rsr_as_rlx
     (PRED : reord_step_pred)
     (SIMREL : reord_simrel) :
   eq b_t ∩₁ E_s ⊆₁ set_compl (Rel_s ∪₁ Acq_s).
 Proof using.
-Admitted.
+  intros x (XEQ & XIN). subst x.
+  unfolder. unfold is_rel, is_acq, mod.
+  apply (rsr_acts SIMREL) in XIN.
+  destruct XIN as [(x' & XIN & MAP) | EXA].
+  { rewrite <- MAP.
+    change (lab_s (mapper x')) with ((lab_s ∘ mapper) x').
+    rewrite (rsr_lab SIMREL); auto.
+    apply (rsr_at_rlx PRED).
+    split; auto.
+    symmetry. now apply rsr_mapinv_at. }
+  now apply eba_rlx, (rsr_as SIMREL).
+Qed.
 
 Lemma rsr_as_bs_loc
     (PRED : reord_step_pred)

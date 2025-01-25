@@ -1,7 +1,7 @@
 Require Import AuxDef.
 Require Import Core.
 Require Import AuxRel AuxRel2 AuxInj.
-Require Import SimrelCommon ReordSimrel.
+Require Import SimrelCommon ReordSimrel ReorderingEq.
 Require Import Rhb.
 Require Import MapDoms.
 
@@ -379,3 +379,104 @@ Proof using.
 Qed.
 
 End ReordRpo.
+
+Section NRpo.
+
+Variable X_s X_t : WCore.t.
+Variable a_t b_t : actid.
+Variable mapper : actid -> actid.
+
+Notation "'G_t'" := (WCore.G X_t).
+Notation "'lab_t'" := (lab G_t).
+Notation "'loc_t'" := (loc lab_t).
+Notation "'val_t'" := (val lab_t).
+Notation "'E_t'" := (acts_set G_t).
+Notation "'sb_t'" := (sb G_t).
+Notation "'rf_t'" := (rf G_t).
+Notation "'co_t'" := (co G_t).
+Notation "'rhb_t'" := (rhb G_t).
+Notation "'rmw_t'" := (rmw G_t).
+Notation "'rpo_t'" := (rpo G_t).
+Notation "'rpo_imm_t'" := (rpo_imm G_t).
+Notation "'rmw_dep_t'" := (rmw_dep G_t).
+Notation "'data_t'" := (data G_t).
+Notation "'ctrl_t'" := (ctrl G_t).
+Notation "'addr_t'" := (addr G_t).
+Notation "'W_t'" := (fun e => is_true (is_w lab_t e)).
+Notation "'R_t'" := (fun e => is_true (is_r lab_t e)).
+Notation "'F_t'" := (fun e => is_true (is_f lab_t e)).
+Notation "'Loc_t_' l" := (fun e => loc_t e = l) (at level 1).
+Notation "'Val_t_' l" := (fun e => val_t e = l) (at level 1).
+Notation "'same_loc_t'" := (same_loc lab_t).
+Notation "'same_val_t'" := (same_val lab_t).
+Notation "'Acq_t'" := (fun e => is_true (is_acq lab_t e)).
+Notation "'Rel_t'" := (fun e => is_true (is_rel lab_t e)).
+Notation "'Rlx_t'" := (fun e => is_true (is_rlx lab_t e)).
+
+Notation "'G_s'" := (WCore.G X_s).
+Notation "'lab_s'" := (lab G_s).
+Notation "'val_s'" := (val lab_s).
+Notation "'loc_s'" := (loc lab_s).
+Notation "'E_s'" := (acts_set G_s).
+Notation "'sb_s'" := (sb G_s).
+Notation "'rf_s'" := (rf G_s).
+Notation "'co_s'" := (co G_s).
+Notation "'rhb_s'" := (rhb G_s).
+Notation "'rmw_s'" := (rmw G_s).
+Notation "'rpo_s'" := (rpo G_s).
+Notation "'rpo_imm_s'" := (rpo_imm G_s).
+Notation "'rmw_dep_s'" := (rmw_dep G_s).
+Notation "'data_s'" := (data G_s).
+Notation "'ctrl_s'" := (ctrl G_s).
+Notation "'addr_s'" := (addr G_s).
+Notation "'W_s'" := (fun e => is_true (is_w lab_s e)).
+Notation "'R_s'" := (fun e => is_true (is_r lab_s e)).
+Notation "'F_s'" := (fun e => is_true (is_f lab_s e)).
+Notation "'Loc_s_' l" := (fun e => loc_s e = l) (at level 1).
+Notation "'Val_s_' l" := (fun e => val_s e = l) (at level 1).
+Notation "'same_loc_s'" := (same_loc lab_s).
+Notation "'same_val_s'" := (same_val lab_s).
+Notation "'Acq_s'" := (fun e => is_true (is_acq lab_s e)).
+Notation "'Rel_s'" := (fun e => is_true (is_rel lab_s e)).
+Notation "'Rlx_s'" := (fun e => is_true (is_rlx lab_s e)).
+
+Lemma rsr_nrpo
+    (INV : reord_step_pred X_t a_t b_t)
+    (SIMREL : reord_simrel X_s X_t a_t b_t mapper) :
+  ⦗mapper ↑₁ (eq a_t ∩₁ E_t)⦘ ⨾ rpo_s ⨾ ⦗mapper ↑₁ (eq b_t ∩₁ E_t)⦘ ⊆ ∅₂.
+Proof using.
+  destruct classic with (E_t a_t) as [INA|NINA]
+    ; [| basic_solver].
+  destruct classic with (E_t b_t) as [INB|NINB]
+    ; [| basic_solver].
+  rewrite (rsr_bt SIMREL), (rsr_at SIMREL).
+  unfold rpo.
+  rewrite ct_begin, <- cr_of_ct, crE.
+  rewrite seq_union_r, seq_id_r.
+  rewrite seq_union_l, seq_union_r.
+  assert (INAS : E_s b_t).
+  { apply (rsr_acts SIMREL). left.
+    exists a_t. split; auto.
+    now apply (rsr_map_at INA SIMREL). }
+  assert (INBS : E_s a_t).
+  { apply (rsr_acts SIMREL). left.
+    exists b_t. split; auto.
+    now apply (rsr_map_bt INB SIMREL). }
+  arewrite_false (
+    ⦗eq b_t⦘ ⨾ (rpo_imm_s ⨾ rpo_imm_s⁺) ⨾ ⦗eq a_t⦘
+  ).
+  { rewrite rpo_imm_in_sb, ct_of_trans; auto using sb_trans.
+    enough (RR : ~ (sb_s ⨾ sb_s) b_t a_t).
+    { forward apply RR. basic_solver. }
+    apply immediateE, (rsr_as_bs_imm INV SIMREL).
+    basic_solver. }
+  rewrite union_false_r.
+  arewrite (eq b_t ≡₁ eq b_t ∩₁ E_s) by basic_solver.
+  arewrite (eq a_t ≡₁ eq a_t ∩₁ E_s) by basic_solver.
+  rewrite (rsr_as_rlx INV SIMREL), (rsr_bs_rlx INV SIMREL).
+  unfold rpo_imm. rewrite !seq_union_l, !seq_union_r.
+  repeat apply inclusion_union_l.
+  all: basic_solver.
+Qed.
+
+End NRpo.

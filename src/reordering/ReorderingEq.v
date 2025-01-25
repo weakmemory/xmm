@@ -452,4 +452,9 @@ Proof using PRED SIMREL'.
   all: rewrite wf_sbE; basic_solver.
 Qed.
 
+Lemma rsr_as_bs_imm :
+  (eq b_t ∩₁ E_s) × (eq a_t ∩₁ E_s) ⊆ immediate sb_s.
+Proof using PRED SIMREL'.
+Admitted.
+
 End ReordEquivLemmas.
