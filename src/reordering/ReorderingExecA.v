@@ -857,6 +857,44 @@ Proof using ADD SIMREL INV INV' NSC.
   now rewrite (prf_rmw_dep rsr_a_pfx).
 Qed.
 
+Lemma rsr_a_gs_crfc : rf_complete (restrict G_s' cmt).
+Proof using ADD SIMREL INV INV' NSC.
+  assert (NEQ : a_t <> b_t) by apply INV'.
+  unfold rf_complete.
+  arewrite (rf (restrict G_s' cmt) ≡ restr_rel cmt rf_s).
+  { simpl. rewrite seq_union_l, seq_union_r.
+    arewrite_false (mapper ↑ (rf_t' ⨾ ⦗eq a_t⦘) ⨾ ⦗cmt⦘).
+    { rewrite collect_rel_seqi, collect_rel_eqv,
+              set_collect_eq, rsr_mapper_at; auto.
+      unfold cmt. basic_solver. }
+    rewrite seq_false_r, union_false_r.
+    unfold cmt. rewrite restr_relE, <- id_inter.
+    now rewrite set_interK. }
+  arewrite (acts_set (restrict G_s' cmt) ≡₁ cmt).
+  { simpl. rewrite set_inter_absorb_r; auto with hahn xmm. }
+  rewrite set_interC, set_inter_is_r with (G := G_s).
+  all: auto with xmm.
+  arewrite (R_s ∩₁ cmt ⊆₁ codom_rel rf_s ∩₁ cmt).
+  { rewrite <- set_inter_absorb_l
+       with (s' := E_s) (s := cmt)
+         at 1.
+    all: auto with xmm.
+    rewrite <- set_interA, set_interC with (s' := E_s).
+    apply set_subset_inter; [| reflexivity].
+    eapply (G_s_rfc INV SIMREL). }
+  rewrite <- codom_eqv1. apply codom_rel_mori.
+  rewrite (rsr_rf SIMREL), restr_union, seq_union_l.
+  rewrite !restr_relE, !seqA.
+  arewrite_false (srf_s ⨾ ⦗A_s ∩₁ R_s⦘ ⨾ ⦗cmt⦘).
+  { rewrite rsr_old_exa. unfold cmt. basic_solver. }
+  rewrite seq_false_r, !union_false_r.
+  rewrite (wf_rfE (rsr_Gt_wf INV)) at 1.
+  rewrite !collect_rel_seqi, !seqA, collect_rel_eqv.
+  arewrite (mapper ↑₁ E_t ⊆₁ cmt); [| basic_solver 11].
+  rewrite (rsr_codom SIMREL), rsr_old_exa.
+  now unfold cmt.
+Qed.
+
 Lemma rsr_a_cfg_wf :
   WCore.wf (WCore.X_start X_s dtrmt) X_s' cmt.
 Proof using ADD SIMREL INV INV' NSC.
@@ -869,10 +907,10 @@ Proof using ADD SIMREL INV INV' NSC.
   { ins. rewrite set_interA, set_inter_absorb_r.
     { apply rsr_a_restr_eq. }
     rewrite set_inter_absorb_l; auto with xmm. }
-  { admit. }
+  { apply rsr_a_gs_crfc. }
   ins. rewrite <- rsr_a_dtrmt_in_cmt.
   basic_solver.
-Admitted.
+Qed.
 
 Lemma rsr_a_step_helper :
   (WCore.guided_step cmt X_s')＊
