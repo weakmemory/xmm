@@ -510,7 +510,29 @@ Proof using.
   now rewrite EEQ.
 Qed.
 
+Add Parametric Morphism : WCore.exec_restr_eq with signature
+  eq ==> eq ==> set_equiv ==> iff as exec_restr_eq_more.
+Proof using.
+  intros X X' s s' EQ.
+  split; intro HX; constructor.
+  all: try now (rewrite EQ; apply HX).
+  all: try now (rewrite <- EQ; apply HX).
+  all: apply HX.
+Qed.
+
+Add Parametric Morphism : WCore.X_start with signature
+  eq ==> set_equiv ==> eq as X_start_more.
+Proof using.
+  intros X s s' EQ.
+  apply set_extensionality in EQ.
+  now rewrite EQ.
+Qed.
+
 #[export]
 Instance sb_delta_Propere : Proper (_ ==> _ ==> _) _ := sb_delta_more.
 #[export]
 Instance reexec_thread_Propere : Proper (_ ==> _ ==> _) _ := reexec_thread_more.
+#[export]
+Instance exec_restr_eq_Propere : Proper (_ ==> _ ==> _ ==> _) _ := exec_restr_eq_more.
+#[export]
+Instance X_start_Propere : Proper (_ ==> _ ==> _) _ := X_start_more.
