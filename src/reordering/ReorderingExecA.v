@@ -98,6 +98,7 @@ Notation "'mapper'" := (mapper a_t b_t).
 
 Notation "'A_s'" := (extra_a X_t a_t b_t b_t).
 Notation "'B_s'" := (extra_a X_t a_t b_t a_t).
+Notation "'B_s''" := (extra_a X_t' a_t b_t a_t).
 Notation "'A_s''" := (extra_a X_t' a_t b_t b_t).
 
 Definition rsr_a_Gs_prime := {|
@@ -334,7 +335,13 @@ Qed.
 
 Lemma rsr_a_sb_fromb : ⦗eq a_t⦘ ⨾ sb_s ⊆ ∅₂.
 Proof using ADD SIMREL INV INV'.
-Admitted.
+  assert (ANIN : ~E_t a_t) by auto with xmm.
+  assert (ANINI : ~is_init a_t) by apply INV.
+  rewrite (rsr_sbE INV SIMREL), seq_union_r.
+  apply inclusion_union_l.
+  { rewrite wf_sbE. basic_solver. }
+  basic_solver.
+Qed.
 
 Lemma rsr_a_sb :
   sb_s' ≡ mapper ↑ swap_rel sb_t' (eq b_t ∩₁ E_t') (eq a_t ∩₁ E_t').
@@ -734,6 +741,25 @@ Proof using ADD SIMREL INV INV'.
   unfold dtrmt. basic_solver.
 Qed.
 
+Lemma rsr_a_ninsb_tob :
+  immediate (nin_sb G_s') ⨾ ⦗eq a_t⦘ ⊆
+    eq b_t × eq a_t.
+Proof using ADD SIMREL INV INV'.
+  assert (BNINI : ~is_init b_t) by apply INV.
+  intros x y (y' & SB & (EQ1 & EQ2)).
+  subst y' y. split; auto.
+  eapply (nin_sb_functional_l (G_s_wf INV' rsr_a_sim)).
+  all: unfold transp; eauto.
+  enough (RR : singl_rel b_t a_t ⊆ immediate (nin_sb G_s')).
+  { now apply RR. }
+  rewrite imm_nin_sbE, (rsr_sbE INV' rsr_a_sim).
+  rewrite extra_a_none_l, cross_false_r, union_false_r; auto with xmm.
+  rewrite <- (rsr_at_bt_imm INV').
+  rewrite !set_inter_absorb_r.
+  all: try now (intros x' XEQ; subst x'; auto with xmm).
+  basic_solver.
+Qed.
+
 Lemma rsr_a_dt_sbmax :
   ⦗dtrmt⦘ ⨾ immediate (nin_sb G_s') ⨾ ⦗cmt⦘ ⊆
     ⦗dtrmt⦘ ⨾ immediate (nin_sb G_s') ⨾ ⦗dtrmt⦘.
@@ -743,8 +769,12 @@ Proof using ADD SIMREL INV INV' CONS.
   all: auto with xmm.
   rewrite id_union, !seq_union_r.
   apply inclusion_union_l; [| reflexivity].
-  rewrite rsr_a_ndtrmt_cmt.
-Admitted.
+  rewrite rsr_a_ndtrmt_cmt, rsr_a_ninsb_tob.
+  rewrite <- cross_inter_l.
+  arewrite (dtrmt ∩₁ eq b_t ⊆₁ ∅).
+  { unfold dtrmt. basic_solver. }
+  basic_solver.
+Qed.
 
 Hypothesis NSC : WCore.sc X_s ≡ ∅₂.
 
