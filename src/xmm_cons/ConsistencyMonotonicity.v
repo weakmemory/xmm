@@ -76,7 +76,7 @@ Notation "'fr_t'" := (fr G_t).
 Notation "'sw_t'" := (sw G_t).
 
 Hypothesis (INJ : inj_dom E_t m).
-Hypothesis (E_MAP : E_s ≡₁ m ↑₁ E_t).
+Hypothesis (E_MAP : E_s ⊆₁ m ↑₁ E_t).
 Hypothesis (RPO_MAP : rpo_s ⊆ m ↑ rpo_t).
 Hypothesis (RF_MAP : rf_s ⊆ m ↑ rf_t).
 Hypothesis (CO_MAP : co_s ⊆ m ↑ co_t).
