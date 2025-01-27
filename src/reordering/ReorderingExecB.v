@@ -504,8 +504,9 @@ Admitted.
 
 Lemma rsr_new_Gs_cons :
   WCore.is_cons G_s'.
-Proof using.
-Admitted.
+Proof using b_t a_t CONS ADD SIMREL INV INV'.
+  apply (rsr_cons INV' CONS rsr_b_sim).
+Qed.
 
 Lemma rsr_b_imm_rpoimm_in :
   rpo_imm_s'' ⊆ rpo_imm_s'.
@@ -728,7 +729,7 @@ Proof using ADD SIMREL INV INV' CONS.
   constructor.
   { apply rsr_b_step2. }
   { apply (G_s_rfc INV' rsr_b_sim). }
-  apply (rsr_cons INV' CONS rsr_b_sim).
+  apply rsr_new_Gs_cons.
 Qed.
 
 End ExecB.
