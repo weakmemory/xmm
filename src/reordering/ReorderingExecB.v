@@ -579,11 +579,6 @@ Proof using ADD SIMREL INV INV'.
   clear. basic_solver 11.
 Qed.
 
-Lemma rsr_b_loc_some :
-  exists ll, WCore.lab_loc l_a = Some ll.
-Proof using ADD SIMREL INV INV'.
-Admitted.
-
 Lemma rsr_b_imm_fin : set_finite (E_s'' \₁ is_init).
 Proof using ADD SIMREL INV INV'.
   simpl. rewrite set_minus_union_l, set_unionC.
@@ -617,7 +612,10 @@ Lemma rsr_b_srf_exists'
     fake_srf G_s b_t l_a ⨾ ⦗eq b_t ∩₁ WCore.lab_is_r l_a⦘ ≡
       eq w × eq b_t.
 Proof using ADD SIMREL INV INV'.
-  destruct rsr_b_loc_some as [ll EQ].
+  assert (EQ : exists ll, WCore.lab_loc l_a = Some ll).
+  { unfold is_r in ISR. simpl in ISR. rewrite upds in ISR.
+    unfold WCore.lab_loc. desf. eauto. }
+  destruct EQ as [ll EQ].
   destruct srf_exists
       with (G := G_s'') (r := b_t) (l := ll)
         as [w SRF].
