@@ -110,3 +110,13 @@ Proof using.
   { exfalso. apply IMM2 with y; auto. }
   exfalso. apply IMM1 with z; auto.
 Qed.
+
+Lemma codom_rel_in {A : Type} (r1 r2 : relation A) x y
+    (PATH : r1 x y) :
+  codom_rel (⦗eq y⦘ ⨾ r2) ⊆₁
+    codom_rel (⦗eq x⦘ ⨾ r1 ⨾ r2).
+Proof using.
+  intros z (y' & (y'' & (EQ1 & EQ2) & R2)).
+  subst y'' y'.
+  exists x, x; split; basic_solver.
+Qed.

@@ -1,7 +1,7 @@
 Require Import ReordSimrel ReorderingEq.
 Require Import AuxDef MapDoms.
 Require Import Core.
-Require Import AuxRel AuxRel2.
+Require Import AuxRel AuxRel2 AuxRel3.
 Require Import Srf Rhb.
 Require Import SimrelCommon.
 Require Import StepOps.
@@ -252,21 +252,31 @@ Hypothesis INV : reord_step_pred X_t a_t b_t.
 Hypothesis INV' : reord_step_pred X_t' a_t b_t.
 Hypothesis CONS : WCore.is_cons G_t'.
 
-Lemma rsr_b_a_nin' : ~ E_t' a_t.
-Proof using ADD INV'.
-Admitted.
-
 Lemma rsr_b_a_nin : ~ E_t a_t.
-Proof using ADD INV'.
-Admitted.
+Proof using ADD INV.
+  intro FALSO. apply rsr_b_notin.
+  now apply (rsr_at_bt_ord INV).
+Qed.
+
+Lemma rsr_b_a_nin' : ~ E_t' a_t.
+Proof using ADD INV.
+  clear - ADD INV.
+  intro FALSO. apply rsr_step_acts in FALSO.
+  destruct FALSO as [AIN | EQ].
+  { now apply rsr_b_a_nin. }
+  now apply (rsr_at_neq_bt INV).
+Qed.
 
 Lemma rsr_b_old_exa : A_s ≡₁ ∅.
-Proof using ADD INV'.
-Admitted.
+Proof using ADD INV.
+  rewrite extra_a_none_r; auto with xmm.
+Qed.
 
 Lemma rsr_b_new_exa : A_s' ≡₁ eq b_t.
-Proof using ADD INV'.
-Admitted.
+Proof using ADD INV' INV.
+  rewrite extra_a_some; auto with xmm.
+  apply rsr_b_a_nin'.
+Qed.
 
 Hint Resolve rsr_b_a_nin' rsr_b_a_nin : xmm.
 
@@ -275,45 +285,29 @@ Hypothesis SIMREL : reord_simrel X_s X_t a_t b_t mapper.
 Lemma rsr_new_a_sb_delta :
   ⦗E_s⦘ ⨾ ext_sb ⨾ ⦗eq b_t⦘ ≡ WCore.sb_delta b_t E_s.
 Proof using b_t a_t ADD SIMREL INV INV'.
-  (* destruct ADD as (r & R1 & w & W1 & W2 & ADD').
+  destruct ADD as (r & R1 & w & W1 & W2 & ADD').
   rewrite (rsr_actsE INV SIMREL).
-  arewrite (WCore.sb_delta e (E_t ∪₁ B_s) ≡
-    WCore.sb_delta e E_t ∪ (B_s ∩₁ same_tid e) × eq e
-  ).
-  { unfold WCore.sb_delta.
-    rewrite set_inter_union_l, !cross_union_l.
-    now rewrite <- unionA. }
-  rewrite id_union, !seq_union_l.
-  apply union_more; [apply (sb_deltaEE ADD') |].
-  unfold extra_a. desf; [| basic_solver].
-  unfold same_tid. split.
-  { unfolder. intros x y (EQ1 & SB & EQ2).
-    subst x y. auto with xmm. }
-  unfolder. intros x y ((EQ1 & TID) & EQ2). subst x y.
-  exfalso. apply rsr_Et_restr; [| desf].
-  now rewrite <- (rsr_at_bt_tid INV). *)
-Admitted.
+  rewrite extra_a_none_r, set_union_empty_r; auto with xmm.
+  apply (sb_deltaEE ADD').
+Qed.
 
 Lemma rsr_new_a_sb :
   sb_s'' ≡ sb_s ∪ WCore.sb_delta b_t E_s.
 Proof using b_t a_t ADD SIMREL INV INV'.
-  (* unfold sb at 1. simpl.
-  destruct ADD as (r & R1 & w & W1 & W2 & ADD').
+  unfold sb at 1. simpl.
   rewrite !id_union, !seq_union_l, !seq_union_r.
   change (⦗E_s⦘ ⨾ ext_sb ⨾ ⦗E_s⦘) with sb_s.
-  rewrite (rsr_actsE INV SIMREL) at 2.
-  rewrite !id_union, !seq_union_r.
-  arewrite_false (⦗eq e⦘ ⨾ ext_sb ⨾ ⦗eq e⦘).
-  { enough (~ext_sb e e) by basic_solver.
+  arewrite_false (⦗eq b_t⦘ ⨾ ext_sb ⨾ ⦗eq b_t⦘).
+  { enough (~ext_sb b_t b_t) by basic_solver.
     intro FALSO; eapply ext_sb_irr; eauto. }
-  rewrite (sb_deltaEN ADD').
-  arewrite_false (⦗eq e⦘ ⨾ ext_sb ⨾ ⦗extra_a X_t a_t b_t a_t⦘).
-  { unfold extra_a; desf; [| basic_solver].
-    unfolder. intros x y (EQ1 & SB & EQ2). subst x y.
-    apply rsr_Et_restr; desf.
-    rewrite <- (rsr_at_bt_tid INV); auto with xmm. }
-  now rewrite !union_false_r, rsr_new_e_sb_delta. *)
-Admitted.
+  rewrite rsr_new_a_sb_delta.
+  arewrite_false (⦗eq b_t⦘ ⨾ ext_sb ⨾ ⦗E_s⦘)
+    ; [| basic_solver 11].
+  rewrite (rsr_actsE INV SIMREL), !id_union, !seq_union_r.
+  destruct ADD as (r & R1 & w & W1 & W2 & ADD').
+  rewrite (sb_deltaEN ADD'), extra_a_none_r; auto with xmm.
+  basic_solver 11.
+Qed.
 
 (* Lemma rsr_nanb_map_sbdelta :
   mapper ↑ WCore.sb_delta b_t E_t ≡
@@ -337,26 +331,127 @@ Proof using b_t a_t ADD E_NOT_B E_NOT_A SIMREL INV INV'.
   apply rsr_Et_restr; auto; desf.
 Qed. *)
 
+Lemma rsr_sb_delta_comp :
+  WCore.sb_delta a_t E_t ⊆
+    WCore.sb_delta b_t E_t ⨾ ext_sb ⨾ ⦗eq a_t⦘.
+Proof using INV.
+  unfold WCore.sb_delta.
+  arewrite (same_tid a_t ≡₁ same_tid b_t).
+  { unfold same_tid. now rewrite (rsr_at_bt_tid INV). }
+  intros x y (DEL & EQ). subst y.
+  exists b_t. split; [split; auto |].
+  enough (ext_sb b_t a_t) by basic_solver 11.
+  apply (rsr_at_bt_sb INV).
+Qed.
+
+Lemma rsr_new_a_sb_delta_helper' :
+  ⦗E_t⦘ ⨾ ext_sb ⨾ ⦗eq a_t⦘ ≡ WCore.sb_delta a_t E_t.
+Proof using b_t a_t ADD SIMREL INV INV'.
+  destruct ADD as (r & R1 & w & W1 & W2 & ADD').
+  unfold WCore.sb_delta. split.
+  { rewrite ext_sb_tid_init'.
+    rewrite seq_union_l, seq_union_r, !seqA.
+    rewrite cross_union_l, unionC.
+    apply union_mori; basic_solver. }
+  transitivity (
+    ⦗E_t⦘ ⨾ ext_sb ⨾ ⦗eq b_t⦘ ⨾
+      ext_sb ⨾ ⦗eq a_t⦘
+  ).
+  { seq_rewrite (sb_deltaEE ADD').
+    apply rsr_sb_delta_comp. }
+  transitivity (
+    ⦗E_t⦘ ⨾ ext_sb ⨾ ext_sb ⨾ ⦗eq a_t⦘
+  ); [basic_solver |].
+  sin_rewrite rewrite_trans; [reflexivity |].
+  apply ext_sb_trans.
+Qed.
+
+Lemma rsr_new_a_sb_delta' :
+  ⦗E_s''⦘ ⨾ ext_sb ⨾ ⦗eq a_t⦘ ≡ WCore.sb_delta a_t E_s''.
+Proof using b_t a_t ADD SIMREL INV INV'.
+  destruct ADD as (r & R1 & w & W1 & W2 & ADD').
+  simpl. rewrite (rsr_actsE INV SIMREL).
+  rewrite extra_a_none_r, set_union_empty_r; auto with xmm.
+  arewrite (WCore.sb_delta a_t (E_t ∪₁ eq b_t) ≡
+    WCore.sb_delta a_t E_t ∪ (eq b_t ∩₁ same_tid a_t) × eq a_t
+  ).
+  { unfold WCore.sb_delta.
+    rewrite set_inter_union_l, !cross_union_l.
+    now rewrite <- unionA. }
+  rewrite id_union, !seq_union_l.
+  apply union_more.
+  { apply rsr_new_a_sb_delta_helper'. }
+  arewrite (eq b_t ∩₁ same_tid a_t ≡₁ eq b_t).
+  { split; [basic_solver |].
+    unfold same_tid. rewrite (rsr_at_bt_tid INV).
+    basic_solver. }
+  split; [basic_solver |].
+  unfolder. intros x y (XEQ & YEQ). subst x y.
+  splits; auto. apply (rsr_at_bt_sb INV).
+Qed.
+
+Lemma rsr_new_a_sb_delta_helper'' :
+  ⦗eq a_t⦘ ⨾ ext_sb ⨾ ⦗E_s''⦘ ⊆ ∅₂.
+Proof using b_t a_t ADD SIMREL INV INV'.
+  assert (SB' : ext_sb b_t a_t) by apply (rsr_at_bt_sb INV).
+  simpl. rewrite id_union, !seq_union_r.
+  arewrite_false (⦗eq a_t⦘ ⨾ ext_sb ⨾ ⦗eq b_t⦘).
+  { unfolder. intros x y (XEQ & SB & YEQ).
+    subst x y. eapply ext_sb_irr, ext_sb_trans.
+    all: eauto. }
+  rewrite union_false_r.
+  enough (DOM : codom_rel (⦗eq a_t⦘ ⨾ ext_sb ⨾ ⦗E_s⦘) ⊆₁ ∅).
+  { forward apply DOM. basic_solver 11. }
+  rewrite codom_rel_in
+     with (r2 := ext_sb ⨾ ⦗E_s⦘)
+          (r1 := ext_sb)
+          (x := b_t); [| basic_solver].
+  sin_rewrite rewrite_trans; [| apply ext_sb_trans].
+  destruct ADD as (r & R1 & w & W1 & W2 & ADD').
+  rewrite (rsr_actsE INV SIMREL), extra_a_none_r; auto with xmm.
+  rewrite set_union_empty_r, (sb_deltaEN ADD').
+  basic_solver.
+Qed.
+
 Lemma rsr_new_a_sb' :
   sb_s' ≡ sb_s'' ∪ WCore.sb_delta a_t E_s''.
 Proof using b_t a_t ADD SIMREL INV INV'.
-Admitted.
+  destruct ADD as (r & R1 & w & W1 & W2 & ADD').
+  unfold sb at 1. simpl.
+  rewrite id_union, !seq_union_l, !seq_union_r.
+  change (⦗E_s ∪₁ eq b_t⦘ ⨾ ext_sb ⨾ ⦗E_s ∪₁ eq b_t⦘)
+    with sb_s''.
+  change (E_s ∪₁ eq b_t) with E_s''.
+  arewrite_false (⦗eq a_t⦘ ⨾ ext_sb ⨾ ⦗eq a_t⦘).
+  { enough (~ext_sb a_t a_t) by basic_solver.
+    intro FALSO; eapply ext_sb_irr; eauto. }
+  arewrite_false (⦗eq a_t⦘ ⨾ ext_sb ⨾ ⦗E_s''⦘).
+  { apply rsr_new_a_sb_delta_helper''. }
+  now rewrite rsr_new_a_sb_delta', !union_false_r.
+Qed.
 
 Lemma rsr_b_notin_s : ~ E_s b_t.
 Proof using b_t a_t ADD SIMREL INV INV'.
-Admitted.
-
-Lemma rsr_b_notin_s' : ~ E_s (mapper a_t).
-Proof using b_t a_t ADD SIMREL INV INV'.
-Admitted.
+  intro BIN. apply (rsr_actsE INV SIMREL) in BIN.
+  destruct BIN as [BIN | EXB]; auto with xmm.
+  apply extra_a_none_r in EXB; auto with xmm.
+Qed.
 
 Lemma rsr_b_a_notin_s : ~ E_s a_t.
 Proof using b_t a_t ADD SIMREL INV INV'.
-Admitted.
+  intro BIN. apply (rsr_actsE INV SIMREL) in BIN.
+  destruct BIN as [BIN | EXB]; auto with xmm.
+  apply extra_a_none_r in EXB; auto with xmm.
+Qed.
 
 Lemma rsr_b_a_notin_s' : ~ E_s'' a_t.
 Proof using b_t a_t ADD SIMREL INV INV'.
-Admitted.
+  assert (NEQ : a_t <> b_t) by apply INV.
+  simpl. intros [BIN | EQ]; [| congruence].
+  apply (rsr_actsE INV SIMREL) in BIN.
+  destruct BIN as [BIN | EXB]; auto with xmm.
+  apply extra_a_none_r in EXB; auto with xmm.
+Qed.
 
 Lemma rsr_b_Gs_wf : Wf G_s.
 Proof using INV SIMREL.
@@ -374,7 +469,7 @@ Proof using ADD SIMREL INV INV'.
   apply (rsr_init_acts_s INV SIMREL).
 Qed.
 
-Hint Resolve rsr_b_notin_s rsr_b_notin_s'
+Hint Resolve rsr_b_notin_s
              rsr_b_a_notin_s rsr_b_a_notin_s'
              rsr_b_Gs_wf
              rsr_b_initE rsr_b_initE' : xmm.
@@ -383,9 +478,19 @@ Lemma rsr_b_lab : eq_dom E_t' lab_t' (lab_s' ∘ mapper).
 Proof using ADD SIMREL INV INV'.
   assert (NEQ : a_t <> b_t) by apply INV.
   simpl.
+  rewrite <- rsr_mapper_bt with (a_t := a_t) (b_t := b_t) at 1.
+  all: auto.
+  rewrite <- upd_compose; auto with xmm.
+  rewrite rsr_step_acts, rsr_step_lab, set_unionC.
+  apply eq_dom_union. split.
+  { apply eq_dom_eq. now rewrite !upds. }
+  apply eq_dom_upd; auto with xmm.
   rewrite <- rsr_mapper_at with (a_t := a_t) (b_t := b_t) at 1.
   all: auto.
-Admitted.
+  rewrite <- upd_compose; auto with xmm.
+  apply eq_dom_upd_r; auto with xmm.
+  symmetry. apply (rsr_lab SIMREL).
+Qed.
 
 Lemma rsr_b_labi : eq_dom E_s'' lab_s'' lab_s'.
 Proof using ADD SIMREL INV INV'.
