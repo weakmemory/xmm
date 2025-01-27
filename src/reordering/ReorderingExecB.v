@@ -337,6 +337,11 @@ Proof using b_t a_t ADD E_NOT_B E_NOT_A SIMREL INV INV'.
   apply rsr_Et_restr; auto; desf.
 Qed. *)
 
+Lemma rsr_new_a_sb' :
+  sb_s' ≡ sb_s'' ∪ WCore.sb_delta a_t E_s''.
+Proof using b_t a_t ADD SIMREL INV INV'.
+Admitted.
+
 Lemma rsr_b_notin_s : ~ E_s b_t.
 Proof using b_t a_t ADD SIMREL INV INV'.
 Admitted.
@@ -353,8 +358,26 @@ Lemma rsr_b_a_notin_s' : ~ E_s'' a_t.
 Proof using b_t a_t ADD SIMREL INV INV'.
 Admitted.
 
+Lemma rsr_b_Gs_wf : Wf G_s.
+Proof using INV SIMREL.
+  apply (G_s_wf INV SIMREL).
+Qed.
+
+Lemma rsr_b_initE : is_init ⊆₁ E_s.
+Proof using ADD SIMREL INV INV'.
+  apply (rsr_init_acts_s INV SIMREL).
+Qed.
+
+Lemma rsr_b_initE' : is_init ⊆₁ E_s''.
+Proof using ADD SIMREL INV INV'.
+  transitivity E_s; [| simpl; basic_solver].
+  apply (rsr_init_acts_s INV SIMREL).
+Qed.
+
 Hint Resolve rsr_b_notin_s rsr_b_notin_s'
-             rsr_b_a_notin_s rsr_b_a_notin_s' : xmm.
+             rsr_b_a_notin_s rsr_b_a_notin_s'
+             rsr_b_Gs_wf
+             rsr_b_initE rsr_b_initE' : xmm.
 
 Lemma rsr_b_lab : eq_dom E_t' lab_t' (lab_s' ∘ mapper).
 Proof using ADD SIMREL INV INV'.
@@ -377,6 +400,18 @@ Proof using ADD SIMREL INV INV'.
   symmetry. exact rsr_b_labi.
 Qed.
 
+Lemma rsr_b_labs : eq_dom E_s lab_s lab_s''.
+Proof using ADD SIMREL INV INV'.
+  assert (NEQ : a_t <> b_t) by apply INV.
+  simpl. apply eq_dom_upd_r; [| reflexivity].
+  all: auto with xmm.
+Qed.
+
+Lemma rsr_b_labs' : eq_dom E_s lab_s'' lab_s.
+Proof using ADD SIMREL INV INV'.
+  symmetry. exact rsr_b_labs.
+Qed.
+
 Lemma rsr_b_lab' : eq_dom E_t' (lab_s' ∘ mapper) lab_t'.
 Proof using ADD SIMREL INV INV'.
   symmetry. exact rsr_b_lab.
@@ -389,14 +424,67 @@ Proof using ADD SIMREL INV INV'.
   red; auto with hahn.
 Qed.
 
+Hint Resolve rsr_b_lab rsr_b_lab'
+             rsr_b_labi rsr_b_labi'
+             rsr_b_mapinj rsr_Gt_wf
+             rsr_b_labs rsr_b_labs' : xmm.
+
 Lemma rsr_b_in1 : E_s'' ⊆₁ E_s'.
 Proof using.
   clear. simpl. basic_solver.
 Qed.
 
-Hint Resolve rsr_b_lab rsr_b_lab'
-             rsr_b_labi rsr_b_labi'
-            rsr_b_mapinj rsr_Gt_wf : xmm.
+Lemma rsr_b_imm_sb_to_a :
+  sb_s'' ⨾ ⦗eq b_t⦘ ≡ WCore.sb_delta b_t E_s.
+Proof using SIMREL INV' INV ADD.
+  assert (NINS : ~E_s b_t) by auto with xmm.
+  rewrite rsr_new_a_sb, seq_union_l.
+  arewrite_false (sb_s ⨾ ⦗eq b_t⦘).
+  { unfold sb. basic_solver. }
+  rewrite union_false_l. unfold WCore.sb_delta.
+  now rewrite <- cross_inter_r, set_interK.
+Qed.
+
+Lemma rsr_b_vfsb_eq :
+  vf_s'' ⨾ sb_s'' ⨾ ⦗eq b_t⦘ ≡
+    vf_s ⨾ sb_s'' ⨾ ⦗eq b_t⦘.
+Proof using SIMREL INV' INV ADD.
+  assert (NINS : ~E_s b_t) by auto with xmm.
+  rewrite rsr_b_imm_sb_to_a.
+  arewrite (
+    WCore.sb_delta b_t E_s ≡
+      ⦗E_s⦘ ⨾ WCore.sb_delta b_t E_s
+  ).
+  { unfold WCore.sb_delta. rewrite <- cross_inter_l.
+    rewrite set_inter_absorb_l
+       with (s' := E_s) (s := is_init ∪₁ E_s ∩₁ same_tid b_t)
+        ; [reflexivity |].
+    apply set_subset_union_l.
+    split; auto with xmm. basic_solver. }
+  rewrite <- !seqA. apply seq_more; [| reflexivity].
+  apply porf_pref_vf.
+  all: auto with xmm.
+  { ins. basic_solver. }
+  { rewrite rsr_new_a_sb, seq_union_l.
+    arewrite_false (WCore.sb_delta b_t E_s ⨾ ⦗E_s⦘);
+      [| basic_solver].
+    unfold WCore.sb_delta. basic_solver. }
+  { simpl. rewrite seq_union_l.
+    basic_solver. }
+  simpl. now rewrite (rsr_rmw SIMREL).
+Qed.
+
+Lemma rsr_b_fakesrf :
+  srf_s'' ⨾ ⦗eq b_t ∩₁ WCore.lab_is_r l_a⦘ ≡
+    fake_srf G_s b_t l_a ⨾ ⦗eq b_t ∩₁ WCore.lab_is_r l_a⦘.
+Proof using SIMREL INV' INV ADD.
+  assert (NINS : ~E_s b_t) by auto with xmm.
+  symmetry. apply fake_srf_is_srf.
+  all: auto with xmm.
+  { apply rsr_b_vfsb_eq. }
+  simpl. rewrite seq_union_l.
+  basic_solver.
+Qed.
 
 Lemma rsr_b_sim :
   reord_simrel X_s' X_t' a_t b_t mapper.
@@ -408,6 +496,11 @@ Lemma rsr_new_Gs_wf :
 Proof using b_t a_t ADD SIMREL INV INV'.
   apply (G_s_wf INV' rsr_b_sim).
 Qed.
+
+Lemma rsr_imm_Gs_wf :
+  Wf G_s''.
+Proof using b_t a_t ADD SIMREL INV INV'.
+Admitted.
 
 Lemma rsr_new_Gs_cons :
   WCore.is_cons G_s'.
@@ -471,17 +564,80 @@ Proof using.
   apply rsr_new_Gs_cons.
 Admitted.
 
-Hint Resolve rsr_new_Gs_wf rsr_new_Gs_cons : xmm.
+Hint Resolve rsr_new_Gs_wf rsr_new_Gs_cons rsr_imm_Gs_wf : xmm.
+
+Lemma rsr_b_srf_exists :
+  exists w,
+    fake_srf G_s b_t l_a ⨾ ⦗eq b_t ∩₁ WCore.lab_is_r l_a⦘ ≡
+      eq_opt w × eq b_t.
+Proof using ADD SIMREL INV INV'.
+  destruct fake_srf_exists
+      with (G_s := G_s) (e := b_t) (l_e := l_a)
+        as [w SRF].
+  all: auto with xmm.
+  exists w. rewrite SRF.
+  clear. basic_solver 11.
+Qed.
+
+Lemma rsr_b_co_delta :
+  WCore.co_delta b_t ∅
+    (W_s ∩₁ E_s ∩₁ Loc_s_ (WCore.lab_loc l_a) ∩₁ WCore.lab_is_w l_a) ≡
+      (W_s ∩₁ E_s ∩₁ Loc_s_ (WCore.lab_loc l_a)) ×
+        (eq b_t ∩₁ WCore.lab_is_w l_a).
+Proof using.
+  unfold WCore.co_delta.
+  rewrite cross_false_r, union_false_l.
+  unfold WCore.lab_is_w.
+  destruct l_a.
+  all: rewrite ?set_inter_empty_r.
+  all: try now rewrite cross_false_r, cross_false_l.
+  now rewrite !set_inter_full_r.
+Qed.
 
 Lemma rsr_b_step1 :
   WCore.add_event X_s X_s'' (mapper a_t) l_a.
-Proof using.
-Admitted.
+Proof using ADD SIMREL INV INV'.
+  assert (NEQ : a_t <> b_t) by apply INV.
+  rewrite rsr_mapper_at; auto.
+  destruct rsr_b_srf_exists as [w SRF].
+  exists None, ∅, w, ∅,
+    (W_s ∩₁ E_s ∩₁ Loc_s_ (WCore.lab_loc l_a) ∩₁ WCore.lab_is_w l_a).
+  apply add_event_to_wf.
+  all: auto with xmm.
+  { simpl. rewrite SRF. basic_solver. }
+  { simpl. now rewrite rsr_b_co_delta. }
+  { simpl. rewrite (rsr_rmw SIMREL).
+    unfold WCore.rmw_delta. basic_solver 7. }
+  { apply rsr_new_a_sb. }
+  simpl.
+  now rewrite (rsr_ctrl SIMREL), (rsr_nctrl INV).
+Qed.
 
 Lemma rsr_b_step2 :
   WCore.add_event X_s'' X_s' (mapper b_t) l_b.
-Proof using.
-Admitted.
+Proof using ADD SIMREL INV INV'.
+  assert (WF_t : Wf G_t) by apply (rsr_Gt_wf INV).
+  assert (NEQ : a_t <> b_t) by apply INV.
+  destruct ADD as (r & R1 & w & W1 & W2 & ADD').
+  rewrite rsr_mapper_bt; auto.
+  exists (option_map mapper r), ∅,
+        (option_map mapper w), (mapper ↑₁ W1), (mapper ↑₁ W2).
+  apply add_event_to_wf.
+  all: auto with xmm.
+  { apply (rsr_at_tid INV). }
+  { simpl. rewrite <- rsr_b_fakesrf.
+    rewrite (rf_delta_RE WF_t ADD').
+    rewrite mapped_rf_delta_R, rsr_mapper_bt; auto.
+    basic_solver 7. }
+  { simpl. rewrite <- rsr_b_co_delta.
+    rewrite (co_deltaE WF_t ADD').
+    rewrite mapped_co_delta, rsr_mapper_bt; auto.
+    basic_solver 11. }
+  { simpl. rewrite (WCore.add_event_rmw ADD'), collect_rel_union.
+    rewrite mapped_rmw_delta, rsr_mapper_bt; auto. }
+  { apply rsr_new_a_sb'. }
+  now rewrite (rsr_ctrl SIMREL), (rsr_nctrl INV).
+Qed.
 
 Lemma simrel_exec_b_step_1 :
     WCore.exec_inst X_s  X_s'' b_t l_a.
