@@ -209,4 +209,14 @@ Proof using.
   unfold is_f in *. rewrite LABEQ; auto.
 Qed.
 
+Lemma set_inter_loc s s' l
+    (SUB : s ⊆₁ s')
+    (LABEQ : eq_dom s' lab lab') :
+  Loc_' l ∩₁ s ⊆₁ Loc_ l ∩₁ s.
+Proof using.
+  unfolder. intros x (LOC & XIN).
+  splits; auto.
+  unfold loc in *. rewrite LABEQ; auto.
+Qed.
+
 End MapDoms.

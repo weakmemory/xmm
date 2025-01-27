@@ -407,6 +407,12 @@ Proof using ADD SIMREL INV INV'.
   all: auto with xmm.
 Qed.
 
+Lemma rsr_b_labb : eq_dom E_s lab_s lab_s'.
+Proof using ADD SIMREL INV INV'.
+  simpl. apply eq_dom_upd_r; [| apply rsr_b_labs].
+  auto with xmm.
+Qed.
+
 Lemma rsr_b_labs' : eq_dom E_s lab_s'' lab_s.
 Proof using ADD SIMREL INV INV'.
   symmetry. exact rsr_b_labs.
@@ -445,7 +451,8 @@ Hint Resolve rsr_b_lab rsr_b_lab'
              rsr_b_labi rsr_b_labi'
              rsr_b_mapinj rsr_Gt_wf
              rsr_b_labs rsr_b_labs'
-             rsr_b_mapb rsr_b_mapa : xmm.
+             rsr_b_mapb rsr_b_mapa
+             rsr_b_labb : xmm.
 
 Lemma rsr_b_in1 : E_s'' ⊆₁ E_s'.
 Proof using.
@@ -521,6 +528,79 @@ Lemma rsr_b_samesrf :
 Proof using SIMREL INV' INV ADD.
 Admitted.
 
+Lemma rsr_b_exco_helper :
+  eq a_t ∩₁ W_s' ∩₁ Loc_s_' (loc_s' b_t) ≡₁ ∅.
+Proof using.
+Admitted.
+
+Lemma rsr_b_isw_helper :
+  eq b_t ∩₁ W_s' ≡₁ eq b_t ∩₁ WCore.lab_is_w l_a.
+Proof using INV.
+  assert (NEQ : a_t <> b_t) by apply INV.
+  simpl. unfold is_w, WCore.lab_is_w.
+  unfolder. split.
+  all: intros x (XEQ & ISR); subst x.
+  all: rewrite updo, upds in *; desf.
+  all: congruence.
+Qed.
+
+Lemma rsr_b_exco :
+  add_max
+    (extra_co_D E_s' lab_s' (loc_s' b_t))
+    (A_s' ∩₁ W_s') ≡
+      (W_s ∩₁ E_s ∩₁ Loc_s_ (WCore.lab_loc l_a)) ×
+        (eq b_t ∩₁ WCore.lab_is_w l_a).
+Proof using SIMREL INV' INV ADD.
+  assert (NEQ : a_t <> b_t) by apply INV.
+  unfold add_max, extra_co_D.
+  rewrite rsr_b_new_exa.
+  arewrite (
+    (E_s' ∩₁ W_s' ∩₁ Loc_s_' (loc_s' b_t) \₁ eq b_t ∩₁ W_s') ×
+      (eq b_t ∩₁ W_s') ≡
+        (E_s' ∩₁ W_s' ∩₁ Loc_s_' (loc_s' b_t) \₁ eq b_t) ×
+          (eq b_t ∩₁ W_s')
+  ).
+  { destruct classic with (W_s' b_t) as [ISW|NIS].
+    { rewrite set_inter_absorb_r with (s := eq b_t).
+      all: basic_solver. }
+    arewrite (eq b_t ∩₁ W_s' ≡₁ ∅) by basic_solver.
+    now rewrite !cross_false_r. }
+  arewrite (
+    E_s' ∩₁ W_s' ∩₁ Loc_s_' (loc_s' b_t) \₁ eq b_t ≡₁
+      (E_s' \₁ eq b_t) ∩₁ W_s' ∩₁ Loc_s_' (loc_s' b_t)
+  ) by basic_solver 11.
+  arewrite (E_s' \₁ eq b_t ≡₁ E_s ∪₁ eq a_t).
+  { simpl. rewrite !set_minus_union_l, set_minusK.
+    rewrite set_union_empty_r, set_minus_disjoint.
+    { basic_solver. }
+    unfolder. intros x XIN XEQ. subst x.
+    auto with xmm. }
+  rewrite !set_inter_union_l, rsr_b_isw_helper.
+  rewrite rsr_b_exco_helper, set_union_empty_r.
+  arewrite (loc_s' b_t = WCore.lab_loc l_a).
+  { simpl. unfold loc. rewrite updo, upds by congruence.
+    unfold WCore.lab_loc. desf. }
+  apply cross_more; [| reflexivity].
+  transitivity (
+    W_s' ∩₁ Loc_s_' (WCore.lab_loc l_a) ∩₁ E_s
+  ); [basic_solver |].
+  transitivity (
+    W_s ∩₁ Loc_s_ (WCore.lab_loc l_a) ∩₁ E_s
+  ); [| basic_solver].
+  rewrite !set_interA. split.
+  all: rewrite set_inter_loc, set_inter_is_w.
+  all: try reflexivity.
+  all: try now (
+    eapply eq_dom_mori; eauto with xmm;
+      red; basic_solver
+  ).
+  all: symmetry.
+  all: try now (
+    eapply eq_dom_mori; eauto with xmm;
+      red; basic_solver
+  ).
+Qed.
+
 Lemma rsr_b_sim :
   reord_simrel X_s' X_t' a_t b_t mapper.
 Proof using SIMREL INV' INV ADD.
@@ -531,7 +611,16 @@ Proof using SIMREL INV' INV ADD.
   constructor.
   all: auto with xmm.
   { admit. }
-  { admit. }
+  { rewrite rsr_b_new_exa, rsr_step_acts.
+    ins. rewrite set_collect_union, !set_minus_union_l.
+    rewrite set_minusK, set_union_empty_r.
+    rewrite (rsr_acts SIMREL), rsr_b_old_exa, set_union_empty_r.
+    rewrite set_collect_eq, rsr_mapper_bt; auto.
+    rewrite set_minus_disjoint; [basic_solver |].
+    unfolder. intros x (y & YIN & XEQ) XEQ'. subst x.
+    enough (y = a_t) by (desf; auto with xmm).
+    apply rsr_mapper_inv_bt with (a_t := a_t) (b_t := b_t).
+    all: auto. }
   { eapply eq_dom_mori; auto with xmm.
     red. auto with hahn. }
   { simpl. rewrite rsr_b_new_exa, rsr_step_acts.
@@ -548,7 +637,12 @@ Proof using SIMREL INV' INV ADD.
     rewrite (rsr_rf SIMREL), (rf_delta_RE WF_t ADD').
     now rewrite rsr_b_old_exa, set_inter_empty_l, eqv_empty,
                 seq_false_r, union_false_r. }
-  { admit. }
+  { rewrite (WCore.add_event_co ADD').
+    rewrite rsr_b_exco. simpl.
+    rewrite (rsr_co SIMREL), (co_deltaE WF_t ADD').
+    rewrite collect_rel_union.
+    now rewrite rsr_b_old_exa, set_inter_empty_l,
+                add_max_empty_r, union_false_r. }
   { simpl. rewrite (WCore.add_event_threads ADD').
     apply (rsr_threads SIMREL). }
   all: ins.
