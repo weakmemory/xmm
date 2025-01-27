@@ -21,6 +21,8 @@ From hahnExt Require Import HahnExt.
 From imm Require Import Events Execution.
 Require Import Setoid Morphisms Program.Basics.
 
+Set Implicit Arguments.
+
 Section ReordCons.
 
 Variable X_s X_t : WCore.t.
