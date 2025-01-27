@@ -1,5 +1,5 @@
 Require Import ReordSimrel ReorderingEq.
-Require Import AuxDef.
+Require Import AuxDef MapDoms.
 Require Import Core.
 Require Import AuxRel AuxRel2.
 Require Import Srf Rhb.
@@ -10,6 +10,7 @@ Require Import PorfPrefix.
 Require Import AddEventWf.
 Require Import ReorderingFakeSrf.
 Require Import ReorderingCons ReorderingMapper.
+Require Import ConsistencyMonotonicity.
 Require Import xmm_s_hb.
 
 From hahn Require Import Hahn.
@@ -80,6 +81,7 @@ Notation "'sb_s'" := (sb G_s).
 Notation "'rf_s'" := (rf G_s).
 Notation "'co_s'" := (co G_s).
 Notation "'rmw_s'" := (rmw G_s).
+Notation "'rpo_imm_s'" := (rpo_imm G_s).
 Notation "'rpo_s'" := (rpo G_s).
 Notation "'rmw_dep_s'" := (rmw_dep G_s).
 Notation "'data_s'" := (data G_s).
@@ -136,6 +138,7 @@ Notation "'sb_s'''" := (sb G_s'').
 Notation "'rf_s'''" := (rf G_s'').
 Notation "'co_s'''" := (co G_s'').
 Notation "'rmw_s'''" := (rmw G_s'').
+Notation "'rpo_imm_s'''" := (rpo_imm G_s'').
 Notation "'rpo_s'''" := (rpo G_s'').
 Notation "'sw_s'''" := (sw G_s'').
 Notation "'rmw_dep_s'''" := (rmw_dep G_s'').
@@ -187,6 +190,7 @@ Notation "'sb_s''" := (sb G_s').
 Notation "'rf_s''" := (rf G_s').
 Notation "'co_s''" := (co G_s').
 Notation "'rmw_s''" := (rmw G_s').
+Notation "'rpo_imm_s''" := (rpo_imm G_s').
 Notation "'rpo_s''" := (rpo G_s').
 Notation "'sw_s''" := (sw G_s').
 Notation "'rmw_dep_s''" := (rmw_dep G_s').
@@ -341,7 +345,16 @@ Lemma rsr_b_notin_s' : ~ E_s (mapper a_t).
 Proof using b_t a_t ADD SIMREL INV INV'.
 Admitted.
 
-Hint Resolve rsr_b_notin_s rsr_b_notin_s' : xmm.
+Lemma rsr_b_a_notin_s : ~ E_s a_t.
+Proof using b_t a_t ADD SIMREL INV INV'.
+Admitted.
+
+Lemma rsr_b_a_notin_s' : ~ E_s'' a_t.
+Proof using b_t a_t ADD SIMREL INV INV'.
+Admitted.
+
+Hint Resolve rsr_b_notin_s rsr_b_notin_s'
+             rsr_b_a_notin_s rsr_b_a_notin_s' : xmm.
 
 Lemma rsr_b_lab : eq_dom E_t' lab_t' (lab_s' ∘ mapper).
 Proof using ADD SIMREL INV INV'.
@@ -350,6 +363,19 @@ Proof using ADD SIMREL INV INV'.
   rewrite <- rsr_mapper_at with (a_t := a_t) (b_t := b_t) at 1.
   all: auto.
 Admitted.
+
+Lemma rsr_b_labi : eq_dom E_s'' lab_s'' lab_s'.
+Proof using ADD SIMREL INV INV'.
+  assert (NEQ : a_t <> b_t) by apply INV.
+  simpl. apply eq_dom_upd_r; [| reflexivity].
+  unfolder. intros [XIN | EQ].
+  all: auto with xmm.
+Qed.
+
+Lemma rsr_b_labi' : eq_dom E_s'' lab_s' lab_s''.
+Proof using ADD SIMREL INV INV'.
+  symmetry. exact rsr_b_labi.
+Qed.
 
 Lemma rsr_b_lab' : eq_dom E_t' (lab_s' ∘ mapper) lab_t'.
 Proof using ADD SIMREL INV INV'.
@@ -363,7 +389,13 @@ Proof using ADD SIMREL INV INV'.
   red; auto with hahn.
 Qed.
 
+Lemma rsr_b_in1 : E_s'' ⊆₁ E_s'.
+Proof using.
+  clear. simpl. basic_solver.
+Qed.
+
 Hint Resolve rsr_b_lab rsr_b_lab'
+             rsr_b_labi rsr_b_labi'
             rsr_b_mapinj rsr_Gt_wf : xmm.
 
 Lemma rsr_b_sim :
@@ -380,6 +412,63 @@ Qed.
 Lemma rsr_new_Gs_cons :
   WCore.is_cons G_s'.
 Proof using.
+Admitted.
+
+Lemma rsr_b_imm_rpoimm_in :
+  rpo_imm_s'' ⊆ rpo_imm_s'.
+Proof using ADD SIMREL INV INV'.
+  unfold rpo_imm, sb.
+  rewrite !seqA.
+  seq_rewrite (seq_eqvC E_s'' (F_s'' ∩₁ Acq_s'')).
+  seq_rewrite (seq_eqvC E_s'' Rel_s'').
+  seq_rewrite (seq_eqvC E_s'' (W_s'' ∩₁ Rlx_s'')).
+  seq_rewrite (seq_eqvC E_s' (F_s' ∩₁ Acq_s')).
+  seq_rewrite (seq_eqvC E_s' Rel_s').
+  seq_rewrite (seq_eqvC E_s' (W_s' ∩₁ Rlx_s')).
+  seq_rewrite <- !id_inter.
+  rewrite !set_interA.
+  rewrite !set_inter_rlx with (G := G_s').
+  all: auto with xmm.
+  rewrite !set_inter_acq with (G := G_s').
+  all: auto with xmm.
+  rewrite !set_inter_rel with (G := G_s').
+  all: auto with xmm.
+  rewrite !set_inter_is_f with (G := G_s') (s' := E_s'') (G' := G_s''),
+          set_inter_is_r with (G := G_s') (s' := E_s''),
+          set_inter_is_w with (G := G_s') (s' := E_s'').
+  all: auto with xmm.
+  { rewrite rsr_b_in1. reflexivity. }
+  all: basic_solver.
+Qed.
+
+Lemma rsr_b_imm_rpo_in :
+  rpo_s'' ⊆ rpo_s'.
+Proof using ADD SIMREL INV INV'.
+  unfold rpo. now rewrite rsr_b_imm_rpoimm_in.
+Qed.
+
+Lemma rsr_imm_Gs_cons :
+  WCore.is_cons G_s''.
+Proof using.
+  destruct ADD as (r & R1 & w & W1 & W2 & ADD').
+  apply XmmCons.monoton_cons
+   with (G_t := G_s') (m := id).
+  all: rewrite ?set_collect_id, ?collect_rel_id.
+  { basic_solver. }
+  { simpl. basic_solver. }
+  { apply rsr_b_imm_rpo_in. }
+  { admit. }
+  { simpl. rewrite unionA.
+    apply union_mori; [reflexivity |].
+    apply inclusion_union_r. now right. }
+  { simpl. rewrite (WCore.add_event_rmw ADD').
+    rewrite collect_rel_union.
+    apply inclusion_union_r. now left. }
+  { admit. }
+  { admit. }
+  { apply (G_s_wf INV' rsr_b_sim). }
+  { admit. }
+  apply rsr_new_Gs_cons.
 Admitted.
 
 Hint Resolve rsr_new_Gs_wf rsr_new_Gs_cons : xmm.
