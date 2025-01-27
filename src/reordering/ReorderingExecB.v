@@ -447,12 +447,17 @@ Proof using ADD SIMREL INV INV'.
   rewrite set_collect_empty. auto with hahn.
 Qed.
 
+Lemma rsr_imm_Gs_wf :
+  Wf G_s''.
+Proof using b_t a_t ADD SIMREL INV INV'.
+Admitted.
+
 Hint Resolve rsr_b_lab rsr_b_lab'
              rsr_b_labi rsr_b_labi'
              rsr_b_mapinj rsr_Gt_wf
              rsr_b_labs rsr_b_labs'
              rsr_b_mapb rsr_b_mapa
-             rsr_b_labb : xmm.
+             rsr_b_labb rsr_imm_Gs_wf : xmm.
 
 Lemma rsr_b_in1 : E_s'' ⊆₁ E_s'.
 Proof using.
@@ -526,7 +531,55 @@ Lemma rsr_b_samesrf :
   srf_s' ⨾ ⦗eq b_t ∩₁ WCore.lab_is_r l_a⦘ ≡
     srf_s'' ⨾ ⦗eq b_t ∩₁ WCore.lab_is_r l_a⦘.
 Proof using SIMREL INV' INV ADD.
-Admitted.
+  assert (NEQ : a_t <> b_t) by apply INV.
+  assert (NIN : ~E_s a_t) by auto with xmm.
+  assert (IDE : eq a_t ∩₁ (E_s ∪₁ eq b_t) ⊆₁ ∅).
+  { basic_solver. }
+  arewrite (
+    ⦗eq b_t ∩₁ WCore.lab_is_r l_a⦘ ≡
+      ⦗E_s''⦘ ⨾ ⦗eq b_t ∩₁ WCore.lab_is_r l_a⦘
+  ).
+  { rewrite <- id_inter, set_inter_absorb_l with (s' := E_s'').
+    all: auto with hahn.
+    simpl. basic_solver. }
+  rewrite <- !seqA. apply seq_more; [| reflexivity].
+  apply porf_pref_srf; auto with xmm.
+  { simpl. basic_solver. }
+  { rewrite rsr_new_a_sb', seq_union_l.
+    arewrite_false (WCore.sb_delta a_t E_s'' ⨾ ⦗E_s''⦘);
+      [| now rewrite union_false_r].
+    unfold WCore.sb_delta. rewrite <- cross_inter_r.
+    arewrite (eq a_t ∩₁ E_s'' ⊆₁ ∅).
+    now rewrite cross_false_r. }
+  { simpl. rewrite <- rsr_b_fakesrf.
+    rewrite !seq_union_l.
+    arewrite_false (mapper ↑ (rf_t' ⨾ ⦗eq b_t⦘) ⨾ ⦗E_s ∪₁ eq b_t⦘)
+      ; [| basic_solver 11].
+    rewrite collect_rel_seqi, collect_rel_eqv,
+            set_collect_eq, rsr_mapper_bt; auto.
+    rewrite seqA, <- id_inter, IDE.
+    now rewrite eqv_empty, seq_false_r. }
+  { simpl. rewrite !seq_union_l, !seq_union_r.
+    arewrite_false (
+      ⦗E_s ∪₁ eq b_t⦘ ⨾
+        mapper ↑ (⦗eq b_t⦘ ⨾ co_t' ∪ co_t' ⨾ ⦗eq b_t⦘) ⨾
+          ⦗E_s ∪₁ eq b_t⦘
+    ); [| basic_solver 11].
+    rewrite collect_rel_union, seq_union_l,
+            seq_union_r, !collect_rel_seqi.
+    rewrite collect_rel_eqv, set_collect_eq,
+              rsr_mapper_bt, !seqA; auto.
+    seq_rewrite (seq_eqvC (E_s ∪₁ eq b_t) (eq a_t)).
+    rewrite <- id_inter, IDE, eqv_empty.
+    now rewrite !seq_false_r, !seq_false_l, union_false_r. }
+  destruct ADD as (r & R1 & w & W1 & W2 & ADD').
+  simpl. rewrite (WCore.add_event_rmw ADD'), collect_rel_union.
+  rewrite seq_union_l, mapped_rmw_delta, rsr_mapper_bt; auto.
+  unfold WCore.rmw_delta.
+  split; [| apply inclusion_union_r; now left].
+  rewrite <- cross_inter_r, IDE.
+  now rewrite cross_false_r, union_false_r.
+Qed.
 
 Lemma rsr_b_exco_helper :
   eq a_t ∩₁ W_s' ∩₁ Loc_s_' (loc_s' b_t) ≡₁ ∅.
@@ -665,11 +718,6 @@ Proof using b_t a_t ADD SIMREL INV INV'.
   apply (G_s_wf INV' rsr_b_sim).
 Qed.
 
-Lemma rsr_imm_Gs_wf :
-  Wf G_s''.
-Proof using b_t a_t ADD SIMREL INV INV'.
-Admitted.
-
 Lemma rsr_new_Gs_cons :
   WCore.is_cons G_s'.
 Proof using b_t a_t CONS ADD SIMREL INV INV'.
@@ -733,7 +781,7 @@ Proof using.
   apply rsr_new_Gs_cons.
 Admitted.
 
-Hint Resolve rsr_new_Gs_wf rsr_new_Gs_cons rsr_imm_Gs_wf : xmm.
+Hint Resolve rsr_new_Gs_wf rsr_new_Gs_cons : xmm.
 
 Lemma rsr_b_srf_exists :
   exists w,
