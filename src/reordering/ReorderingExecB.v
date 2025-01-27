@@ -579,6 +579,58 @@ Proof using ADD SIMREL INV INV'.
   clear. basic_solver 11.
 Qed.
 
+Lemma rsr_b_loc_some :
+  exists ll, WCore.lab_loc l_a = Some ll.
+Proof using ADD SIMREL INV INV'.
+Admitted.
+
+Lemma rsr_b_imm_fin : set_finite (E_s'' \₁ is_init).
+Proof using ADD SIMREL INV INV'.
+  simpl. rewrite set_minus_union_l, set_unionC.
+  apply set_finite_union. split.
+  { eapply set_finite_mori; auto with hahn.
+    red. basic_solver. }
+  apply (rsr_fin_s INV SIMREL).
+Qed.
+
+Lemma rsr_b_srf_exists_helper w
+    (ISR : R_s'' b_t)
+    (SRF : srf_s'' w b_t) :
+  fake_srf G_s b_t l_a ⨾ ⦗eq b_t ∩₁ WCore.lab_is_r l_a⦘ ≡
+    eq w × eq b_t.
+Proof using ADD SIMREL INV INV'.
+  rewrite <- rsr_b_fakesrf.
+  arewrite (eq b_t ∩₁ WCore.lab_is_r l_a ≡₁ eq b_t).
+  { rewrite set_inter_absorb_r; [reflexivity |].
+    intros x XEQ. subst x. unfold WCore.lab_is_r, is_r in *.
+    simpl in ISR. rewrite upds in ISR. desf. }
+  split; [| basic_solver].
+  intros w' y (y' & SRF' & (EQ1 & EQ2)).
+  subst y y'. red. split; auto.
+  apply (wf_srff rsr_imm_Gs_wf) with b_t.
+  all: red; auto.
+Qed.
+
+Lemma rsr_b_srf_exists'
+    (ISR : R_s'' b_t) :
+  exists w,
+    fake_srf G_s b_t l_a ⨾ ⦗eq b_t ∩₁ WCore.lab_is_r l_a⦘ ≡
+      eq w × eq b_t.
+Proof using ADD SIMREL INV INV'.
+  destruct rsr_b_loc_some as [ll EQ].
+  destruct srf_exists
+      with (G := G_s'') (r := b_t) (l := ll)
+        as [w SRF].
+  all: auto with xmm.
+  all: try now apply rsr_imm_Gs_wf.
+  { simpl. basic_solver. }
+  { simpl. unfold loc. rewrite upds.
+    unfold WCore.lab_loc in EQ. desf. }
+  { apply rsr_b_imm_fin. }
+  exists w.
+  now apply rsr_b_srf_exists_helper.
+Qed.
+
 Lemma rsr_b_co_delta :
   WCore.co_delta b_t ∅
     (W_s ∩₁ E_s ∩₁ Loc_s_ (WCore.lab_loc l_a) ∩₁ WCore.lab_is_w l_a) ≡
@@ -595,10 +647,9 @@ Proof using.
 Qed.
 
 Lemma rsr_b_step1 :
-  WCore.add_event X_s X_s'' (mapper a_t) l_a.
+  WCore.add_event X_s X_s'' b_t l_a.
 Proof using ADD SIMREL INV INV'.
   assert (NEQ : a_t <> b_t) by apply INV.
-  rewrite rsr_mapper_at; auto.
   destruct rsr_b_srf_exists as [w SRF].
   exists None, ∅, w, ∅,
     (W_s ∩₁ E_s ∩₁ Loc_s_ (WCore.lab_loc l_a) ∩₁ WCore.lab_is_w l_a).
@@ -614,12 +665,11 @@ Proof using ADD SIMREL INV INV'.
 Qed.
 
 Lemma rsr_b_step2 :
-  WCore.add_event X_s'' X_s' (mapper b_t) l_b.
+  WCore.add_event X_s'' X_s' a_t l_b.
 Proof using ADD SIMREL INV INV'.
   assert (WF_t : Wf G_t) by apply (rsr_Gt_wf INV).
   assert (NEQ : a_t <> b_t) by apply INV.
   destruct ADD as (r & R1 & w & W1 & W2 & ADD').
-  rewrite rsr_mapper_bt; auto.
   exists (option_map mapper r), ∅,
         (option_map mapper w), (mapper ↑₁ W1), (mapper ↑₁ W2).
   apply add_event_to_wf.
@@ -639,14 +689,48 @@ Proof using ADD SIMREL INV INV'.
   now rewrite (rsr_ctrl SIMREL), (rsr_nctrl INV).
 Qed.
 
+Lemma rsr_b_imm_rfc : rf_complete G_s''.
+Proof using ADD SIMREL INV INV'.
+  assert (RFC : rf_complete G_s).
+  { apply (G_s_rfc INV SIMREL). }
+  unfold rf_complete. simpl.
+  rewrite set_inter_union_l, codom_union.
+  arewrite (eq b_t ∩₁ R_s'' ≡₁ eq b_t ∩₁ WCore.lab_is_r l_a).
+  { clear. simpl. unfolder. split; intros x (XEQ & ISR).
+    all: subst x; split; auto.
+    all: unfold is_r, WCore.lab_is_r in *; rewrite upds in *.
+    all: desf. }
+  apply set_subset_union.
+  { red in RFC. rewrite <- RFC, set_interC.
+    rewrite set_inter_is_r
+       with (G := G_s) (G' := G_s'') (s' := E_s).
+    all: auto with hahn xmm.
+    basic_solver. }
+  intros x (XEQ & ISR'). subst x.
+  assert (ISR : R_s'' b_t).
+  { unfold is_r, WCore.lab_is_r in *. simpl.
+    rewrite upds. desf. }
+  destruct (rsr_b_srf_exists' ISR)
+        as [w SRF].
+  exists w. apply SRF. basic_solver.
+Qed.
+
 Lemma simrel_exec_b_step_1 :
     WCore.exec_inst X_s  X_s'' b_t l_a.
-Proof using INV INV'.
-Admitted.
+Proof using ADD SIMREL INV INV' CONS.
+  constructor.
+  { apply rsr_b_step1. }
+  { apply rsr_b_imm_rfc. }
+  apply rsr_imm_Gs_cons.
+Qed.
 
 Lemma simrel_exec_b_step_2 :
     WCore.exec_inst X_s'' X_s' a_t l_b.
-Proof using INV INV'.
-Admitted.
+Proof using ADD SIMREL INV INV' CONS.
+  constructor.
+  { apply rsr_b_step2. }
+  { apply (G_s_rfc INV' rsr_b_sim). }
+  apply (rsr_cons INV' CONS rsr_b_sim).
+Qed.
 
 End ExecB.
