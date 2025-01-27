@@ -686,11 +686,6 @@ Proof using SIMREL INV' INV ADD.
   now rewrite cross_false_r, union_false_r.
 Qed.
 
-Lemma rsr_b_exco_helper :
-  eq a_t ∩₁ W_s' ∩₁ Loc_s_' (loc_s' b_t) ≡₁ ∅.
-Proof using.
-Admitted.
-
 Lemma rsr_b_isw_helper :
   eq b_t ∩₁ W_s' ≡₁ eq b_t ∩₁ WCore.lab_is_w l_a.
 Proof using INV.
@@ -700,63 +695,6 @@ Proof using INV.
   all: intros x (XEQ & ISR); subst x.
   all: rewrite updo, upds in *; desf.
   all: congruence.
-Qed.
-
-Lemma rsr_b_exco :
-  add_max
-    (extra_co_D E_s' lab_s' (loc_s' b_t))
-    (A_s' ∩₁ W_s') ≡
-      (W_s ∩₁ E_s ∩₁ Loc_s_ (WCore.lab_loc l_a)) ×
-        (eq b_t ∩₁ WCore.lab_is_w l_a).
-Proof using SIMREL INV' INV ADD.
-  assert (NEQ : a_t <> b_t) by apply INV.
-  unfold add_max, extra_co_D.
-  rewrite rsr_b_new_exa.
-  arewrite (
-    (E_s' ∩₁ W_s' ∩₁ Loc_s_' (loc_s' b_t) \₁ eq b_t ∩₁ W_s') ×
-      (eq b_t ∩₁ W_s') ≡
-        (E_s' ∩₁ W_s' ∩₁ Loc_s_' (loc_s' b_t) \₁ eq b_t) ×
-          (eq b_t ∩₁ W_s')
-  ).
-  { destruct classic with (W_s' b_t) as [ISW|NIS].
-    { rewrite set_inter_absorb_r with (s := eq b_t).
-      all: basic_solver. }
-    arewrite (eq b_t ∩₁ W_s' ≡₁ ∅) by basic_solver.
-    now rewrite !cross_false_r. }
-  arewrite (
-    E_s' ∩₁ W_s' ∩₁ Loc_s_' (loc_s' b_t) \₁ eq b_t ≡₁
-      (E_s' \₁ eq b_t) ∩₁ W_s' ∩₁ Loc_s_' (loc_s' b_t)
-  ) by basic_solver 11.
-  arewrite (E_s' \₁ eq b_t ≡₁ E_s ∪₁ eq a_t).
-  { simpl. rewrite !set_minus_union_l, set_minusK.
-    rewrite set_union_empty_r, set_minus_disjoint.
-    { basic_solver. }
-    unfolder. intros x XIN XEQ. subst x.
-    auto with xmm. }
-  rewrite !set_inter_union_l, rsr_b_isw_helper.
-  rewrite rsr_b_exco_helper, set_union_empty_r.
-  arewrite (loc_s' b_t = WCore.lab_loc l_a).
-  { simpl. unfold loc. rewrite updo, upds by congruence.
-    unfold WCore.lab_loc. desf. }
-  apply cross_more; [| reflexivity].
-  transitivity (
-    W_s' ∩₁ Loc_s_' (WCore.lab_loc l_a) ∩₁ E_s
-  ); [basic_solver |].
-  transitivity (
-    W_s ∩₁ Loc_s_ (WCore.lab_loc l_a) ∩₁ E_s
-  ); [| basic_solver].
-  rewrite !set_interA. split.
-  all: rewrite set_inter_loc, set_inter_is_w.
-  all: try reflexivity.
-  all: try now (
-    eapply eq_dom_mori; eauto with xmm;
-      red; basic_solver
-  ).
-  all: symmetry.
-  all: try now (
-    eapply eq_dom_mori; eauto with xmm;
-      red; basic_solver
-  ).
 Qed.
 
 Lemma rsr_sb_sim_sb_helper' :
@@ -814,14 +752,82 @@ Proof using SIMREL INV' INV ADD.
   basic_solver 11.
 Qed.
 
+Hypothesis EXAPRED : extra_a_pred X_s' a_t b_t b_t.
+
+Lemma rsr_b_exco_helper :
+  eq a_t ∩₁ W_s' ∩₁ Loc_s_' (loc_s' b_t) ≡₁ ∅.
+Proof using EXAPRED.
+  enough (loc_s' a_t <> loc_s' b_t) by basic_solver.
+  apply EXAPRED.
+Qed.
+
+Lemma rsr_b_exco :
+  add_max
+    (extra_co_D E_s' lab_s' (loc_s' b_t))
+    (A_s' ∩₁ W_s') ≡
+      (W_s ∩₁ E_s ∩₁ Loc_s_ (WCore.lab_loc l_a)) ×
+        (eq b_t ∩₁ WCore.lab_is_w l_a).
+Proof using SIMREL INV' INV ADD EXAPRED.
+  assert (NEQ : a_t <> b_t) by apply INV.
+  unfold add_max, extra_co_D.
+  rewrite rsr_b_new_exa.
+  arewrite (
+    (E_s' ∩₁ W_s' ∩₁ Loc_s_' (loc_s' b_t) \₁ eq b_t ∩₁ W_s') ×
+      (eq b_t ∩₁ W_s') ≡
+        (E_s' ∩₁ W_s' ∩₁ Loc_s_' (loc_s' b_t) \₁ eq b_t) ×
+          (eq b_t ∩₁ W_s')
+  ).
+  { destruct classic with (W_s' b_t) as [ISW|NIS].
+    { rewrite set_inter_absorb_r with (s := eq b_t).
+      all: basic_solver. }
+    arewrite (eq b_t ∩₁ W_s' ≡₁ ∅) by basic_solver.
+    now rewrite !cross_false_r. }
+  arewrite (
+    E_s' ∩₁ W_s' ∩₁ Loc_s_' (loc_s' b_t) \₁ eq b_t ≡₁
+      (E_s' \₁ eq b_t) ∩₁ W_s' ∩₁ Loc_s_' (loc_s' b_t)
+  ) by basic_solver 11.
+  arewrite (E_s' \₁ eq b_t ≡₁ E_s ∪₁ eq a_t).
+  { simpl. rewrite !set_minus_union_l, set_minusK.
+    rewrite set_union_empty_r, set_minus_disjoint.
+    { basic_solver. }
+    unfolder. intros x XIN XEQ. subst x.
+    auto with xmm. }
+  rewrite !set_inter_union_l, rsr_b_isw_helper.
+  rewrite rsr_b_exco_helper, set_union_empty_r.
+  arewrite (loc_s' b_t = WCore.lab_loc l_a).
+  { simpl. unfold loc. rewrite updo, upds by congruence.
+    unfold WCore.lab_loc. desf. }
+  apply cross_more; [| reflexivity].
+  transitivity (
+    W_s' ∩₁ Loc_s_' (WCore.lab_loc l_a) ∩₁ E_s
+  ); [basic_solver |].
+  transitivity (
+    W_s ∩₁ Loc_s_ (WCore.lab_loc l_a) ∩₁ E_s
+  ); [| basic_solver].
+  rewrite !set_interA. split.
+  all: rewrite set_inter_loc, set_inter_is_w.
+  all: try reflexivity.
+  all: try now (
+    eapply eq_dom_mori; eauto with xmm;
+      red; basic_solver
+  ).
+  all: symmetry.
+  all: try now (
+    eapply eq_dom_mori; eauto with xmm;
+      red; basic_solver
+  ).
+Qed.
+
 Lemma rsr_b_sim_exa :
   A_s' ⊆₁ extra_a_pred X_s' a_t b_t.
-Proof using SIMREL INV' INV ADD.
-Admitted.
+Proof using SIMREL INV' INV ADD EXAPRED.
+  rewrite rsr_b_new_exa. intros x XEQ. subst x.
+  apply EXAPRED.
+Qed.
 
 Lemma rsr_b_sim :
   reord_simrel X_s' X_t' a_t b_t mapper.
-Proof using SIMREL INV' INV ADD.
+Proof using SIMREL INV' INV ADD EXAPRED.
   assert (WF_t : Wf G_t) by apply (rsr_Gt_wf INV).
   assert (NEQ : a_t <> b_t) by apply INV.
   assert (TEQ : tid a_t = tid b_t) by apply INV.
@@ -879,13 +885,13 @@ Qed.
 
 Lemma rsr_new_Gs_wf :
   Wf G_s'.
-Proof using b_t a_t ADD SIMREL INV INV'.
+Proof using b_t a_t ADD SIMREL INV INV' EXAPRED.
   apply (G_s_wf INV' rsr_b_sim).
 Qed.
 
 Lemma rsr_new_Gs_cons :
   WCore.is_cons G_s'.
-Proof using b_t a_t CONS ADD SIMREL INV INV'.
+Proof using b_t a_t CONS ADD SIMREL INV INV' EXAPRED.
   apply (rsr_cons INV' CONS rsr_b_sim).
 Qed.
 
@@ -1046,7 +1052,7 @@ Qed.
 
 Lemma rsr_b_step2 :
   WCore.add_event X_s'' X_s' a_t l_b.
-Proof using ADD SIMREL INV INV'.
+Proof using ADD SIMREL INV INV' EXAPRED.
   assert (WF_t : Wf G_t) by apply (rsr_Gt_wf INV).
   assert (NEQ : a_t <> b_t) by apply INV.
   destruct ADD as (r & R1 & w & W1 & W2 & ADD').
@@ -1070,7 +1076,7 @@ Proof using ADD SIMREL INV INV'.
 Qed.
 
 Lemma rsr_b_imm_rfc : rf_complete G_s''.
-Proof using ADD SIMREL INV INV'.
+Proof using ADD SIMREL INV INV' EXAPRED.
   assert (RFC : rf_complete G_s).
   { apply (G_s_rfc INV SIMREL). }
   unfold rf_complete. simpl.
@@ -1097,7 +1103,7 @@ Qed.
 
 Lemma simrel_exec_b_step_1 :
     WCore.exec_inst X_s  X_s'' b_t l_a.
-Proof using ADD SIMREL INV INV' CONS.
+Proof using ADD SIMREL INV INV' CONS EXAPRED.
   constructor.
   { apply rsr_b_step1. }
   { apply rsr_b_imm_rfc. }
@@ -1106,7 +1112,7 @@ Qed.
 
 Lemma simrel_exec_b_step_2 :
     WCore.exec_inst X_s'' X_s' a_t l_b.
-Proof using ADD SIMREL INV INV' CONS.
+Proof using ADD SIMREL INV INV' CONS EXAPRED.
   constructor.
   { apply rsr_b_step2. }
   { apply (G_s_rfc INV' rsr_b_sim). }
