@@ -155,6 +155,7 @@ Notation "'Val_s_''' l" := (fun e => val_s'' e = l) (at level 1).
 Notation "'Rlx_s'''" := (fun e => is_true (is_rlx lab_s'' e)).
 Notation "'Acq_s'''" := (fun e => is_true (is_acq lab_s'' e)).
 Notation "'Rel_s'''" := (fun e => is_true (is_rel lab_s'' e)).
+Notation "'drf_s'''" := (fake_srf G_s b_t l_a ⨾ ⦗eq b_t ∩₁ WCore.lab_is_r l_a⦘).
 
 Definition rsr_b_Gs_prime := {|
   acts_set := E_s ∪₁ eq b_t ∪₁ eq a_t;
@@ -162,7 +163,7 @@ Definition rsr_b_Gs_prime := {|
   lab := upd (upd lab_s b_t l_a) a_t l_b;
   rf := rf_s ∪
         mapper ↑ (rf_t' ⨾ ⦗eq b_t⦘) ∪
-        srf_s'' ⨾ ⦗eq b_t ∩₁ WCore.lab_is_r l_a⦘;
+        drf_s'';
   co := co_s ∪
         mapper ↑ (⦗eq b_t⦘ ⨾ co_t' ∪ co_t' ⨾ ⦗eq b_t⦘) ∪
         (W_s ∩₁ E_s ∩₁ Loc_s_ (WCore.lab_loc l_a)) ×
@@ -430,6 +431,21 @@ Proof using b_t a_t ADD SIMREL INV INV'.
   now rewrite rsr_new_a_sb_delta', !union_false_r.
 Qed.
 
+Lemma rsr_b_co_delta :
+  WCore.co_delta b_t ∅
+    (W_s ∩₁ E_s ∩₁ Loc_s_ (WCore.lab_loc l_a) ∩₁ WCore.lab_is_w l_a) ≡
+      (W_s ∩₁ E_s ∩₁ Loc_s_ (WCore.lab_loc l_a)) ×
+        (eq b_t ∩₁ WCore.lab_is_w l_a).
+Proof using.
+  unfold WCore.co_delta.
+  rewrite cross_false_r, union_false_l.
+  unfold WCore.lab_is_w.
+  destruct l_a.
+  all: rewrite ?set_inter_empty_r.
+  all: try now rewrite cross_false_r, cross_false_l.
+  now rewrite !set_inter_full_r.
+Qed.
+
 Lemma rsr_b_notin_s : ~ E_s b_t.
 Proof using b_t a_t ADD SIMREL INV INV'.
   intro BIN. apply (rsr_actsE INV SIMREL) in BIN.
@@ -564,6 +580,15 @@ Hint Resolve rsr_b_lab rsr_b_lab'
              rsr_b_mapb rsr_b_mapa
              rsr_b_labb rsr_imm_Gs_wf : xmm.
 
+Lemma rsr_b_imm_fin : set_finite (E_s'' \₁ is_init).
+Proof using ADD SIMREL INV INV'.
+  simpl. rewrite set_minus_union_l, set_unionC.
+  apply set_finite_union. split.
+  { eapply set_finite_mori; auto with hahn.
+    red. basic_solver. }
+  apply (rsr_fin_s INV SIMREL).
+Qed.
+
 Lemma rsr_b_in1 : E_s'' ⊆₁ E_s'.
 Proof using.
   clear. simpl. basic_solver.
@@ -578,6 +603,61 @@ Proof using SIMREL INV' INV ADD.
   { unfold sb. basic_solver. }
   rewrite union_false_l. unfold WCore.sb_delta.
   now rewrite <- cross_inter_r, set_interK.
+Qed.
+
+Lemma rsr_b_srf_exists :
+  exists w, drf_s'' ≡ eq_opt w × eq b_t.
+Proof using ADD SIMREL INV INV'.
+  destruct fake_srf_exists
+      with (G_s := G_s) (e := b_t) (l_e := l_a)
+        as [w SRF].
+  all: auto with xmm.
+  exists w. rewrite SRF.
+  clear. basic_solver 11.
+Qed.
+
+Lemma rsr_trans_co : transitive co_s''.
+Proof using ADD SIMREL INV INV'.
+  assert (WF_s : Wf G_s).
+  { apply (G_s_wf INV SIMREL). }
+  simpl. apply expand_transitive.
+  { apply WF_s. }
+  { admit. }
+  rewrite (wf_coE WF_s), dom_seq, dom_eqv.
+  enough (~ E_s b_t) by basic_solver 11.
+  auto with xmm.
+Admitted.
+
+Lemma rsr_total_co ol :
+  is_total
+    (E_s'' ∩₁ W_s'' ∩₁ Loc_s_'' ol)
+    co_s''.
+Proof using ADD SIMREL INV INV'.
+  assert (WF_s : Wf G_s).
+  { apply (G_s_wf INV SIMREL). }
+Admitted.
+
+Hint Resolve rsr_trans_co rsr_total_co : xmm.
+
+Lemma rsr_func_rf : functional rf_s''⁻¹.
+Proof using ADD SIMREL INV INV'.
+  assert (WF_s : Wf G_s).
+  { apply (G_s_wf INV SIMREL). }
+  simpl. apply functional_union.
+  { apply WF_s. }
+  { arewrite (drf_s''⁻¹ ⊆ (fake_srf G_s b_t l_a)⁻¹).
+    { apply transp_mori. basic_solver. }
+    now eapply fake_srff. }
+  intros x HIN1' HIN2'.
+  assert (HIN1 : codom_rel rf_s x) by now apply dom_transp.
+  assert (HIN2 : codom_rel drf_s'' x) by now apply dom_transp.
+  enough (E_s b_t) by auto with xmm.
+  assert (XIN : E_s x).
+  { red in HIN1. destruct HIN1 as (y & RF).
+    eapply dom_helper_3 with (r := rf_s) (d := E_s); eauto.
+    apply WF_s. }
+  enough (x = b_t) by desf.
+  forward apply HIN2. basic_solver.
 Qed.
 
 Lemma rsr_b_vfsb_eq :
@@ -621,11 +701,40 @@ Proof using SIMREL INV' INV ADD.
   basic_solver.
 Qed.
 
+Lemma rsr_b_srf_exists_helper w
+    (ISR : R_s'' b_t)
+    (SRF : srf_s'' w b_t) :
+  fake_srf G_s b_t l_a ⨾ ⦗eq b_t ∩₁ WCore.lab_is_r l_a⦘ ≡
+    eq w × eq b_t.
+Proof using ADD SIMREL INV INV'.
+  rewrite <- rsr_b_fakesrf.
+  arewrite (eq b_t ∩₁ WCore.lab_is_r l_a ≡₁ eq b_t).
+  { rewrite set_inter_absorb_r; [reflexivity |].
+    intros x XEQ. subst x. unfold WCore.lab_is_r, is_r in *.
+    simpl in ISR. rewrite upds in ISR. desf. }
+  split; [| basic_solver].
+  intros w' y (y' & SRF' & (EQ1 & EQ2)).
+  subst y y'. red. split; auto.
+  apply (wf_srff rsr_imm_Gs_wf) with b_t.
+  all: red; auto.
+Qed.
+
 Lemma rsr_b_isr_helper :
   eq b_t ∩₁ R_s' ≡₁ eq b_t ∩₁ WCore.lab_is_r l_a.
 Proof using INV.
   assert (NEQ : a_t <> b_t) by apply INV.
   simpl. unfold is_r, WCore.lab_is_r.
+  unfolder. split.
+  all: intros x (XEQ & ISR); subst x.
+  all: rewrite updo, upds in *; desf.
+  all: congruence.
+Qed.
+
+Lemma rsr_b_isw_helper :
+  eq b_t ∩₁ W_s' ≡₁ eq b_t ∩₁ WCore.lab_is_w l_a.
+Proof using INV.
+  assert (NEQ : a_t <> b_t) by apply INV.
+  simpl. unfold is_w, WCore.lab_is_w.
   unfolder. split.
   all: intros x (XEQ & ISR); subst x.
   all: rewrite updo, upds in *; desf.
@@ -686,17 +795,6 @@ Proof using SIMREL INV' INV ADD.
   now rewrite cross_false_r, union_false_r.
 Qed.
 
-Lemma rsr_b_isw_helper :
-  eq b_t ∩₁ W_s' ≡₁ eq b_t ∩₁ WCore.lab_is_w l_a.
-Proof using INV.
-  assert (NEQ : a_t <> b_t) by apply INV.
-  simpl. unfold is_w, WCore.lab_is_w.
-  unfolder. split.
-  all: intros x (XEQ & ISR); subst x.
-  all: rewrite updo, upds in *; desf.
-  all: congruence.
-Qed.
-
 Lemma rsr_sb_sim_sb_helper' :
   WCore.sb_delta a_t E_s'' ≡
     WCore.sb_delta a_t E_s ∪
@@ -752,14 +850,105 @@ Proof using SIMREL INV' INV ADD.
   basic_solver 11.
 Qed.
 
-Hypothesis EXAPRED : extra_a_pred X_s' a_t b_t b_t.
+Hypothesis LVAL : dom_rel (drf_s'') ⊆₁ Val_s_ (WCore.lab_val l_a).
+
+Lemma rsr_b_fakesrf_helper w
+    (EQ : drf_s'' ≡ eq_opt w × eq b_t) :
+  eq_opt w ⊆₁
+    W_s ∩₁ E_s ∩₁ Loc_s_ (WCore.lab_loc l_a) ∩₁
+      Val_s_ (WCore.lab_val l_a).
+Proof using ADD SIMREL INV INV' LVAL.
+  arewrite (eq_opt w ≡₁ dom_rel (drf_s'')).
+  { rewrite EQ. basic_solver. }
+  apply set_subset_inter_r. split; [|apply LVAL].
+  rewrite fake_srfE_left, fake_srfD_left,
+          fake_srfl.
+  basic_solver.
+Qed.
+
+Lemma rsr_b_step1 :
+  WCore.add_event X_s X_s'' b_t l_a.
+Proof using ADD SIMREL INV INV' LVAL.
+  assert (NEQ : a_t <> b_t) by apply INV.
+  destruct ADD as (r & R1 & w' & W1 & W2 & ADD').
+  destruct rsr_b_srf_exists as [w SRF].
+  exists None, ∅, w, ∅,
+    (W_s ∩₁ E_s ∩₁ Loc_s_ (WCore.lab_loc l_a) ∩₁ WCore.lab_is_w l_a).
+  assert (SUB :
+    eq_opt w ⊆₁
+      W_s ∩₁ E_s ∩₁
+        Loc_s_ (WCore.lab_loc l_a) ∩₁
+        Val_s_ (WCore.lab_val l_a)
+  ).
+  { now apply rsr_b_fakesrf_helper. }
+  constructor; auto with xmm.
+  1-4: rewrite SUB; basic_solver.
+  1-3: rewrite eq_opt_noneE; auto with hahn.
+  { unfold WCore.rmw_delta.
+    rewrite eq_opt_noneE, cross_false_l.
+    basic_solver. }
+  1-10: basic_solver.
+  { apply rsr_func_rf. }
+  { apply (rsr_threads SIMREL), ADD'. }
+  { simpl. rewrite (rsr_ctrl SIMREL). apply INV. }
+  { destruct w as [w |]; auto.
+    intro FALSO. exfalso. apply FALSO.
+    simpl. unfold is_r. unfold WCore.lab_is_r in SRF.
+    rewrite upds. desf.
+    all: rewrite set_inter_empty_r, eqv_empty, seq_false_r in SRF.
+    all: exfalso; apply SRF with w b_t; basic_solver. }
+  { unfold is_w, WCore.lab_is_w. simpl.
+    rewrite upds. intro FALSO. desf.
+    all: now rewrite set_inter_empty_r. }
+  { unfold WCore.rf_delta_R, WCore.rf_delta_W.
+    simpl.
+    now rewrite cross_false_r, SRF, union_false_r. }
+  { unfold WCore.co_delta.
+    simpl.
+    rewrite cross_false_r, union_false_l.
+    unfold WCore.lab_is_w; desf.
+    all: rewrite ?set_inter_empty_r, ?set_inter_full_r.
+    all: try now rewrite cross_false_l, cross_false_r, union_false_r.
+    basic_solver. }
+  { unfold WCore.rmw_delta.
+    simpl.
+    rewrite (rsr_rmw SIMREL).
+    now rewrite eq_opt_noneE, cross_false_l, union_false_r. }
+  apply rsr_new_a_sb.
+Qed.
+
+Lemma rsr_b_srf_exists'
+    (ISR : R_s'' b_t) :
+  exists w,
+    fake_srf G_s b_t l_a ⨾ ⦗eq b_t ∩₁ WCore.lab_is_r l_a⦘ ≡
+      eq w × eq b_t.
+Proof using ADD SIMREL INV INV' LVAL.
+  assert (EQ : exists ll, WCore.lab_loc l_a = Some ll).
+  { unfold is_r in ISR. simpl in ISR. rewrite upds in ISR.
+    unfold WCore.lab_loc. desf. eauto. }
+  destruct EQ as [ll EQ].
+  destruct srf_exists
+      with (G := G_s'') (r := b_t) (l := ll)
+        as [w SRF].
+  all: auto with xmm.
+  all: try now apply rsr_imm_Gs_wf.
+  { simpl. basic_solver. }
+  { simpl. unfold loc. rewrite upds.
+    unfold WCore.lab_loc in EQ. desf. }
+  { apply rsr_b_imm_fin. }
+  exists w.
+  now apply rsr_b_srf_exists_helper.
+Qed.
+
+Hypothesis NLOC : WCore.lab_loc l_b <> WCore.lab_loc l_a.
+Hypothesis ARW : (WCore.lab_is_r l_a ∪₁ WCore.lab_is_w l_a) b_t.
+Hypothesis ARLX : mode_le (WCore.lab_mode l_a) Orlx.
 
 Lemma rsr_b_exco_helper :
   eq a_t ∩₁ W_s' ∩₁ Loc_s_' (loc_s' b_t) ≡₁ ∅.
-Proof using EXAPRED.
+Proof using NLOC.
   enough (loc_s' a_t <> loc_s' b_t) by basic_solver.
-  apply EXAPRED.
-Qed.
+Admitted.
 
 Lemma rsr_b_exco :
   add_max
@@ -767,7 +956,8 @@ Lemma rsr_b_exco :
     (A_s' ∩₁ W_s') ≡
       (W_s ∩₁ E_s ∩₁ Loc_s_ (WCore.lab_loc l_a)) ×
         (eq b_t ∩₁ WCore.lab_is_w l_a).
-Proof using SIMREL INV' INV ADD EXAPRED.
+Proof using SIMREL INV' INV ADD NLOC LVAL.
+  clear ARW.
   assert (NEQ : a_t <> b_t) by apply INV.
   unfold add_max, extra_co_D.
   rewrite rsr_b_new_exa.
@@ -820,14 +1010,24 @@ Qed.
 
 Lemma rsr_b_sim_exa :
   A_s' ⊆₁ extra_a_pred X_s' a_t b_t.
-Proof using SIMREL INV' INV ADD EXAPRED.
+Proof using SIMREL INV' INV ADD NLOC ARW LVAL ARLX.
+  assert (NEQ : a_t <> b_t) by apply INV.
   rewrite rsr_b_new_exa. intros x XEQ. subst x.
-  apply EXAPRED.
-Qed.
+  constructor.
+  { reflexivity. }
+  { admit. }
+  { unfold same_loc, loc. simpl.
+    rewrite upds, updo, upds by congruence.
+    apply NLOC. }
+  { admit. }
+  unfolder. unfold is_w, is_r. simpl.
+  rewrite updo, upds by congruence.
+  unfold WCore.lab_is_r, WCore.lab_is_w in ARW.
+Admitted.
 
 Lemma rsr_b_sim :
   reord_simrel X_s' X_t' a_t b_t mapper.
-Proof using SIMREL INV' INV ADD EXAPRED.
+Proof using SIMREL INV' INV ADD NLOC ARW LVAL ARLX.
   assert (WF_t : Wf G_t) by apply (rsr_Gt_wf INV).
   assert (NEQ : a_t <> b_t) by apply INV.
   assert (TEQ : tid a_t = tid b_t) by apply INV.
@@ -860,7 +1060,7 @@ Proof using SIMREL INV' INV ADD EXAPRED.
     rewrite rsr_b_samesrf. simpl.
     rewrite (rsr_rf SIMREL), (rf_delta_RE WF_t ADD').
     now rewrite rsr_b_old_exa, set_inter_empty_l, eqv_empty,
-                seq_false_r, union_false_r. }
+            seq_false_r, union_false_r, rsr_b_fakesrf. }
   { rewrite (WCore.add_event_co ADD').
     rewrite rsr_b_exco. simpl.
     rewrite (rsr_co SIMREL), (co_deltaE WF_t ADD').
@@ -885,13 +1085,13 @@ Qed.
 
 Lemma rsr_new_Gs_wf :
   Wf G_s'.
-Proof using b_t a_t ADD SIMREL INV INV' EXAPRED.
+Proof using SIMREL INV' INV ADD NLOC ARW LVAL ARLX.
   apply (G_s_wf INV' rsr_b_sim).
 Qed.
 
 Lemma rsr_new_Gs_cons :
   WCore.is_cons G_s'.
-Proof using b_t a_t CONS ADD SIMREL INV INV' EXAPRED.
+Proof using SIMREL CONS INV' INV ADD NLOC ARW LVAL ARLX.
   apply (rsr_cons INV' CONS rsr_b_sim).
 Qed.
 
@@ -930,7 +1130,7 @@ Qed.
 
 Lemma rsr_imm_Gs_cons :
   WCore.is_cons G_s''.
-Proof using ADD SIMREL INV INV' EXAPRED CONS.
+Proof using SIMREL CONS INV' INV ADD NLOC ARW LVAL ARLX.
   assert (BNIN : ~E_s b_t) by auto with xmm.
   assert (ANIN : ~E_s a_t) by auto with xmm.
   assert (NEQ : a_t <> b_t) by apply INV.
@@ -1026,105 +1226,9 @@ Qed.
 
 Hint Resolve rsr_new_Gs_wf rsr_new_Gs_cons : xmm.
 
-Lemma rsr_b_srf_exists :
-  exists w,
-    fake_srf G_s b_t l_a ⨾ ⦗eq b_t ∩₁ WCore.lab_is_r l_a⦘ ≡
-      eq_opt w × eq b_t.
-Proof using ADD SIMREL INV INV'.
-  destruct fake_srf_exists
-      with (G_s := G_s) (e := b_t) (l_e := l_a)
-        as [w SRF].
-  all: auto with xmm.
-  exists w. rewrite SRF.
-  clear. basic_solver 11.
-Qed.
-
-Lemma rsr_b_imm_fin : set_finite (E_s'' \₁ is_init).
-Proof using ADD SIMREL INV INV'.
-  simpl. rewrite set_minus_union_l, set_unionC.
-  apply set_finite_union. split.
-  { eapply set_finite_mori; auto with hahn.
-    red. basic_solver. }
-  apply (rsr_fin_s INV SIMREL).
-Qed.
-
-Lemma rsr_b_srf_exists_helper w
-    (ISR : R_s'' b_t)
-    (SRF : srf_s'' w b_t) :
-  fake_srf G_s b_t l_a ⨾ ⦗eq b_t ∩₁ WCore.lab_is_r l_a⦘ ≡
-    eq w × eq b_t.
-Proof using ADD SIMREL INV INV'.
-  rewrite <- rsr_b_fakesrf.
-  arewrite (eq b_t ∩₁ WCore.lab_is_r l_a ≡₁ eq b_t).
-  { rewrite set_inter_absorb_r; [reflexivity |].
-    intros x XEQ. subst x. unfold WCore.lab_is_r, is_r in *.
-    simpl in ISR. rewrite upds in ISR. desf. }
-  split; [| basic_solver].
-  intros w' y (y' & SRF' & (EQ1 & EQ2)).
-  subst y y'. red. split; auto.
-  apply (wf_srff rsr_imm_Gs_wf) with b_t.
-  all: red; auto.
-Qed.
-
-Lemma rsr_b_srf_exists'
-    (ISR : R_s'' b_t) :
-  exists w,
-    fake_srf G_s b_t l_a ⨾ ⦗eq b_t ∩₁ WCore.lab_is_r l_a⦘ ≡
-      eq w × eq b_t.
-Proof using ADD SIMREL INV INV'.
-  assert (EQ : exists ll, WCore.lab_loc l_a = Some ll).
-  { unfold is_r in ISR. simpl in ISR. rewrite upds in ISR.
-    unfold WCore.lab_loc. desf. eauto. }
-  destruct EQ as [ll EQ].
-  destruct srf_exists
-      with (G := G_s'') (r := b_t) (l := ll)
-        as [w SRF].
-  all: auto with xmm.
-  all: try now apply rsr_imm_Gs_wf.
-  { simpl. basic_solver. }
-  { simpl. unfold loc. rewrite upds.
-    unfold WCore.lab_loc in EQ. desf. }
-  { apply rsr_b_imm_fin. }
-  exists w.
-  now apply rsr_b_srf_exists_helper.
-Qed.
-
-Lemma rsr_b_co_delta :
-  WCore.co_delta b_t ∅
-    (W_s ∩₁ E_s ∩₁ Loc_s_ (WCore.lab_loc l_a) ∩₁ WCore.lab_is_w l_a) ≡
-      (W_s ∩₁ E_s ∩₁ Loc_s_ (WCore.lab_loc l_a)) ×
-        (eq b_t ∩₁ WCore.lab_is_w l_a).
-Proof using.
-  unfold WCore.co_delta.
-  rewrite cross_false_r, union_false_l.
-  unfold WCore.lab_is_w.
-  destruct l_a.
-  all: rewrite ?set_inter_empty_r.
-  all: try now rewrite cross_false_r, cross_false_l.
-  now rewrite !set_inter_full_r.
-Qed.
-
-Lemma rsr_b_step1 :
-  WCore.add_event X_s X_s'' b_t l_a.
-Proof using ADD SIMREL INV INV'.
-  assert (NEQ : a_t <> b_t) by apply INV.
-  destruct rsr_b_srf_exists as [w SRF].
-  exists None, ∅, w, ∅,
-    (W_s ∩₁ E_s ∩₁ Loc_s_ (WCore.lab_loc l_a) ∩₁ WCore.lab_is_w l_a).
-  apply add_event_to_wf.
-  all: auto with xmm.
-  { simpl. rewrite SRF. basic_solver. }
-  { simpl. now rewrite rsr_b_co_delta. }
-  { simpl. rewrite (rsr_rmw SIMREL).
-    unfold WCore.rmw_delta. basic_solver 7. }
-  { apply rsr_new_a_sb. }
-  simpl.
-  now rewrite (rsr_ctrl SIMREL), (rsr_nctrl INV).
-Qed.
-
 Lemma rsr_b_step2 :
   WCore.add_event X_s'' X_s' a_t l_b.
-Proof using ADD SIMREL INV INV' EXAPRED.
+Proof using SIMREL CONS INV' INV ADD NLOC ARW LVAL ARLX.
   assert (WF_t : Wf G_t) by apply (rsr_Gt_wf INV).
   assert (NEQ : a_t <> b_t) by apply INV.
   destruct ADD as (r & R1 & w & W1 & W2 & ADD').
@@ -1148,7 +1252,7 @@ Proof using ADD SIMREL INV INV' EXAPRED.
 Qed.
 
 Lemma rsr_b_imm_rfc : rf_complete G_s''.
-Proof using ADD SIMREL INV INV' EXAPRED.
+Proof using SIMREL CONS INV' INV ADD NLOC ARW LVAL ARLX.
   assert (RFC : rf_complete G_s).
   { apply (G_s_rfc INV SIMREL). }
   unfold rf_complete. simpl.
@@ -1175,7 +1279,7 @@ Qed.
 
 Lemma simrel_exec_b_step_1 :
     WCore.exec_inst X_s  X_s'' b_t l_a.
-Proof using ADD SIMREL INV INV' CONS EXAPRED.
+Proof using SIMREL CONS INV' INV ADD NLOC ARW LVAL ARLX.
   constructor.
   { apply rsr_b_step1. }
   { apply rsr_b_imm_rfc. }
@@ -1184,7 +1288,7 @@ Qed.
 
 Lemma simrel_exec_b_step_2 :
     WCore.exec_inst X_s'' X_s' a_t l_b.
-Proof using ADD SIMREL INV INV' CONS EXAPRED.
+Proof using SIMREL CONS INV' INV ADD NLOC ARW LVAL ARLX.
   constructor.
   { apply rsr_b_step2. }
   { apply (G_s_rfc INV' rsr_b_sim). }
