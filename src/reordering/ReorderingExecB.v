@@ -10,12 +10,12 @@ Require Import PorfPrefix.
 Require Import AddEventWf.
 Require Import ReorderingFakeSrf.
 Require Import ReorderingCons ReorderingMapper.
-Require Import ConsistencyMonotonicity.
+Require Import ConsistencyExtra.
 Require Import xmm_s_hb.
 
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
-From imm Require Import Events Execution.
+From imm Require Import Events Execution SubExecution.
 Require Import Setoid Morphisms Program.Basics Lia.
 
 Section ExecB.
@@ -930,27 +930,99 @@ Qed.
 
 Lemma rsr_imm_Gs_cons :
   WCore.is_cons G_s''.
-Proof using.
+Proof using ADD SIMREL INV INV' EXAPRED CONS.
+  assert (BNIN : ~E_s b_t) by auto with xmm.
+  assert (ANIN : ~E_s a_t) by auto with xmm.
+  assert (NEQ : a_t <> b_t) by apply INV.
+  assert (WF_s : Wf G_s) by apply (G_s_wf INV SIMREL).
   destruct ADD as (r & R1 & w & W1 & W2 & ADD').
-  apply XmmCons.monoton_cons
-   with (G_t := G_s') (m := id).
-  all: rewrite ?set_collect_id, ?collect_rel_id.
-  { basic_solver. }
-  { simpl. basic_solver. }
-  { apply rsr_b_imm_rpo_in. }
-  { admit. }
-  { simpl. rewrite unionA.
-    apply union_mori; [reflexivity |].
-    apply inclusion_union_r. now right. }
-  { simpl. rewrite (WCore.add_event_rmw ADD').
-    rewrite collect_rel_union.
-    apply inclusion_union_r. now left. }
-  { admit. }
-  { admit. }
-  { apply (G_s_wf INV' rsr_b_sim). }
-  { admit. }
-  apply rsr_new_Gs_cons.
-Admitted.
+  set (G_s''' := restrict G_s' E_s'').
+  assert (SUB : sub_execution G_s' G_s''' ∅₂ ∅₂).
+  { subst G_s'''. apply restrict_sub.
+    { basic_solver. }
+    simpl. basic_solver. }
+  assert (EMP : eq a_t ∩₁ (E_s ∪₁ eq b_t) ⊆₁ ∅).
+  { basic_solver 11. }
+  apply XmmCons.consistency_swap_lab with (G_t := G_s''').
+  { simpl. rewrite !set_inter_union_r.
+    basic_solver 11. }
+  { simpl. rewrite <- rsr_b_fakesrf.
+    rewrite !seq_union_l, !seq_union_r.
+    arewrite_false (mapper ↑ (rf_t' ⨾ ⦗eq b_t⦘) ⨾ ⦗E_s ∪₁ eq b_t⦘).
+    { rewrite collect_rel_seqi, collect_rel_eqv, set_collect_eq.
+      rewrite rsr_mapper_bt, seqA, <- id_inter; auto.
+      now rewrite EMP, eqv_empty, seq_false_r. }
+    rewrite seq_false_r, union_false_r.
+    apply union_more.
+    { rewrite (wf_rfE WF_s). basic_solver 11. }
+    change (srf rsr_b_immg) with srf_s''.
+    rewrite wf_srfE. simpl. basic_solver 11. }
+  { simpl.
+    rewrite !seq_union_l, !seq_union_r.
+    arewrite_false (
+        ⦗E_s ∪₁ eq b_t⦘ ⨾ mapper ↑ (
+          ⦗eq b_t⦘ ⨾ co_t' ∪ co_t' ⨾ ⦗eq b_t⦘
+        ) ⨾ ⦗E_s ∪₁ eq b_t⦘
+    ).
+    { rewrite collect_rel_union, !collect_rel_seqi.
+      rewrite collect_rel_eqv, set_collect_eq.
+      rewrite rsr_mapper_bt; auto.
+      rewrite !seq_union_l, !seq_union_r, !seqA.
+      seq_rewrite (seq_eqvC (E_s ∪₁ eq b_t) (eq a_t)).
+      rewrite <- !id_inter, EMP.
+      rewrite eqv_empty, seq_false_l, !seq_false_r.
+      now rewrite union_false_r. }
+    rewrite union_false_r.
+    apply union_more.
+    { rewrite (wf_coE WF_s). basic_solver 11. }
+    basic_solver 11. }
+  { rewrite (wf_rmwE rsr_imm_Gs_wf).
+    simpl. rewrite (WCore.add_event_rmw ADD').
+    rewrite collect_rel_union, seq_union_l, seq_union_r.
+    arewrite_false (
+      ⦗E_s ∪₁ eq b_t⦘ ⨾
+        mapper ↑ WCore.rmw_delta b_t r ⨾
+          ⦗E_s ∪₁ eq b_t⦘
+    ).
+    { unfold WCore.rmw_delta.
+      rewrite collect_rel_cross, set_collect_eq.
+      rewrite rsr_mapper_bt; auto.
+      rewrite <- cross_inter_r, EMP.
+      now rewrite cross_false_r, seq_false_r. }
+    now rewrite union_false_r. }
+  { reflexivity. }
+  { simpl.
+    arewrite (
+      (E_s ∪₁ eq b_t) ∩₁
+        (E_s ∪₁ eq b_t ∪₁ eq a_t) ≡₁
+          E_s ∪₁ eq b_t
+    ) by basic_solver 11.
+    apply eq_dom_upd_r; [| reflexivity].
+    unfolder. intros [XIN | EQ]; congruence. }
+  { simpl.
+    rewrite (rsr_data SIMREL), (rsr_ndata INV).
+    basic_solver. }
+  { simpl.
+    rewrite (rsr_addr SIMREL), (rsr_naddr INV).
+    basic_solver. }
+  { simpl.
+    rewrite (rsr_ctrl SIMREL), (rsr_nctrl INV).
+    basic_solver. }
+  { simpl.
+    rewrite (rsr_rmw_dep SIMREL), (rsr_nrmw_dep INV).
+    basic_solver. }
+  { simpl. rewrite (rsr_init_acts_s INV SIMREL).
+    basic_solver. }
+  { apply sub_WF with (G := G_s') (sc := ∅₂) (sc' := ∅₂).
+    { simpl. rewrite (rsr_init_acts_s INV SIMREL).
+      basic_solver. }
+    { apply rsr_new_Gs_wf. }
+    exact SUB. }
+  apply XmmCons.consistency_subexec
+   with (G_t := G_s') (sc_s := ∅₂) (sc_t := ∅₂).
+  { apply rsr_new_Gs_cons. }
+  exact SUB.
+Qed.
 
 Hint Resolve rsr_new_Gs_wf rsr_new_Gs_cons : xmm.
 
