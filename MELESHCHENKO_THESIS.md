@@ -1,4 +1,4 @@
-This documents details the parts of the artifact, that have been developed as part of Meleshcenko Innokentii's bachelor thesis.
+This documents details the parts of the artifact, that have been developed as part of Innokentii Meleshchenko's bachelor thesis.
 
 ## Overiew
 
