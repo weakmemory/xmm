@@ -11,7 +11,7 @@ The part produces during the writing of the thesis were:
 
 ### The Formal Model Itself
 
-* `src/xmm/Core.v` formalises the two steps XMM can take. The execute step is defined as `exec_inst`, the re-execute step is defined as `reexec`. The guide-add-step rule is formalised as `guided_step`, while the add-event rule is formalised as `add_event`. The "deltas" (delta-rf, delta-mo, etc.) are defined there too.
+* `src/xmm/Core.v` formalizes the two steps XMM can take. The execute step is defined as `exec_inst`, the re-execute step is defined as `reexec`. The guide-add-step rule is formalized as `guided_step`, while the add-event rule is formalized as `add_event`. The "deltas" (delta-rf, delta-mo, etc.) are defined there too.
 * `src/xmm/AddEventWf.v` provides a "sanity check" lemma `add_event_wf`, that ensures that add-event rule preserves graph well-formedness.
 * `src/xmm/StepOps.v` is a library of acts about model steps. It provides the following facts:
     - Lemmas about applying the functions to the "deltas" (e.g. `mapped_co_delta`)
@@ -19,11 +19,11 @@ The part produces during the writing of the thesis were:
     - A short-cut lemma when the resulting graph is known it advance to be well-formed -- `add_event_to_wf`
     - The fact that consistency implies that internal rf edges respect the po order -- `rfi_in_sb`
     - Preservation of various useful properties of graphs with each step (e.g. rf-completeness, well-formedness, finiteness, init event properties) -- `xmm_exec_correct`, `xmm_rexec_correct`
-* `src/xmm/SubToFullExec.v` is the file solely dedicated to "lemma 1" or multistep lemma (the lemma about being able to take many guided steps, given some finite sequence of events). The main results are the `sub_to_full_exec` and `sub_to_full_exec_listless` lemmas.
+* `src/xmm/SubToFullExec.v` is the file solely dedicated to "lemma 1" or multi-step lemma (the lemma about being able to take many guided steps, given some finite sequence of events). The main results are the `sub_to_full_exec` and `sub_to_full_exec_listless` lemmas.
 * `src/xmm/SimrelCommon.v` and `src/xmm/Thrdle.v` just provide some useful small shortcuts.
 * `src/xmm_cons/ConsistencyMonotonicity.v` provides the proof of the monotonicity property together with a useful rhb relation mapping lemma.
 * `src/xmm_cons/ConsistencyReadExtent.v` provides the proof for the read extensibility
-* `src/xmm_cons/ConsistencyWriteExtent.v` privdes the proof for write extensibility
+* `src/xmm_cons/ConsistencyWriteExtent.v` provides the proof for write extensibility
 
 ### The Reordering Transformation
 
@@ -32,4 +32,4 @@ The part produces during the writing of the thesis were:
 - The "not a, not b" step (Lm E.27) is proven in `src/reordering/ReordExecNaNb.v`.
 - The "b" step (Lm E.28) is proven in `src/reordering/ReordExecB.v`.
 - The "a" step (Lm E.29) is proven in `src/reordering/ReordExecA.v`.
-- The "rexec" step (Lm E.30) is provne in `src/reordering/ReordReexec.v`.
+- The "rexec" step (Lm E.30) is proven in `src/reordering/ReordReexec.v`.
