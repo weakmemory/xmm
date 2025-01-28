@@ -30,6 +30,7 @@
 - [ ] Full Reordering Proof
     - [ ] Universal `src/reordering/Reordering.v:simrel_xmm_step` lemma
     - [ ] [@InnocentusLime](https://www.github.com/InnocentusLime) Full `Theorem` (this would be the master theorem that uses `simrel_xmm_step` in its proof)
+        * The theorem itself should be `Qed`'d with the only `admit`'d fact being the `simrel_xmm_step` lemma.
     - [ ] Proper constraint of the trace family for `G_s'`
     - Constraints of the current result
         * `a` and `b` must have static indices in both source and target graphs
