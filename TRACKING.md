@@ -27,3 +27,15 @@
             - [x] Add the new constraints and patch all lemmas up-to-rexec [commit1](https://github.com/weakmemory/xmm/commit/aaa3968807c1239e1496273ae67e82a1d518d401), [commit2](https://github.com/weakmemory/xmm/commit/e739362f70188d3259b694b08a877ce58a7320f8)
             - [x] Prove the new constraint about act set [commit](https://github.com/weakmemory/xmm/commit/a7c242f8423800ba8c8b31e559ca9a085c6cc8ed)
             - [x] Prove the new constraint about po-maximality of determined events
+- [ ] Full Reordering Proof
+    - [ ] Universal `src/reordering/Reordering.v:simrel_xmm_step` lemma
+    - [ ] [@InnocentusLime](https://www.github.com/InnocentusLime) Full `Theorem` (this would be the master theorem that uses `simrel_xmm_step` in its proof)
+    - [ ] Proper constraint of the trace family for `G_s'`
+    - Constraints of the current result
+        * `a` and `b` must have static indices in both source and target graphs
+        * `rmw` operations are considered to be in SC mode
+        * Both source and target are finite graphs
+        * both `a` and `b` are at most relaxed
+- [ ] [@InnocentusLime](https://www.github.com/InnocentusLime) Document constraints
+    - The main foundational constaints should be converted into `Hypothesis` declarations
+    - Each hypothesis should be followed by a comment
