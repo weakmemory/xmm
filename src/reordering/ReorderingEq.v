@@ -1,6 +1,6 @@
 Require Import AuxDef.
 Require Import Core.
-Require Import AuxRel AuxRel2.
+Require Import AuxRel AuxRel2 AuxRel3.
 Require Import SimrelCommon ReordSimrel ReorderingMapper.
 Require Import Lia.
 
@@ -450,6 +450,21 @@ Proof using PRED SIMREL'.
     unfold extra_sb, extra_a; desf; basic_solver. }
   all: unfold extra_sb, extra_a, nin_sb; desf.
   all: rewrite wf_sbE; basic_solver.
+Qed.
+
+Lemma rsr_as_bs_imm :
+  (eq b_t ∩₁ E_s) × (eq a_t ∩₁ E_s) ⊆ immediate sb_s.
+Proof using PRED SIMREL'.
+  transitivity (immediate (nin_sb G_s))
+    ; [| rewrite imm_nin_sbE; basic_solver].
+  rewrite rsr_sbE_imm, extra_sbE.
+  unfold extra_a; desf.
+  { basic_solver. }
+  rewrite cross_false_l, union_false_r.
+  rewrite rsr_actsE, extra_a_none; auto.
+  rewrite set_union_empty_r, imm_nin_sbE.
+  assert (BNINI : ~is_init b_t) by apply PRED.
+  rewrite <- (rsr_at_bt_imm PRED). basic_solver.
 Qed.
 
 End ReordEquivLemmas.

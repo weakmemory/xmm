@@ -409,6 +409,9 @@ Notation "'rmw''" := (rmw G').
 Notation "'hb''" := (hb G').
 Notation "'co''" := (co G').
 Notation "'vf''" := (vf G').
+Notation "'Rlx''" := (fun e => is_true (is_rlx lab' e)).
+Notation "'Acq''" := (fun e => is_true (is_acq lab' e)).
+Notation "'Rel''" := (fun e => is_true (is_rel lab' e)).
 
 Notation "'G'" := (G X).
 Notation "'lab'" := (lab G).
@@ -453,7 +456,7 @@ Record reexec_gen thrdle : Prop :=
   dtrmt_sb_max :
     ⦗dtrmt⦘ ⨾ immediate (nin_sb G') ⨾ ⦗cmt⦘ ⊆
       ⦗dtrmt⦘ ⨾ immediate (nin_sb G') ⨾ ⦗dtrmt⦘;
-  reexec_dtrmt_rpo : rpo' ⨾ ⦗E' \₁ dtrmt⦘ ⊆ ⦗dtrmt⦘ ⨾ rpo' ⨾ ⦗E' \₁ dtrmt⦘;
+  reexec_dtrmt_rpo : E' \₁ dtrmt ⊆₁ set_compl (Rel' ∪₁ Acq');
   (* Correct embedding *)
   reexec_embd_corr : commit_embedded;
   (* Reproducable steps *)
@@ -507,7 +510,29 @@ Proof using.
   now rewrite EEQ.
 Qed.
 
+Add Parametric Morphism : WCore.exec_restr_eq with signature
+  eq ==> eq ==> set_equiv ==> iff as exec_restr_eq_more.
+Proof using.
+  intros X X' s s' EQ.
+  split; intro HX; constructor.
+  all: try now (rewrite EQ; apply HX).
+  all: try now (rewrite <- EQ; apply HX).
+  all: apply HX.
+Qed.
+
+Add Parametric Morphism : WCore.X_start with signature
+  eq ==> set_equiv ==> eq as X_start_more.
+Proof using.
+  intros X s s' EQ.
+  apply set_extensionality in EQ.
+  now rewrite EQ.
+Qed.
+
 #[export]
 Instance sb_delta_Propere : Proper (_ ==> _ ==> _) _ := sb_delta_more.
 #[export]
 Instance reexec_thread_Propere : Proper (_ ==> _ ==> _) _ := reexec_thread_more.
+#[export]
+Instance exec_restr_eq_Propere : Proper (_ ==> _ ==> _ ==> _) _ := exec_restr_eq_more.
+#[export]
+Instance X_start_Propere : Proper (_ ==> _ ==> _) _ := X_start_more.

@@ -110,3 +110,55 @@ Proof using.
   { exfalso. apply IMM2 with y; auto. }
   exfalso. apply IMM1 with z; auto.
 Qed.
+
+Lemma codom_rel_in {A : Type} (r1 r2 : relation A) x y
+    (PATH : r1 x y) :
+  codom_rel (⦗eq y⦘ ⨾ r2) ⊆₁
+    codom_rel (⦗eq x⦘ ⨾ r1 ⨾ r2).
+Proof using.
+  intros z (y' & (y'' & (EQ1 & EQ2) & R2)).
+  subst y'' y'.
+  exists x, x; split; basic_solver.
+Qed.
+
+Section RelProps.
+
+Variable G : execution.
+
+Notation "'lab'" := (lab G).
+Notation "'val'" := (val lab).
+Notation "'loc'" := (loc lab).
+Notation "'E'" := (acts_set G).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'rmw'" := (rmw G).
+Notation "'rmw_dep'" := (rmw_dep G).
+Notation "'data'" := (data G).
+Notation "'ctrl'" := (ctrl G).
+Notation "'addr'" := (addr G).
+Notation "'W'" := (fun e => is_true (is_w lab e)).
+Notation "'R'" := (fun e => is_true (is_r lab e)).
+Notation "'F'" := (fun e => is_true (is_f lab e)).
+Notation "'Loc_' l" := (fun e => loc e = l) (at level 1).
+Notation "'Val_' l" := (fun e => val e = l) (at level 1).
+Notation "'same_loc'" := (same_loc lab).
+Notation "'same_val'" := (same_val lab).
+Notation "'Acq'" := (fun e => is_true (is_acq lab e)).
+Notation "'Rel'" := (fun e => is_true (is_rel lab e)).
+Notation "'Rlx'" := (fun e => is_true (is_rlx lab e)).
+
+Lemma co_upward_closed ol
+    (WF : Wf G) :
+  upward_closed co (W ∩₁ E ∩₁ Loc_ ol).
+Proof using.
+  unfold upward_closed. intros x y CO XIN.
+  apply (wf_coD WF) in CO.
+  unfolder in CO. destruct CO as (XW & CO & YW).
+  apply (wf_coE WF) in CO.
+  unfolder in CO. destruct CO as (XE & CO & YE).
+  apply (wf_col WF) in CO.
+  unfolder. splits; auto. rewrite CO. apply XIN.
+Qed.
+
+End RelProps.

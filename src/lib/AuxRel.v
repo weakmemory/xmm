@@ -400,3 +400,58 @@ Proof using.
   apply eq_dom_compose; auto.
   reflexivity.
 Qed.
+
+Lemma set_minus_empty_l {A : Type}
+    (s : A -> Prop) :
+  ∅ \₁ s ≡₁ ∅.
+Proof using.
+  basic_solver.
+Qed.
+
+Lemma set_minus_empty_r {A : Type}
+    (s : A -> Prop) :
+  s \₁ ∅ ≡₁ s.
+Proof using.
+  apply set_minus_disjoint. auto with hahn.
+Qed.
+
+Lemma eq_dom_upd_l {A B : Type} x y
+    (f g : A -> B)
+    (s : A -> Prop)
+    (XNIN : ~ s x)
+    (EQ : eq_dom s f g) :
+  eq_dom s (upd f x y) g.
+Proof using.
+  unfold eq_dom in *. intros x' XIN.
+  rewrite updo by congruence. eauto.
+Qed.
+
+Lemma eq_dom_upd_r {A B : Type} x y
+    (f g : A -> B)
+    (s : A -> Prop)
+    (XNIN : ~ s x)
+    (EQ : eq_dom s f g) :
+  eq_dom s f (upd g x y).
+Proof using.
+  symmetry. apply eq_dom_upd_l; auto.
+  now symmetry.
+Qed.
+
+Lemma eq_dom_upd {A B : Type} x y
+    (f g : A -> B)
+    (s : A -> Prop)
+    (XNIN : ~ s x)
+    (EQ : eq_dom s f g) :
+  eq_dom s (upd f x y) (upd g x y).
+Proof using.
+  apply eq_dom_upd_l, eq_dom_upd_r; auto.
+Qed.
+
+Lemma eq_dom_eq {A B : Type} x
+    (f g : A -> B)
+    (EQ : f x = g x) :
+  eq_dom (eq x) f g.
+Proof using.
+  unfold eq_dom. intros x' XEQ.
+  now subst x'.
+Qed.

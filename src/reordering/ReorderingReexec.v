@@ -290,7 +290,7 @@ Proof using.
   { rewrite set_collect_id, EQE.
     clear. basic_solver. }
   assert (NACQ : ~is_acq lab_s' a_s).
-  { apply CTX. now apply extra_a_some. }
+  { admit. }
   assert (SBFROMA : ⦗eq b_t⦘ ⨾ sb G_s' ⊆ eq b_t × eq a_t).
   { admit. }
   assert (AINS : (acts_set G_s') a_t).
@@ -510,7 +510,6 @@ Proof using.
             add_max_a with (A := extra_co_D (mapper ↑₁ E_t' ∪₁ A_s') lab_s' (loc_s' b_t)).
     rewrite !extra_co_D_minus, set_minus_union_l.
     now rewrite set_minusK, set_union_empty_r. }
-  { admit. (* rpo *) }
   { clear. unfold mapper. unfolder.
     ins. desf. now rewrite !updo by auto. }
   { clear. unfold mapper. unfolder.

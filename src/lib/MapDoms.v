@@ -33,6 +33,7 @@ Notation "'same_val''" := (same_val lab').
 Notation "'Acq''" := (fun e => is_true (is_acq lab' e)).
 Notation "'Rel''" := (fun e => is_true (is_rel lab' e)).
 Notation "'Rlx''" := (fun e => is_true (is_rlx lab' e)).
+Notation "'R_ex''" := (fun e => is_true (R_ex lab' e)).
 
 Notation "'lab'" := (lab G).
 Notation "'val'" := (val lab).
@@ -56,6 +57,7 @@ Notation "'same_val'" := (same_val lab).
 Notation "'Acq'" := (fun e => is_true (is_acq lab e)).
 Notation "'Rel'" := (fun e => is_true (is_rel lab e)).
 Notation "'Rlx'" := (fun e => is_true (is_rlx lab e)).
+Notation "'R_ex'" := (fun e => is_true (R_ex lab e)).
 
 Notation "'Tid_' t" := (fun e => tid e = t) (at level 1).
 
@@ -147,6 +149,116 @@ Proof using.
   split; [| basic_solver 11].
   rewrite WF at 1.
   now rewrite !collect_rel_seqi, !collect_rel_eqv.
+Qed.
+
+Lemma set_inter_rlx s s'
+    (SUB : s ⊆₁ s')
+    (LABEQ : eq_dom s' lab lab') :
+  Rlx' ∩₁ s ⊆₁ Rlx ∩₁ s.
+Proof using.
+  unfolder. intros x (RLX & XIN).
+  splits; auto.
+  unfold is_rlx, mod in *. rewrite LABEQ; auto.
+Qed.
+
+Lemma set_inter_rel s s'
+    (SUB : s ⊆₁ s')
+    (LABEQ : eq_dom s' lab lab') :
+  Rel' ∩₁ s ⊆₁ Rel ∩₁ s.
+Proof using.
+  unfolder. intros x (RLX & XIN).
+  splits; auto.
+  unfold is_rel, mod in *. rewrite LABEQ; auto.
+Qed.
+
+Lemma set_inter_acq s s'
+    (SUB : s ⊆₁ s')
+    (LABEQ : eq_dom s' lab lab') :
+  Acq' ∩₁ s ⊆₁ Acq ∩₁ s.
+Proof using.
+  unfolder. intros x (RLX & XIN).
+  splits; auto.
+  unfold is_acq, mod in *. rewrite LABEQ; auto.
+Qed.
+
+Lemma set_inter_is_r s s'
+    (SUB : s ⊆₁ s')
+    (LABEQ : eq_dom s' lab lab') :
+  R' ∩₁ s ⊆₁ R ∩₁ s.
+Proof using.
+  unfolder. intros x (RLX & XIN).
+  splits; auto.
+  unfold is_r in *. rewrite LABEQ; auto.
+Qed.
+
+Lemma set_inter_is_w s s'
+    (SUB : s ⊆₁ s')
+    (LABEQ : eq_dom s' lab lab') :
+  W' ∩₁ s ⊆₁ W ∩₁ s.
+Proof using.
+  unfolder. intros x (RLX & XIN).
+  splits; auto.
+  unfold is_w in *. rewrite LABEQ; auto.
+Qed.
+
+Lemma set_inter_is_f s s'
+    (SUB : s ⊆₁ s')
+    (LABEQ : eq_dom s' lab lab') :
+  F' ∩₁ s ⊆₁ F ∩₁ s.
+Proof using.
+  unfolder. intros x (RLX & XIN).
+  splits; auto.
+  unfold is_f in *. rewrite LABEQ; auto.
+Qed.
+
+Lemma set_inter_loc s s' l
+    (SUB : s ⊆₁ s')
+    (LABEQ : eq_dom s' lab lab') :
+  Loc_' l ∩₁ s ⊆₁ Loc_ l ∩₁ s.
+Proof using.
+  unfolder. intros x (LOC & XIN).
+  splits; auto.
+  unfold loc in *. rewrite LABEQ; auto.
+Qed.
+
+Lemma set_inter_Rex s s'
+    (SUB : s ⊆₁ s')
+    (LABEQ : eq_dom s' lab lab') :
+  R_ex' ∩₁ s ⊆₁ R_ex ∩₁ s.
+Proof using.
+  unfolder. intros x (LOC & XIN).
+  splits; auto.
+  unfold R_ex in *. rewrite LABEQ; auto.
+Qed.
+
+Lemma inclusion_sameloc s s' r
+    (SUB : s ⊆₁ s')
+    (LABEQ : eq_dom s' lab lab')
+    (LOC : r ⊆ same_loc')
+    (DOM : r ⊆ s × s) :
+  r ⊆ same_loc.
+Proof using.
+  intros x y HREL. unfold same_loc in *.
+  unfold loc. rewrite !LABEQ.
+  { now apply LOC. }
+  all: apply DOM in HREL.
+  all: destruct HREL as (LH & RH).
+  all: now apply SUB in LH, RH.
+Qed.
+
+Lemma inclusion_sameval s s' r
+    (SUB : s ⊆₁ s')
+    (LABEQ : eq_dom s' lab lab')
+    (VAL : r ⊆ same_val')
+    (DOM : r ⊆ s × s) :
+  r ⊆ same_val.
+Proof using.
+  intros x y HREL. unfold same_val in *.
+  unfold val. rewrite !LABEQ.
+  { now apply VAL. }
+  all: apply DOM in HREL.
+  all: destruct HREL as (LH & RH).
+  all: now apply SUB in LH, RH.
 Qed.
 
 End MapDoms.

@@ -364,16 +364,26 @@ Definition correct_op_at : Prop :=
 Definition correct_mod_bt : Prop :=
   forall (tr : trace label)
     (TRIN : traces_t (tid b_t) tr) (BIN : event_mem b_t tr),
-    ~mode_le Orel (WCore.lab_mode (
-      trace_nth (index b_t) tr (Afence Opln)
-    )).
+    ~(
+      mode_le Orel (WCore.lab_mode (
+        trace_nth (index b_t) tr (Afence Opln)
+      )) \/
+      mode_le Oacq (WCore.lab_mode (
+        trace_nth (index b_t) tr (Afence Opln)
+      ))
+    ).
 
 Definition correct_mod_at : Prop :=
   forall (tr : trace label)
     (TRIN : traces_t (tid a_t) tr) (BIN : event_mem a_t tr),
-    ~mode_le Oacq (WCore.lab_mode (
-      trace_nth (index a_t) tr (Afence Opln)
-    )).
+    ~(
+      mode_le Orel (WCore.lab_mode (
+        trace_nth (index a_t) tr (Afence Opln)
+      )) \/
+      mode_le Oacq (WCore.lab_mode (
+        trace_nth (index a_t) tr (Afence Opln)
+      ))
+    ).
 
 Record correct_traces_t : Prop := {
   prf_at_tid : rtid <> tid_init;
@@ -436,17 +446,17 @@ Proof using.
   assert (NINIT : rtid <> tid_init) by apply CORR.
   assert (EXTSB : ext_sb b_t a_t).
   { unfold ext_sb, i_a. split; auto; lia. }
-  assert (NACQ : eq a_t ∩₁ E_t ⊆₁ set_compl Acq_t).
+  assert (NACQ : eq a_t ∩₁ E_t ⊆₁ set_compl (Rel_t ∪₁ Acq_t)).
   { unfolder. intros x (EQ & XIN). subst x.
     intro FALSO. apply (prf_mod_at CORR) with tr; auto.
     { apply event_memE; auto. }
-    unfold WCore.lab_mode, is_acq in *.
+    unfold WCore.lab_mode, is_acq, is_rel in *.
     subst tr. rewrite thread_trace_nth'; auto. }
-  assert (NREL : eq b_t ∩₁ E_t ⊆₁ set_compl Rel_t).
+  assert (NREL : eq b_t ∩₁ E_t ⊆₁ set_compl (Rel_t ∪₁ Acq_t)).
   { unfolder. intros x (EQ & XIN). subst x.
     intro FALSO. apply (prf_mod_bt CORR) with tr; auto.
     { apply event_memE; auto. }
-    unfold WCore.lab_mode, is_rel in *.
+    unfold WCore.lab_mode, is_acq, is_rel in *.
     subst tr. rewrite thread_trace_nth'; auto. }
   constructor; ins.
   { unfolder. intros x (EQ & XIN). subst x.
@@ -499,13 +509,17 @@ Proof using.
     splits; auto.
     all: intro FALSO.
     { subst x. apply NACQ with a_t; [basic_solver|].
-      unfold is_sc, is_acq in *. desf. }
+      unfold set_union, is_sc, is_rel, is_acq in *.
+      desf; ins; auto. }
     { subst x. apply NREL with b_t; [basic_solver|].
-      unfold is_sc, is_rel in *. desf. }
+      unfold set_union, is_sc, is_rel, is_acq in *.
+      desf; ins; auto. }
     { subst y. apply NACQ with a_t; [basic_solver|].
-      unfold is_sc, is_acq in *. desf. }
+      unfold set_union, is_sc, is_rel, is_acq in *.
+      desf; ins; auto. }
     subst y. apply NREL with b_t; [basic_solver|].
-    unfold is_sc, is_rel in *. desf. }
+    unfold set_union, is_sc, is_rel, is_acq in *.
+    desf; ins; auto. }
   { unfold i_a. intro FALSO. desf. lia. }
   { unfold sb. unfolder.
     intros x y ((XEQ & XIN) & YEQ & YIN). subst x y.

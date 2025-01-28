@@ -93,9 +93,6 @@ Proof using.
     rewrite (rsr_sb SIMREL). apply union_more; auto.
     unfold extra_a; desf; [| basic_solver].
     rewrite EQ1; desf. }
-  { rewrite set_collect_eq_dom with (f := mapper) (g := mapper').
-    { apply SIMREL. }
-    eapply eq_dom_mori; eauto; unfold flip; basic_solver 11. }
   transitivity mapper'; [| apply SIMREL].
   eapply eq_dom_mori; eauto.
   unfold flip; basic_solver.
@@ -146,6 +143,17 @@ Proof using.
   unfold eq_dom, compose.
   intros x _.
   now apply rsr_mapper_tid'.
+Qed.
+
+Lemma rsr_mapper_sametid e s
+    (TID : tid a_t = tid b_t) :
+  mapper ↑₁ (s ∩₁ same_tid e) ≡₁
+    mapper ↑₁ s ∩₁ same_tid e.
+Proof using.
+  unfolder. split; ins; desf.
+  all: eexists; splits; eauto.
+  all: unfold same_tid in *.
+  all: rewrite rsr_mapper_tid' in *; auto.
 Qed.
 
 Lemma rsr_mapper_inj
@@ -292,6 +300,15 @@ Proof using.
   all: auto with hahn.
 Qed.
 
+Lemma rsr_mapper_init
+    (ANIN : ~is_init a_t)
+    (BNIN : ~is_init b_t) :
+  fixset is_init mapper.
+Proof using.
+  unfolder. ins.
+  rewrite rsr_mappero; congruence.
+Qed.
+
 End ReordMapper.
 
 #[global]
@@ -299,4 +316,4 @@ Hint Resolve rsr_mapper_at rsr_mapper_bt
   rsr_mappero rsr_mapper_tid rsr_mapper_inj
   rsr_mapper_inv_at rsr_mapper_bt
   rsr_mapper_tid' rsr_mapper_tid
-  rsr_mapper_self_inv : xmm.
+  rsr_mapper_self_inv rsr_mapper_init : xmm.

@@ -123,7 +123,6 @@ Proof using.
   { clear; basic_solver. }
   { clear; basic_solver. }
   { clear; basic_solver. }
-  { rewrite AI, BI, set_collect_empty. clear. basic_solver. }
   { rewrite BI. clear. basic_solver. }
   { rewrite AI. clear. basic_solver. }
   { red. ins. unfold is_r, WCore.init_lab.
