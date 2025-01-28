@@ -842,8 +842,12 @@ Qed.
 
 Lemma rsr_imm_Gs_wf :
   Wf G_s''.
-Proof using b_t a_t ADD SIMREL INV INV'.
-Admitted.
+Proof using b_t a_t ADD SIMREL INV INV' LVAL.
+  assert (STEP : WCore.add_event X_s X_s'' b_t l_a).
+  { apply rsr_b_step1. }
+  red in STEP. desf.
+  apply (add_event_wf STEP rsr_b_Gs_wf).
+Qed.
 
 Hint Resolve rsr_imm_Gs_wf : xmm.
 
@@ -1018,7 +1022,17 @@ Lemma rsr_b_sim_exa_helper :
   srf_s' ⨾ ⦗eq b_t ∩₁ R_s'⦘ ⊆ same_val lab_s'.
 Proof using SIMREL INV' INV ADD NLOC ARW LVAL ARLX.
   rewrite rsr_b_isr_helper, rsr_b_samesrf, rsr_b_fakesrf.
-Admitted.
+  intros x y DRF. unfold same_val, val.
+  arewrite (y = b_t).
+  { forward apply DRF. basic_solver. }
+  assert (IN : E_s x).
+  { hahn_rewrite (fake_srfE_left G_s b_t l_a) in DRF.
+    forward apply DRF. basic_solver. }
+  simpl. rewrite 3!updo, upds.
+  { apply LVAL. basic_solver. }
+  { symmetry. apply INV. }
+  all: intro FALSO; subst x; auto with xmm.
+Qed.
 
 Lemma rsr_b_sim_exa :
   A_s' ⊆₁ extra_a_pred X_s' a_t b_t.
@@ -1027,17 +1041,21 @@ Proof using SIMREL INV' INV ADD NLOC ARW LVAL ARLX.
   rewrite rsr_b_new_exa. intros x XEQ. subst x.
   constructor.
   { reflexivity. }
-  { enough (DSRF : dom_rel (srf_s' ⨾ ⦗eq b_t ∩₁ R_s'⦘) ⊆₁ Val_s_ (WCore.lab_val
-  l_a)).
-    all: admit. }
+  { apply rsr_b_sim_exa_helper. }
   { unfold same_loc, loc. simpl.
     rewrite upds, updo, upds by congruence.
     apply NLOC. }
-  { admit. }
+  { clear - ARLX NEQ.
+    unfolder. unfold is_rel, is_acq, mod.
+    simpl. rewrite updo, upds by congruence.
+    unfold WCore.lab_mode in ARLX. desf; auto.
+    all: intro FALSO; desf.  }
   unfolder. unfold is_w, is_r. simpl.
   rewrite updo, upds by congruence.
   unfold WCore.lab_is_r, WCore.lab_is_w in ARW.
-Admitted.
+  destruct l_a; auto.
+  exfalso. unfolder in ARW. destruct ARW; auto.
+Qed.
 
 Lemma rsr_b_sim :
   reord_simrel X_s' X_t' a_t b_t mapper.
