@@ -217,11 +217,11 @@ Proof using.
   basic_solver.
 Qed.
 
-Lemma srf_in_sb_rf :
+(* Lemma srf_in_sb_rf :
   srf ⊆ (sb ∪ rf)⁺.
 Proof using.
   admit.
-Admitted.
+Admitted. *)
 
 Lemma vf_hb :
     vf ⨾ hb ⨾ hb^? ⊆ vf.
