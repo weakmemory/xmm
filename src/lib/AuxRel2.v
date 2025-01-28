@@ -110,6 +110,23 @@ Proof using.
   unfolder. ins. desf. splits; tauto.
 Qed.
 
+Lemma is_total_union_ext {A : Type} a s s' (r : relation A)
+    (NIN : ~s a)
+    (SING : s' ⊆₁ eq a)
+    (TOT : is_total s r) :
+  is_total (s ∪₁ s') (r ∪ s × s').
+Proof using.
+  unfold is_total.
+  intros x [XIN | XEQ] y [YIN | YEQ] NEQ.
+  { destruct TOT with x y; auto.
+    all: basic_solver. }
+  { left; right. basic_solver. }
+  { do 2 right. basic_solver. }
+  exfalso. apply NEQ.
+  apply SING in XEQ, YEQ.
+  congruence.
+Qed.
+
 Lemma swap_rel_union {T : Type} (r1 r2 : relation T) A B :
   swap_rel (r1 ∪ r2) A B ≡
     swap_rel r1 A B ∪ swap_rel r2 A B.

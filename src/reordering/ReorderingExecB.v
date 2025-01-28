@@ -617,11 +617,11 @@ Proof using ADD SIMREL INV INV'.
   { apply (G_s_wf INV SIMREL). }
   simpl. apply expand_transitive.
   { apply WF_s. }
-  { admit. }
+  { now apply co_upward_closed. }
   rewrite (wf_coE WF_s), dom_seq, dom_eqv.
   enough (~ E_s b_t) by basic_solver 11.
   auto with xmm.
-Admitted.
+Qed.
 
 Lemma rsr_total_co ol :
   is_total
@@ -630,7 +630,48 @@ Lemma rsr_total_co ol :
 Proof using ADD SIMREL INV INV'.
   assert (WF_s : Wf G_s).
   { apply (G_s_wf INV SIMREL). }
-Admitted.
+  assert (EQ :
+    E_s ∩₁ W_s'' ∩₁ Loc_s_'' ol ⊆₁
+      E_s ∩₁ W_s ∩₁ Loc_s_ ol
+  ).
+  { rewrite set_interA, set_interC with (s := E_s).
+    rewrite set_interA.
+    rewrite set_inter_loc with (G := G_s),
+            set_inter_is_w with (G := G_s).
+    all: eauto with xmm.
+    all: try (eapply eq_dom_mori; auto with xmm).
+    all: unfold flip; basic_solver. }
+  assert (EQ' :
+    eq b_t ∩₁ W_s'' ∩₁ Loc_s_'' ol ⊆₁
+      eq b_t ∩₁ WCore.lab_is_w l_a
+  ).
+  { unfolder. unfold is_w, WCore.lab_is_w.
+    simpl. intros x ((XEQ & ISW) & _).
+    subst x. rewrite upds in ISW. desf. }
+  destruct classic
+      with (WCore.lab_loc l_a = ol)
+        as [EQL | NEQL].
+  { eapply is_total_mori,
+          is_total_union_ext with (a := b_t)
+                                  (s' := eq b_t ∩₁ WCore.lab_is_w l_a).
+    all: try now apply (@wf_co_total _ WF_s ol).
+    { unfold flip. simpl.
+      now rewrite !set_inter_union_l, EQ, EQ'. }
+    { simpl. rewrite EQL. basic_solver 11. }
+    { unfolder. intro FALSO. desf. auto with xmm. }
+    basic_solver. }
+  arewrite (
+      E_s'' ∩₁ W_s'' ∩₁ Loc_s_'' ol ⊆₁
+        E_s ∩₁ W_s'' ∩₁ Loc_s_'' ol
+  ).
+  { simpl. unfolder. ins; desf.
+    unfold loc in *. rewrite upds in *.
+    unfold WCore.lab_loc in NEQL. desf. }
+  eapply is_total_mori.
+  all: try now apply (@wf_co_total _ WF_s ol).
+  { unfold flip; eauto. }
+  simpl. basic_solver.
+Qed.
 
 Hint Resolve rsr_trans_co rsr_total_co : xmm.
 
