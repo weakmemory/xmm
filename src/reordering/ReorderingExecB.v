@@ -1095,39 +1095,6 @@ Proof using SIMREL CONS INV' INV ADD NLOC ARW LVAL ARLX.
   apply (rsr_cons INV' CONS rsr_b_sim).
 Qed.
 
-Lemma rsr_b_imm_rpoimm_in :
-  rpo_imm_s'' ⊆ rpo_imm_s'.
-Proof using ADD SIMREL INV INV'.
-  unfold rpo_imm, sb.
-  rewrite !seqA.
-  seq_rewrite (seq_eqvC E_s'' (F_s'' ∩₁ Acq_s'')).
-  seq_rewrite (seq_eqvC E_s'' Rel_s'').
-  seq_rewrite (seq_eqvC E_s'' (W_s'' ∩₁ Rlx_s'')).
-  seq_rewrite (seq_eqvC E_s' (F_s' ∩₁ Acq_s')).
-  seq_rewrite (seq_eqvC E_s' Rel_s').
-  seq_rewrite (seq_eqvC E_s' (W_s' ∩₁ Rlx_s')).
-  seq_rewrite <- !id_inter.
-  rewrite !set_interA.
-  rewrite !set_inter_rlx with (G := G_s').
-  all: auto with xmm.
-  rewrite !set_inter_acq with (G := G_s').
-  all: auto with xmm.
-  rewrite !set_inter_rel with (G := G_s').
-  all: auto with xmm.
-  rewrite !set_inter_is_f with (G := G_s') (s' := E_s'') (G' := G_s''),
-          set_inter_is_r with (G := G_s') (s' := E_s''),
-          set_inter_is_w with (G := G_s') (s' := E_s'').
-  all: auto with xmm.
-  { rewrite rsr_b_in1. reflexivity. }
-  all: basic_solver.
-Qed.
-
-Lemma rsr_b_imm_rpo_in :
-  rpo_s'' ⊆ rpo_s'.
-Proof using ADD SIMREL INV INV'.
-  unfold rpo. now rewrite rsr_b_imm_rpoimm_in.
-Qed.
-
 Lemma rsr_imm_Gs_cons :
   WCore.is_cons G_s''.
 Proof using SIMREL CONS INV' INV ADD NLOC ARW LVAL ARLX.
