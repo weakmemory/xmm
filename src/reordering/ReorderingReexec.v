@@ -113,6 +113,7 @@ Notation "'mapper'" := (mapper a_t b_t).
 Notation "'Tid_' t" := (fun e => tid e = t) (at level 1).
 Notation "'A_s'" := (extra_a X_t a_t b_t b_t).
 Notation "'A_s''" := (extra_a X_t' a_t b_t b_t).
+Notation "'B_s''" := (extra_a X_t' a_t b_t a_t).
 
 (* Id aliases for better readability *)
 Definition a_s := b_t.
@@ -493,7 +494,106 @@ Proof using SIMREL INV INV'.
   forward apply HIN2. basic_solver.
 Qed.
 
+Lemma new_G_s_wf_idx :
+  E_s' ∩₁ Tid_ tid_init ⊆₁ is_init.
+Proof using INV INV'.
+  simpl.
+  rewrite set_unionC, set_inter_union_l.
+  apply set_subset_union_l. split.
+  { unfold extra_a; desf; [| basic_solver].
+    unfolder. intros x (XEQ & TID). subst x.
+    exfalso. now apply (rsr_bt_tid INV). }
+  unfolder. intros x' ((x & XIN & XEQ) & TEQ).
+  subst x'.
+  rewrite rsr_mapper_tid' in TEQ by apply INV.
+  rewrite rsr_mapper_init; try now apply INV.
+  all: apply (rsr_ninit_acts INV').
+  all: basic_solver.
+Qed.
+
 Hypothesis LVAL : dom_rel drf_s'' ⊆₁ Val_s_'' (WCore.lab_val l_a).
+
+Lemma new_G_s_actsE :
+  E_s' ≡₁ E_t' ∪₁ B_s'.
+Proof using INV'.
+  assert (NEQ : a_t <> b_t) by apply INV'.
+  simpl. unfold extra_a; desf.
+  { rewrite (rsr_setE_niff); try tauto.
+    rewrite set_union_minus
+       with (s := E_t') (s' := eq b_t)
+         at 2; [| basic_solver].
+    basic_solver. }
+  rewrite !set_union_empty_r.
+  rewrite rsr_setE_iff; auto with hahn.
+  assert (ORG : E_t' a_t \/ ~E_t' b_t) by tauto.
+  destruct ORG as [INA | NINB].
+  { left. split; auto.
+    now apply (rsr_at_bt_ord INV'). }
+  right. split; auto. intro FALSO.
+  now apply NINB, (rsr_at_bt_ord INV').
+Qed.
+
+Lemma new_G_s_sb_helper
+    (EMP : ~ (~ E_t' a_t /\ E_t' b_t)) :
+  ⦗mapper ↑₁ E_t'⦘ ⨾ ext_sb ⨾ ⦗mapper ↑₁ E_t'⦘ ≡
+    mapper ↑ swap_rel sb_t' (eq b_t ∩₁ E_t') (eq a_t ∩₁ E_t').
+Proof using INV'.
+Admitted.
+
+Lemma new_G_s_sb :
+  sb_s' ≡
+    mapper ↑ swap_rel sb_t' (eq b_t ∩₁ E_t') (eq a_t ∩₁ E_t') ∪
+      (mapper ↑₁ dom_rel (sb_t' ⨾ ⦗eq b_t⦘)) × A_s' ∪
+        A_s' × eq (mapper b_t).
+Proof using INV'.
+  unfold sb at 1. simpl.
+  destruct classic
+      with (~(~E_t' a_t /\ E_t' b_t))
+        as [EMP|NEMP'].
+  { rewrite !extra_a_none; auto.
+    rewrite set_union_empty_r.
+    rewrite cross_false_l, cross_false_r, !union_false_r.
+    now apply new_G_s_sb_helper. }
+Admitted.
+
+Lemma rsr_rex_codom :
+  mapper ↑₁ E_t' ⊆₁ E_s' \₁ A_s'.
+Proof using INV.
+  assert (NEQ : a_t <> b_t) by apply INV.
+  simpl.
+  rewrite set_minus_union_l, set_minusK,
+          set_union_empty_r.
+  rewrite set_minus_disjoint; [reflexivity |].
+  unfold extra_a; desf.
+  unfolder. ins. desf.
+  enough (y = a_t) by desf.
+  now apply (rsr_mapper_inv_bt _ NEQ).
+Qed.
+
+Lemma rsr_rex_froma
+    (INB : E_t' b_t)
+    (NINA : ~ E_t' a_t) :
+  ⦗eq b_t⦘ ⨾ sb_s' ⊆ eq b_t × eq a_t.
+Proof using INV INV'.
+  assert (NEQ : a_t <> b_t) by apply INV.
+  transitivity (⦗eq b_t⦘ ⨾ sb_s' ⨾ ⦗E_s' \₁ eq b_t⦘).
+  { rewrite wf_sbE at 1. clear. unfolder.
+    ins. desf.
+    splits; auto.
+    intro FALSO; desf; eapply sb_irr; eauto. }
+  rewrite new_G_s_sb.
+  rewrite extra_a_some by assumption.
+  rewrite rsr_mapper_bt; auto.
+  arewrite (eq a_t ∩₁ E_t' ≡₁ ∅) by basic_solver.
+  rewrite swap_rel_empty_r.
+  rewrite !seq_union_l, !seq_union_r.
+  repeat apply inclusion_union_l.
+  { rewrite wf_sbE, collect_rel_seqi.
+    rewrite collect_rel_eqv, rsr_rex_codom.
+    rewrite extra_a_some by assumption.
+    clear. basic_solver. }
+  all: clear; basic_solver.
+Qed.
 
 Lemma new_G_s_wf
     (INB : E_t' b_t)
@@ -505,7 +605,12 @@ Proof using INV INV' SIMREL LVAL.
   assert (NINIB : ~is_init b_t) by apply INV.
   assert (NINIA : ~is_init a_t) by apply INV.
   constructor.
-  { admit. }
+  { intros x y (XIN & YIN & NEQ & TEQ & NINI).
+    enough (NIN : ~is_init y).
+    { destruct x, y; ins; desf; congruence. }
+    destruct y as [yl | yt yn]; ins.
+    exfalso. apply NINI, new_G_s_wf_idx.
+    basic_solver. }
   { rewrite (rsr_data SIMREL), (rsr_ndata INV).
     basic_solver. }
   { apply dom_helper_3.
@@ -642,24 +747,102 @@ Proof using INV INV' SIMREL LVAL.
   now apply (wf_threads WF_t).
 Admitted.
 
+Hypothesis NLOC : A_s' ⊆₁ set_compl (Loc_t_' (WCore.lab_loc l_a)).
+Hypothesis ARW : A_s' ⊆₁ WCore.lab_is_r l_a ∪₁ WCore.lab_is_w l_a.
+Hypothesis ARLX : A_s' ⊆₁ fun _ => mode_le (WCore.lab_mode l_a) Orlx.
+
 Lemma rsr_rex_a_rlx :
-  A_s ⊆₁ set_compl (Acq_s' ∪₁ Rel_s').
-Proof using.
-Admitted.
+  A_s' ⊆₁ set_compl (Acq_s' ∪₁ Rel_s').
+Proof using ARLX.
+  clear - ARLX.
+  unfold extra_a; desf.
+  assert (RLX : mode_le (WCore.lab_mode l_a) Orlx).
+  { apply (ARLX b_t), extra_a_some; desf. }
+  unfolder in *. intros x XEQ. subst x.
+  simpl. unfold lab_s_'. desf; [| tauto].
+  unfold is_acq, is_rel, mod. rewrite upds.
+  unfold WCore.lab_mode in RLX.
+  destruct l_a; ins; desf.
+  all: unfold is_true; apply and_not_or.
+  all: split; congruence.
+Qed.
 
-Lemma rsr_rex_froma
-    (INB : E_t' b_t)
-    (NINA : ~ E_t' a_t) :
-  ⦗eq b_t⦘ ⨾ sb_s' ⊆ eq b_t × eq a_t.
-Proof using.
-Admitted.
+Lemma rsr_rex_nsloc :
+  A_s' ⊆₁ fun x => ~same_loc_s' a_t x.
+Proof using NLOC INV.
+  assert (NEQ : a_t <> b_t) by apply INV.
+  clear - NLOC NEQ.
+  unfold extra_a; desf.
+  unfolder in *. intros x XEQ. subst x.
+  simpl. unfold lab_s_'. desf; [| tauto].
+  unfold same_loc, loc.
+  rewrite updo, upds by auto.
+  unfold mapper_inv, compose.
+  rewrite rsr_mapper_at; auto.
+  apply NLOC, extra_a_some; desf.
+Qed.
 
-Lemma rsr_rex_nsloc
-    (INB : E_t' b_t)
-    (NINA : ~ E_t' a_t) :
-  ~same_loc_s' b_t a_t.
-Proof using.
-Admitted.
+Lemma rsr_rex_wr :
+  A_s' ⊆₁ R_s' ∪₁ W_s'.
+Proof using ARW INV.
+  assert (NEQ : a_t <> b_t) by apply INV.
+  clear - ARW NEQ.
+  unfold extra_a; desf.
+  unfolder in *. intros x XEQ. subst x.
+  simpl. unfold lab_s_'. desf; [| tauto].
+  unfold is_r, is_w.
+  rewrite upds.
+  unfold WCore.lab_is_r, WCore.lab_is_w in ARW.
+  desf; eauto.
+  destruct ARW with b_t; desf.
+  now apply extra_a_some.
+Qed.
+
+Lemma rsr_b_rlx :
+  E_s' ∩₁ eq a_t ⊆₁ set_compl (Acq_s' ∪₁ Rel_s').
+Proof using INV INV'.
+  assert (NEQ : a_t <> b_t) by apply INV.
+  simpl. rewrite set_inter_union_l.
+  arewrite (A_s' ∩₁ eq a_t ⊆₁ ∅).
+  { unfold extra_a; desf; basic_solver. }
+  rewrite set_union_empty_r.
+  intros x (XIN & XEQ). subst x.
+  red in XIN. unfolder.
+  enough (RLX : ~ (is_rel lab_s'' a_t \/ is_acq lab_s'' a_t)).
+  { unfold lab_s_'; desf; [| tauto].
+    unfold is_acq, is_rel, mod.
+    rewrite updo by congruence.
+    tauto. }
+  destruct XIN as (y & XIN & XEQ).
+  simpl. unfold is_acq, is_rel, mod, compose.
+  rewrite rsr_mapper_at; auto.
+  apply (rsr_bt_rlx INV'). split; auto.
+  enough (y = b_t) by congruence.
+  now apply (rsr_mapper_inv_at _ NEQ).
+Qed.
+
+Lemma rsr_b_rw :
+  E_s' ∩₁ eq a_t ⊆₁ R_s' ∪₁ W_s'.
+Proof using INV INV'.
+  assert (NEQ : a_t <> b_t) by apply INV.
+  simpl. rewrite set_inter_union_l.
+  arewrite (A_s' ∩₁ eq a_t ⊆₁ ∅).
+  { unfold extra_a; desf; basic_solver. }
+  rewrite set_union_empty_r.
+  intros x (XIN & XEQ). subst x.
+  red in XIN. unfolder.
+  enough (RW : is_w lab_s'' a_t \/ is_r lab_s'' a_t).
+  { unfold lab_s_'; desf; eauto.
+    all: unfold is_r, is_w.
+    all: rewrite updo by congruence.
+    all: eauto. }
+  destruct XIN as (y & XIN & XEQ).
+  simpl. unfold is_r, is_w, compose.
+  rewrite rsr_mapper_at; auto.
+  apply (rsr_b_t_is_r_or_w INV'). split; auto.
+  enough (y = b_t) by congruence.
+  now apply (rsr_mapper_inv_at _ NEQ).
+Qed.
 
 Lemma rc_vf
     (ISR : R_s' a_s)
