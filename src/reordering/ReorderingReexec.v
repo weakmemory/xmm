@@ -533,12 +533,252 @@ Proof using INV'.
   now apply NINB, (rsr_at_bt_ord INV').
 Qed.
 
-Lemma new_G_s_sb_helper
-    (EMP : ~ (~ E_t' a_t /\ E_t' b_t)) :
-  ⦗mapper ↑₁ E_t'⦘ ⨾ ext_sb ⨾ ⦗mapper ↑₁ E_t'⦘ ≡
-    mapper ↑ swap_rel sb_t' (eq b_t ∩₁ E_t') (eq a_t ∩₁ E_t').
+Lemma rsr_rex_sbniff :
+  mapper ↑ (
+    ⦗(E_t' \₁ eq b_t) \₁ eq a_t⦘ ⨾
+      ext_sb ⨾
+        ⦗(E_t' \₁ eq b_t) \₁ eq a_t⦘
+  ) ≡
+    ⦗(E_t' \₁ eq b_t) \₁ eq a_t⦘ ⨾
+      ext_sb ⨾
+        ⦗(E_t' \₁ eq b_t) \₁ eq a_t⦘.
 Proof using INV'.
-Admitted.
+  split; unfolder.
+  all: intros x y; ins; desf.
+  { rewrite !rsr_mappero by congruence.
+    splits; auto. }
+  exists x, y.
+  rewrite !rsr_mappero by eauto.
+  splits; auto.
+Qed.
+
+Lemma rsr_rex_sb_split :
+  sb_t' ≡
+    ⦗E_t' \₁ eq b_t \₁ eq a_t⦘ ⨾ ext_sb ⨾ ⦗E_t' \₁ eq b_t \₁ eq a_t⦘ ∪
+    ⦗E_t' \₁ eq b_t \₁ eq a_t⦘ ⨾ ext_sb ⨾ ⦗eq b_t ∩₁ E_t'⦘ ∪
+    ⦗E_t' \₁ eq b_t \₁ eq a_t⦘ ⨾ ext_sb ⨾ ⦗eq a_t ∩₁ E_t'⦘ ∪
+    ⦗eq b_t ∩₁ E_t'⦘ ⨾ ext_sb ⨾ ⦗E_t' \₁ eq b_t \₁ eq a_t⦘ ∪
+    ⦗eq a_t ∩₁ E_t'⦘ ⨾ ext_sb ⨾ ⦗E_t' \₁ eq b_t \₁ eq a_t⦘ ∪
+    ⦗eq b_t ∩₁ E_t'⦘ ⨾ ext_sb ⨾ ⦗eq a_t ∩₁ E_t'⦘.
+Proof using INV'.
+  assert (NSBB : ~ ext_sb a_t b_t).
+  { intro SB.
+    eapply ext_sb_irr, ext_sb_trans with b_t; eauto.
+    apply INV'. }
+  unfold sb.
+  rewrite set_union_minus
+      with (s := E_t') (s' := E_t' ∩₁ (eq b_t ∪₁ eq a_t))
+        at 1 2; [| basic_solver].
+  rewrite id_union, !seq_union_l, !seq_union_r.
+  arewrite (
+    E_t' \₁ E_t' ∩₁ (eq b_t ∪₁ eq a_t) ≡₁
+      (E_t' \₁ eq b_t) \₁ eq a_t
+  ).
+  { rewrite set_minus_inter_r, set_minusK, set_union_empty_l.
+    now rewrite set_minus_minus_l. }
+  rewrite set_inter_union_r.
+  rewrite id_union, !seq_union_l, !seq_union_r.
+  rewrite <- !unionA.
+  rewrite set_interC with (s' := eq b_t) (s := E_t').
+  rewrite set_interC with (s' := eq a_t) (s := E_t').
+  arewrite_false (⦗eq a_t ∩₁ E_t'⦘ ⨾ ext_sb ⨾ ⦗eq a_t ∩₁ E_t'⦘).
+  { unfolder. intros. desf. eapply ext_sb_irr; eauto. }
+  arewrite_false (⦗eq b_t ∩₁ E_t'⦘ ⨾ ext_sb ⨾ ⦗eq b_t ∩₁ E_t'⦘).
+  { unfolder. intros. desf. eapply ext_sb_irr; eauto. }
+  arewrite_false (⦗eq a_t ∩₁ E_t'⦘ ⨾ ext_sb ⨾ ⦗eq b_t ∩₁ E_t'⦘).
+  { unfolder. intros. desf. }
+  rewrite !union_false_r. reflexivity.
+Qed.
+
+Lemma as_cross_with_dom s1 s2 a r
+    (SUB : s2 ⊆₁ eq a) :
+  mapper ↑ (⦗s1⦘ ⨾ r ⨾ ⦗s2⦘) ≡
+    (mapper ↑₁ (dom_rel (⦗s1⦘ ⨾ r ⨾ ⦗s2⦘))) × (mapper ↑₁ s2).
+Proof using.
+  rewrite <- collect_rel_cross.
+  apply collect_rel_more; auto.
+  split; [basic_solver |].
+  intros x y ((y' & HREL) & YIN).
+  enough (y = y') by congruence.
+  assert (YIN' : s2 y') by (forward apply HREL; basic_solver).
+  apply SUB in YIN, YIN'. congruence.
+Qed.
+
+Lemma as_cross_with_codom s1 s2 a r
+    (SUB : s1 ⊆₁ eq a) :
+  mapper ↑ (⦗s1⦘ ⨾ r ⨾ ⦗s2⦘) ≡
+    (mapper ↑₁ s1) × (mapper ↑₁ (codom_rel (⦗s1⦘ ⨾ r ⨾ ⦗s2⦘))).
+Proof using.
+  rewrite <- collect_rel_cross.
+  apply collect_rel_more; auto.
+  split; [basic_solver |].
+  intros x y (XIN & (x' & HREL)).
+  enough (x = x') by congruence.
+  assert (XIN' : s1 x') by (forward apply HREL; basic_solver).
+  apply SUB in XIN, XIN'. congruence.
+Qed.
+
+Lemma rsr_rex_extsb_inv_l x
+    (NB : x <> b_t)
+    (EIN : E_t' x)
+    (IN : E_t' b_t)
+    (EXT : ext_sb x a_t) :
+  ext_sb x b_t.
+Proof using INV'.
+  clear - INV' NB EIN IN EXT.
+  assert (TEQ : tid a_t = tid b_t) by apply INV'.
+  assert (ANINI : ~is_init b_t) by apply INV'.
+  destruct classic with (is_init x) as [INI|NINI].
+  { destruct x, b_t; ins. }
+  assert (ABSB : ext_sb b_t a_t).
+  { apply INV'. }
+  destruct ext_sb_semi_total_r
+      with (x := a_t) (y := x) (z := b_t).
+  all: auto.
+  { destruct x, b_t; ins.
+    desf; ins. desf. congruence. }
+  destruct classic with (E_t' a_t) as [INA|NINA]; exfalso.
+  { eapply (rsr_at_bt_imm INV').
+    all: unfold sb; basic_solver. }
+  apply (rsr_bt_max INV') with b_t x.
+  all: auto.
+  unfold sb. basic_solver.
+Qed.
+
+Lemma rsr_rex_extsb_inv_r x
+    (NB : x <> a_t)
+    (EIN : E_t' x)
+    (IN : E_t' b_t)
+    (EXT : ext_sb b_t x) :
+  ext_sb a_t x.
+Proof using INV'.
+  clear - INV' NB EIN IN EXT.
+  assert (TEQ : tid a_t = tid b_t) by apply INV'.
+  assert (XNINI : ~is_init x).
+  { destruct b_t, x; desf. }
+  assert (ANINI : ~is_init a_t) by apply INV'.
+  assert (BNINI : ~is_init b_t) by apply INV'.
+  assert (ABSB : ext_sb b_t a_t).
+  { apply INV'. }
+  destruct ext_sb_semi_total_l
+      with (x := b_t) (y := x) (z := a_t).
+  all: auto.
+  { destruct x, a_t, b_t; ins.
+    desf; ins. desf. congruence. }
+  destruct classic with (E_t' a_t) as [INA|NINA]; exfalso.
+  { clear ABSB.
+    eapply (rsr_at_bt_imm INV').
+    all: unfold sb; basic_solver. }
+  apply (rsr_bt_max INV') with b_t x.
+  all: auto.
+  unfold sb. basic_solver.
+Qed.
+
+Lemma rsr_rex_dom_b :
+  mapper ↑ (⦗(E_t' \₁ eq b_t) \₁ eq a_t⦘ ⨾ ext_sb ⨾ ⦗eq b_t ∩₁ E_t'⦘) ≡
+    ⦗(E_t' \₁ eq b_t) \₁ eq a_t⦘ ⨾ ext_sb ⨾ ⦗mapper ↑₁ (eq b_t ∩₁ E_t')⦘.
+Proof using INV'.
+  assert (NEQ : a_t <> b_t) by apply INV'.
+  split; unfolder.
+  all: intros x y; ins; desf.
+  { rewrite rsr_mappero, rsr_mapper_bt by congruence.
+    splits; auto.
+    { eapply ext_sb_trans; eauto. apply INV'. }
+    exists b_t; splits; auto.
+    now apply rsr_mapper_bt. }
+  exists x, b_t.
+  rewrite rsr_mappero, rsr_mapper_bt by congruence.
+  splits; auto.
+  rewrite rsr_mapper_bt in * by congruence.
+  apply rsr_rex_extsb_inv_l; auto.
+Qed.
+
+Lemma rsr_rex_dom_a :
+  mapper ↑ (⦗(E_t' \₁ eq b_t) \₁ eq a_t⦘ ⨾ ext_sb ⨾ ⦗eq a_t ∩₁ E_t'⦘) ≡
+    ⦗(E_t' \₁ eq b_t) \₁ eq a_t⦘ ⨾ ext_sb ⨾ ⦗mapper ↑₁ (eq a_t ∩₁ E_t')⦘.
+Proof using INV'.
+  assert (NEQ : a_t <> b_t) by apply INV'.
+  split; unfolder.
+  all: intros x y; ins; desf.
+  { rewrite rsr_mappero, rsr_mapper_at by congruence.
+    splits; auto.
+    { apply rsr_rex_extsb_inv_l; auto.
+      now apply (rsr_at_bt_ord INV'). }
+    exists a_t; splits; auto.
+    now apply rsr_mapper_at. }
+  exists x, a_t.
+  rewrite rsr_mappero, rsr_mapper_at by congruence.
+  splits; auto.
+  rewrite rsr_mapper_at in *; auto.
+  eapply ext_sb_trans; eauto. apply INV'.
+Qed.
+
+Lemma rsr_rex_codom_b :
+  mapper ↑ (⦗eq b_t ∩₁ E_t'⦘ ⨾ ext_sb ⨾ ⦗(E_t' \₁ eq b_t) \₁ eq a_t⦘) ≡
+    ⦗mapper ↑₁ (eq b_t ∩₁ E_t')⦘ ⨾ ext_sb ⨾ ⦗(E_t' \₁ eq b_t) \₁ eq a_t⦘.
+Proof using INV'.
+  assert (NEQ : a_t <> b_t) by apply INV'.
+  split; unfolder.
+  all: intros x y; ins; desf.
+  { rewrite rsr_mapper_bt, rsr_mappero by congruence.
+    splits; auto.
+    { exists b_t; splits; auto.
+      now apply rsr_mapper_bt. }
+    apply rsr_rex_extsb_inv_r; auto. }
+  exists b_t, y.
+  rewrite rsr_mapper_bt, rsr_mappero by congruence.
+  splits; auto.
+  rewrite rsr_mapper_bt in * by congruence.
+  eapply ext_sb_trans; eauto. apply INV'.
+Qed.
+
+Lemma rsr_rex_codom_a :
+  mapper ↑ (⦗eq a_t ∩₁ E_t'⦘ ⨾ ext_sb ⨾ ⦗(E_t' \₁ eq b_t) \₁ eq a_t⦘) ≡
+    ⦗mapper ↑₁ (eq a_t ∩₁ E_t')⦘ ⨾ ext_sb ⨾ ⦗(E_t' \₁ eq b_t) \₁ eq a_t⦘.
+Proof using INV'.
+  assert (NEQ : a_t <> b_t) by apply INV'.
+  split; unfolder.
+  all: intros x y; ins; desf.
+  { rewrite rsr_mapper_at, rsr_mappero by congruence.
+    splits; auto.
+    { exists a_t; splits; auto.
+      now apply rsr_mapper_at. }
+    eapply ext_sb_trans; eauto. apply INV'. }
+  exists a_t, y.
+  rewrite rsr_mapper_at, rsr_mappero by congruence.
+  splits; auto.
+  rewrite rsr_mapper_at in * by congruence.
+  apply rsr_rex_extsb_inv_r; auto.
+  now apply (rsr_at_bt_ord INV').
+Qed.
+
+Lemma mapped_swap_rel :
+  mapper ↑ swap_rel sb_t' (eq b_t ∩₁ E_t') (eq a_t ∩₁ E_t') ≡
+    ⦗(E_t' \₁ eq b_t) \₁ eq a_t⦘ ⨾ ext_sb ⨾ ⦗(E_t' \₁ eq b_t) \₁ eq a_t⦘ ∪
+    ⦗(E_t' \₁ eq b_t) \₁ eq a_t⦘ ⨾ ext_sb ⨾ ⦗mapper ↑₁ (eq b_t ∩₁ E_t')⦘ ∪
+    ⦗(E_t' \₁ eq b_t) \₁ eq a_t⦘ ⨾ ext_sb ⨾ ⦗mapper ↑₁ (eq a_t ∩₁ E_t')⦘ ∪
+    ⦗mapper ↑₁ (eq b_t ∩₁ E_t')⦘ ⨾ ext_sb ⨾ ⦗(E_t' \₁ eq b_t) \₁ eq a_t⦘ ∪
+    ⦗mapper ↑₁ (eq a_t ∩₁ E_t')⦘ ⨾ ext_sb ⨾ ⦗(E_t' \₁ eq b_t) \₁ eq a_t⦘ ∪
+    ⦗mapper ↑₁ (eq a_t ∩₁ E_t')⦘ ⨾ ext_sb ⨾ ⦗mapper ↑₁ (eq b_t ∩₁ E_t')⦘.
+Proof using INV'.
+  rewrite rsr_rex_sb_split.
+  unfold swap_rel. rewrite !minus_union_l.
+  do 5 (rewrite minus_disjoint; [| basic_solver]).
+  arewrite_false (⦗eq b_t ∩₁ E_t'⦘ ⨾ ext_sb ⨾ ⦗eq a_t ∩₁ E_t'⦘ \ (eq b_t ∩₁ E_t') × (eq a_t ∩₁ E_t')).
+  { basic_solver 11. }
+  rewrite union_false_r, !collect_rel_union.
+  rewrite rsr_rex_codom_a, rsr_rex_codom_b.
+  rewrite rsr_rex_dom_a, rsr_rex_dom_b.
+  rewrite rsr_rex_sbniff.
+  repeat apply union_more; try reflexivity.
+  rewrite collect_rel_cross.
+  split; [| basic_solver].
+  unfolder. ins. desf. splits.
+  { exists a_t. splits; auto. }
+  { rewrite rsr_mapper_at, rsr_mapper_bt.
+    all: apply INV'. }
+  exists b_t. splits; auto.
+Qed.
 
 Lemma new_G_s_sb :
   sb_s' ≡
@@ -553,7 +793,42 @@ Proof using INV'.
   { rewrite !extra_a_none; auto.
     rewrite set_union_empty_r.
     rewrite cross_false_l, cross_false_r, !union_false_r.
-    now apply new_G_s_sb_helper. }
+    arewrite (mapper ↑₁ E_t' ≡₁ E_t').
+    { apply rsr_setE_iff; [apply INV' |].
+      assert (ORG : E_t' a_t \/ ~E_t' b_t) by tauto.
+      destruct ORG as [INA | NINB].
+      { left. split; auto. now apply (rsr_at_bt_ord INV'). }
+      right. split; auto. intro FALSO.
+      now apply NINB, (rsr_at_bt_ord INV'). }
+    rewrite mapped_swap_rel.
+    admit. }
+  assert (NEMP : ~E_t' a_t /\ E_t' b_t) by tauto.
+  rewrite extra_a_some by desf.
+  rewrite rsr_mapper_bt by apply INV'.
+  rewrite mapped_swap_rel.
+  arewrite ((E_t' \₁ eq b_t) \₁ eq a_t ≡₁ E_t' \₁ eq b_t).
+  { rewrite set_minus_disjoint; [reflexivity |].
+    basic_solver. }
+  arewrite (eq a_t ∩₁ E_t' ≡₁ ∅).
+  { basic_solver. }
+  rewrite set_collect_empty, eqv_empty,
+          !seq_false_r, !seq_false_l.
+  rewrite !union_false_r.
+  arewrite (eq b_t ∩₁ E_t' ≡₁ eq b_t).
+  { basic_solver. }
+  rewrite set_collect_eq, rsr_mapper_bt by apply INV'.
+  arewrite (mapper ↑₁ E_t' ∪₁ eq b_t ≡₁ E_t' ∪₁ eq a_t).
+  { admit. }
+  arewrite (
+    mapper ↑₁ dom_rel (sb_t' ⨾ ⦗eq b_t⦘) ≡₁
+    dom_rel (sb_t' ⨾ ⦗eq b_t⦘)
+  ).
+  { admit. }
+  arewrite (
+    dom_rel (sb_t' ⨾ ⦗eq b_t⦘) × eq b_t ≡ sb_t' ⨾ ⦗eq b_t⦘
+  ).
+  { basic_solver. }
+  admit.
 Admitted.
 
 Lemma rsr_rex_codom :
