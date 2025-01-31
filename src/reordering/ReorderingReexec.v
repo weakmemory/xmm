@@ -780,6 +780,48 @@ Proof using INV'.
   exists b_t. splits; auto.
 Qed.
 
+Lemma new_G_s_sb_helper
+    (EMP : ~ (~ E_t' a_t /\ E_t' b_t)) :
+  ⦗E_t'⦘ ⨾ ext_sb ⨾ ⦗E_t'⦘ ≡
+    ⦗(E_t' \₁ eq b_t) \₁ eq a_t⦘ ⨾ ext_sb ⨾ ⦗(E_t' \₁ eq b_t) \₁ eq a_t⦘ ∪
+    ⦗(E_t' \₁ eq b_t) \₁ eq a_t⦘ ⨾ ext_sb ⨾ ⦗mapper ↑₁ (eq b_t ∩₁ E_t')⦘ ∪
+    ⦗(E_t' \₁ eq b_t) \₁ eq a_t⦘ ⨾ ext_sb ⨾ ⦗mapper ↑₁ (eq a_t ∩₁ E_t')⦘ ∪
+    ⦗mapper ↑₁ (eq b_t ∩₁ E_t')⦘ ⨾ ext_sb ⨾ ⦗(E_t' \₁ eq b_t) \₁ eq a_t⦘ ∪
+    ⦗mapper ↑₁ (eq a_t ∩₁ E_t')⦘ ⨾ ext_sb ⨾ ⦗(E_t' \₁ eq b_t) \₁ eq a_t⦘ ∪
+    ⦗mapper ↑₁ (eq a_t ∩₁ E_t')⦘ ⨾ ext_sb ⨾ ⦗mapper ↑₁ (eq b_t ∩₁ E_t')⦘.
+Proof using INV'.
+  assert (NEQ : a_t <> b_t) by apply INV'.
+  assert (ORG : (E_t' a_t \/ ~E_t' b_t)) by tauto.
+  destruct ORG as [INA | NINB].
+  { assert (INB : E_t' b_t) by now apply (rsr_at_bt_ord INV').
+    rewrite !set_inter_absorb_r by basic_solver.
+    rewrite !set_collect_eq.
+    rewrite rsr_mapper_at, rsr_mapper_bt; auto.
+    change (⦗E_t'⦘ ⨾ ext_sb ⨾ ⦗E_t'⦘) with sb_t'.
+    rewrite rsr_rex_sb_split.
+    rewrite !set_inter_absorb_r by basic_solver.
+    basic_solver 20. }
+  assert (NINA : ~ E_t' a_t).
+  { intro FALSO. now apply NINB, (rsr_at_bt_ord INV'). }
+  arewrite (eq a_t ∩₁ E_t' ≡₁ ∅) by basic_solver.
+  arewrite (eq b_t ∩₁ E_t' ≡₁ ∅) by basic_solver.
+  rewrite set_collect_empty, eqv_empty.
+  rewrite !seq_false_l, !seq_false_r, !union_false_r.
+  rewrite set_minus_minus_l, set_minus_disjoint; [reflexivity |].
+  apply set_disjoint_union_r; split; basic_solver.
+Qed.
+
+Lemma new_G_s_sb_helper'
+    (NEMP : ~ E_t' a_t /\ E_t' b_t) :
+  ⦗E_t' ∪₁ eq a_t⦘ ⨾ ext_sb ⨾ ⦗E_t' ∪₁ eq a_t⦘ ≡
+    ⦗E_t' \₁ eq b_t⦘ ⨾ ext_sb ⨾ ⦗E_t' \₁ eq b_t⦘ ∪
+    ⦗E_t' \₁ eq b_t⦘ ⨾ ext_sb ⨾ ⦗eq a_t⦘ ∪
+    ⦗eq a_t⦘         ⨾ ext_sb ⨾ ⦗E_t' \₁ eq b_t⦘ ∪
+                       sb_t' ⨾ ⦗eq b_t⦘ ∪
+                  eq b_t × eq a_t.
+Proof using INV'.
+Admitted.
+
 Lemma new_G_s_sb :
   sb_s' ≡
     mapper ↑ swap_rel sb_t' (eq b_t ∩₁ E_t') (eq a_t ∩₁ E_t') ∪
@@ -801,7 +843,7 @@ Proof using INV'.
       right. split; auto. intro FALSO.
       now apply NINB, (rsr_at_bt_ord INV'). }
     rewrite mapped_swap_rel.
-    admit. }
+    now apply new_G_s_sb_helper. }
   assert (NEMP : ~E_t' a_t /\ E_t' b_t) by tauto.
   rewrite extra_a_some by desf.
   rewrite rsr_mapper_bt by apply INV'.
@@ -828,7 +870,7 @@ Proof using INV'.
     dom_rel (sb_t' ⨾ ⦗eq b_t⦘) × eq b_t ≡ sb_t' ⨾ ⦗eq b_t⦘
   ).
   { basic_solver. }
-  admit.
+  now apply new_G_s_sb_helper'.
 Admitted.
 
 Lemma rsr_rex_codom :
