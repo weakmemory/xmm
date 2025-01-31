@@ -1099,7 +1099,7 @@ Proof using NLOC INV.
   apply NLOC, extra_a_some; desf.
 Qed.
 
-Lemma rsr_rex_wr :
+Lemma rsr_rex_a_rw :
   A_s' ⊆₁ R_s' ∪₁ W_s'.
 Proof using ARW INV.
   assert (NEQ : a_t <> b_t) by apply INV.
@@ -1115,7 +1115,7 @@ Proof using ARW INV.
   now apply extra_a_some.
 Qed.
 
-Lemma rsr_b_rlx :
+Lemma rsr_rex_b_rlx :
   E_s' ∩₁ eq a_t ⊆₁ set_compl (Acq_s' ∪₁ Rel_s').
 Proof using INV INV'.
   assert (NEQ : a_t <> b_t) by apply INV.
@@ -1138,7 +1138,7 @@ Proof using INV INV'.
   now apply (rsr_mapper_inv_at _ NEQ).
 Qed.
 
-Lemma rsr_b_rw :
+Lemma rsr_rex_b_rw :
   E_s' ∩₁ eq a_t ⊆₁ R_s' ∪₁ W_s'.
 Proof using INV INV'.
   assert (NEQ : a_t <> b_t) by apply INV.
@@ -1168,15 +1168,35 @@ Lemma rc_vf
   vf_s' ⨾ sb_s' ⨾ ⦗eq a_s⦘ ≡
     vf G_s'' ⨾ sb_s' ⨾ ⦗eq a_s⦘.
 Proof using INV SIMREL.
+  assert (BIN : E_s' a_t) by admit.
   assert (RPOEX : codom_rel (⦗eq a_s⦘ ⨾ rpo_s') ≡₁ ∅).
   { split; auto with hahn.
-    rewrite reord_rpo_emp; eauto.
-    clear. basic_solver.
-    all: admit. }
+    rewrite reord_rpo_emp with (b := b_t) (a := a_t).
+    { clear. basic_solver. }
+    all: eauto.
+    { transitivity (set_compl (Acq_s' ∪₁ Rel_s')); [| basic_solver].
+      now rewrite <- rsr_rex_a_rlx, extra_a_some by auto. }
+    { transitivity (set_compl (Acq_s' ∪₁ Rel_s')); [| basic_solver].
+      rewrite <- rsr_rex_b_rlx. basic_solver. }
+    { rewrite <- rsr_rex_b_rw. basic_solver. }
+    { now rewrite <- rsr_rex_a_rw, extra_a_some by auto. }
+    now apply rsr_rex_froma. }
   assert (RPONA : rpo_s' ⨾ ⦗E_s' \₁ eq a_s⦘ ⊆ id ↑ rpo G_s'').
   { apply reord_map_rpo with (a := a_t); auto.
     { now apply new_G_s_wf. }
-    all: admit. }
+    { unfold a_s. simpl. right. apply extra_a_some; auto. }
+    { admit. }
+    { rewrite Combinators.compose_id_right. exact rsr_rexi. }
+    { clear. basic_solver. }
+    { unfold a_s.
+      transitivity (set_compl (Acq_s' ∪₁ Rel_s')); [| basic_solver].
+      now rewrite <- rsr_rex_a_rlx, extra_a_some by auto. }
+    { transitivity (set_compl (Acq_s' ∪₁ Rel_s')); [| basic_solver].
+      rewrite <- rsr_rex_b_rlx. basic_solver. }
+    { rewrite <- rsr_rex_b_rw. basic_solver. }
+    { now rewrite <- rsr_rex_a_rw, extra_a_some by auto. }
+    { now apply rsr_rex_froma. }
+    admit. }
   assert (SUBINIT : is_init ∩₁ E_s' ⊆₁ E_s'').
   { admit. }
   assert (SBLOCEX : codom_rel (⦗eq a_s⦘ ⨾ sb_s' ∩ same_loc_s') ≡₁ ∅).
@@ -1207,7 +1227,7 @@ Proof using INV SIMREL.
     apply union_mori; [basic_solver |].
     apply XmmCons.read_rhb_start
       with (m := id) (G_t := G_s'') (drf := fake_srf G_s'' a_s (lab_s' a_s)).
-    all: eauto using new_G_s_wf.
+    all: eauto using new_G_s_wf, rsr_imm_Gs_wf.
     all: admit. }
   arewrite (
     rf_s'^? ⨾ ⦗E_s' \₁ eq a_s⦘ ⊆
@@ -1229,9 +1249,29 @@ Proof using INV SIMREL.
   { clear. basic_solver. }
   rewrite <- seqA.
   rewrite XmmCons.read_rhb_sub
-      with (m := id) (G_t := G_s'') (drf := fake_srf G_s'' a_s (lab_s' a_s)).
+      with (m := id) (G_t := G_s'') (drf := drf_s'').
   all: auto.
   { now rewrite collect_rel_id. }
+Admitted.
+
+Lemma reexec_rex_srf
+    (INB : E_t' b_t)
+    (NINA : ~E_t' a_t) :
+  drf_s'' ≡ srf_s' ⨾ ⦗A_s' ∩₁ R_s'⦘.
+Proof using INV.
+  rewrite extra_a_some by auto.
+  destruct classic with (~ R_s' b_t) as [NINR|ISR].
+  { rewrite <- rsr_rex_isr_helper; auto.
+    arewrite (eq b_t ∩₁ R_s' ≡₁ ∅); basic_solver. }
+  rewrite rsr_rex_isr_helper.
+  apply fake_srf_is_srf with (G_s := G_s'').
+  all: auto using rsr_imm_Gs_wf.
+  { unfold sb, fake_sb. simpl.
+    now rewrite extra_a_some by auto. }
+  { admit. }
+  { simpl. unfold lab_s_'. desf. tauto. }
+  { apply rc_vf; auto. tauto. }
+  admit.
 Admitted.
 
 Lemma reexec_simrel :
@@ -1248,7 +1288,7 @@ Proof using INV.
   ).
   { unfold extra_a; desf; [desf | basic_solver 11].
     rewrite EXAR, <- fake_srf_is_srf with (G_s := G_s'').
-    all: ins.
+    { reflexivity. }
     { admit. }
     { admit. }
     { admit. }
