@@ -1189,3 +1189,5 @@ Proof using INV LVAL.
   unfold extra_a in EX. desf.
   now apply (wf_threads WF_t).
 Qed.
+
+End ReordGraph.
