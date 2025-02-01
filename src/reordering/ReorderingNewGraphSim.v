@@ -719,4 +719,78 @@ Proof using INV NLOC LVAL ARW ARLX.
   now apply rsr_rex_a_rw.
 Qed.
 
+Lemma rsr_new_Gs_sim_cominus
+    (NINA : ~E_t a_t)
+    (INB : E_t b_t) :
+  E_s'' ∩₁ W_s'' ∩₁ Loc_s_'' (loc_s b_t) ≡₁
+    E_s ∩₁ W_s ∩₁ Loc_s_ (loc_s b_t) \₁ eq b_t ∩₁ W_s.
+Proof using INV NLOC LVAL ARW ARLX.
+  assert (DIFF : E_s \₁ eq b_t ≡₁ E_s'').
+  { change E_s with (E_s'' ∪₁ A_s).
+    rewrite set_minus_union_l, extra_a_some by auto.
+    rewrite set_minusK, set_union_empty_r.
+    rewrite set_minus_disjoint; [reflexivity |].
+    unfolder. intros x XIN XEQ. subst x.
+    apply NINA.
+    destruct XIN as (y & YIN & YEQ).
+    enough (y = a_t) by congruence.
+    eapply rsr_mapper_inv_bt; [apply INV | eauto]. }
+  transitivity (
+    (E_s ∩₁ W_s \₁ eq b_t ∩₁ W_s) ∩₁ Loc_s_ (loc_s b_t)
+  ); [| basic_solver 11].
+  arewrite (
+    E_s ∩₁ W_s \₁ eq b_t ∩₁ W_s ≡₁
+      (E_s \₁ eq b_t) ∩₁ W_s
+  ).
+  { destruct classic with (~W_s b_t) as [NW | ISW'].
+    { rewrite DIFF.
+      change E_s with (E_s'' ∪₁ A_s).
+      rewrite set_inter_union_l, extra_a_some by auto.
+      arewrite (eq b_t ∩₁ W_s ≡₁ ∅) by basic_solver.
+      now rewrite set_minus_empty_r, set_union_empty_r. }
+    assert (ISW : W_s b_t) by tauto.
+    rewrite set_inter_absorb_r with (s := eq b_t) by basic_solver.
+    rewrite set_minus_inter_l. basic_solver. }
+  rewrite DIFF.
+  split; [| apply (rsr_extra_a_coE' l_a INV)].
+  unfold is_w, loc. unfolder.
+  intros x ((XIN & ISW) & LOC). splits; auto.
+  all: rewrite <- (rsr_rexi l_a INV); auto.
+Qed.
+
+Lemma rsr_new_Gs_sim :
+  reord_simrel X_s X_t a_t b_t mapper.
+Proof using INV NLOC LVAL ARW ARLX.
+  assert (NEQ : a_t <> b_t) by apply INV.
+  assert (ANINI : ~is_init a_t) by apply INV.
+  assert (BNINI : ~is_init b_t) by apply INV.
+  assert (TEQ : tid a_t = tid b_t) by apply INV.
+  constructor.
+  { eapply inj_dom_mori; eauto with xmm.
+    red; auto with hahn. }
+  { apply rsr_exa_correct. }
+  { apply (rsr_rex_codom l_a INV). }
+  { auto with xmm. }
+  { eapply eq_dom_mori; eauto with xmm.
+    red; auto with hahn. }
+  { apply (rsr_rex l_a INV). }
+  { reflexivity. }
+  { apply (new_G_s_sb l_a INV). }
+  { apply union_more; [reflexivity |].
+    apply rsr_srf_eq. }
+  { apply union_more; [reflexivity |].
+    unfold extra_a; desf; [| basic_solver].
+    rewrite <- (rsr_rex_isw_helper l_a INV) by desf.
+    unfold add_max. apply cross_more; [| reflexivity].
+    rewrite <- (rsr_rex_labloc_helper l_a INV) by desf.
+    unfold extra_co_D.
+    apply rsr_new_Gs_sim_cominus; desf. }
+  all: try reflexivity.
+  { unfolder. intros x ((XIN & XNA) & XNB).
+    unfold id. rewrite rsr_mappero; congruence. }
+  all: rewrite set_collect_inter, set_collect_eq.
+  { rewrite rsr_mapper_bt by congruence. basic_solver. }
+  rewrite rsr_mapper_at by congruence. basic_solver.
+Qed.
+
 End ReordGraphs.
