@@ -421,7 +421,7 @@ Proof using INV.
   { apply (co_upward_closed WF_s). }
   rewrite (wf_coE WF_s), dom_seq, dom_eqv.
   rewrite rsr_exa_notin_imm. basic_solver.
-Admitted.
+Qed.
 
 Lemma rsr_extra_a_co ol
     (INB : E_t b_t)
