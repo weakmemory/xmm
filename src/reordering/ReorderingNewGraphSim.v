@@ -84,6 +84,7 @@ Notation "'R_s'''" := (fun x => is_true (is_r lab_s'' x)).
 Notation "'F_s'''" := (fun x => is_true (is_f lab_s'' x)).
 Notation "'vf_s'''" := (vf G_s'').
 Notation "'srf_s'''" := (srf G_s'').
+Notation "'hb_s'''" := (hb G_s'').
 Notation "'rhb_s'''" := (rhb G_s'').
 Notation "'Loc_s_''' l" := (fun e => loc_s'' e = l) (at level 1).
 Notation "'Val_s_''' l" := (fun e => val_s'' e = l) (at level 1).
@@ -117,6 +118,7 @@ Notation "'R_s'" := (fun x => is_true (is_r lab_s x)).
 Notation "'F_s'" := (fun x => is_true (is_f lab_s x)).
 Notation "'vf_s'" := (vf G_s).
 Notation "'srf_s'" := (srf G_s).
+Notation "'hb_s'" := (hb G_s).
 Notation "'rhb_s'" := (rhb G_s).
 Notation "'Loc_s_' l" := (fun e => loc_s e = l) (at level 1).
 Notation "'Val_s_' l" := (fun e => val_s e = l) (at level 1).
@@ -127,7 +129,7 @@ Notation "'Rel_s'" := (fun e => is_true (is_rel lab_s e)).
 Hypothesis INV : reord_step_pred X_t a_t b_t.
 
 Hypothesis LVAL : dom_rel drf_s'' ⊆₁ Val_s_'' (WCore.lab_val l_a).
-Hypothesis NLOC : A_s ⊆₁ set_compl (Loc_t_ (WCore.lab_loc l_a)).
+Hypothesis NLOC : A_s ⊆₁ fun _ => WCore.lab_loc l_a <> loc_t b_t.
 Hypothesis ARW : A_s ⊆₁ WCore.lab_is_r l_a ∪₁ WCore.lab_is_w l_a.
 Hypothesis ARLX : A_s ⊆₁ fun _ => mode_le (WCore.lab_mode l_a) Orlx.
 
@@ -151,14 +153,17 @@ Qed.
 Lemma rsr_rex_nsloc :
   A_s ⊆₁ fun x => ~same_loc_s a_t x.
 Proof using INV NLOC.
+  assert (NEQ : a_t <> b_t) by apply INV.
   clear - NLOC INV.
   unfold extra_a; desf.
   unfolder in *. intros x XEQ. subst x.
-  simpl. unfold lab_s_. desf; [| tauto].
-  unfold same_loc, loc, compose.
-  rewrite rsr_mapper_bt, rsr_mapper_at by apply INV.
-  rewrite updo, upds by (symmetry; apply INV).
-  apply NLOC, extra_a_some; desf.
+  intro FALSO. apply NLOC with b_t.
+  { apply extra_a_some; desf. }
+  unfold same_loc in FALSO.
+  rewrite <- (rsr_rex_labloc_helper l_a INV) by desf.
+  arewrite (loc_t b_t = loc_s a_t); [| congruence].
+  simpl. unfold lab_s_, compose; desf; [| tauto].
+  unfold loc. rewrite rsr_mapper_at, updo; congruence.
 Qed.
 
 Lemma rsr_rex_a_rw :
@@ -233,8 +238,196 @@ Lemma rsr_vfsb_helper
     (NINA : ~ E_t a_t) :
   vf_s'' ⨾ sb_s ⨾ ⦗eq b_t⦘ ⊆
     vf_s ⨾ sb_s ⨾ ⦗eq b_t⦘.
-Proof using.
-Admitted.
+Proof using INV LVAL.
+  clear - INV LVAL ISR INB NINA.
+  assert (WF_s : Wf G_s'').
+  { apply (rsr_imm_Gs_wf INV). }
+  arewrite (
+    sb_s ⨾ ⦗eq b_t⦘ ≡
+      ⦗E_s''⦘ ⨾ sb_s ⨾ ⦗eq b_t⦘
+  ).
+  { arewrite (E_s'' ≡₁ E_s \₁ eq b_t).
+    { change E_s with (E_s'' ∪₁ A_s).
+      rewrite extra_a_some by auto.
+      rewrite set_minus_union_l, set_minusK.
+      rewrite set_union_empty_r, set_minus_disjoint; [reflexivity |].
+      simpl. unfolder. intros x' (x & XIN & XEQ) XEQ'.
+      subst x'. apply NINA.
+      enough (x = a_t) by congruence.
+      eapply rsr_mapper_inv_bt; eauto.
+      apply INV. }
+    split; [| basic_solver].
+    clear. unfolder. intros x y (SB & YEQ).
+    splits; auto.
+    { apply wf_sbE in SB. unfolder in SB. desf. }
+    intro XEQ. subst x y. eapply sb_irr; eauto. }
+  rewrite <- !seqA with (r2 := ⦗E_s''⦘).
+  apply seq_mori; [| reflexivity].
+  unfold vf. rewrite !seqA.
+  assert (SUBACTS : E_s'' ⊆₁ E_s).
+  { apply rsr_imm_G_sub. }
+  arewrite (⦗E_s''⦘ ⨾ ⦗W_s''⦘ ⊆ ⦗E_s''⦘ ⨾ ⦗W_s⦘).
+  { rewrite <- !id_inter. apply eqv_rel_mori.
+    rewrite 2!set_interC with (s := E_s'').
+    eapply set_inter_is_w; try reflexivity.
+    symmetry. apply (rsr_rexi l_a INV). }
+  enough (HBSUB :
+    hb_s''^? ⨾ ⦗E_s''⦘ ⊆ ⦗E_s''⦘ ⨾ hb_s^? ⨾ ⦗E_s''⦘
+  ).
+  { sin_rewrite HBSUB. rewrite <- !seqA.
+    do 2 (apply seq_mori; [| basic_solver]).
+    rewrite !seqA.
+    rewrite !crE, !seq_union_l, !seq_union_r.
+    apply union_mori; [basic_solver 11 |].
+    change (rf_s) with (rf_s'' ∪ drf_s'').
+    rewrite !seq_union_r.
+    apply inclusion_union_r. left. basic_solver 11. }
+  rewrite !crE.
+  rewrite !seq_union_l, !seq_union_r.
+  apply union_mori; [basic_solver |].
+  enough (HBSUB : hb_s'' ⊆ hb_s).
+  { rewrite (wf_hbE WF_s).
+    rewrite HBSUB. clear. basic_solver 11. }
+  unfold hb. apply clos_trans_mori.
+  apply union_mori.
+  { unfold sb. rewrite SUBACTS. reflexivity. }
+  unfold sw.
+  rewrite (wf_rfE WF_s), !seqA.
+  arewrite (rf_s'' ⊆ rf_s).
+  { simpl. apply inclusion_union_r. now left. }
+  assert (RSE :
+    rs G_s'' ⨾ ⦗E_s''⦘ ⊆
+      ⦗E_s''⦘ ⨾ rs G_s'' ⨾ ⦗E_s''⦘
+  ).
+  { unfold rs. rewrite <- cr_of_ct.
+    rewrite crE, !seq_union_r, !seq_union_l.
+    rewrite !seq_union_r.
+    apply union_mori; [basic_solver |].
+    rewrite ct_begin at 1.
+    arewrite (
+      (rf_s'' ⨾ rmw_s'') ⊆
+        ⦗E_s''⦘ ⨾ (rf_s'' ⨾ rmw_s'')
+    ) at 1.
+    { rewrite (wf_rfE WF_s). basic_solver 11. }
+    arewrite (
+      rf_s'' ⨾ rmw_s'' ⨾ (rf_s'' ⨾ rmw_s'')＊ ⊆
+        (rf_s'' ⨾ rmw_s'')⁺
+    ).
+    { now rewrite <- seqA, <- ct_begin. }
+    basic_solver 11. }
+  assert (RS :
+    rs G_s'' ⨾ ⦗E_s''⦘ ⊆
+      ⦗E_s''⦘ ⨾ rs G_s ⨾ ⦗E_s''⦘
+  ).
+  { rewrite RSE. unfold rs. rewrite !seqA.
+    arewrite (rf_s'' ⨾ rmw_s'' ⊆ rf_s ⨾ rmw_s).
+    { change (rf_s) with (rf_s'' ∪ drf_s'').
+      rewrite seq_union_l.
+      apply inclusion_union_r. now left. }
+    arewrite (⦗E_s''⦘ ⨾ ⦗W_s''⦘ ⊆ ⦗E_s''⦘ ⨾ ⦗W_s⦘).
+    { rewrite <- !id_inter.
+      apply eqv_rel_mori.
+      rewrite 2!set_interC with (s := E_s'').
+      eapply set_inter_is_w; try reflexivity.
+      symmetry. apply (rsr_rexi l_a INV). }
+    reflexivity. }
+  assert (FSB' :
+    ⦗F_s''⦘ ⨾ sb_s'' ⊆
+      ⦗F_s⦘ ⨾ sb_s
+  ).
+  { unfold sb.
+    arewrite (⦗F_s''⦘ ⨾ ⦗E_s''⦘ ⊆ ⦗F_s⦘ ⨾ ⦗E_s''⦘).
+    { rewrite <- !id_inter. apply eqv_rel_mori.
+      eapply set_inter_is_f; try reflexivity.
+      symmetry. apply (rsr_rexi l_a INV). }
+    rewrite SUBACTS. reflexivity. }
+  assert (FSBE :
+    (⦗F_s''⦘ ⨾ sb_s'')^? ⨾ ⦗Rlx_s''⦘ ⨾ ⦗E_s''⦘ ⊆
+       ⦗E_s''⦘ ⨾ (⦗F_s''⦘ ⨾ sb_s'')^? ⨾ ⦗Rlx_s''⦘ ⨾ ⦗E_s''⦘
+  ).
+  { rewrite crE, !seq_union_l, !seq_union_r.
+    apply union_mori; [basic_solver |].
+    rewrite wf_sbE at 1. basic_solver 11. }
+  assert (FSB :
+    ⦗Rel_s''⦘ ⨾ (⦗F_s''⦘ ⨾ sb_s'')^? ⨾ ⦗Rlx_s''⦘ ⨾ ⦗E_s''⦘ ⊆
+      ⦗Rel_s⦘ ⨾ (⦗F_s⦘ ⨾ sb_s)^? ⨾ ⦗Rlx_s⦘ ⨾ ⦗E_s''⦘
+  ).
+  { rewrite FSBE, FSB'.
+    arewrite (⦗Rel_s''⦘ ⨾ ⦗E_s''⦘ ⊆ ⦗Rel_s⦘ ⨾ ⦗E_s''⦘).
+    { rewrite <- !id_inter. apply eqv_rel_mori.
+      eapply set_inter_rel; try reflexivity.
+      symmetry. apply (rsr_rexi l_a INV). }
+    arewrite (⦗Rlx_s''⦘ ⨾ ⦗E_s''⦘ ⊆ ⦗Rlx_s⦘ ⨾ ⦗E_s''⦘).
+    { rewrite <- !id_inter. apply eqv_rel_mori.
+      eapply set_inter_rlx; try reflexivity.
+      symmetry. apply (rsr_rexi l_a INV). }
+    clear. basic_solver 11. }
+  arewrite (
+    release G_s'' ⨾ ⦗E_s''⦘ ⊆ release G_s ⨾ ⦗E_s''⦘
+  ).
+  { unfold release. rewrite !seqA.
+    sin_rewrite RS. sin_rewrite FSB.
+    clear. basic_solver 11. }
+  arewrite (
+    ⦗E_s''⦘ ⨾ ⦗Rlx_s''⦘ ⨾ (sb_s'' ⨾ ⦗F_s''⦘)^? ⊆
+      ⦗E_s''⦘ ⨾ ⦗Rlx_s''⦘ ⨾ (sb_s'' ⨾ ⦗F_s''⦘)^? ⨾ ⦗E_s''⦘
+  ).
+  { rewrite crE. rewrite !seq_union_l, !seq_union_r.
+    apply union_mori; [basic_solver 11|].
+    rewrite wf_sbE at 1. basic_solver 11. }
+  arewrite (⦗E_s''⦘ ⨾ ⦗Rlx_s''⦘ ⊆ ⦗E_s''⦘ ⨾ ⦗Rlx_s⦘).
+  { rewrite <- !id_inter. apply eqv_rel_mori.
+    rewrite 2!set_interC with (s := E_s'').
+    eapply set_inter_rlx; try reflexivity.
+    symmetry. apply (rsr_rexi l_a INV). }
+  arewrite (⦗E_s''⦘ ⨾ ⦗Acq_s''⦘ ⊆ ⦗E_s''⦘ ⨾ ⦗Acq_s⦘).
+  { rewrite <- !id_inter. apply eqv_rel_mori.
+    rewrite 2!set_interC with (s := E_s'').
+    eapply set_inter_acq; try reflexivity.
+    symmetry. apply (rsr_rexi l_a INV). }
+  arewrite (sb_s'' ⨾ ⦗F_s''⦘ ⊆ sb_s ⨾ ⦗F_s⦘).
+  { rewrite wf_sbE at 1.
+    rewrite !seqA.
+    rewrite <- id_inter.
+    rewrite set_interC, set_inter_is_f with (G := G_s).
+    all: try (reflexivity || (symmetry; apply (rsr_rexi l_a INV))).
+    unfold sb. rewrite SUBACTS.
+    clear. basic_solver 11. }
+  clear. basic_solver 11.
+Qed.
+
+Lemma rsr_vfsb_sb_helper
+    (INB : E_t b_t)
+    (NINA : ~ E_t a_t) :
+  sb_s'' ⨾ ⦗eq a_t⦘ ⨾ sb_s⁻¹ ⨾ ⦗eq b_t⦘ ⊆
+    sb_s ⨾ ⦗eq b_t⦘.
+Proof using INV.
+  unfolder. intros x y (z & XZ & ZEQ & YZ & YEQ).
+  subst z y. split; auto. unfold sb. unfolder.
+  enough (SB : ext_sb x b_t).
+  { splits; auto.
+    { left. apply wf_sbE in XZ.
+      unfolder in XZ. desf. }
+    right. now apply extra_a_some. }
+  assert (XZ' : ext_sb x a_t).
+  { forward apply XZ. unfold sb. clear. basic_solver. }
+  assert (XNA : x <> a_t).
+  { intro FALSO. subst x. eapply sb_irr; eauto. }
+  assert (XIN : E_s'' x).
+  { forward apply XZ. clear. unfold sb. basic_solver. }
+  assert (XNB : x <> b_t).
+  { intro FALSO. subst x.
+    apply NINA. simpl in XIN.
+    unfolder in XIN. destruct XIN as (y & YIN & YEQ).
+    enough (y = a_t) by congruence.
+    eapply rsr_mapper_inv_bt; eauto. }
+  apply (rsr_rex_extsb_inv_l INV); auto.
+  unfolder in XIN. destruct XIN as (y & YIN & YEQ).
+  subst x. rewrite rsr_mappero; auto.
+  { intro YEQ. subst y. eauto. }
+  intro YEQ. subst y.
+  rewrite rsr_mapper_bt in XNA; congruence.
+Qed.
 
 Lemma rsr_vfsb
     (ISR : R_s b_t)
@@ -242,8 +435,10 @@ Lemma rsr_vfsb
     (NINA : ~ E_t a_t) :
   vf_s ⨾ sb_s ⨾ ⦗eq b_t⦘ ≡
     vf_s'' ⨾ sb_s ⨾ ⦗eq b_t⦘.
-Proof using INV.
-  assert (BIN : E_s a_t) by admit.
+Proof using INV LVAL NLOC ARW ARLX.
+  assert (BIN : E_s a_t).
+  { left. exists b_t. split; auto.
+    apply rsr_mapper_bt, INV. }
   assert (NEQ : a_t <> b_t) by apply INV.
   assert (RPOEX : codom_rel (⦗eq b_t⦘ ⨾ rpo_s) ≡₁ ∅).
   { split; auto with hahn.
@@ -323,21 +518,58 @@ Proof using INV.
     { forward apply RLX. clear. basic_solver. }
     now apply rsr_rex_a_rlx, extra_a_some. }
   assert (SUBINIT : is_init ∩₁ E_s ⊆₁ E_s'').
-  { admit. }
+  { clear - INV NINA INB. unfolder. intros x (XINIT & XIN).
+    destruct XIN as [XIN | EXA]; auto.
+    apply extra_a_some in EXA; auto. subst x.
+    exfalso. now apply (rsr_bt_ninit INV). }
+  assert (NLOC' : ~same_loc_s b_t a_t).
+  { intro SLOC. apply NLOC with b_t.
+    { now apply extra_a_some. }
+    rewrite <- (rsr_rex_labloc_helper l_a INV); auto.
+    arewrite (loc_t b_t = loc_s a_t); [| apply SLOC].
+    simpl. unfold lab_s_; desf; [| tauto].
+    unfold loc, compose.
+    rewrite rsr_mapper_at, updo; congruence. }
+  assert (SBLOCEX' : ⦗eq b_t⦘ ⨾ sb_s ∩ same_loc_s ⊆ ∅₂).
+  { rewrite <- seq_eqv_inter_ll, rsr_rex_froma.
+    all: auto.
+    forward apply NLOC'. clear. basic_solver. }
   assert (SBLOCEX : codom_rel (⦗eq b_t⦘ ⨾ sb_s ∩ same_loc_s) ≡₁ ∅).
-  { admit. }
+  { split; auto with hahn.
+    rewrite SBLOCEX'. clear. basic_solver. }
   assert (SBLOCA : sb_s ∩ same_loc_s ⨾ ⦗E_s \₁ eq b_t⦘ ⊆ id ↑ (sb_s'' ∩ same_loc_s'')).
-  { admit. }
+  { rewrite collect_rel_id.
+    arewrite (
+      sb_s ⊆
+        ⦗E_s \₁ eq b_t⦘ ⨾ sb_s ∪
+        ⦗eq b_t⦘ ⨾ sb_s
+    ).
+    { rewrite wf_sbE at 1.
+      rewrite set_union_minus
+        with (s := E_s) (s' := eq b_t)
+            ; [| rewrite EQACTS; clear; basic_solver].
+      rewrite id_union, !seq_union_l.
+      basic_solver 11. }
+    rewrite inter_union_l, seq_union_l.
+    rewrite seq_eqv_inter_ll
+       with (r := sb_s) (S := eq b_t).
+    rewrite SBLOCEX', seq_false_l, union_false_r.
+    rewrite <- seq_eqv_inter_lr, seqA.
+    arewrite (⦗E_s \₁ eq b_t⦘ ⨾ sb_s ⨾ ⦗E_s \₁ eq b_t⦘ ⊆ sb_s'').
+    { unfold sb. rewrite EQACTS, set_collect_id.
+      clear. basic_solver 11. }
+    rewrite wf_sbE at 1.
+    rewrite seq_eqv_inter_ll, <- seq_eqv_inter_rl.
+    rewrite seq_eqv_inter_lr, <- seq_eqv_inter_rr.
+    rewrite seqA.
+    apply inter_rel_mori; [reflexivity |].
+    unfold same_loc, loc. unfolder.
+    intros x y (XIN & SLOC & YIN).
+    rewrite 2!(rsr_rexi l_a INV); auto. }
   split; [| now apply rsr_vfsb_helper].
   seq_rewrite sbvf_as_rhb.
-  arewrite (
-    vf_s'' ⨾ sb_s ⨾ ⦗eq b_t⦘ ≡
-      vf_rhb G_s'' ⨾ sb_s ⨾ ⦗eq b_t⦘
-  ).
-  { arewrite (sb_s ⨾ ⦗eq b_t⦘ ≡ sb_s'' ⨾ ⦗eq b_t⦘).
-    { admit. }
-    rewrite <- !seqA. apply seq_more; [| reflexivity].
-    apply sbvf_as_rhb. }
+  rewrite <- rsr_vfsb_sb_helper; auto.
+  seq_rewrite sbvf_as_rhb. rewrite !seqA.
   arewrite (
     sb_s ⨾ ⦗eq b_t⦘ ⊆
       ⦗E_s \₁ eq b_t⦘ ⨾ sb_s ⨾ ⦗eq b_t⦘
@@ -356,52 +588,118 @@ Proof using INV.
     apply XmmCons.read_rhb_start
       with (m := id) (G_t := G_s'') (drf := drf_s'').
     all: eauto using new_G_s_wf, rsr_imm_Gs_wf. }
+  assert (EQACTS' : E_s'' ≡₁ E_s \₁ eq b_t).
+  { change E_s with (E_s'' ∪₁ A_s).
+    rewrite extra_a_some; auto.
+    rewrite set_minus_union_l, set_minusK.
+    rewrite set_union_empty_r, set_minus_disjoint; [reflexivity |].
+    now rewrite <- set_collect_id with (s := E_s''). }
   arewrite (
     rf_s^? ⨾ ⦗E_s \₁ eq b_t⦘ ⊆
       ⦗E_s \₁ eq b_t⦘ ⨾ rf_s''^?
   ).
-  { admit. }
+  { rewrite !crE, seq_union_l, seq_union_r.
+    apply union_mori; [basic_solver |].
+    change rf_s with (rf_s'' ∪ drf_s'').
+    rewrite seq_union_l.
+    arewrite_false (drf_s'' ⨾ ⦗E_s \₁ eq b_t⦘).
+    { rewrite extra_a_some; auto. basic_solver. }
+    rewrite union_false_r.
+    rewrite (wf_rfE (rsr_imm_Gs_wf INV)).
+    rewrite EQACTS'. clear. basic_solver 7. }
   arewrite (
     ⦗E_s⦘ ⨾ ⦗W_s⦘ ⨾ ⦗E_s \₁ eq b_t⦘ ⊆
       ⦗E_s''⦘ ⨾ ⦗W_s''⦘
   ).
-  { admit. }
+  { rewrite <- !id_inter. apply eqv_rel_mori.
+    rewrite <- EQACTS'.
+    rewrite set_inter_is_w with (G := G_s'').
+    all: try reflexivity.
+    { basic_solver. }
+    apply (rsr_rexi l_a INV). }
   arewrite (
     rhb_s^? ⨾ ⦗E_s \₁ eq b_t⦘ ⊆
       rhb_s''^? ⨾ ⦗E_s \₁ eq b_t⦘
-  ); [| do 3 (apply seq_mori; auto with hahn); basic_solver 7].
-  rewrite !crE, !seq_union_l.
-  apply union_mori; [reflexivity |].
-  transitivity (rhb_s ⨾ ⦗E_s \₁ eq b_t⦘ ⨾ ⦗E_s \₁ eq b_t⦘ ).
-  { clear. basic_solver. }
-  rewrite <- seqA.
-  rewrite XmmCons.read_rhb_sub
-      with (m := id) (G_t := G_s'') (drf := drf_s'').
-  all: auto.
-  { now rewrite collect_rel_id. }
-  { apply (rsr_imm_Gs_wf INV). }
-  apply (new_G_s_wf INV LVAL).
-Admitted.
+  ).
+  { rewrite !crE, !seq_union_l.
+    apply union_mori; [reflexivity |].
+    transitivity (rhb_s ⨾ ⦗E_s \₁ eq b_t⦘ ⨾ ⦗E_s \₁ eq b_t⦘ ).
+    { clear. basic_solver. }
+    rewrite <- seqA.
+    rewrite XmmCons.read_rhb_sub
+        with (m := id) (G_t := G_s'') (drf := drf_s'').
+    all: auto.
+    { now rewrite collect_rel_id. }
+    { apply (rsr_imm_Gs_wf INV). }
+    apply (new_G_s_wf INV LVAL). }
+  enough (INVTRICK :
+      sb_s ⨾ ⦗eq b_t⦘ ⊆
+      sb_s'' ⨾ ⦗eq a_t⦘ ⨾ sb_s⁻¹ ⨾ ⦗eq b_t⦘
+  ).
+  { sin_rewrite INVTRICK.
+    do 4 (apply seq_mori; [reflexivity |]).
+    clear. basic_solver 11. }
+  clear - INV NINA INB EQACTS BIN.
+  rewrite set_collect_id in EQACTS.
+  unfolder. intros x y (XY & YEQ). subst y.
+  exists a_t. splits; auto.
+  { unfold sb in *. unfolder. unfolder in XY.
+    destruct XY as (XIN & SB & _).
+    splits; auto.
+    { apply EQACTS in XIN.
+      destruct XIN as [XIN|XEQ]; auto.
+      subst x. exfalso. eapply ext_sb_irr; eauto. }
+    { apply ext_sb_trans with b_t; auto.
+      apply INV. }
+    exists b_t. split; auto.
+    apply rsr_mapper_bt, INV. }
+  unfold sb. unfolder. splits; auto; [| apply INV].
+  right. apply extra_a_some; auto.
+Qed.
 
 Lemma rsr_srf_eq :
   drf_s'' ≡ srf_s ⨾ ⦗A_s ∩₁ R_s⦘.
-Proof using INV.
+Proof using INV LVAL NLOC ARW ARLX.
   assert (NEQ : a_t <> b_t) by apply INV.
   unfold extra_a; desf; [| basic_solver].
+  destruct classic with (~R_s b_t) as [NINR|ISR'].
+  { rewrite <- (rsr_rex_isr_helper l_a INV); desf.
+    arewrite (eq b_t ∩₁ R_s ≡₁ ∅) by basic_solver.
+    now rewrite eqv_empty, !seq_false_r. }
+  assert (ISR : R_s b_t) by tauto.
   arewrite (
     eq b_t ∩₁ R_s ≡₁ eq b_t ∩₁ WCore.lab_is_r l_a
   ).
   { apply (rsr_rex_isr_helper l_a INV); desf. }
   apply fake_srf_is_srf.
   { apply (rsr_imm_Gs_wf INV). }
-  { admit. }
-  { admit. }
+  { unfold sb, fake_sb.
+    change (E_s) with (E_s'' ∪₁ A_s).
+    rewrite extra_a_some by desf.
+    reflexivity. }
+  { intros (x & XIN & XEQ).
+    enough (x = a_t) by (desf; congruence).
+    eapply rsr_mapper_inv_bt; [apply INV | eauto]. }
   { simpl. unfold lab_s_; desf; [| tauto].
     rewrite upd_compose; auto with xmm.
     now rewrite rsr_mapper_bt; auto. }
-  { admit. }
-  admit.
-Admitted.
+  { apply rsr_vfsb; auto; desf. }
+  change co_s with (co_s'' ∪
+    (E_s'' ∩₁ W_s'' ∩₁ Loc_s_'' (WCore.lab_loc l_a)) ×
+    (A_s ∩₁ WCore.lab_is_w l_a)
+  ).
+  rewrite seq_union_l, <- cross_inter_r.
+  arewrite (
+    A_s ∩₁ WCore.lab_is_w l_a ∩₁ E_s'' ≡₁
+      WCore.lab_is_w l_a ∩₁ (A_s ∩₁ E_s'')
+  ) by basic_solver.
+  arewrite (A_s ∩₁ E_s'' ≡₁ ∅).
+  { apply set_disjointE. unfolder.
+    intros x XIN XIN'.
+    now apply (rsr_exa_notin_imm INV) with x. }
+  now rewrite set_inter_empty_r, cross_false_r,
+          union_false_r.
+Qed.
 
 Lemma rsr_exa_correct :
   A_s ⊆₁ extra_a_pred X_s a_t b_t.
