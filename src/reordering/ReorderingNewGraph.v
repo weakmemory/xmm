@@ -418,8 +418,7 @@ Proof using INV.
   { apply rsr_imm_Gs_wf. }
   apply expand_transitive.
   { apply WF_s. }
-  { admit. }
-  (* { apply (co_upward_closed WF_s). } *)
+  { apply (co_upward_closed WF_s). }
   rewrite (wf_coE WF_s), dom_seq, dom_eqv.
   rewrite rsr_exa_notin_imm. basic_solver.
 Admitted.
