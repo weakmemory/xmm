@@ -3,6 +3,7 @@ Require Import ReordSimrel ReorderingMapper.
 Require Import ReorderingExecA ReorderingExecB.
 Require Import ReordExecNaNb ReorderingReexec.
 Require Import ThreadTrace TraceSwap.
+Require Import ReordSimrelInit StepOps.
 
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
@@ -531,4 +532,111 @@ Proof using.
   apply NINA, ext_sb_dense with (e2 := y); auto.
 Qed.
 
+Lemma corr_coh_inv'
+    (CORR : correct_traces_t)
+    (GCORR : xmm_graph_correct G_t)
+    (CONT : contigious_actids G_t)
+    (COH : trace_coherent traces_t G_t)
+    (RMWD : rmw G_t ⊆ Sc_t × Sc_t) :
+  reord_step_pred X_t a_t b_t.
+Proof using.
+  apply corr_coh_inv; auto.
+  all: try now apply GCORR.
+Qed.
+
 End ReorderingSteps.
+
+Section Reordering.
+
+Variable r_thr : thread_id.
+Variable i_b : nat.
+Variable trs : trace_storage.
+Variable thrs : thread_id -> Prop.
+
+Notation "'b_t'" := (ThreadEvent r_thr i_b).
+Notation "'a_t'" := (ThreadEvent r_thr (i_a i_b)).
+Notation "'mapper'" := (mapper a_t b_t).
+
+Definition init_x := {|
+  WCore.G := WCore.init_exec thrs;
+  WCore.sc := ∅₂;
+|}.
+
+Lemma init_correct
+    (INI : thrs tid_init) :
+  xmm_graph_correct (WCore.G init_x).
+Proof using.
+  constructor.
+  { unfold rf_complete. unfolder.
+    intros x (XIN & ISR).
+    enough (ISW : is_w (lab (WCore.G init_x)) x).
+    { unfold is_r, is_w in *. desf. }
+    unfold is_w, init_x. ins.
+    unfold WCore.init_lab. destruct x; ins. }
+  constructor.
+  { now apply WCore.wf_init_exec. }
+  all: ins.
+  { rewrite set_minusK. auto with hahn. }
+  basic_solver.
+Qed.
+
+Lemma xmm_ind_steps_helper X1 X2
+    (STEPS : clos_trans_n1 _ (xmm_step_trace trs) X1 X2) :
+  clos_trans_n1 WCore.t xmm_step X1 X2.
+Proof using.
+  induction STEPS as [X2 STEP | X' X2 STEP IH].
+  { apply tn1_step, STEP. }
+  apply Relation_Operators.tn1_trans with X'; auto.
+  apply STEP.
+Qed.
+
+Lemma reordering_support' X_t
+    (INI : thrs tid_init)
+    (CORR : correct_traces_t r_thr i_b trs)
+    (STEPS : (xmm_step_trace trs)⁺ init_x X_t) :
+  exists X_s,
+    << SIM : reord_simrel X_s X_t a_t b_t mapper >> /\
+    << STEPS : xmm_step⁺ init_x X_s >>.
+Proof using.
+  apply clos_trans_tn1 in STEPS.
+  induction STEPS as [X_t STEP | X_t X_t' STEP STEPS SRC].
+  { destruct sim_rel_init
+        with a_t b_t thrs
+          as [SIM PRED]; ins.
+    { apply CORR. }
+    { unfold i_a. intro FALSO.
+      enough (i_b + 1 <> i_b) by congruence.
+      lia. }
+    { split; auto. unfold i_a. lia. }
+    assert (GCORR : xmm_graph_correct (WCore.G X_t)).
+    { eapply xmm_step_correct; eauto; [apply STEP |].
+      now apply init_correct. }
+    apply simrel_xmm_step with (X_t := init_x).
+    all: auto.
+    { apply corr_coh_inv' with (traces_t := trs); auto.
+      all: try now apply STEP. }
+    { apply STEP. }
+    apply rsr_extend_mapper with (mapper' := id); auto. }
+  destruct SRC as (X_s & SIM & SRC).
+  assert (PRED1 : xmm_graph_correct (WCore.G X_t)).
+  { apply xmm_step_correct_ind with init_x.
+    { now apply clos_trans_tn1_iff, xmm_ind_steps_helper. }
+    now apply init_correct. }
+  destruct simrel_xmm_step
+      with (X_t := X_t) (X_t' := X_t') (X_s := X_s)
+           (rtid := r_thr) (i_b := i_b)
+        as (X_s' & SIM' & SRC').
+  { apply corr_coh_inv' with (traces_t := trs); auto.
+    all: try now apply STEP. }
+  { apply corr_coh_inv' with (traces_t := trs); auto.
+    all: try now apply STEP.
+    apply xmm_step_correct with X_t; auto.
+    apply STEP. }
+  { apply STEP. }
+  { apply SIM. }
+  exists X_s'. split.
+  { apply SIM'. }
+  apply t_trans with X_s; auto.
+Qed.
+
+End Reordering.
