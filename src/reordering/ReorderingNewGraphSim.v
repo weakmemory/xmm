@@ -585,9 +585,29 @@ Proof using INV LVAL NLOC ARW ARLX.
   ).
   { rewrite !crE, !seq_union_l, !seq_union_r.
     apply union_mori; [basic_solver |].
-    apply XmmCons.read_rhb_start
-      with (m := id) (G_t := G_s'') (drf := drf_s'').
-    all: eauto using new_G_s_wf, rsr_imm_Gs_wf. }
+    rewrite XmmCons.read_rhb_start
+      with (m := id) (G_t := G_s'').
+    all: eauto using new_G_s_wf, rsr_imm_Gs_wf.
+    { reflexivity. }
+    { enough (RLX : set_compl (Acq_s ∪₁ Rel_s) b_t).
+      { forward apply RLX. clear. basic_solver. }
+      now apply rsr_rex_a_rlx, extra_a_some. }
+    { forward apply RPOEX. clear. basic_solver. }
+    { rewrite EQRF, seq_union_l.
+      apply inclusion_union_l.
+      { rewrite collect_rel_id.
+        clear. basic_solver. }
+      clear. basic_solver. }
+    { rewrite EQCO, collect_rel_id.
+      clear. basic_solver. }
+    { rewrite (wf_rfD (new_G_s_wf INV LVAL)).
+      rewrite (wf_rfE (new_G_s_wf INV LVAL)).
+      enough (NIW : ~W_s b_t).
+      { clear - NIW. unfolder. ins. desf.
+        splits; eauto. congruence. }
+      clear - ISR. unfold is_w, is_r in *.
+      desf. }
+    apply EQRMW. }
   assert (EQACTS' : E_s'' ≡₁ E_s \₁ eq b_t).
   { change E_s with (E_s'' ∪₁ A_s).
     rewrite extra_a_some; auto.
@@ -617,6 +637,7 @@ Proof using INV LVAL NLOC ARW ARLX.
     all: try reflexivity.
     { basic_solver. }
     apply (rsr_rexi l_a INV). }
+  (**)
   arewrite (
     rhb_s^? ⨾ ⦗E_s \₁ eq b_t⦘ ⊆
       rhb_s''^? ⨾ ⦗E_s \₁ eq b_t⦘
@@ -627,9 +648,28 @@ Proof using INV LVAL NLOC ARW ARLX.
     { clear. basic_solver. }
     rewrite <- seqA.
     rewrite XmmCons.read_rhb_sub
-        with (m := id) (G_t := G_s'') (drf := drf_s'').
+        with (m := id) (G_t := G_s'').
     all: auto.
     { now rewrite collect_rel_id. }
+    { enough (RLX : set_compl (Acq_s ∪₁ Rel_s) b_t).
+      { forward apply RLX. clear. basic_solver. }
+      now apply rsr_rex_a_rlx, extra_a_some. }
+    { forward apply RPOEX. clear. basic_solver. }
+    { rewrite EQRF, seq_union_l.
+      apply inclusion_union_l.
+      { rewrite collect_rel_id.
+        clear. basic_solver. }
+      clear. basic_solver. }
+    { rewrite EQCO, collect_rel_id.
+      clear. basic_solver. }
+    { rewrite (wf_rfD (new_G_s_wf INV LVAL)).
+      rewrite (wf_rfE (new_G_s_wf INV LVAL)).
+      enough (NIW : ~W_s b_t).
+      { clear - NIW. unfolder. ins. desf.
+        splits; eauto. congruence. }
+      clear - ISR. unfold is_w, is_r in *.
+      desf. }
+    { apply EQRMW. }
     { apply (rsr_imm_Gs_wf INV). }
     apply (new_G_s_wf INV LVAL). }
   enough (INVTRICK :
