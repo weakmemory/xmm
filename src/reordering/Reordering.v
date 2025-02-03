@@ -327,6 +327,8 @@ Notation "'b_t'" := (ThreadEvent rtid i_b).
 Notation "'a_t'" := (ThreadEvent rtid i_a).
 Notation "'mapper'" := (mapper a_t b_t).
 
+Definition trnth_def := Afence Opln.
+
 Definition prefix_closed
     (t : thread_id) :
   Prop :=
@@ -342,23 +344,23 @@ Definition full_coverage : Prop :=
 Definition correct_loc : Prop :=
   forall (tr : trace label) (TRIN : traces_t (tid b_t) tr)
     (BIN : event_mem b_t tr) (AIN : event_mem a_t tr),
-      WCore.lab_loc (trace_nth (index b_t) tr (Afence Opln)) <>
-      WCore.lab_loc (trace_nth (index a_t) tr (Afence Opln)).
+      WCore.lab_loc (trace_nth (index b_t) tr trnth_def) <>
+      WCore.lab_loc (trace_nth (index a_t) tr trnth_def).
 
 Definition correct_op_bt : Prop :=
   forall (tr : trace label)
     (TRIN : traces_t (tid b_t) tr) (BIN : event_mem b_t tr),
       (
-        WCore.lab_is_r (trace_nth (index b_t) tr (Afence Opln)) ∪₁
-        WCore.lab_is_w (trace_nth (index b_t) tr (Afence Opln))
+        WCore.lab_is_r (trace_nth (index b_t) tr trnth_def) ∪₁
+        WCore.lab_is_w (trace_nth (index b_t) tr trnth_def)
       ) b_t.
 
 Definition correct_op_at : Prop :=
   forall (tr : trace label)
     (TRIN : traces_t (tid a_t) tr) (BIN : event_mem a_t tr),
     (
-      WCore.lab_is_r (trace_nth (index a_t) tr (Afence Opln)) ∪₁
-      WCore.lab_is_w (trace_nth (index a_t) tr (Afence Opln))
+      WCore.lab_is_r (trace_nth (index a_t) tr trnth_def) ∪₁
+      WCore.lab_is_w (trace_nth (index a_t) tr trnth_def)
     ) a_t.
 
 Definition correct_mod_bt : Prop :=
@@ -366,10 +368,10 @@ Definition correct_mod_bt : Prop :=
     (TRIN : traces_t (tid b_t) tr) (BIN : event_mem b_t tr),
     ~(
       mode_le Orel (WCore.lab_mode (
-        trace_nth (index b_t) tr (Afence Opln)
+        trace_nth (index b_t) tr trnth_def
       )) \/
       mode_le Oacq (WCore.lab_mode (
-        trace_nth (index b_t) tr (Afence Opln)
+        trace_nth (index b_t) tr trnth_def
       ))
     ).
 
@@ -378,10 +380,10 @@ Definition correct_mod_at : Prop :=
     (TRIN : traces_t (tid a_t) tr) (BIN : event_mem a_t tr),
     ~(
       mode_le Orel (WCore.lab_mode (
-        trace_nth (index a_t) tr (Afence Opln)
+        trace_nth (index a_t) tr trnth_def
       )) \/
       mode_le Oacq (WCore.lab_mode (
-        trace_nth (index a_t) tr (Afence Opln)
+        trace_nth (index a_t) tr trnth_def
       ))
     ).
 
