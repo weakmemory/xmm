@@ -794,4 +794,26 @@ Proof using.
   rewrite <- (xgp_init_tid PROP). basic_solver.
 Qed.
 
+Lemma xmm_step_correct
+    (STEP : xmm_step X X')
+    (PROP : xmm_graph_correct G) :
+  xmm_graph_correct G'.
+Proof using.
+  destruct STEP.
+  { eapply xmm_exec_correct; eauto. }
+  red in STEP. desf.
+  eapply xmm_rexec_gen_correct; eauto.
+Qed.
+
 End OtherStepInvariants.
+
+Lemma xmm_step_correct_ind X1 X2
+    (STEPS : xmm_step⁺ X1 X2)
+    (PROP : xmm_graph_correct (WCore.G X1)) :
+  xmm_graph_correct (WCore.G X2).
+Proof using.
+  apply clos_trans_tn1 in STEPS.
+  induction STEPS as [X_t STEP | X_t X_t' STEP STEPS SRC].
+  { eapply xmm_step_correct; eauto. }
+  eapply xmm_step_correct; eauto.
+Qed.
