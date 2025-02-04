@@ -17,6 +17,8 @@
 - [ ] [@InnocentusLime](https://www.github.com/InnocentusLime) Partial proof for `src/reordering/ReorderingExecReexec.v`
     * [x] vf ; sb equality between `G_s''` and `G_s'` (done with minor admits)
     * [x] Simulation relation for `G_s'` (done with minor admits)
+    * [x] Full admitless proof of the simulation relation for `G_s'`
+    * [x] Provide a universal rhb nesting for source graph
     * [ ] Proof of the step (done with medium admits) -- new estimate N/A (minimum: proof with minor admits)
         - [x] Deploy the fix for the `StableUncommittedReads`, including the fixes of all proofs reasoning about it [commit](weakmemory/xmm/f9742bc1094d4b2bdffec5835afb889f9224afc1)
         - [x] Prove the inclusion of srf into the thrdle relation [commit](weakmemory/xmm/148c9e30a13db554e305380252be3949e712169b)
@@ -28,8 +30,8 @@
             - [x] Prove the new constraint about act set [commit](https://github.com/weakmemory/xmm/commit/a7c242f8423800ba8c8b31e559ca9a085c6cc8ed)
             - [x] Prove the new constraint about po-maximality of determined events
 - [ ] Full Reordering Proof
-    - [ ] Universal `src/reordering/Reordering.v:simrel_xmm_step` lemma
-    - [ ] [@InnocentusLime](https://www.github.com/InnocentusLime) Full `Theorem` (this would be the master theorem that uses `simrel_xmm_step` in its proof)
+    - [x] Universal `src/reordering/Reordering.v:simrel_xmm_step` lemma
+    - [x] [@InnocentusLime](https://www.github.com/InnocentusLime) Full `Theorem` (this would be the master theorem that uses `simrel_xmm_step` in its proof)
         * The theorem itself should be `Qed`'d with the only `admit`'d fact being the `simrel_xmm_step` lemma.
     - [ ] Proper constraint of the trace family for `G_s'`
     - Constraints of the current result
