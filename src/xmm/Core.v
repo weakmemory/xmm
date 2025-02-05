@@ -492,7 +492,9 @@ Record xmm_step_trace (s : trace_storage) (X X' : WCore.t) : Prop :=
   xmm_step_trace_contl : contigious_actids (WCore.G X);
   xmm_step_trace_contr : contigious_actids (WCore.G X');
   xmm_step_trace_cohl : trace_coherent s (WCore.G X);
-  xmm_step_trace_cohr : trace_coherent s (WCore.G X'); }.
+  xmm_step_trace_cohr : trace_coherent s (WCore.G X');
+  xmm_step_sc1 : rmw (WCore.G X') ⊆ is_sc (lab (WCore.G X')) × is_sc (lab (WCore.G X'));
+  xmm_step_sc2 : rmw (WCore.G X) ⊆ is_sc (lab (WCore.G X)) × is_sc (lab (WCore.G X)) }.
 
 End XmmStep.
 
