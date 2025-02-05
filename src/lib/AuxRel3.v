@@ -150,7 +150,7 @@ Notation "'Rlx'" := (fun e => is_true (is_rlx lab e)).
 
 Lemma co_upward_closed ol
     (WF : Wf G) :
-  upward_closed co (W ∩₁ E ∩₁ Loc_ ol).
+  upward_closed co (E ∩₁ W ∩₁ Loc_ ol).
 Proof using.
   unfold upward_closed. intros x y CO XIN.
   apply (wf_coD WF) in CO.

@@ -617,7 +617,11 @@ Proof using ADD SIMREL INV INV'.
   { apply (G_s_wf INV SIMREL). }
   simpl. apply expand_transitive.
   { apply WF_s. }
-  { now apply co_upward_closed. }
+  { arewrite (
+      W_s ∩₁ E_s ∩₁ Loc_s_ (WCore.lab_loc l_a) =
+        E_s ∩₁ W_s ∩₁ Loc_s_ (WCore.lab_loc l_a)
+    ) by (apply set_extensionality; basic_solver).
+    now apply co_upward_closed. }
   rewrite (wf_coE WF_s), dom_seq, dom_eqv.
   enough (~ E_s b_t) by basic_solver 11.
   auto with xmm.
