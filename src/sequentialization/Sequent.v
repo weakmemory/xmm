@@ -141,6 +141,12 @@ Variable X_t X_t' X_s : WCore.t.
 Variable t_1 t_2 : thread_id.
 Variable mapper : actid -> actid.
 
+Variable e : actid.
+Variable l : label.
+
+Variable dtrmt_t cmt_t : actid -> Prop.
+Variable thrdle : relation thread_id.
+
 Notation "'G_t'" := (WCore.G X_t).
 Notation "'G_t''" := (WCore.G X_t').
 Notation "'G_s'" := (WCore.G X_s).
@@ -209,7 +215,9 @@ Notation "'F_s'" := (F G_s).
 
 Notation "'Tid_' t" := (fun e => tid e = t) (at level 1).
 
-Lemma simrel_step_e e l
+(* Definition mapper' := upd mapper e e. *)
+
+Lemma simrel_step_e
     (NINIT1 : t_1 <> tid_init)
     (NINIT2 : t_2 <> tid_init)
     (THRDNEQ : t_1 <> t_2)
@@ -222,4 +230,161 @@ Proof using.
   admit.
 Admitted.
 
+Definition seq_graph_rex : execution := {|
+  acts_set := id ↑₁ E_t';
+  threads_set := threads_set G_s;
+  lab := lab_t' ∘ id;
+  rf := id ↑ rf_t';
+  co := id ↑ co_t';
+  rmw := id ↑ rmw_t';
+  rmw_dep := rmw_dep_t';
+  ctrl := ctrl_t';
+  data := data_t';
+  addr := addr_t';
+|}.
+
+Definition seq_rex := {|
+  WCore.sc := WCore.sc X_t;
+  WCore.G := seq_graph_rex;
+|}.
+
+Notation "'X_s''" := (seq_rex).
+Notation "'G_s''" := (WCore.G X_s').
+Notation "'lab_s'" := (lab G_s).
+Notation "'val_s'" := (val lab_s).
+Notation "'loc_s'" := (loc lab_s).
+Notation "'same_loc_s'" := (same_loc lab_s).
+Notation "'E_s'" := (acts_set G_s).
+Notation "'loc_s'" := (loc lab_s).
+Notation "'sb_s'" := (sb G_s).
+Notation "'rf_s'" := (rf G_s).
+Notation "'co_s'" := (co G_s).
+Notation "'rmw_s'" := (rmw G_s).
+Notation "'rpo_s'" := (rpo G_s).
+Notation "'rmw_dep_s'" := (rmw_dep G_s).
+Notation "'data_s'" := (data G_s).
+Notation "'ctrl_s'" := (ctrl G_s).
+Notation "'addr_s'" := (addr G_s).
+Notation "'W_s'" := (fun x => is_true (is_w lab_s x)).
+Notation "'R_s'" := (fun x => is_true (is_r lab_s x)).
+Notation "'F_s'" := (F G_s).
+
+Definition cmt' := mapper ↑₁ cmt_t.
+Definition dtrmt' := mapper ↑₁ dtrmt_t.
+
+Lemma simrel_step_reex 
+    (NINIT1 : t_1 <> tid_init)
+    (NINIT2 : t_2 <> tid_init)
+    (THRDNEQ : t_1 <> t_2)
+    (SIMREL : seq_simrel X_s X_t t_1 t_2 mapper)
+    (STEP : WCore.reexec X_t X_t' mapper dtrmt_t cmt_t) :
+  seq_simrel X_s' X_t' t_1 t_2 id.
+Proof using.
+  constructor; vauto.
+  all : admit.
+Admitted.
+
+Lemma reex_step_reex
+    (NINIT1 : t_1 <> tid_init)
+    (NINIT2 : t_2 <> tid_init)
+    (THRDNEQ : t_1 <> t_2)
+    (SIMREL : seq_simrel X_s X_t t_1 t_2 mapper)
+    (STEP : WCore.reexec X_t X_t' mapper dtrmt_t cmt_t) :
+  WCore.reexec X_s X_s' id dtrmt' cmt'.
+Proof using.
+  admit.
+Admitted.
+
 End SimrelStep.
+
+Section SimrelMain.
+
+Variable X_t X_t' X_s : WCore.t.
+Variable t_1 t_2 : thread_id.
+Variable mapper : actid -> actid.
+
+Variable dtrmt_t cmt_t : actid -> Prop.
+Variable thrdle : relation thread_id.
+
+Notation "'G_t'" := (WCore.G X_t).
+Notation "'G_t''" := (WCore.G X_t').
+Notation "'G_s'" := (WCore.G X_s).
+
+Notation "'R' G" := (fun e => is_true (is_r (lab G) e)) (at level 1).
+Notation "'F' G" := (fun e => is_true (is_f (lab G) e)) (at level 1).
+Notation "'W' G" := (fun e => is_true (is_w (lab G) e)) (at level 1).
+Notation "'Acq' G" := (fun e => is_true (is_acq (lab G) e)) (at level 1).
+Notation "'Rlx' G" := (fun e => is_true (is_rlx (lab G) e)) (at level 1).
+Notation "'Rel' G" := (fun e => is_true (is_rel (lab G) e)) (at level 1).
+
+Notation "'lab_t'" := (lab G_t).
+Notation "'val_t'" := (val lab_t).
+Notation "'loc_t'" := (loc lab_t).
+Notation "'same_loc_t'" := (same_loc lab_t).
+Notation "'E_t'" := (acts_set G_t).
+Notation "'sb_t'" := (sb G_t).
+Notation "'rf_t'" := (rf G_t).
+Notation "'co_t'" := (co G_t).
+Notation "'rmw_t'" := (rmw G_t).
+Notation "'rpo_t'" := (rpo G_t).
+Notation "'rmw_dep_t'" := (rmw_dep G_t).
+Notation "'data_t'" := (data G_t).
+Notation "'ctrl_t'" := (ctrl G_t).
+Notation "'addr_t'" := (addr G_t).
+Notation "'W_t'" := (fun x => is_true (is_w lab_t x)).
+Notation "'R_t'" := (fun x => is_true (is_r lab_t x)).
+Notation "'Loc_t_' l" := (fun e => loc_t e = l) (at level 1).
+
+Notation "'lab_t''" := (lab G_t').
+Notation "'val_t''" := (val lab_t').
+Notation "'loc_t''" := (loc lab_t').
+Notation "'same_loc_t''" := (same_loc lab_t').
+Notation "'E_t''" := (acts_set G_t').
+Notation "'sb_t''" := (sb G_t').
+Notation "'rf_t''" := (rf G_t').
+Notation "'co_t''" := (co G_t').
+Notation "'rmw_t''" := (rmw G_t').
+Notation "'rpo_t''" := (rpo G_t').
+Notation "'rmw_dep_t''" := (rmw_dep G_t').
+Notation "'data_t''" := (data G_t').
+Notation "'ctrl_t''" := (ctrl G_t').
+Notation "'addr_t''" := (addr G_t').
+Notation "'W_t''" := (fun x => is_true (is_w lab_t' x)).
+Notation "'R_t''" := (fun x => is_true (is_r lab_t' x)).
+Notation "'Loc_t_'' l" := (fun e => loc_t' e = l) (at level 1).
+
+Notation "'lab_s'" := (lab G_s).
+Notation "'val_s'" := (val lab_s).
+Notation "'loc_s'" := (loc lab_s).
+Notation "'same_loc_s'" := (same_loc lab_s).
+Notation "'E_s'" := (acts_set G_s).
+Notation "'loc_s'" := (loc lab_s).
+Notation "'sb_s'" := (sb G_s).
+Notation "'rf_s'" := (rf G_s).
+Notation "'co_s'" := (co G_s).
+Notation "'rmw_s'" := (rmw G_s).
+Notation "'rpo_s'" := (rpo G_s).
+Notation "'rmw_dep_s'" := (rmw_dep G_s).
+Notation "'data_s'" := (data G_s).
+Notation "'ctrl_s'" := (ctrl G_s).
+Notation "'addr_s'" := (addr G_s).
+Notation "'W_s'" := (fun x => is_true (is_w lab_s x)).
+Notation "'R_s'" := (fun x => is_true (is_r lab_s x)).
+Notation "'F_s'" := (F G_s).
+
+Notation "'Tid_' t" := (fun e => tid e = t) (at level 1).
+
+Lemma seq_step_gen
+    (NINIT1 : t_1 <> tid_init)
+    (NINIT2 : t_2 <> tid_init)
+    (THRDNEQ : t_1 <> t_2)
+    (STEP : xmm_step X_t X_t')
+    (SIMREL : seq_simrel X_s X_t t_1 t_2 mapper) :
+  exists X_s' mapper',
+    << SIMREL : seq_simrel X_s' X_t' t_1 t_2 mapper' >> /\
+    << STEP : xmm_step⁺ X_s X_s' >>.
+Proof using.
+  admit.
+Admitted.
+
+End SimrelMain.
