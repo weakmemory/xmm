@@ -32,6 +32,7 @@ Notation "'W'" := (fun e => is_true (is_w lab e)).
 Notation "'R'" := (fun e => is_true (is_r lab e)).
 Notation "'F'" := (fun e => is_true (is_f lab e)).
 Notation "'Loc_' l" := (fun x => loc x = Some l) (at level 1).
+Notation "'is_init'" := (fun e => is_true (is_init e)).
 
 Definition vf := ⦗E⦘ ⨾ ⦗W⦘ ⨾ rf^? ⨾ hb^?.
 Definition srf := ((vf ⨾ sb) ∩ same_loc) ⨾ ⦗R⦘ \ (co ⨾ vf ⨾ sb).
@@ -255,6 +256,73 @@ Proof using.
   rewrite hb_helper, cr_union_r,
           !seq_union_r.
   rewrite unionC. reflexivity.
+Qed.
+
+Lemma sbini_in_vf
+    (WF : Wf G) :
+  ⦗is_init⦘ ⨾ sb ⊆ vf.
+Proof using.
+  unfold vf.
+  rewrite sb_in_hb.
+  rewrite (wf_hbE WF) at 1.
+  arewrite (⦗is_init⦘ ⨾ ⦗E⦘ ⊆ ⦗is_init⦘ ⨾ ⦗E⦘ ⨾ ⦗W⦘)
+    ; [| basic_solver 11].
+  unfolder. intros x y (XEQ & XINI & XIN).
+  subst y. splits; auto.
+  unfold is_w. destruct x as [xl | xt xn]; ins.
+  now rewrite (wf_init_lab WF).
+Qed.
+
+Lemma vfrhb_in_vf :
+  vf_rhb ⊆ vf.
+Proof using.
+  unfold vf, vf_rhb.
+  now rewrite rhb_in_hb.
+Qed.
+
+Lemma vf_tid_as_rhb
+    (WF : Wf G) :
+  vf ⨾ same_tid ≡ vf_rhb ⨾ same_tid ∪ ⦗is_init⦘ ⨾ sb ⨾ same_tid.
+Proof using.
+  split;
+    [| sin_rewrite vfrhb_in_vf;
+       sin_rewrite (sbini_in_vf WF);
+       basic_solver].
+  rewrite vf_as_rhb.
+  rewrite seq_union_l.
+  apply inclusion_union_l; [basic_solver 11 |].
+  rewrite !seqA, crE, unionC.
+  rewrite !seq_union_l, !seq_union_r, seq_id_l.
+  apply inclusion_union_l.
+  { rewrite (no_rf_to_init WF), !seqA.
+    sin_rewrite ninit_sb_same_tid.
+    arewrite (same_tid ⨾ same_tid ⊆ same_tid).
+    { unfold same_tid. unfolder. ins. desf. congruence. }
+    arewrite (⦗E⦘ ⨾ ⦗W⦘ ⨾ rf ⊆ vf_rhb); [| basic_solver 11].
+    unfold vf_rhb.
+    rewrite crE at 1. rewrite !seq_union_l, !seq_union_r.
+    apply inclusion_union_r; right.
+    rewrite crE at 1. rewrite !seq_union_r.
+    apply inclusion_union_r; left.
+    now rewrite seq_id_r. }
+  rewrite set_union_minus
+     with (s := E) (s' := E ∩₁ is_init)
+       at 1
+       by basic_solver.
+  rewrite id_union, !seq_union_l.
+  rewrite set_minusE.
+  arewrite (E ∩₁ set_compl (E ∩₁ is_init) ⊆₁
+            E ∩₁ set_compl is_init).
+  { rewrite set_compl_inter, set_inter_union_r.
+    apply set_subset_union_l.
+    split; basic_solver. }
+  apply union_mori; [| basic_solver].
+  rewrite id_inter, !seqA.
+  seq_rewrite (seq_eqvC (set_compl is_init) W).
+  rewrite !seqA. sin_rewrite ninit_sb_same_tid.
+  arewrite (same_tid ⨾ same_tid ⊆ same_tid).
+  { unfold same_tid. unfolder. ins. desf. congruence. }
+  unfold vf_rhb. basic_solver 11.
 Qed.
 
 Lemma sbvf_as_rhb :

@@ -691,6 +691,35 @@ Proof using.
   apply (xmm_guided_step_gen_proper STEP); auto.
 Qed.
 
+Lemma sb_closure_preserve s e' l'
+    (SIN : s ⊆₁ E)
+    (STEP : WCore.add_event X X' e' l')
+    (CLOS : sb ⨾ ⦗s⦘ ⊆ ⦗s⦘ ⨾ sb ⨾ ⦗s⦘) :
+  sb' ⨾ ⦗s⦘ ⊆ ⦗s⦘ ⨾ sb' ⨾ ⦗s⦘.
+Proof using.
+  red in STEP. desf.
+  rewrite (WCore.add_event_sb STEP).
+  rewrite !seq_union_l, seq_union_r.
+  apply union_mori; auto.
+  unfold WCore.sb_delta.
+  rewrite <- cross_inter_r.
+  enough (~s e') by basic_solver.
+  intro EIN.
+  now apply (WCore.add_event_new STEP), SIN.
+Qed.
+
+Lemma sb_closure_preserve_guided s XC cmt
+    (SIN : s ⊆₁ E)
+    (STEP : WCore.guided_step cmt XC X X')
+    (CLOS : sb ⨾ ⦗s⦘ ⊆ ⦗s⦘ ⨾ sb ⨾ ⦗s⦘) :
+  sb' ⨾ ⦗s⦘ ⊆ ⦗s⦘ ⨾ sb' ⨾ ⦗s⦘.
+Proof using.
+  red in STEP. destruct STEP as (e' & l' & STEP).
+  assert (STEP' : WCore.add_event X X' e' l').
+  { apply STEP. }
+  eapply sb_closure_preserve; eauto.
+Qed.
+
 End DeltaOps.
 
 Section OtherStepInvariants.
@@ -738,6 +767,38 @@ Notation "'same_loc'" := (same_loc lab).
 Notation "'same_val'" := (same_val lab).
 Notation "'Loc_' l" := (fun e => loc e = l) (at level 1).
 Notation "'Val_' v" := (fun e => val e = v) (at level 1).
+
+Lemma guided_steps_acts XC cmt X1 X2
+    (STEP : (WCore.guided_step cmt XC)＊ X1 X2) :
+  acts_set (WCore.G X1) ⊆₁ acts_set (WCore.G X2).
+Proof using.
+  apply clos_rt_rtn1 in STEP.
+  induction STEP as [ | X2 X3 STEP1 STEP2 IH].
+  { auto. }
+  transitivity (acts_set (WCore.G X2)); auto.
+  red in STEP1. destruct STEP1 as (e' & l' & STEP1).
+  assert (STEP1' : WCore.add_event X2 X3 e' l').
+  { apply STEP1. }
+  red in STEP1'. desf.
+  rewrite (WCore.add_event_acts STEP1').
+  basic_solver.
+Qed.
+
+Lemma sb_closure_preserve_guided_trans s XC cmt X1 X2
+    (SIN : s ⊆₁ acts_set (WCore.G X1))
+    (STEP : (WCore.guided_step cmt XC)＊ X1 X2)
+    (CLOS : @sb (WCore.G X1) ⨾ ⦗s⦘ ⊆ ⦗s⦘ ⨾ @sb (WCore.G X1) ⨾ ⦗s⦘) :
+  @sb (WCore.G X2) ⨾ ⦗s⦘ ⊆ ⦗s⦘ ⨾ @sb (WCore.G X2) ⨾ ⦗s⦘.
+Proof using.
+  apply clos_rt_rtn1 in STEP.
+  induction STEP as [ | X2 X3 STEP1 STEP2 IH].
+  { auto. }
+  eapply sb_closure_preserve_guided with (X := X2); eauto.
+  transitivity (acts_set (WCore.G X1)); auto.
+  eapply guided_steps_acts
+    with (cmt := cmt) (XC := XC).
+  now apply clos_rt_rtn1_iff in STEP2.
+Qed.
 
 Lemma xmm_exec_correct e' l'
     (STEP : WCore.exec_inst X X' e' l')
