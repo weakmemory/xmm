@@ -108,7 +108,7 @@ split; [|basic_solver].
 unfold urr; rels.
 Qed.
 
-Lemma wf_c_relD i l l' codom: c_rel i l l' codom ≡ 
+Lemma wf_c_relD i l l' codom: c_rel i l l' codom ≡
   ⦗W_ l⦘ ⨾ c_rel i l l' codom ⨾  ⦗ Rel ∩₁ (W_ l' ∪₁ F) ∩₁(Tid_ i ∪₁ Init) ∩₁ codom ⦘.
 Proof using.
 split; [|basic_solver].
@@ -117,7 +117,7 @@ rewrite wf_urrD.
 basic_solver 21.
 Qed.
 
-Lemma wf_c_curD i l codom: c_cur i l codom ≡ 
+Lemma wf_c_curD i l codom: c_cur i l codom ≡
   ⦗W_ l⦘ ⨾ c_cur i l codom ⨾   ⦗ (Tid_ i ∪₁ Init) ∩₁ codom ⦘.
 Proof using.
 split; [|basic_solver].
@@ -126,7 +126,7 @@ rewrite wf_urrD.
 basic_solver 21.
 Qed.
 
-Lemma wf_c_acqD i l codom: c_acq i l codom ≡ 
+Lemma wf_c_acqD i l codom: c_acq i l codom ≡
   ⦗W_ l⦘ ⨾ c_acq i l codom ⨾  ⦗ (Tid_ i ∪₁ Init) ∩₁ codom ⦘.
 Proof using.
 split; [|basic_solver].
@@ -135,7 +135,7 @@ rewrite wf_urrD.
 basic_solver 21.
 Qed.
 
-Lemma wf_S_tmrD l codom: S_tmr l codom ≡ 
+Lemma wf_S_tmrD l codom: S_tmr l codom ≡
   ⦗W_ l⦘ ⨾ S_tmr l codom ⨾ ⦗ F ∩₁ Sc ∩₁ codom ⦘.
 Proof using.
 split; [|basic_solver].
@@ -205,7 +205,7 @@ Proof using.
 unfold urr; rewrite !seqA.
 do 2 hahn_frame_l.
 rewrite (crE sc) at 1; relsf; unionL.
-by generalize (@hb_trans G); basic_solver 21. 
+by generalize (@hb_trans G); basic_solver 21.
 rewrite (crE hb); relsf; unionL; [basic_solver 12|].
 rewrite (dom_r (wf_scD WF_SC)), !seqA.
 rewrite (f_sc_hb_f_sc_in_sc WF WF_SC ACYC_EXT).
@@ -334,12 +334,12 @@ arewrite (rf^? ⊆ eco^?).
 generalize (eco_trans WF); ins; relsf.
 rewrite (crE sc).
 relsf; repeat (splits; try apply irreflexive_union).
-- 
+-
 generalize (@hb_trans G); ins; relsf.
 rewrite (crE hb); relsf; apply irreflexive_union; splits.
 by apply (eco_irr WF).
 red in COH; revert COH; basic_solver 20.
-- 
+-
 rewrite (wf_scD WF_SC).
 rotate 3.
 rewrite crE at 1; relsf; repeat (splits; try apply irreflexive_union);
@@ -395,14 +395,14 @@ generalize (@hb_trans G); ins; relsf.
 relsf; repeat (splits; try apply irreflexive_union).
 -
 by rotate 1; apply COH.
-- 
+-
 rewrite crE at 1; relsf; repeat (splits; try apply irreflexive_union).
 * rotate 1; relsf.
 rewrite (wf_scD WF_SC).
 rotate 1.
 sin_rewrite (f_sc_hb_f_sc_in_sc WF WF_SC ACYC_EXT).
 destruct WF_SC; relsf.
-* 
+*
 rewrite (wf_scD WF_SC), !seqA.
 rewrite crE; relsf; apply irreflexive_union; splits;
  [rewrite (dom_r (wf_ecoD WF)); type_solver|].
@@ -461,7 +461,7 @@ basic_solver 21.
 unfold urr; basic_solver 12.
 Qed.
 
-Lemma wf_c_curE WF WF_SC i l codom (IN: codom ⊆₁ E): 
+Lemma wf_c_curE WF WF_SC i l codom (IN: codom ⊆₁ E):
   c_cur i l codom ≡ ⦗ E ⦘ ⨾ c_cur i l codom ⨾ ⦗ E ⦘.
 Proof using.
 split; [|basic_solver].
@@ -471,7 +471,7 @@ generalize IN.
 basic_solver 21.
 Qed.
 
-Lemma wf_t_curE WF WF_SC i l codom (IN: codom ⊆₁ E): 
+Lemma wf_t_curE WF WF_SC i l codom (IN: codom ⊆₁ E):
   t_cur i l codom ⊆₁ E.
 Proof using.
 unfold t_cur.
@@ -531,10 +531,10 @@ Proof using.
   basic_solver 21.
 Qed.
 
-Lemma s_tmr_helper l codom WF: 
+(* Lemma s_tmr_helper l codom WF:
   S_tmr l codom ≡ ⦗W_ l⦘ ⨾ rf^? ⨾ (hb ⨾ ⦗F ∩₁ Sc⦘)^? ⨾ hb^? ⨾ (release ⨾ rf)^? ⨾ sb ⨾ ⦗F ∩₁ Sc⦘ ⨾ ⦗codom⦘.
 Proof using.
-Admitted.
+Admitted. *)
 (* unfold S_tmr.
 split.
 - unfold xmm_s_hb.hb.
@@ -566,24 +566,24 @@ Qed. *)
 Definition furr := fun x y => exists l, urr l x y.
 
 Lemma urr_to_ninit l WF WF_SC:
-  urr l ≡ urr l ⨾ ⦗set_compl is_init⦘ ∪ ⦗Loc_ l ∩₁ is_init⦘. 
+  urr l ≡ urr l ⨾ ⦗set_compl is_init⦘ ∪ ⦗Loc_ l ∩₁ is_init⦘.
 Proof using.
   rewrite <- seq_id_r with (r := urr l) at 1.
   rewrite set_split_complete with (s' := set_full) (s := is_init), !set_inter_full_l.
-  rewrite id_union, seq_union_r. rewrite unionC. apply union_more; [done| ].    
+  rewrite id_union, seq_union_r. rewrite unionC. apply union_more; [done| ].
   unfold urr.
   assert (is_init ≡₁ is_init ∩₁ W) as I' by (generalize init_w; basic_solver).
-  rewrite I' at 2. 
+  rewrite I' at 2.
   rewrite no_sc_to_init with (sc := sc), no_hb_to_init, no_rf_to_init; eauto.
   basic_solver 20.
 Qed.
 
 Lemma furr_bunion:
-  furr ≡ ⋃ l, urr l. 
+  furr ≡ ⋃ l, urr l.
 Proof using. unfold furr. basic_solver. Qed.
 
 Lemma furr_to_ninit WF WF_SC:
-  furr ≡ furr ⨾ ⦗set_compl is_init⦘ ∪ ⦗is_init⦘. 
+  furr ≡ furr ⨾ ⦗set_compl is_init⦘ ∪ ⦗is_init⦘.
 Proof using.
   rewrite furr_bunion.
   rewrite set_bunion_separation with (S := is_init) (fab := loc) at 2.
@@ -592,16 +592,16 @@ Proof using.
   rewrite set_bunion_union_l. rewrite set_bunion_bunion_l.
   erewrite eqv_rel_more with (x := _ ∪₁ _).
   2: { apply set_equiv_union with (t' := ∅); [reflexivity| ].
-       split; [| basic_solver]. unfolder. ins. desc. subst. 
+       split; [| basic_solver]. unfolder. ins. desc. subst.
        edestruct is_w_loc; eauto.
        { eapply init_w; eauto. }
        vauto. }
-  rewrite set_union_empty_r.  
+  rewrite set_union_empty_r.
   rewrite <- bunion_set_bunion, seq_bunion_l.
   rewrite <- bunion_union_r.
-  apply bunion_more_equiv; [done| ]. intros l _. 
+  apply bunion_more_equiv; [done| ]. intros l _.
   rewrite set_bunion_eq.
-  rewrite urr_to_ninit at 1; auto. basic_solver. 
+  rewrite urr_to_ninit at 1; auto. basic_solver.
 Qed.
 
 Lemma wf_furrE WF WF_SC: furr ≡ ⦗ W ⦘ ∪ ⦗ E ⦘ ⨾ furr ⨾ ⦗ E ⦘.
@@ -681,7 +681,7 @@ apply (urr_hb_sc_hb WF WF_SC ACYC_EXT).
 basic_solver 21.
 Qed.
 
-Lemma urr_hb_sc_hb_irr WF WF_SC CSC COH ACYC_EXT l: 
+Lemma urr_hb_sc_hb_irr WF WF_SC CSC COH ACYC_EXT l:
   irreflexive (urr l ⨾ hb ⨾ (sc ⨾ hb)^?).
 Proof using.
 case_refl _.
@@ -691,7 +691,7 @@ generalize (@urr_hb_sc_hb l WF WF_SC ACYC_EXT); basic_solver 21.
 apply (urr_hb_irr WF WF_SC CSC COH ACYC_EXT).
 Qed.
 
-Lemma furr_hb_sc_hb_irr WF WF_SC CSC COH ACYC_EXT : 
+Lemma furr_hb_sc_hb_irr WF WF_SC CSC COH ACYC_EXT :
   irreflexive (furr ⨾ hb ⨾ (sc ⨾ hb)^?).
 Proof using.
 unfold furr; unfolder; ins; desc.
@@ -765,35 +765,35 @@ Qed.
 
 Add Parametric Morphism : c_cur with signature
     eq ==> (@same_relation actid) ==> eq ==> eq ==> (@set_equiv actid) ==>
-       (@same_relation actid) as c_cur_more. 
-Proof using. 
+       (@same_relation actid) as c_cur_more.
+Proof using.
   ins. unfold c_cur, urr.
-  rewrite H, H0. reflexivity. 
-Qed. 
-       
+  rewrite H, H0. reflexivity.
+Qed.
+
 Add Parametric Morphism : c_acq with signature
     eq ==> (@same_relation actid) ==> eq ==> eq ==> (@set_equiv actid) ==>
-       (@same_relation actid) as c_acq_more. 
-Proof using. 
+       (@same_relation actid) as c_acq_more.
+Proof using.
   ins. unfold c_acq, urr.
-  rewrite H, H0. reflexivity. 
-Qed. 
+  rewrite H, H0. reflexivity.
+Qed.
 
 Add Parametric Morphism : msg_rel with signature
        eq ==> (@same_relation actid) ==> eq ==>
-          (@same_relation actid) as msg_rel_more. 
-Proof using. ins. unfold msg_rel. rewrite H. basic_solver. Qed. 
+          (@same_relation actid) as msg_rel_more.
+Proof using. ins. unfold msg_rel. rewrite H. basic_solver. Qed.
 
 Global Add Parametric Morphism : furr with signature
-       eq ==> inclusion ==> inclusion as furr_mori. 
-Proof using. 
+       eq ==> inclusion ==> inclusion as furr_mori.
+Proof using.
   ins. rewrite !furr_bunion.
   apply bunion_mori_equiv; [done| ]. intros l _.
   unfold urr. rewrite H. done.
-Qed. 
+Qed.
 
 Global Add Parametric Morphism : furr with signature
-       eq ==> same_relation ==> same_relation as furr_more. 
-Proof using. 
+       eq ==> same_relation ==> same_relation as furr_more.
+Proof using.
   ins. split; apply furr_mori; auto; apply H.
-Qed. 
+Qed.

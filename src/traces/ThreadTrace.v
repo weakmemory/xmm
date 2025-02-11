@@ -242,12 +242,20 @@ Proof using THREAD_EVENTS.
   now rewrite trace_elems_map, trace_elems_eq_thread_events.
 Qed.
 
+Lemma thread_trace_nth n (d : label) (LT : n < N) :
+  trace_nth n thread_trace d = lab (ThreadEvent t n).
+Proof using THREAD_EVENTS.
+  rewrite trace_nth_indep with (d' := lab (ThreadEvent t 0))
+    ; unfold thread_trace.
+  { now rewrite trace_nth_map, thread_actid_trace_nth. }
+  rewrite trace_length_map, thread_actid_trace_length; ins.
+Qed.
+
 End ThreadTrace.
 
 Definition trace_coherent traces G : Prop :=
-  forall thr (NOT_INIT : thr <> tid_init), exists tr,
-    ⟪ IN_TRACES : traces thr tr ⟫ /\
-    ⟪ PREFIX : trace_prefix (thread_trace G thr) tr ⟫.
+  forall thr (NOT_INIT : thr <> tid_init),
+    traces thr (thread_trace G thr).
 
 Definition exec_trace_prefix G G' : Prop :=
   forall thr, trace_prefix (thread_actid_trace G' thr) (thread_actid_trace G thr).
@@ -255,6 +263,21 @@ Definition exec_trace_prefix G G' : Prop :=
 (* TODO: perhaps deserves its own module *)
 Definition contigious_actids G : Prop := forall t (NOT_INIT : t <> tid_init),
   exists N, (acts_set G) ∩₁ (fun e => t = tid e) ≡₁ thread_seq_set t N.
+
+Lemma thread_trace_nth' G e (d : label)
+    (NINIT : tid e <> tid_init)
+    (CONT : contigious_actids G)
+    (IN : acts_set G e) :
+  trace_nth (index e) (thread_trace G (tid e)) d = lab G e.
+Proof using.
+  unfold tid in *.
+  destruct e as [el | et en]; [congruence |].
+  red in CONT. destruct (CONT _ NINIT) as [N EQ].
+  rewrite thread_trace_nth with (N := N); eauto.
+  assert (IN' : (acts_set G ∩₁ (fun e => et = tid e)) (ThreadEvent et en)).
+  { basic_solver. }
+  ins. now apply EQ, thread_set_iff in IN'.
+Qed.
 
 Lemma cont_actids_sub G N t
     (EQ : (acts_set G) ∩₁ (fun e => t = tid e) ≡₁ thread_seq_set t N) :
@@ -419,7 +442,7 @@ Proof using.
 Qed.
 
 (* TODO: make G' prefix G *)
-Lemma trace_coherent_sub traces G G' sc sc'
+(* Lemma trace_coherent_sub traces G G' sc sc'
     (TRACE_COH : trace_coherent traces G)
     (PREFIX : exec_trace_prefix G G')
     (SUB : sub_execution G G' sc sc') :
@@ -443,4 +466,4 @@ Proof using.
       unfold trace_prefix. ins. now f_equal. }
   eapply trace_prefix_trans. { apply THREAD_PREF. }
   apply PREFIX0.
-Qed.
+Qed. *)

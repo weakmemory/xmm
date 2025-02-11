@@ -1,5 +1,7 @@
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
+From imm Require Import Events Execution.
+Require Import AuxDef.
 
 Set Implicit Arguments.
 
@@ -35,3 +37,128 @@ Proof using.
     rewrite set_minusK. rewrite set_union_empty_r.
     apply set_minus_disjoint; eauto.
 Qed.
+
+Lemma tid_map_replace (s s' : actid -> Prop)
+    (SUB1 : s ⊆₁ tid ↓₁ (tid ↑₁ s'))
+    (SUB2 : s' ⊆₁ tid ↓₁ (tid ↑₁ s)) :
+  tid ↑₁ s ≡₁ tid ↑₁ s'.
+Proof using.
+  split.
+  { now rewrite SUB1, collect_map_in_set. }
+  now rewrite SUB2, collect_map_in_set.
+Qed.
+
+Lemma sb_downward_total G
+    (WF : Wf G) :
+  downward_total (nin_sb G).
+Proof using.
+  unfold downward_total, nin_sb.
+  unfolder.
+  intros y z x
+    (y' & (EQY & YNIN) & SB1)
+    (z' & (EQZ & ZNIN) & SB2).
+  subst y' z'.
+  destruct classic with (y = z) as [EQ|NEQ].
+  { basic_solver. }
+  destruct sb_semi_total_r
+      with (x := x) (y := y) (z := z) (G := G)
+        as [YZ|ZY].
+  all: eauto 7.
+Qed.
+
+Lemma nin_sb_functional_l G
+    (WF : Wf G) :
+  functional ((immediate (nin_sb G))⁻¹).
+Proof using.
+  now apply dwt_imm_f, sb_downward_total.
+Qed.
+
+Lemma imm_nin_sbE G :
+  immediate (nin_sb G) ≡
+    ⦗set_compl is_init⦘ ⨾ immediate (sb G).
+Proof using.
+  unfold nin_sb.
+  split; [| apply seq_eqv_imm].
+  rewrite !immediateE.
+  unfolder. intros x y ((XNINT & SBXY) & NON).
+  splits; auto. intro FALSO; desf.
+  apply NON. split; auto. exists z; splits; auto.
+  forward apply (proj1 (no_sb_to_init G) x z); auto.
+  basic_solver.
+Qed.
+
+Lemma nin_sb_functional_r G
+    (WF : Wf G) :
+  functional (immediate (nin_sb G)).
+Proof using.
+  unfold nin_sb, functional.
+  intros x y z IMM1' IMM2'.
+  assert (IMM1 : immediate (sb G) x y).
+  { apply imm_nin_sbE in IMM1'.
+    forward apply IMM1'. basic_solver. }
+  assert (IMM2 : immediate (sb G) x z).
+  { apply imm_nin_sbE in IMM2'.
+    forward apply IMM2'. basic_solver. }
+  assert (SB1 : sb G x y) by apply IMM1.
+  assert (SB2 : sb G x z) by apply IMM2.
+  destruct classic with (y = z) as [EQ|NEQ]; auto.
+  destruct sb_semi_total_l
+      with (x := x) (y := y) (z := z) (G := G)
+        as [YZ|ZY].
+  all: auto.
+  { forward apply IMM1'. clear. basic_solver. }
+  { exfalso. apply IMM2 with y; auto. }
+  exfalso. apply IMM1 with z; auto.
+Qed.
+
+Lemma codom_rel_in {A : Type} (r1 r2 : relation A) x y
+    (PATH : r1 x y) :
+  codom_rel (⦗eq y⦘ ⨾ r2) ⊆₁
+    codom_rel (⦗eq x⦘ ⨾ r1 ⨾ r2).
+Proof using.
+  intros z (y' & (y'' & (EQ1 & EQ2) & R2)).
+  subst y'' y'.
+  exists x, x; split; basic_solver.
+Qed.
+
+Section RelProps.
+
+Variable G : execution.
+
+Notation "'lab'" := (lab G).
+Notation "'val'" := (val lab).
+Notation "'loc'" := (loc lab).
+Notation "'E'" := (acts_set G).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'rmw'" := (rmw G).
+Notation "'rmw_dep'" := (rmw_dep G).
+Notation "'data'" := (data G).
+Notation "'ctrl'" := (ctrl G).
+Notation "'addr'" := (addr G).
+Notation "'W'" := (fun e => is_true (is_w lab e)).
+Notation "'R'" := (fun e => is_true (is_r lab e)).
+Notation "'F'" := (fun e => is_true (is_f lab e)).
+Notation "'Loc_' l" := (fun e => loc e = l) (at level 1).
+Notation "'Val_' l" := (fun e => val e = l) (at level 1).
+Notation "'same_loc'" := (same_loc lab).
+Notation "'same_val'" := (same_val lab).
+Notation "'Acq'" := (fun e => is_true (is_acq lab e)).
+Notation "'Rel'" := (fun e => is_true (is_rel lab e)).
+Notation "'Rlx'" := (fun e => is_true (is_rlx lab e)).
+
+Lemma co_upward_closed ol
+    (WF : Wf G) :
+  upward_closed co (E ∩₁ W ∩₁ Loc_ ol).
+Proof using.
+  unfold upward_closed. intros x y CO XIN.
+  apply (wf_coD WF) in CO.
+  unfolder in CO. destruct CO as (XW & CO & YW).
+  apply (wf_coE WF) in CO.
+  unfolder in CO. destruct CO as (XE & CO & YE).
+  apply (wf_col WF) in CO.
+  unfolder. splits; auto. rewrite CO. apply XIN.
+Qed.
+
+End RelProps.

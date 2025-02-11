@@ -11,6 +11,7 @@ From RecordUpdate Require Import RecordSet.
 
 Require Import xmm_s xmm_s_hb.
 Require Import AuxDef Rhb Srf.
+Require Import ThreadTrace.
 
 Open Scope program_scope.
 
@@ -22,22 +23,6 @@ Set Implicit Arguments.
   settable! Build_execution
     <acts_set; threads_set; lab; rmw; data; addr; ctrl; rmw_dep; rf; co>
 .
-
-Section RfComplete.
-
-Variable G : execution.
-Notation "'E'" := (acts_set G).
-Notation "'lab'" := (lab G).
-Notation "'R'" := (is_r lab).
-Notation "'rf'" := (rf G).
-
-Definition rf_complete : Prop :=
-    E ∩₁ R ⊆₁ codom_rel rf.
-
-Definition nin_sb : relation actid :=
-  ⦗fun e => ~ is_init e⦘ ⨾ sb G.
-
-End RfComplete.
 
 Section Race.
 Variable G : execution.
@@ -112,7 +97,7 @@ Notation "'rmw'" := (rmw G).
 Record is_cons : Prop := {
   cons_coherence : irreflexive (hb ⨾ eco^?);
   cons_atomicity : rmw ∩ (fr ⨾ co) ≡ ∅₂;
-  cons_sc : acyclic sc;
+  (* cons_sc : acyclic sc; *)
 }.
 
 End Consistency.
@@ -210,7 +195,7 @@ Record wf := {
   wf_ereq : exec_restr_eq X X' (E ∩₁ cmt);
   wf_rfc : rf_complete (restrict G' cmt);
   wf_sub_rfD : E ∩₁ R ⊆₁ codom_rel rf ∪₁ cmt;
-  wf_sc : wf_sc G sc;
+  (* wf_sc : wf_sc G sc; *)
 }.
 
 End Wf.
@@ -403,7 +388,7 @@ Notation "'G''" := (G X').
 Record exec_inst e l := {
   exec_add_event : add_event X X' e l;
   exec_rfc : rf_complete G';
-  exec_new_cons : is_cons G' sc';
+  exec_new_cons : is_cons G';
 }.
 
 End ExecuteStep.
@@ -424,6 +409,9 @@ Notation "'rmw''" := (rmw G').
 Notation "'hb''" := (hb G').
 Notation "'co''" := (co G').
 Notation "'vf''" := (vf G').
+Notation "'Rlx''" := (fun e => is_true (is_rlx lab' e)).
+Notation "'Acq''" := (fun e => is_true (is_acq lab' e)).
+Notation "'Rel''" := (fun e => is_true (is_rel lab' e)).
 
 Notation "'G'" := (G X).
 Notation "'lab'" := (lab G).
@@ -459,19 +447,22 @@ Record commit_embedded : Prop :=
 
 Record reexec_gen thrdle : Prop :=
 { (* Correct start *)
-  dtrmt_cmt : dtrmt ⊆₁ f ↑₁ cmt;
+  dtrmt_init : is_init ⊆₁ dtrmt;
+  dtrmt_cmt : dtrmt ⊆₁ cmt;
+  dtrmt_fixed : fixset dtrmt f;
   reexec_embd_dom : cmt ⊆₁ E';
   reexec_sur : stable_uncmt_reads_gen thrdle;
   reexec_dtrmt_sb_closed : sb ⨾ ⦗dtrmt⦘ ⊆ ⦗dtrmt⦘ ⨾ sb ⨾ ⦗dtrmt⦘;
   dtrmt_sb_max :
     ⦗dtrmt⦘ ⨾ immediate (nin_sb G') ⨾ ⦗cmt⦘ ⊆
       ⦗dtrmt⦘ ⨾ immediate (nin_sb G') ⨾ ⦗dtrmt⦘;
-  reexec_dtrmt_rpo : rpo' ⨾ ⦗E' \₁ dtrmt⦘ ⊆ ⦗dtrmt⦘ ⨾ rpo' ⨾ ⦗E' \₁ dtrmt⦘;
+  reexec_dtrmt_rpo : E' \₁ dtrmt ⊆₁ set_compl (Rel' ∪₁ Acq');
   (* Correct embedding *)
   reexec_embd_corr : commit_embedded;
   (* Reproducable steps *)
+  rexec_rfc : rf_complete G';
   reexec_start_wf : wf (X_start dtrmt) X' cmt;
-  rexec_final_cons : is_cons G' sc;
+  rexec_final_cons : is_cons G';
   rexec_acts : E ≡₁ dtrmt ∪₁ E ∩₁ tid ↓₁ reexec_thread;
   reexec_steps : (guided_step cmt X')＊ (X_start dtrmt) X'; }.
 
@@ -481,6 +472,31 @@ Definition reexec : Prop :=
 End ReexecStep.
 
 End WCore.
+
+Section XmmStep.
+
+Definition trace_storage :=
+  thread_id -> trace label -> Prop.
+
+Inductive xmm_step (X X' : WCore.t) : Prop :=
+| xmm_exec (e : actid) (l : label)
+    (STEP : WCore.exec_inst X X' e l) :
+      xmm_step X X'
+| xmm_rexec (f : actid -> actid) (dtrmt : actid -> Prop)
+    (cmt : actid -> Prop) (STEP : WCore.reexec X X' f dtrmt cmt) :
+      xmm_step X X'
+.
+
+Record xmm_step_trace (s : trace_storage) (X X' : WCore.t) : Prop :=
+{ xmm_step_trace_step : xmm_step X X';
+  xmm_step_trace_contl : contigious_actids (WCore.G X);
+  xmm_step_trace_contr : contigious_actids (WCore.G X');
+  xmm_step_trace_cohl : trace_coherent s (WCore.G X);
+  xmm_step_trace_cohr : trace_coherent s (WCore.G X');
+  xmm_step_sc1 : rmw (WCore.G X') ⊆ is_sc (lab (WCore.G X')) × is_sc (lab (WCore.G X'));
+  xmm_step_sc2 : rmw (WCore.G X) ⊆ is_sc (lab (WCore.G X)) × is_sc (lab (WCore.G X)) }.
+
+End XmmStep.
 
 Add Parametric Morphism : WCore.sb_delta with signature
   eq ==> set_equiv ==> same_relation as sb_delta_more.
@@ -496,7 +512,29 @@ Proof using.
   now rewrite EEQ.
 Qed.
 
+Add Parametric Morphism : WCore.exec_restr_eq with signature
+  eq ==> eq ==> set_equiv ==> iff as exec_restr_eq_more.
+Proof using.
+  intros X X' s s' EQ.
+  split; intro HX; constructor.
+  all: try now (rewrite EQ; apply HX).
+  all: try now (rewrite <- EQ; apply HX).
+  all: apply HX.
+Qed.
+
+Add Parametric Morphism : WCore.X_start with signature
+  eq ==> set_equiv ==> eq as X_start_more.
+Proof using.
+  intros X s s' EQ.
+  apply set_extensionality in EQ.
+  now rewrite EQ.
+Qed.
+
 #[export]
 Instance sb_delta_Propere : Proper (_ ==> _ ==> _) _ := sb_delta_more.
 #[export]
 Instance reexec_thread_Propere : Proper (_ ==> _ ==> _) _ := reexec_thread_more.
+#[export]
+Instance exec_restr_eq_Propere : Proper (_ ==> _ ==> _ ==> _) _ := exec_restr_eq_more.
+#[export]
+Instance X_start_Propere : Proper (_ ==> _ ==> _) _ := X_start_more.

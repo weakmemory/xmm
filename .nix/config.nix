@@ -44,7 +44,7 @@
 
   bundles."8.19" = {
     push-branches = [ "**" ];
-    coqPackages.vscoq-language-server.override.version = "v2.1.7";
+    coqPackages.vscoq-language-server.override.version = "v2.2.2";
     coqPackages.coq.override.version = "8.19";
     coqPackages.hahn.override.version = "1.19.1";
     coqPackages.hahnExt.override.version = "0.9.5";

@@ -33,6 +33,12 @@ Proof using.
   unfolder. split; ins; desf; tauto.
 Qed.
 
+Lemma cross_minus_r {T : Type} (A B1 B2 : T -> Prop) :
+  A × (B1 \₁ B2) ≡ A × B1 \ A × B2.
+Proof using.
+  unfolder. split; ins; desf; tauto.
+Qed.
+
 Lemma set_minus_inter {A : Type} (s1 s2 s3 : A -> Prop) :
   (s1 \₁ s2 ∩₁ s3) ∩₁ s3 ≡₁ (s1 \₁ s2) ∩₁ s3.
 Proof using.
@@ -102,6 +108,23 @@ Proof using.
   apply set_minus_more; auto.
   split; [| basic_solver].
   unfolder. ins. desf. splits; tauto.
+Qed.
+
+Lemma is_total_union_ext {A : Type} a s s' (r : relation A)
+    (NIN : ~s a)
+    (SING : s' ⊆₁ eq a)
+    (TOT : is_total s r) :
+  is_total (s ∪₁ s') (r ∪ s × s').
+Proof using.
+  unfold is_total.
+  intros x [XIN | XEQ] y [YIN | YEQ] NEQ.
+  { destruct TOT with x y; auto.
+    all: basic_solver. }
+  { left; right. basic_solver. }
+  { do 2 right. basic_solver. }
+  exfalso. apply NEQ.
+  apply SING in XEQ, YEQ.
+  congruence.
 Qed.
 
 Lemma swap_rel_union {T : Type} (r1 r2 : relation T) A B :
