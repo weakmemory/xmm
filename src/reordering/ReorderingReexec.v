@@ -13,6 +13,7 @@ Require Import Thrdle.
 Require Import StepOps.
 Require Import ConsistencyReadExtentGen.
 Require Import ReorderingCons.
+Require Import ConsistencyMonotonicity.
 
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
@@ -80,6 +81,8 @@ Notation "'hb_t''" := (hb G_t').
 Notation "'rhb_t''" := (rhb G_t').
 Notation "'W_t''" := (fun x => is_true (is_w lab_t' x)).
 Notation "'R_t''" := (fun x => is_true (is_r lab_t' x)).
+Notation "'vf_t''" := (vf G_t').
+Notation "'vf_rhb_t''" := (vf_rhb G_t').
 Notation "'Loc_t_'' l" := (fun e => loc_t' e = l) (at level 1).
 
 Notation "'lab_s'" := (lab G_s).
@@ -139,6 +142,7 @@ Notation "'W_s'''" := (fun x => is_true (is_w lab_s'' x)).
 Notation "'R_s'''" := (fun x => is_true (is_r lab_s'' x)).
 Notation "'F_s'''" := (fun x => is_true (is_f lab_s'' x)).
 Notation "'vf_s'''" := (vf G_s'').
+Notation "'vf_rhb_s'''" := (vf_rhb G_s'').
 Notation "'srf_s'''" := (srf G_s'').
 Notation "'rhb_s'''" := (rhb G_s'').
 Notation "'Loc_s_''' l" := (fun e => loc_s'' e = l) (at level 1).
@@ -171,6 +175,7 @@ Notation "'W_s''" := (fun x => is_true (is_w lab_s' x)).
 Notation "'R_s''" := (fun x => is_true (is_r lab_s' x)).
 Notation "'F_s''" := (fun x => is_true (is_f lab_s' x)).
 Notation "'vf_s''" := (vf G_s').
+Notation "'vf_rhb_s''" := (vf_rhb G_s').
 Notation "'srf_s''" := (srf G_s').
 Notation "'rhb_s''" := (rhb G_s').
 Notation "'Loc_s_'' l" := (fun e => loc_s' e = l) (at level 1).
@@ -200,6 +205,69 @@ Lemma reexec_simrel :
   reord_simrel X_s' X_t' a_t b_t mapper.
 Proof using INV' LVAL NLOC ARW ARLX.
   apply (rsr_new_Gs_sim INV'); auto.
+Qed.
+
+Lemma rsr_rex_imm_wf : Wf G_s''.
+Proof using INV'.
+  now apply rsr_imm_Gs_wf.
+Qed.
+
+Hint Resolve rsr_rex_imm_wf : xmm.
+
+Lemma rsr_rex_imm_eqlab :
+  eq_dom E_t' lab_t' (lab_s'' ∘ mapper).
+Proof using INV'.
+Admitted.
+
+Lemma rsr_rex_imm_sbloc :
+  sb_s'' ∩ same_loc_s'' ⊆ mapper ↑ (sb_t' ∩ same_loc_t').
+Proof using INV'.
+Admitted.
+
+Lemma rsr_rex_imm_rpo :
+  rpo_s'' ⊆ mapper ↑ rpo_t'.
+Proof using INV'.
+Admitted.
+
+Hint Resolve rsr_rex_imm_sbloc rsr_rex_imm_rpo
+             rsr_rex_imm_eqlab : xmm.
+
+Lemma rsr_rex_vf_nesting :
+  vf_rhb_s'' ⊆ mapper ↑ vf_rhb_t'.
+Proof using INV'.
+  assert (NEQ : a_t <> b_t) by apply INV'.
+  assert (WF : Wf G_t') by apply INV'.
+  unfold vf_rhb.
+  rewrite XmmCons.monoton_rhb_sub
+     with (G_t := G_t') (m := mapper).
+  { change rf_s'' with (mapper ↑ rf_t').
+    change E_s'' with (mapper ↑₁ E_t').
+    seq_rewrite mapdom_rewrite_l'.
+    rewrite set_collect_is_w
+       with (G := G_t'); auto with xmm.
+    rewrite !crE.
+    rewrite !seq_union_l, !seq_union_r.
+    rewrite !seq_id_l, !seq_id_r.
+    rewrite !collect_rel_union.
+    repeat apply union_mori.
+    { rewrite <- id_inter, collect_rel_eqv.
+      basic_solver. }
+    all: rewrite <- 1?collect_rel_eqv.
+    all: seq_rewrite <- id_inter.
+    all: rewrite <- ?collect_rel_seq.
+    all: try now (
+      apply collect_rel_mori; auto;
+        basic_solver
+    ).
+    all: eapply inj_dom_mori; eauto with xmm.
+    all: unfold flip; auto with hahn. }
+  all: auto with xmm.
+  all: ins.
+  { eapply inj_dom_mori; eauto with xmm.
+    unfold flip. auto with hahn. }
+  rewrite Combinators.compose_assoc.
+  rewrite rsr_mapper_compose, Combinators.compose_id_right; auto.
+  reflexivity.
 Qed.
 
 Lemma rsr_rex_rf_helper :
