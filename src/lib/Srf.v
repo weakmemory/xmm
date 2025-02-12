@@ -343,6 +343,14 @@ Proof using.
   now rewrite sbvf_as_rhb.
 Qed.
 
+Lemma srf_rhb_vf_rhb_sb :
+  srf_rhb ⊆ vf_rhb ⨾ sb.
+Proof using.
+  unfold srf_rhb.
+  remember (co ⨾ vf_rhb ⨾ sb) as minus.
+  basic_solver.
+Qed.
+
 Lemma from_srf dtrmt
     (WF : Wf G)
     (SUBE : dtrmt ⊆₁ E)

@@ -339,11 +339,10 @@ Proof using INV' LVAL NLOC ARW ARLX.
     rewrite seq_union_l, !seqA.
     apply union_mori; [basic_solver |].
     rewrite rsr_rex_rf_helper.
-    rewrite srf_as_rhb.
-    (* rewrite srf_in_vf_sb, id_inter.
-    rewrite seqA. sin_rewrite SUBHELP.
-    basic_solver 11. *)
-    admit. }
+    rewrite srf_as_rhb, srf_rhb_vf_rhb_sb,
+            !seqA, id_inter.
+    sin_rewrite SUBHELP.
+    rewrite !seqA. clear. basic_solver 11. }
   apply inclusion_union_r. right.
   rewrite !seqA.
   unfold rhb. rewrite ct_end.
@@ -376,21 +375,6 @@ Proof using INV' LVAL NLOC ARW ARLX.
   rewrite <- seq_union_r.
   rewrite rpo_in_sb.
   clear. basic_solver 11.
-Admitted.
-
-Lemma rsr_rex_vfexa :
-  vf_s' ⨾ ⦗A_s'⦘ ≡
-    ⦗A_s' ∩₁ W_s'⦘ ∪
-      vf_s' ⨾ ⦗E_s' \₁ A_s'⦘ ⨾ sb_s' ⨾ ⦗A_s'⦘.
-Proof using INV' LVAL NLOC ARW ARLX.
-  split; [apply rsr_rex_vfexa' |].
-  apply inclusion_union_l.
-  { unfold vf. clear. rewrite 2!crE. simpl.
-    clear. basic_solver 11. }
-  transitivity (
-    vf_s' ⨾ sb_s' ⨾ ⦗A_s'⦘
-  ); [| now sin_rewrite vf_sb_in_vf].
-  clear. basic_solver.
 Qed.
 
 Definition extra_b :=
