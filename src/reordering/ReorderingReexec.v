@@ -318,7 +318,7 @@ Proof using INV' LVAL NLOC ARW ARLX.
 Qed.
 
 Lemma rsr_rex_vfexa' :
-  vf_s' ⨾ ⦗A_s'⦘ ⊆ ⦗A_s' ∩₁ W_s'⦘ ∪ vf_s' ⨾ ⦗E_s' \₁ A_s'⦘ ⨾ sb_s' ⨾ ⦗A_s'⦘.
+  vf_rhb_s' ⨾ ⦗A_s'⦘ ⊆ ⦗A_s' ∩₁ W_s'⦘ ∪ vf_rhb_s' ⨾ ⦗E_s' \₁ A_s'⦘ ⨾ sb_s' ⨾ ⦗A_s'⦘.
 Proof using INV' LVAL NLOC ARW ARLX.
   clear STEP RCFAT RCFBT.
   clear f_t cmt_t X_t X_s SIMREL INV.
@@ -330,8 +330,8 @@ Proof using INV' LVAL NLOC ARW ARLX.
     rewrite wf_sbE at 1. rewrite !seqA.
     unfolder. ins. desf. splits; auto.
     intro FALSO. desf. eapply sb_irr; eauto. }
-  unfold vf at 1.
-  rewrite crE with (r := hb_s').
+  unfold vf_rhb at 1.
+  rewrite crE with (r := rhb_s').
   rewrite !seq_union_r, seq_id_r.
   rewrite seq_union_l. apply inclusion_union_l.
   { rewrite crE.
@@ -339,23 +339,44 @@ Proof using INV' LVAL NLOC ARW ARLX.
     rewrite seq_union_l, !seqA.
     apply union_mori; [basic_solver |].
     rewrite rsr_rex_rf_helper.
-    rewrite srf_in_vf_sb, id_inter.
+    rewrite srf_as_rhb.
+    (* rewrite srf_in_vf_sb, id_inter.
     rewrite seqA. sin_rewrite SUBHELP.
-    basic_solver 11. }
+    basic_solver 11. *)
+    admit. }
   apply inclusion_union_r. right.
   rewrite !seqA.
-  unfold hb. rewrite ct_end.
+  unfold rhb. rewrite ct_end.
   rewrite <- cr_of_ct.
-  change ((sb_s' ∪ sw_s')⁺) with hb_s'.
+  change ((sb_s' ∩ same_loc_s' ∪ rpo_s' ∪ sw_s')⁺) with rhb_s'.
   rewrite !seqA.
-  arewrite (⦗E_s'⦘ ⨾ ⦗W_s'⦘ ⨾ rf_s'^? ⨾ hb_s'^? ≡ vf_s').
-  rewrite seq_union_l. rewrite SUBHELP at 1.
-  arewrite_false (sw_s' ⨾ ⦗A_s'⦘);
-    [| now rewrite union_false_r].
-  rewrite (wf_swD (new_G_s_wf INV' LVAL)).
-  rewrite (rsr_rex_a_rlx l_a INV' ARLX).
-  clear. basic_solver.
-Qed.
+  arewrite (⦗E_s'⦘ ⨾ ⦗W_s'⦘ ⨾ rf_s'^? ⨾ rhb_s'^? ≡ vf_rhb_s').
+  rewrite !seq_union_l.
+  arewrite_false (sw_s' ⨾ ⦗A_s'⦘).
+  { rewrite (wf_swD (new_G_s_wf INV' LVAL)).
+    rewrite (rsr_rex_a_rlx l_a INV' ARLX).
+    clear. basic_solver. }
+  arewrite (
+    sb_s' ∩ same_loc_s' ⨾ ⦗A_s'⦘ ⊆
+      ⦗E_s' \₁ A_s'⦘ ⨾ sb_s' ∩ same_loc_s' ⨾ ⦗A_s'⦘).
+  { rewrite <- seq_eqv_inter_lr, <- seq_eqv_inter_ll.
+    now rewrite SUBHELP at 1. }
+  arewrite (
+    rpo_s' ⨾ ⦗A_s'⦘ ⊆
+      ⦗E_s' \₁ A_s'⦘ ⨾ rpo_s' ⨾ ⦗A_s'⦘
+  ).
+  { remember (E_s' \₁ A_s') as NA.
+    unfolder. intros x y (RPO & NEXA).
+    splits; auto. subst NA.
+    apply rpo_in_sb in RPO.
+    forward apply (SUBHELP x y)
+      ; [basic_solver |].
+    clear - RPO NEXA. basic_solver. }
+  rewrite union_false_r.
+  rewrite <- seq_union_r.
+  rewrite rpo_in_sb.
+  clear. basic_solver 11.
+Admitted.
 
 Lemma rsr_rex_vfexa :
   vf_s' ⨾ ⦗A_s'⦘ ≡
