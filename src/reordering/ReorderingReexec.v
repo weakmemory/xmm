@@ -61,6 +61,9 @@ Notation "'rhb_t'" := (rhb G_t).
 Notation "'W_t'" := (fun x => is_true (is_w lab_t x)).
 Notation "'R_t'" := (fun x => is_true (is_r lab_t x)).
 Notation "'Loc_t_' l" := (fun e => loc_t e = l) (at level 1).
+Notation "'Acq_t'" := (fun e => is_true (is_acq lab_t e)).
+Notation "'Rel_t'" := (fun e => is_true (is_rel lab_t e)).
+Notation "'Rlx_t'" := (fun e => is_true (is_rlx lab_t e)).
 
 Notation "'lab_t''" := (lab G_t').
 Notation "'val_t''" := (val lab_t').
@@ -84,6 +87,9 @@ Notation "'R_t''" := (fun x => is_true (is_r lab_t' x)).
 Notation "'vf_t''" := (vf G_t').
 Notation "'vf_rhb_t''" := (vf_rhb G_t').
 Notation "'Loc_t_'' l" := (fun e => loc_t' e = l) (at level 1).
+Notation "'Acq_t''" := (fun e => is_true (is_acq lab_t' e)).
+Notation "'Rel_t''" := (fun e => is_true (is_rel lab_t' e)).
+Notation "'Rlx_t''" := (fun e => is_true (is_rlx lab_t' e)).
 
 Notation "'lab_s'" := (lab G_s).
 Notation "'val_s'" := (val lab_s).
@@ -212,22 +218,42 @@ Proof using INV'.
   now apply rsr_imm_Gs_wf.
 Qed.
 
-Hint Resolve rsr_rex_imm_wf : xmm.
-
 Lemma rsr_rex_imm_eqlab :
   eq_dom E_t' lab_t' (lab_s'' ∘ mapper).
 Proof using INV'.
-Admitted.
+  assert (NEQ : a_t <> b_t) by apply INV'.
+  simpl.
+  rewrite Combinators.compose_assoc.
+  rewrite rsr_mapper_compose, Combinators.compose_id_right; auto.
+  reflexivity.
+Qed.
+
+Hint Resolve rsr_rex_imm_wf rsr_rex_imm_eqlab : xmm.
 
 Lemma rsr_rex_imm_sbloc :
   sb_s'' ∩ same_loc_s'' ⊆ mapper ↑ (sb_t' ∩ same_loc_t').
 Proof using INV'.
-Admitted.
+  apply reord_sbloc' with (a := a_t) (b := b_t).
+  all: auto with xmm.
+  { apply INV'. }
+  apply (imm_G_s_sb INV').
+Qed.
 
 Lemma rsr_rex_imm_rpo :
   rpo_s'' ⊆ mapper ↑ rpo_t'.
 Proof using INV'.
-Admitted.
+  assert (NEQ : a_t <> b_t) by apply INV'.
+  apply reord_rpo_map' with (a := a_t) (b := b_t).
+  all: auto with xmm.
+  { eapply inj_dom_mori; auto with xmm.
+    red; auto with hahn. }
+  { apply (imm_G_s_sb INV'). }
+  { transitivity (set_compl (Rel_t' ∪₁ Acq_t'))
+      ; [apply INV' | basic_solver]. }
+  { transitivity (set_compl (Rel_t' ∪₁ Acq_t'))
+      ; [apply INV' | basic_solver]. }
+  all: rewrite set_unionC; apply INV'.
+Qed.
 
 Hint Resolve rsr_rex_imm_sbloc rsr_rex_imm_rpo
              rsr_rex_imm_eqlab : xmm.

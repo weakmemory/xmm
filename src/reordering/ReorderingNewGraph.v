@@ -817,6 +817,68 @@ Proof using INV.
   reflexivity.
 Qed.
 
+Lemma imm_G_s_sb :
+  sb_s'' ≡
+    mapper ↑ swap_rel sb_t (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t).
+Proof using INV.
+  assert (NSBAB : ~ext_sb a_t b_t).
+  { intro FALSO.
+    now eapply ext_sb_irr, ext_sb_trans, (rsr_at_bt_sb INV). }
+  assert (NEQ : a_t <> b_t) by apply INV.
+  unfold sb at 1. simpl.
+  rewrite mapped_swap_rel.
+  rewrite set_union_minus
+      with (s := E_t) (s' := eq b_t ∩₁ E_t ∪₁ eq a_t ∩₁ E_t)
+        at 1 2
+        by basic_solver.
+  rewrite !set_collect_union.
+  arewrite (
+    E_t \₁ (eq b_t ∩₁ E_t ∪₁ eq a_t ∩₁ E_t) ≡₁
+      (E_t \₁ eq b_t) \₁ eq a_t
+  ).
+  { rewrite <- set_minus_minus_l.
+    rewrite !set_minus_inter_r.
+    rewrite set_minusK, set_union_empty_r.
+    arewrite ((E_t \₁ eq b_t) \₁ E_t ≡₁ ∅).
+    { basic_solver. }
+    now rewrite set_union_empty_r. }
+  rewrite !id_union.
+  rewrite !seq_union_l, !seq_union_r.
+  rewrite <- !unionA.
+  arewrite_false (
+    ⦗mapper ↑₁ (eq b_t ∩₁ E_t)⦘ ⨾
+      ext_sb ⨾
+        ⦗mapper ↑₁ (eq b_t ∩₁ E_t)⦘
+  ).
+  { unfolder. ins. desf.
+    eapply ext_sb_irr; eauto. }
+  arewrite_false (
+    ⦗mapper ↑₁ (eq a_t ∩₁ E_t)⦘ ⨾
+      ext_sb ⨾
+        ⦗mapper ↑₁ (eq a_t ∩₁ E_t)⦘
+  ).
+  { unfolder. ins. desf.
+    eapply ext_sb_irr; eauto. }
+  arewrite_false (
+    ⦗mapper ↑₁ (eq b_t ∩₁ E_t)⦘ ⨾
+      ext_sb ⨾
+        ⦗mapper ↑₁ (eq a_t ∩₁ E_t)⦘
+  ).
+  { unfolder.
+    intros x y
+      ((x' & (XEQ & XIN) & XEQ') &
+       SB &
+       (y' & (YEQ & YIN) & YEQ')).
+    subst x' y'. apply NSBAB.
+    rewrite (rsr_mapper_at NEQ), (rsr_mapper_bt NEQ) in *.
+    now subst x y. }
+  rewrite !union_false_r.
+  rewrite rsr_setE_iff
+     with (s := (E_t \₁ eq b_t) \₁ eq a_t)
+       by (auto || (right; unfold not; basic_solver)).
+  reflexivity.
+Qed.
+
 Lemma new_G_s_sb :
   sb_s ≡
     mapper ↑ swap_rel sb_t (eq b_t ∩₁ E_t) (eq a_t ∩₁ E_t) ∪
