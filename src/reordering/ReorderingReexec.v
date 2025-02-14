@@ -13,7 +13,7 @@ Require Import Thrdle.
 Require Import StepOps.
 Require Import ConsistencyReadExtentGen.
 Require Import ReorderingCons.
-Require Import ConsistencyMonotonicity.
+Require Import ConsistencyMonotonicity ConsistencyReadExtentGen.
 
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
@@ -157,6 +157,9 @@ Notation "'Rlx_s'''" := (fun e => is_true (is_rlx lab_s'' e)).
 Notation "'Acq_s'''" := (fun e => is_true (is_acq lab_s'' e)).
 Notation "'Rel_s'''" := (fun e => is_true (is_rel lab_s'' e)).
 Notation "'drf_s'''" := (fake_srf G_s'' b_t l_a ⨾ ⦗A_s' ∩₁ WCore.lab_is_r l_a⦘).
+Notation "'dco_s'''" := (
+  (E_s'' ∩₁ W_s'' ∩₁ Loc_s_'' (WCore.lab_loc l_a)) ×
+    (A_s' ∩₁ WCore.lab_is_w l_a)).
 
 Notation "'X_s''" := (rsr_Xs X_t' a_t b_t l_a).
 Notation "'G_s''" := (WCore.G X_s').
@@ -316,6 +319,86 @@ Proof using INV' LVAL NLOC ARW ARLX.
   eapply rsr_mapper_inv_bt; eauto.
   apply INV'.
 Qed.
+
+Lemma rsr_rex_rf_helper' :
+  rf_s' ⨾ ⦗E_s' \₁ A_s'⦘ ≡ rf_s'' ⨾ ⦗E_s' \₁ A_s'⦘.
+Proof using INV'.
+  change rf_s' with (rf_s'' ∪ drf_s'').
+  rewrite seq_union_l.
+  arewrite_false (drf_s'' ⨾ ⦗E_s' \₁ A_s'⦘).
+  { basic_solver. }
+  now rewrite union_false_r.
+Qed.
+
+Lemma rsr_rex_vf_nesting' :
+  vf_rhb_s' ⨾ ⦗E_s' \₁ A_s'⦘ ⊆ vf_rhb_s'' ⨾ ⦗E_s' \₁ A_s'⦘.
+Proof using INV'.
+  destruct classic
+      with (~ (~E_t' a_t /\ E_t' b_t))
+        as [EMP | NEMP'].
+  { rewrite extra_a_none; auto.
+    rewrite set_minus_empty_r.
+    admit. (* Same execs *) }
+  assert (NEMP : ~ E_t' a_t /\ E_t' b_t) by tauto.
+  unfold extra_a.
+  assert (NEQ : a_t <> b_t) by apply INV'.
+  assert (WF : Wf G_s'') by admit.
+  unfold vf_rhb. rewrite !seqA.
+  arewrite (
+    rhb_s'^? ⨾ ⦗E_s' \₁ A_s'⦘ ≡
+      (rhb_s' ⨾ ⦗E_s' \₁ A_s'⦘)^?
+        ⨾ ⦗E_s' \₁ A_s'⦘
+  ).
+  { clear. basic_solver 11. }
+  arewrite (
+    rhb_s''^? ⨾ ⦗E_s' \₁ A_s'⦘ ≡
+      (rhb_s'' ⨾ ⦗E_s' \₁ A_s'⦘)^?
+        ⨾ ⦗E_s' \₁ A_s'⦘
+  ).
+  { clear. basic_solver 11. }
+  rewrite extra_a_some by desf.
+  assert (ACTS : E_s' ≡₁ E_s'' ∪₁ eq b_t).
+  { simpl. now rewrite extra_a_some. }
+  assert (DISJ : set_disjoint E_s'' (eq b_t)).
+  { unfolder. intros x XIN XEQ. subst x.
+    simpl in XIN. unfolder in XIN.
+    destruct XIN as (y & YIN & YEQ).
+    enough (y = a_t) by desf.
+    eapply rsr_mapper_inv_bt; eauto. }
+  assert (RF : rf_s' ⨾ ⦗E_s' \₁ eq b_t⦘ ⊆ rf_s'').
+  { change rf_s' with (rf_s'' ∪ drf_s'').
+    rewrite seq_union_l.
+    arewrite_false (drf_s'' ⨾ ⦗E_s' \₁ eq b_t⦘).
+    { rewrite extra_a_some by desf.
+      basic_solver. }
+    rewrite union_false_r. basic_solver. }
+  assert (CO : co_s' ⨾ ⦗E_s' \₁ eq b_t⦘ ⊆ co_s'').
+  { change co_s' with (co_s'' ∪ dco_s'').
+    rewrite seq_union_l.
+    arewrite_false (dco_s'' ⨾ ⦗E_s' \₁ eq b_t⦘).
+    { rewrite extra_a_some by desf.
+      basic_solver. }
+    rewrite union_false_r. basic_solver. }
+  assert (EQA : E_s'' ≡₁ E_s' \₁ eq b_t).
+  { rewrite ACTS, set_minus_union_l, set_minusK.
+    rewrite set_minus_disjoint, set_union_empty_r.
+    all: auto with hahn. }
+  assert (RFF : rf_s' ⊆ ⦗E_s' \₁ eq b_t⦘ ⨾ rf_s').
+  { change rf_s' with (rf_s'' ∪ drf_s'').
+    rewrite (wf_rfE WF) at 1.
+    rewrite fake_srfE_left at 1.
+    rewrite !seqA, EQA.
+    clear. basic_solver. }
+  assert (NRPO : ⦗eq b_t⦘ ⨾ rpo_s' ⊆ ∅₂).
+  { admit. }
+  assert (NSBLOC : ⦗eq b_t⦘ ⨾ sb_s' ∩ same_loc_s' ⊆ ∅₂).
+  { admit. }
+  assert (RMW : rmw_s' ⊆ rmw_s'') by basic_solver.
+  rewrite XmmCons.read_rhb_sub
+     with (G_t := G_s'') (G_s := G_s') (m := id).
+  all: rewrite ?collect_rel_id, ?set_collect_id.
+  all: auto with xmm.
+Admitted.
 
 Lemma rsr_rex_vfexa' :
   vf_rhb_s' ⨾ ⦗A_s'⦘ ⊆ ⦗A_s' ∩₁ W_s'⦘ ∪ vf_rhb_s' ⨾ ⦗E_s' \₁ A_s'⦘ ⨾ sb_s' ⨾ ⦗A_s'⦘.
