@@ -124,6 +124,7 @@ Notation "'Tid_' t" := (fun e => tid e = t) (at level 1).
 Notation "'A_s'" := (extra_a X_t a_t b_t b_t).
 Notation "'A_s''" := (extra_a X_t' a_t b_t b_t).
 Notation "'B_s''" := (extra_a X_t' a_t b_t a_t).
+Notation "'is_init'" := (fun e => is_true (is_init e)).
 
 Notation "'X_s'''" := (rsr_immx X_t' a_t b_t).
 Notation "'G_s'''" := (WCore.G X_s'').
@@ -330,6 +331,16 @@ Proof using INV'.
   now rewrite union_false_r.
 Qed.
 
+Lemma rsr_rex_disj_helper :
+  set_disjoint E_s'' A_s'.
+Proof using INV'.
+  assert (NEQ : a_t <> b_t) by apply INV'.
+  unfold extra_a. desf. simpl.
+  unfolder. intros x (y & YIN & XEQ') XEQ. subst x.
+  enough (y = a_t) by desf.
+  eapply rsr_mapper_inv_bt; eauto.
+Qed.
+
 Lemma rsr_rex_vf_nesting' :
   vf_rhb_s' ⨾ ⦗E_s' \₁ A_s'⦘ ⊆ vf_rhb_s'' ⨾ ⦗E_s' \₁ A_s'⦘.
 Proof using INV'.
@@ -360,11 +371,11 @@ Proof using INV'.
   assert (ACTS : E_s' ≡₁ E_s'' ∪₁ eq b_t).
   { simpl. now rewrite extra_a_some. }
   assert (DISJ : set_disjoint E_s'' (eq b_t)).
-  { unfolder. intros x XIN XEQ. subst x.
-    simpl in XIN. unfolder in XIN.
-    destruct XIN as (y & YIN & YEQ).
-    enough (y = a_t) by desf.
-    eapply rsr_mapper_inv_bt; eauto. }
+  { rewrite <- extra_a_some
+       with (a_t := a_t) (b_t := b_t)
+            (a_s := b_t) (X_t := X_t').
+    apply rsr_rex_disj_helper.
+    all: desf. }
   assert (RF : rf_s' ⨾ ⦗E_s' \₁ eq b_t⦘ ⊆ rf_s'').
   { change rf_s' with (rf_s'' ∪ drf_s'').
     rewrite seq_union_l.
@@ -635,6 +646,78 @@ Proof using INV'.
   enough (tid a_t = tid b_t) by basic_solver.
   apply INV'.
 Qed.
+
+Lemma rsr_rex_vf :
+  vf_s' ⨾ same_tid ⨾ ⦗E_s' \₁ cmt_s⦘ ⊆ tid ↓ thrdle ∪ same_tid.
+Proof using INV' STEP.
+  apply thrdle_with_rhb; try now apply STEP.
+  { admit. }
+  { admit. }
+  assert (NEQ : a_t <> b_t) by apply INV'.
+  change E_s' with (E_s'' ∪₁ A_s').
+  rewrite set_minus_union_l.
+  arewrite (
+    vf_rhb_s' ⊆
+      vf_rhb_s' ⨾ ⦗E_s' \₁ A_s'⦘ ∪
+        vf_rhb_s' ⨾ ⦗A_s'⦘
+  ).
+  { admit. }
+  rewrite rsr_rex_vfexa'.
+  do 2 sin_rewrite rsr_rex_vf_nesting'.
+  do 2 sin_rewrite rsr_rex_vf_nesting.
+  rewrite <- unionA, !seqA.
+  rewrite !seq_union_l, !seqA.
+  do 2 arewrite (
+    mapper ↑ vf_rhb_t' ⨾ ⦗E_s' \₁ A_s'⦘ ⊆
+      mapper ↑ vf_rhb_t'
+  ).
+  rewrite sb_tid_init'.
+  rewrite !seq_union_l, !seq_union_r.
+  arewrite (
+    sb_s' ∩ same_tid ⨾ ⦗A_s'⦘ ⨾ same_tid ⊆
+      same_tid
+  ).
+  { transitivity (same_tid ⨾ same_tid)
+      ; [basic_solver |].
+    clear. rewrite rewrite_trans; auto with hahn.
+    unfold same_tid. unfolder. ins. congruence. }
+  arewrite (
+    mapper ↑ vf_rhb_t' ⨾ ⦗is_init⦘ ⊆ ⦗is_init⦘
+  ).
+  { admit. }
+  arewrite (
+    ⦗A_s' ∩₁ W_s'⦘ ⨾ same_tid ⨾ ⦗E_s'' \₁ cmt_s ∪₁ A_s' \₁ cmt_s⦘ ⊆
+      same_tid
+  ).
+  { basic_solver. }
+  arewrite (
+    ⦗is_init⦘ ⨾ sb_s' ⨾ ⦗A_s'⦘ ⨾ same_tid
+       ⨾ ⦗E_s'' \₁ cmt_s ∪₁ A_s' \₁ cmt_s⦘ ⊆
+        tid ↓ thrdle).
+  { admit. }
+  arewrite (
+    mapper ↑ vf_rhb_t' ⨾ same_tid ⨾
+      ⦗E_s'' \₁ cmt_s ∪₁ A_s' \₁ cmt_s⦘ ⊆
+        mapper ↑ vf_rhb_t' ⨾ same_tid ⨾ ⦗E_s'' \₁ cmt_s⦘ ⨾
+          same_tid ⨾ ⦗E_s'' \₁ cmt_s ∪₁ A_s' \₁ cmt_s⦘
+  ).
+  { admit. }
+  arewrite (E_s'' \₁ cmt_s ⊆₁ mapper ↑₁ (E_t' \₁ cmt_t)).
+  { admit. }
+  rewrite <- collect_rel_eqv.
+  assert (
+    MAP : mapper ↑ vf_rhb_t' ⨾ same_tid ⨾ mapper ↑ ⦗E_t' \₁ cmt_t⦘ ⊆
+      mapper ↑ (vf_rhb_t' ⨾ same_tid ⨾ ⦗E_t' \₁ cmt_t⦘)
+  ).
+  { admit. }
+  do 2 sin_rewrite MAP.
+  arewrite (
+    vf_rhb_t' ⨾ same_tid ⨾ ⦗E_t' \₁ cmt_t⦘ ⊆
+     tid ↓ thrdle ∪ same_tid
+  ).
+  { apply thrdle_with_rhb; try now apply STEP.
+    all: apply INV'. }
+Admitted.
 
 Lemma reexec_threads_s :
   WCore.reexec_thread X_s' dtrmt_s ≡₁
