@@ -351,6 +351,26 @@ Proof using.
   basic_solver.
 Qed.
 
+Lemma wf_vfrhbE
+    (WF : Wf G) :
+  vf_rhb ≡ ⦗E⦘ ⨾ vf_rhb ⨾ ⦗E⦘.
+Proof using.
+  apply dom_helper_3.
+  unfold vf_rhb.
+  rewrite (wf_rfE WF), (wf_rhbE WF).
+  basic_solver.
+Qed.
+
+Lemma vf_rhb_to_init
+    (WF : Wf G) :
+  vf_rhb ⨾ ⦗is_init⦘ ⊆ ⦗is_init⦘.
+Proof using.
+  unfold vf_rhb.
+  rewrite (no_rf_to_init WF).
+  rewrite (no_rhb_to_init WF).
+  basic_solver.
+Qed.
+
 Lemma from_srf dtrmt
     (WF : Wf G)
     (SUBE : dtrmt ⊆₁ E)
