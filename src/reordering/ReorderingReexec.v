@@ -647,12 +647,109 @@ Proof using INV'.
   apply INV'.
 Qed.
 
+Lemma rsr_rex_vf_helper1 :
+  ⦗is_init⦘ ⨾ sb_s' ⨾ ⦗A_s'⦘ ⨾
+    same_tid ⨾ ⦗E_s'' \₁ cmt_s ∪₁ A_s' \₁ cmt_s⦘
+      ⊆ tid ↓ thrdle.
+Proof using INV' STEP.
+  unfold extra_a. desf; [| basic_solver].
+  assert (TID : tid b_t <> tid_init).
+  { apply (rsr_bt_tid INV'). }
+  remember (E_s'' \₁ cmt_s ∪₁ eq b_t \₁ cmt_s) as s.
+  unfolder.
+  intros x y (XINI & z & (_ & EQ & SAME & _)).
+  subst z. destruct x as [xl | xt xn]; ins.
+  apply (WCore.surg_init_least (WCore.reexec_sur STEP)).
+  rewrite <- SAME. auto.
+Qed.
+
+Lemma rsr_rex_vf_helper2 :
+  mapper ↑ vf_rhb_t' ⨾ same_tid ⨾
+    ⦗E_s'' \₁ cmt_s ∪₁ A_s' \₁ cmt_s⦘ ⊆
+      mapper ↑ vf_rhb_t' ⨾ same_tid ⨾
+        ⦗E_s'' \₁ cmt_s⦘ ⨾ same_tid ⨾
+          ⦗E_s'' \₁ cmt_s ∪₁ A_s' \₁ cmt_s⦘.
+Proof using INV' STEP.
+  assert (NEQ : a_t <> b_t) by apply INV'.
+  assert (TIDE : tid a_t = tid b_t) by apply INV'.
+  apply seq_mori; [reflexivity |].
+  rewrite id_union, !seq_union_r.
+  apply union_mori.
+  { remember (E_s'' \₁ cmt_s) as s.
+    clear. unfold same_tid.
+    basic_solver 11. }
+  unfold extra_a. desf; [| clear; basic_solver].
+  destruct classic
+      with (exists e, ~cmt_t e /\ tid e = tid b_t /\ E_t' e)
+        as [(e & NCMT & TID & EIN)| NON].
+  { unfolder. intros x y (SAME & EQ & BNCMT).
+    subst y. exists (mapper e). splits; auto.
+    all: unfold same_tid.
+    all: rewrite 1?rsr_mapper_tid'; auto.
+    { rewrite SAME. congruence. }
+    { simpl. unfolder. eauto. }
+    unfold cmt_s. intros [(e' & XEQ & XIN) | EXA].
+    { enough (e' = e) by congruence.
+      apply (rsr_mapper_inj NEQ).
+      all: try red; auto. }
+    unfold exa_d in EXA. desf.
+    admit. }
+  assert (FOR' :
+    forall e, ~(~cmt_t e /\ tid e = tid b_t /\ E_t' e)
+  ).
+  { now apply not_ex_all_not. }
+  assert (FOR :
+    forall e, cmt_t e \/ tid e <> tid b_t \/ ~E_t' e
+  ).
+  { intro e. specialize FOR' with e.
+    clear - FOR'. tauto. }
+  assert (ALCMT :
+    forall e (EIN : E_t' e) (TEQ : tid e = tid b_t),
+      cmt_t e).
+  { intros e EIN TEQ.
+    destruct FOR with e as [CMT' | [TEQ' | EIN']].
+    all: auto; try congruence. }
+  assert (BDT : dtrmt_t b_t).
+  { admit. }
+  unfold cmt_s.
+  arewrite (exa_d ≡₁ eq b_t).
+  { unfold exa_d. desf. tauto. }
+  arewrite (eq b_t \₁ (mapper ↑₁ cmt_t ∪₁ eq b_t) ≡₁ ∅).
+  { split; [| auto with hahn].
+    rewrite set_minus_union_r, set_minusK.
+    now rewrite set_inter_empty_r. }
+  clear. rewrite eqv_empty. basic_solver.
+Admitted.
+
+Lemma rsr_rex_vf_helper3 :
+  E_s'' \₁ cmt_s ⊆₁ mapper ↑₁ (E_t' \₁ cmt_t).
+Proof using INV' STEP.
+  assert (NEQ : a_t <> b_t) by apply INV'.
+  unfold cmt_s.
+  rewrite set_minus_union_r. simpl.
+  rewrite set_minus_disjoint with (s2 := exa_d).
+  { rewrite set_inter_minus_l, set_interK.
+    rewrite <- set_collect_minus
+      ; [| eapply inj_dom_mori; eauto with xmm].
+    all: unfold flip; auto with hahn. }
+  unfold exa_d, a_s. desf. unfolder.
+  intros x (y & YIN & YEQ) XEQ. subst x.
+  enough (y = a_t) by desf.
+  now apply (rsr_mapper_inv_bt _ NEQ).
+Qed.
+
 Lemma rsr_rex_vf :
   vf_s' ⨾ same_tid ⨾ ⦗E_s' \₁ cmt_s⦘ ⊆ tid ↓ thrdle ∪ same_tid.
-Proof using INV' STEP.
+Proof using INV' STEP LVAL.
+  assert (WF_S : Wf G_s').
+  { now apply new_G_s_wf. }
+  assert (ANIN : ~is_init a_t).
+  { apply INV'. }
+  assert (BNIN : ~is_init b_t).
+  { apply INV'. }
   apply thrdle_with_rhb; try now apply STEP.
-  { admit. }
-  { admit. }
+  { exact WF_S. }
+  { apply (rsr_ninit_acts_s INV' reexec_simrel). }
   assert (NEQ : a_t <> b_t) by apply INV'.
   change E_s' with (E_s'' ∪₁ A_s').
   rewrite set_minus_union_l.
@@ -661,7 +758,11 @@ Proof using INV' STEP.
       vf_rhb_s' ⨾ ⦗E_s' \₁ A_s'⦘ ∪
         vf_rhb_s' ⨾ ⦗A_s'⦘
   ).
-  { admit. }
+  { rewrite (wf_vfrhbE WF_S) at 1.
+    rewrite set_union_minus
+       with (s := E_s') (s' := A_s')
+         at 2; [| simpl; basic_solver].
+    rewrite id_union. clear. basic_solver. }
   rewrite rsr_rex_vfexa'.
   do 2 sin_rewrite rsr_rex_vf_nesting'.
   do 2 sin_rewrite rsr_rex_vf_nesting.
@@ -684,7 +785,17 @@ Proof using INV' STEP.
   arewrite (
     mapper ↑ vf_rhb_t' ⨾ ⦗is_init⦘ ⊆ ⦗is_init⦘
   ).
-  { admit. }
+  { rewrite fixset_set_fixpoint
+       with (f := mapper) (s := is_init)
+         at 1; [| auto with xmm].
+    rewrite <- collect_rel_eqv.
+    rewrite <- collect_rel_seq
+          ; [| eapply inj_dom_mori; eauto with xmm].
+    all: unfold flip; auto with hahn.
+    rewrite vf_rhb_to_init, collect_rel_eqv.
+    all: try now apply INV'.
+    rewrite <- fixset_set_fixpoint.
+    all: auto with xmm hahn. }
   arewrite (
     ⦗A_s' ∩₁ W_s'⦘ ⨾ same_tid ⨾ ⦗E_s'' \₁ cmt_s ∪₁ A_s' \₁ cmt_s⦘ ⊆
       same_tid
@@ -694,16 +805,16 @@ Proof using INV' STEP.
     ⦗is_init⦘ ⨾ sb_s' ⨾ ⦗A_s'⦘ ⨾ same_tid
        ⨾ ⦗E_s'' \₁ cmt_s ∪₁ A_s' \₁ cmt_s⦘ ⊆
         tid ↓ thrdle).
-  { admit. }
+  { apply rsr_rex_vf_helper1. }
   arewrite (
     mapper ↑ vf_rhb_t' ⨾ same_tid ⨾
       ⦗E_s'' \₁ cmt_s ∪₁ A_s' \₁ cmt_s⦘ ⊆
         mapper ↑ vf_rhb_t' ⨾ same_tid ⨾ ⦗E_s'' \₁ cmt_s⦘ ⨾
           same_tid ⨾ ⦗E_s'' \₁ cmt_s ∪₁ A_s' \₁ cmt_s⦘
   ).
-  { admit. }
+  { apply rsr_rex_vf_helper2. }
   arewrite (E_s'' \₁ cmt_s ⊆₁ mapper ↑₁ (E_t' \₁ cmt_t)).
-  { admit. }
+  { apply rsr_rex_vf_helper3. }
   rewrite <- collect_rel_eqv.
   assert (
     MAP : mapper ↑ vf_rhb_t' ⨾ same_tid ⨾ mapper ↑ ⦗E_t' \₁ cmt_t⦘ ⊆
