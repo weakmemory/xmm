@@ -861,8 +861,7 @@ Proof using STEP INV' STEP.
   (* absorb rule works for the b_t *)
 Admitted.
 
-Lemma reexec_thread_mapper
-    (GREEXEC : WCore.reexec_gen X_t X_t' f_t dtrmt_t cmt_t thrdle) :
+Lemma reexec_thread_mapper :
   mapper ↑₁ (tid ↓₁ WCore.reexec_thread X_t' dtrmt_t) ≡₁
     tid ↓₁ WCore.reexec_thread X_t' dtrmt_t.
 Proof using INV INV'.
@@ -893,6 +892,60 @@ Proof using INV INV' SIMREL RCFAT.
          at 1
          by eauto using dtrmt_in_E_s.
     rewrite <- SUB. basic_solver. }
+  rewrite (rsr_acts SIMREL), set_minus_union_l.
+  arewrite (
+    mapper ↑₁ E_t \₁ (
+      mapper ↑₁ (dtrmt_t \₁ extra_b) ∪₁
+      extra_d ∪₁
+      exa_d
+    ) ⊆₁
+    mapper ↑₁ E_t \₁ (
+      mapper ↑₁ (dtrmt_t \₁ extra_b) ∪₁
+      extra_d
+    )
+  ).
+  { admit. }
+  arewrite (
+    A_s \₁ dtrmt_s ⊆₁
+      A_s \₁ exa_d
+  ).
+  { admit. }
+  apply set_subset_union_l. split.
+  { unfold dtrmt_s.
+    transitivity (
+      mapper ↑₁ E_t \₁ (mapper ↑₁ (dtrmt_t \₁ extra_b))
+    ); [basic_solver |].
+    rewrite set_collect_minus at 1
+      ; [| eapply inj_dom_mori; eauto with xmm].
+    all: unfold flip; auto with hahn.
+    rewrite set_minus_minus_r, reexec_threads_s.
+    apply set_subset_union_l. split.
+    { rewrite <- set_collect_minus
+      ; [| eapply inj_dom_mori; eauto with xmm].
+      all: unfold flip; auto with hahn.
+      rewrite <- reexec_thread_mapper.
+      apply set_collect_mori; auto.
+      admit. }
+    unfold extra_b; desf; [| basic_solver].
+    rewrite set_collect_eq, rsr_mapper_bt; auto.
+    unfold WCore.reexec_thread.
+    transitivity (eq a_t); [basic_solver |].
+    desf. basic_solver. }
+  unfold exa_d, a_s; desf.
+  { unfold extra_a; desf; [| basic_solver].
+    rewrite set_minusK. auto with hahn. }
+  rewrite set_minus_disjoint; [| basic_solver].
+  unfold extra_a; desf; auto with hahn.
+  assert (BIN : E_t b_t) by desf.
+  rewrite reexec_threads_s.
+  apply (WCore.rexec_acts STEP) in BIN.
+  destruct BIN as [BD | NBD]
+    ; [| forward apply NBD; desf; basic_solver].
+  assert (INA : E_t' a_t) by tauto.
+  assert (NDA : ~dtrmt_t a_t).
+  { intro FALSO. enough (E_t a_t) by tauto.
+    now apply (rexec_dtrmt_in_start STEP). }
+  unfold WCore.reexec_thread. basic_solver.
 Admitted.
 
 Lemma dtrmt_in_cmt :
