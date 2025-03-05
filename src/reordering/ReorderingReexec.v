@@ -634,6 +634,29 @@ Proof using STEP INV'.
   apply extra_db_nexa; eauto.
 Qed.
 
+Lemma dtrmt_in_cmt :
+  dtrmt_s ⊆₁ cmt_s.
+Proof using INV STEP.
+Admitted.
+
+Lemma cmt_in_E_s :
+  cmt_s ⊆₁ E_s'.
+Proof using INV INV' STEP LVAL NLOC ARW ARLX.
+Admitted.
+
+Lemma dtrmt_in_E_s :
+  dtrmt_s ⊆₁ E_s.
+Proof using.
+Admitted.
+
+Lemma rex_dtrmt_init :
+  is_init ⊆₁ dtrmt_s.
+Proof using INV INV' STEP LVAL NLOC ARW ARLX.
+Admitted.
+
+Hint Resolve dtrmt_in_E_s dtrmt_in_cmt
+             cmt_in_E_s rex_dtrmt_init : xmm.
+
 Lemma reexec_acts_s_helper1
     (NDA : ~dtrmt_t a_t)
     (INA : E_t' a_t) :
@@ -874,11 +897,6 @@ Proof using INV INV'.
   all: unfolder; rewrite <- TID; auto.
 Qed.
 
-Lemma dtrmt_in_E_s :
-  dtrmt_s ⊆₁ E_s.
-Proof using.
-Admitted.
-
 Lemma reexec_acts_s :
   E_s ≡₁ dtrmt_s ∪₁ E_s ∩₁ tid ↓₁ WCore.reexec_thread X_s' dtrmt_s.
 Proof using INV INV' SIMREL RCFAT.
@@ -948,105 +966,101 @@ Proof using INV INV' SIMREL RCFAT.
   unfold WCore.reexec_thread. basic_solver.
 Admitted.
 
-Lemma dtrmt_in_cmt :
-  dtrmt_s ⊆₁ cmt_s.
-Proof using INV STEP.
-Admitted.
-
-Lemma imm_sb_d_s_refl_helper x :
-  ⦗eq x⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗eq x⦘ ⊆ ∅₂.
-Proof using.
-  unfold nin_sb. rewrite immediateE.
-  transitivity (⦗eq x⦘ ⨾ sb_t' ⨾ ⦗eq x⦘); [basic_solver|].
-  unfolder. ins. desf. eapply sb_irr; eauto.
-Qed.
-
-Lemma imm_sb_d_s_to_a_helper :
-  immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘ ⊆
-    ⦗eq b_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘.
-Proof using INV INV'.
-  clear - INV INV'.
-  assert (NINIT : ~is_init b_t) by apply INV.
-  assert (IMM :
-    (eq b_t ∩₁ E_t') × (eq a_t ∩₁ E_t') ⊆
-      immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘
-  ).
-  { transitivity (
-      ⦗set_compl is_init⦘ ⨾ (eq b_t ∩₁ E_t') × (eq a_t ∩₁ E_t') ⨾ ⦗eq a_t⦘
-    ); [basic_solver |].
-    rewrite (rsr_at_bt_imm INV').
-    unfold nin_sb. basic_solver. }
-  intros x y HREL.
-  exists x. split; [| apply HREL]. unfolder.
-  split; auto.
-  destruct HREL as (a' & SB & EQ).
-  unfolder in EQ. destruct EQ as (EQ & EQ').
-  subst y a'.
-  assert (INA : E_t' a_t).
-  { enough (SB' : sb_t' x a_t).
-    { hahn_rewrite wf_sbE in SB'.
-      forward apply SB'. clear. basic_solver. }
-    unfold nin_sb in SB.
-    forward apply SB. basic_solver. }
-  assert (INB : E_t' b_t).
-  { now apply (rsr_at_bt_ord INV'). }
-  eapply nin_sb_functional_l with (G := G_t').
-  { apply INV'. }
-  { unfold transp.
-    enough (SB' : (immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘) b_t a_t).
-    { forward apply SB'. basic_solver. }
-    apply (IMM b_t a_t). basic_solver. }
-  unfold transp. auto.
-Qed.
-
-Lemma imm_sb_d_s_from_b_helper :
-  ⦗eq b_t⦘ ⨾ immediate (nin_sb G_t') ⊆
-    ⦗eq b_t⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘.
-Proof using INV INV'.
-  clear - INV INV'.
-  assert (NINIT : ~is_init b_t) by apply INV.
-  assert (IMM :
-    (eq b_t ∩₁ E_t') × (eq a_t ∩₁ E_t') ⊆
-      immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘
-  ).
-  { transitivity (
-      ⦗set_compl is_init⦘ ⨾ (eq b_t ∩₁ E_t') × (eq a_t ∩₁ E_t') ⨾ ⦗eq a_t⦘
-    ); [basic_solver |].
-    rewrite (rsr_at_bt_imm INV').
-    unfold nin_sb. basic_solver. }
-  rewrite <- seqA. intros x y HREL.
-  exists y. split; [apply HREL |]. unfolder.
-  split; auto.
-  assert (INB : E_t' b_t).
-  { enough (SB' : sb_t' b_t y).
-    { hahn_rewrite wf_sbE in SB'.
-      forward apply SB'. clear. basic_solver. }
-    unfold nin_sb in HREL.
-    forward apply HREL. basic_solver. }
-  destruct classic with (~E_t' a_t) as [NINA|INA'].
-  { exfalso.
-    eapply (rsr_bt_max INV'); eauto.
-    enough (SB : sb_t' b_t y).
-    { unfolder. splits; eauto. }
-    forward apply HREL. clear.
-    unfold nin_sb. basic_solver. }
-  assert (INA : E_t' a_t) by tauto. clear INA'.
-  destruct HREL as (a' & EQ & SB).
-  unfolder in EQ. destruct EQ as (EQ & EQ').
-  subst a' x.
-  eapply nin_sb_functional_r with (G := G_t').
-  { apply INV'. }
-  { unfold transp.
-    enough (SB' : (immediate (nin_sb G_t') ⨾ ⦗eq a_t⦘) b_t a_t).
-    { forward apply SB'. basic_solver. }
-    apply (IMM b_t a_t). basic_solver. }
-  auto.
-Qed.
-
 Lemma imm_sb_d_s :
   ⦗dtrmt_s⦘ ⨾ immediate (nin_sb G_s') ⨾ ⦗cmt_s⦘ ⊆
     ⦗dtrmt_s⦘ ⨾ immediate (nin_sb G_s') ⨾ ⦗dtrmt_s⦘.
 Proof using INV INV' STEP LVAL NLOC ARW ARLX.
+  rewrite (rsr_sbE_imm INV' reexec_simrel),
+          (extra_sbE INV' reexec_simrel).
+  rewrite !seq_union_l, !seq_union_r.
+  arewrite (
+    immediate (nin_sb G_t') ≡
+      ⦗E_t'⦘ ⨾ immediate (nin_sb G_t') ⨾ ⦗E_t'⦘
+  ).
+  { admit. }
+  seq_rewrite <- !id_inter.
+  rewrite <- 2!cross_inter_r, <- 2!cross_inter_l.
+  arewrite (dtrmt_s ∩₁ A_s' ≡₁ exa_d).
+  { admit. }
+Admitted.
+
+Lemma sb_d_closed :
+  sb_s ⨾ ⦗dtrmt_s⦘ ⊆
+    ⦗dtrmt_s⦘ ⨾ sb_s ⨾ ⦗dtrmt_s⦘.
+Proof using INV INV' STEP LVAL NLOC ARW ARLX.
+Admitted.
+
+Lemma rex_pfx :
+  SubToFullExec.prefix (WCore.X_start X_s dtrmt_s) X_s'.
+Proof using INV INV' STEP LVAL NLOC ARW ARLX.
+Admitted.
+
+Lemma rsr_rex_restr_eq :
+  WCore.exec_restr_eq (WCore.X_start X_s dtrmt_s) X_s' dtrmt_s.
+Proof using INV INV' STEP LVAL NLOC ARW ARLX.
+  assert (SUB : dtrmt_s ⊆₁ dtrmt_s ∩₁ E_s).
+  { rewrite set_inter_absorb_r; auto with xmm hahn. }
+  assert (NEQ : a_t <> b_t) by apply INV'.
+  assert (NEQ' : b_t <> a_t) by now symmetry.
+  constructor; ins.
+  { admit. }
+  { admit. }
+  { admit. }
+  { now rewrite (prf_rf rex_pfx), restr_restr, set_inter_absorb_l. }
+  { now rewrite (prf_co rex_pfx), restr_restr, set_inter_absorb_l. }
+  { now rewrite (prf_rmw rex_pfx), restr_restr, set_inter_absorb_l. }
+  { now rewrite (prf_data rex_pfx). }
+  { now rewrite (prf_ctrl rex_pfx). }
+  now rewrite (prf_rmw_dep rex_pfx).
+Admitted.
+
+Lemma rsr_rex_embd :
+  WCore.commit_embedded X_s X_s' f_s cmt_s.
+Proof using INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
+Admitted.
+
+Lemma rsr_rex_crfc :
+  rf_complete (restrict G_s' cmt_s).
+Proof using INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
+  assert (NEQ : a_t <> b_t) by apply INV'.
+  assert (RFCT : rf_complete (restrict G_t' cmt_t)) by apply STEP.
+  unfold rf_complete.
+  arewrite (rf (restrict G_s' cmt_s) ≡ restr_rel cmt_s rf_s').
+  { simpl. now rewrite restr_relE. }
+  arewrite (acts_set (restrict G_s' cmt_s) ≡₁ cmt_s).
+  { simpl. rewrite set_inter_absorb_r; auto with hahn xmm. }
+  rewrite set_interC, set_inter_is_r with (G := G_s') (s' := E_s').
+  all: auto with xmm; try reflexivity.
+  unfold cmt_s at 1. rewrite set_inter_union_r.
+  rewrite set_collect_is_r
+     with (s := cmt_t) (G := G_t')
+        ; [
+          | apply STEP
+          | symmetry; apply reexec_simrel].
+  arewrite (R_t' ∩₁ cmt_t ⊆₁ codom_rel (restr_rel cmt_t rf_t')).
+  { rewrite restr_relE.
+    change (⦗cmt_t⦘ ⨾ rf_t' ⨾ ⦗cmt_t⦘) with (rf (restrict G_t' cmt_t)).
+    unfold rf_complete in RFCT. rewrite <- RFCT.
+    ins. rewrite set_inter_absorb_r with (s' := E_t').
+    { clear. basic_solver. }
+    apply STEP. }
+  rewrite (rsr_rf reexec_simrel).
+  rewrite restr_union, codom_union.
+  apply set_subset_union; unfold cmt_s.
+  { transitivity (
+      codom_rel (
+        restr_rel (mapper ↑₁ cmt_t) (mapper ↑ rf_t')
+      )
+    ); [| apply codom_rel_mori; clear; basic_solver 11].
+    rewrite collect_rel_restr
+      ; [| eapply inj_dom_mori; auto with xmm].
+    all: unfold flip; auto with hahn.
+    now rewrite set_collect_codom. }
+  transitivity (
+    codom_rel (
+      restr_rel exa_d (srf_s' ⨾ ⦗A_s' ∩₁ R_s'⦘)
+    )
+  ); [| apply codom_rel_mori; clear; basic_solver 11].
 Admitted.
 
 Lemma reexec_step :
@@ -1063,16 +1077,25 @@ Proof using INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
     WCore.stable_uncmt_reads_gen X_s' cmt_s thrdle
   ).
   { constructor; try now apply STEP.
-    admit. }
+    apply rsr_rex_vf. }
   assert (WF_START :
     WCore.wf (WCore.X_start X_s dtrmt_s) X_s' cmt_s
   ).
-  { admit. (* TODO *) }
+  { constructor; ins.
+    { apply sub_WF with (G := G_s) (sc := ∅₂) (sc' := ∅₂).
+      { ins. now rewrite <- rex_dtrmt_init. }
+      { apply (G_s_wf INV SIMREL). }
+      apply restrict_sub; [basic_solver |].
+      auto with xmm. }
+    { ins. rewrite set_interA, set_inter_absorb_r.
+      { apply rsr_rex_restr_eq. }
+      apply set_subset_inter_r. split; auto with xmm. }
+    { apply rsr_rex_crfc. }
+    rewrite <- dtrmt_in_cmt.
+    clear. basic_solver. }
   (**)
   red. exists thrdle.
-  constructor.
-  { admit. }
-  { eapply dtrmt_in_cmt; eauto. }
+  constructor; auto with xmm.
   { unfold f_s, dtrmt_s.
     do 2 (try (apply fixset_union; split)).
     { rewrite Combinators.compose_assoc.
@@ -1088,35 +1111,38 @@ Proof using INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
       rewrite (rsr_mapper_bt NEQ).
       rewrite RCFAT; auto. }
     admit. }
-  { unfold cmt_s.
-    admit. }
-  { exact SURG. }
-  { admit. (* sb-clos *) }
+  { apply sb_d_closed. }
   { eapply imm_sb_d_s; eauto. }
   { admit. (* rpo edges *) }
-  { admit. }
+  { apply rsr_rex_embd. }
   { apply (G_s_rfc INV' reexec_simrel). }
-  { exact WF_START. (* wf start *) }
   { apply (rsr_cons INV' CONS reexec_simrel). }
   { eapply reexec_acts_s; eauto. }
   apply sub_to_full_exec_listless
    with (thrdle := thrdle).
-  { exact WF_START. }
+  all: auto with xmm.
   { eapply G_s_rfc with (X_t := X_t').
     { apply INV'. }
     now apply reexec_simrel. }
   { apply (rsr_cons INV' CONS reexec_simrel). }
-  { admit. (* difference between acts and dtrmt is fin *) }
-  { admit. (* Prefix. Trivial? *) }
+  { ins. change (mapper ↑₁ E_t' ∪₁ A_s') with E_s'.
+    arewrite (E_s' \₁ dtrmt_s ∩₁ E_s ⊆₁ E_s' \₁ dtrmt_s).
+    { rewrite set_inter_absorb_r; auto with xmm hahn. }
+    rewrite <- rex_dtrmt_init. apply (rsr_fin_s INV' reexec_simrel). }
+  { apply rex_pfx. }
   { eapply G_s_wf with (X_t := X_t').
     { apply INV'. }
     now apply reexec_simrel. }
-  { admit. (* init acts *) }
+  { ins. change (mapper ↑₁ E_t' ∪₁ A_s') with E_s'.
+    arewrite (E_s' \₁ dtrmt_s ∩₁ E_s ⊆₁ E_s' \₁ dtrmt_s).
+    { rewrite set_inter_absorb_r; auto with xmm hahn. }
+    rewrite <- rex_dtrmt_init, set_minusE.
+    rewrite <- (rsr_ninit_acts_s INV' reexec_simrel).
+    clear. basic_solver. }
   { now rewrite (rsr_ndata INV'). }
   { now rewrite (rsr_naddr INV'). }
   { now rewrite (rsr_nctrl INV'). }
-  { now rewrite (rsr_nrmw_dep INV'). }
-  exact SURG.
+  now rewrite (rsr_nrmw_dep INV').
 Admitted.
 
 End ReorderingReexec.
