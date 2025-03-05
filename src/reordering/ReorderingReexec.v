@@ -1056,6 +1056,33 @@ Proof using SIMREL INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
   apply (rexec_dtrmt_in_fin STEP); desf.
 Qed.
 
+Lemma rsr_sw_in_d :
+  sw_s' ≡ ⦗dtrmt_s⦘ ⨾ sw_s' ⨾ ⦗dtrmt_s⦘.
+Proof using SIMREL INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
+  apply dom_helper_3.
+  assert (WF : Wf G_s').
+  { apply (new_G_s_wf INV' LVAL). }
+  rewrite (wf_swE WF).
+  assert (DIN : dtrmt_s ⊆₁ E_s').
+  { transitivity cmt_s; auto with xmm. }
+  rewrite set_union_minus
+     with (s := E_s') (s' := dtrmt_s)
+       at 1; auto.
+  rewrite id_union, seq_union_l.
+  arewrite_false (⦗E_s' \₁ dtrmt_s⦘ ⨾ sw_s').
+  { rewrite (wf_swD WF), rsr_rex_ndtrmt_rlx.
+    clear. basic_solver. }
+  rewrite seq_false_l, union_false_l.
+  rewrite set_union_minus
+     with (s := E_s') (s' := dtrmt_s)
+       at 1; auto.
+  rewrite id_union, seq_union_r.
+  arewrite_false (sw_s' ⨾ ⦗E_s' \₁ dtrmt_s⦘).
+  { rewrite (wf_swD WF), rsr_rex_ndtrmt_rlx.
+    clear. basic_solver. }
+  rewrite union_false_l. basic_solver.
+Qed.
+
 Lemma rsr_rex_crfc_helper
     (DB : dtrmt_t b_t)
     (NINA : ~E_t' a_t) :
