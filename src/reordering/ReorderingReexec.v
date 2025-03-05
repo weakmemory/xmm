@@ -1019,6 +1019,75 @@ Lemma rsr_rex_embd :
 Proof using INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
 Admitted.
 
+Lemma rsr_rex_ndtrmt_rlx :
+  E_s' \₁ dtrmt_s ⊆₁
+    set_compl (Rel_s' ∪₁ Acq_s').
+Proof using SIMREL INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
+  assert (NEQ : a_t <> b_t) by apply INV.
+  change E_s' with (mapper ↑₁ E_t' ∪₁ A_s').
+  rewrite set_minus_union_l.
+  arewrite (A_s' ⊆₁ set_compl (Rel_s' ∪₁ Acq_s')).
+  { remember (set_compl (Rel_s' ∪₁ Acq_s')) as st.
+    unfolder. intros x XIN. desf.
+    now eapply eba_rlx, (rsr_as reexec_simrel). }
+  apply set_subset_union_l. split; [| basic_solver].
+  unfold dtrmt_s.
+  transitivity (mapper ↑₁ E_t' \₁ (mapper ↑₁ (dtrmt_t \₁ extra_b)))
+    ; [basic_solver 11 |].
+  rewrite <- set_collect_minus
+    ; [| eapply inj_dom_mori; auto with xmm
+         ; unfold flip; auto with hahn].
+  rewrite set_minus_minus_r, set_collect_union.
+  apply set_subset_union_l. split.
+  { arewrite (
+      E_t' \₁ dtrmt_t ⊆₁
+        (E_t' \₁ dtrmt_t) ∩₁ E_t'
+    ) by basic_solver.
+    rewrite (WCore.reexec_dtrmt_rpo STEP).
+    unfolder. intros x' (x & RLX & XEQ). subst x'.
+    unfold is_rel, is_acq, mod in *.
+    change (lab_s' (mapper x)) with ((lab_s' ∘ mapper) x).
+    now rewrite (rsr_lab reexec_simrel). }
+  unfold extra_b. desf; [| basic_solver].
+  rewrite <- (rsr_bs_rlx INV' reexec_simrel).
+  rewrite set_interC, (rsr_bt reexec_simrel).
+  enough (E_s' a_t) by basic_solver.
+  left. exists b_t. splits; auto with xmm.
+  apply (rexec_dtrmt_in_fin STEP); desf.
+Qed.
+
+Lemma rsr_rex_crfc_helper
+    (DB : dtrmt_t b_t)
+    (NINA : ~E_t' a_t) :
+  R_s' ∩₁ eq a_s ⊆₁
+    codom_rel (
+      restr_rel cmt_s (srf_s' ⨾ ⦗A_s' ∩₁ R_s'⦘)
+    ).
+Proof using INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
+  assert (WF : Wf G_s').
+  { apply (new_G_s_wf INV' LVAL). }
+  assert (BIN : E_t' b_t) by admit.
+  assert (BCMT : cmt_s b_t).
+  { unfold cmt_s. right. unfold exa_d; desf.
+    tauto. }
+  rewrite extra_a_some; auto. unfold a_s.
+  unfolder. intros x (ISR & XEQ). subst x.
+  assert (HLOC : exists l, loc_s' b_t = Some l).
+  { unfold is_r in ISR. unfold loc. desf.
+    eauto. }
+  destruct HLOC as (l & HLOC).
+  destruct srf_exists
+      with (G := G_s') (r := b_t) (l := l)
+        as (w & SRF).
+  all: auto.
+  { right. now apply extra_a_some. }
+  { apply INV'. }
+  { now apply (rsr_init_acts_s INV' reexec_simrel). }
+  all: try now apply WF.
+  { apply (rsr_fin_s INV' reexec_simrel). }
+  exists w. splits; auto.
+Admitted.
+
 Lemma rsr_rex_crfc :
   rf_complete (restrict G_s' cmt_s).
 Proof using INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
@@ -1046,8 +1115,9 @@ Proof using INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
     apply STEP. }
   rewrite (rsr_rf reexec_simrel).
   rewrite restr_union, codom_union.
-  apply set_subset_union; unfold cmt_s.
-  { transitivity (
+  apply set_subset_union.
+  { unfold cmt_s.
+    transitivity (
       codom_rel (
         restr_rel (mapper ↑₁ cmt_t) (mapper ↑ rf_t')
       )
@@ -1056,12 +1126,9 @@ Proof using INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
       ; [| eapply inj_dom_mori; auto with xmm].
     all: unfold flip; auto with hahn.
     now rewrite set_collect_codom. }
-  transitivity (
-    codom_rel (
-      restr_rel exa_d (srf_s' ⨾ ⦗A_s' ∩₁ R_s'⦘)
-    )
-  ); [| apply codom_rel_mori; clear; basic_solver 11].
-Admitted.
+  unfold exa_d. desf; [| basic_solver].
+  apply rsr_rex_crfc_helper; desf.
+Qed.
 
 Lemma reexec_step :
   WCore.reexec X_s X_s' f_s dtrmt_s cmt_s.
@@ -1113,7 +1180,7 @@ Proof using INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
     admit. }
   { apply sb_d_closed. }
   { eapply imm_sb_d_s; eauto. }
-  { admit. (* rpo edges *) }
+  { apply rsr_rex_ndtrmt_rlx. }
   { apply rsr_rex_embd. }
   { apply (G_s_rfc INV' reexec_simrel). }
   { apply (rsr_cons INV' CONS reexec_simrel). }
