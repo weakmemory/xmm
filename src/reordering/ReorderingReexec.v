@@ -487,7 +487,10 @@ Definition extra_d :=
   else ∅.
 Definition cmt_s := mapper ↑₁ cmt_t ∪₁ exa_d.
 Definition dtrmt_s := mapper ↑₁ (dtrmt_t \₁ extra_b) ∪₁ extra_d ∪₁ exa_d.
-Definition f_s := (mapper ∘ f_t) ∘ mapper.
+Definition f_s :=
+  let f_s_ := (mapper ∘ f_t) ∘ mapper in
+  ifP ~E_t' a_t /\ E_t' b_t then upd f_s_ b_t b_t
+  else f_s_.
 
 Lemma dtrmt_t_sb_closed' :
   sb_t' ⨾ ⦗dtrmt_t⦘ ⊆ ⦗dtrmt_t⦘ ⨾ sb_t' ⨾ ⦗dtrmt_t⦘.
@@ -1236,9 +1239,30 @@ Proof using INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
   apply rsr_rex_crfc_helper; desf.
 Qed.
 
+Lemma reexec_fixset_helper :
+  fixset
+    (mapper ↑₁ (dtrmt_t \₁ extra_b) ∪₁ extra_d)
+    (mapper ∘ f_t ∘ mapper).
+Proof using INV INV' LVAL STEP NLOC ARW ARLX RCFBT RCFAT SIMREL.
+  assert (NEQ : a_t <> b_t) by apply INV.
+  apply fixset_union; split.
+  { rewrite Combinators.compose_assoc.
+    apply fixset_swap.
+    rewrite Combinators.compose_assoc,
+            rsr_mapper_compose,
+            Combinators.compose_id_right.
+    all: auto.
+    eapply fixset_mori; auto; try now apply STEP.
+    clear. red. basic_solver. }
+  unfold extra_d. desf. unfold a_s.
+  unfolder. unfold compose. ins. desf.
+  rewrite (rsr_mapper_bt NEQ).
+  rewrite RCFAT; auto with xmm.
+Qed.
+
 Lemma reexec_step :
   WCore.reexec X_s X_s' f_s dtrmt_s cmt_s.
-Proof using INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
+Proof using INV INV' LVAL STEP NLOC ARW ARLX RCFAT SIMREL RCFBT CONS.
   assert (NEQ : a_t <> b_t) by apply INV.
   assert (TEQ : tid a_t = tid b_t) by apply INV.
   assert (MEQA : mapper a_t = b_t).
@@ -1269,21 +1293,28 @@ Proof using INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
   (**)
   red. exists thrdle.
   constructor; auto with xmm.
-  { unfold f_s, dtrmt_s.
-    do 2 (try (apply fixset_union; split)).
-    { rewrite Combinators.compose_assoc.
-      apply fixset_swap.
-      rewrite Combinators.compose_assoc,
-              rsr_mapper_compose,
-              Combinators.compose_id_right.
-      all: auto.
-      eapply fixset_mori; auto; try now apply STEP.
-      clear. red. basic_solver. }
-    { unfold extra_d. desf. unfold a_s.
-      unfolder. unfold compose. ins. desf.
-      rewrite (rsr_mapper_bt NEQ).
-      rewrite RCFAT; auto. }
-    admit. }
+  { unfold f_s, dtrmt_s. apply fixset_union; split.
+    { apply fixset_eq_dom
+       with (f := mapper ∘ f_t ∘ mapper)
+          ; [| apply reexec_fixset_helper].
+      desf. apply eq_dom_upd_r; [| reflexivity].
+      intros [MAPD | EXD].
+      { enough (E_t' a_t) by desf.
+        assert (BIN : (mapper ↑₁ E_t') b_t).
+        { apply set_subset_single_l.
+          rewrite <- (rexec_dtrmt_in_fin STEP).
+          forward apply MAPD. clear. basic_solver. }
+        destruct BIN as (y & YIN & YEQ).
+        enough (y = a_t) by congruence.
+        eapply rsr_mapper_inv_bt; eauto. }
+      unfold extra_d, a_s in EXD; desf.
+      enough (E_t' a_t) by desf.
+      apply (WCore.reexec_embd_dom STEP). desf. }
+    unfold exa_d, a_s; desf.
+    { unfolder. ins. desf. now rewrite upds. }
+    exfalso. assert (BNIN : ~E_t' b_t) by tauto.
+    enough (E_t' b_t) by desf.
+    now apply (rexec_dtrmt_in_fin STEP). }
   { apply sb_d_closed. }
   { eapply imm_sb_d_s; eauto. }
   { apply rsr_rex_ndtrmt_rlx. }
@@ -1316,6 +1347,6 @@ Proof using INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
   { now rewrite (rsr_naddr INV'). }
   { now rewrite (rsr_nctrl INV'). }
   now rewrite (rsr_nrmw_dep INV').
-Admitted.
+Qed.
 
 End ReorderingReexec.
