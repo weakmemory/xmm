@@ -990,6 +990,12 @@ Lemma sb_d_closed :
 Proof using INV INV' STEP LVAL NLOC ARW ARLX.
 Admitted.
 
+Lemma sb_d_closed' :
+  sb_s' ⨾ ⦗dtrmt_s⦘ ⊆
+    ⦗dtrmt_s⦘ ⨾ sb_s' ⨾ ⦗dtrmt_s⦘.
+Proof using INV INV' STEP LVAL NLOC ARW ARLX.
+Admitted.
+
 Lemma rex_pfx :
   SubToFullExec.prefix (WCore.X_start X_s dtrmt_s) X_s'.
 Proof using INV INV' STEP LVAL NLOC ARW ARLX.
@@ -1083,6 +1089,72 @@ Proof using SIMREL INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
   rewrite union_false_l. basic_solver.
 Qed.
 
+Lemma rsr_hb_in_d :
+  hb_s' ⨾ ⦗dtrmt_s⦘ ⊆
+    ⦗dtrmt_s⦘ ⨾ hb_s' ⨾ ⦗dtrmt_s⦘.
+Proof using SIMREL INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
+  enough (DOM :
+    dom_rel (hb_s' ⨾ ⦗dtrmt_s⦘) ⊆₁ dtrmt_s
+  ).
+  { unfolder. intros x y (HB & DX). splits; auto.
+    apply DOM. exists y. basic_solver. }
+  unfold hb.
+  rewrite clos_trans_doma_r_strong,
+          ct_begin; [clear; basic_solver |].
+  rewrite seq_union_l, rsr_sw_in_d, sb_d_closed'.
+  apply union_doma.
+  all: basic_solver.
+Qed.
+
+Lemma rsr_rex_crfc_vf :
+  dom_rel (vf_s' ⨾ ⦗dtrmt_s⦘ ⨾ sb_s' ⨾ ⦗A_s'⦘) ⊆₁ cmt_s.
+Proof using SIMREL INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
+  unfold vf.
+  rewrite !seqA.
+  arewrite (
+    ⦗dtrmt_s⦘ ⨾ sb_s' ⨾ ⦗A_s'⦘ ⊆
+      ⦗dtrmt_s \₁ (eq a_t ∪₁ A_s')⦘ ⨾ sb_s' ⨾ ⦗A_s'⦘
+  ).
+  { admit. }
+  arewrite (
+    hb_s'^? ⨾ ⦗dtrmt_s \₁ (eq a_t ∪₁ A_s')⦘ ⨾ sb_s' ⨾ ⦗A_s'⦘ ⊆
+      ⦗dtrmt_s \₁ (eq a_t ∪₁ A_s')⦘ ⨾ hb_s'^? ⨾ sb_s' ⨾ ⦗A_s'⦘
+  ).
+  { rewrite crE, !seq_union_l, !seq_union_r.
+    apply union_mori; [basic_solver |].
+    (* apply rsr_hb_in_d. *) admit. }
+  arewrite (
+    rf_s'^? ⨾ ⦗dtrmt_s \₁ (eq a_t ∪₁ A_s')⦘ ⊆
+    (mapper ↑ rf_t')^? ⨾ ⦗dtrmt_s \₁ (eq a_t ∪₁ A_s')⦘
+  ).
+  { rewrite !crE, !seq_union_l.
+    apply union_mori; [reflexivity |].
+    rewrite (rsr_rf reexec_simrel), seq_union_l.
+    rewrite seqA. seq_rewrite <- id_inter.
+    arewrite (
+      A_s' ∩₁ R_s' ∩₁
+        (dtrmt_s \₁ (eq a_t ∪₁ A_s')) ⊆₁ ∅
+    ); [clear; basic_solver|].
+    now rewrite eqv_empty, seq_false_r, union_false_r. }
+  arewrite (
+    dtrmt_s \₁ (eq a_t ∪₁ A_s') ⊆₁
+      mapper ↑₁ dtrmt_t
+  ).
+  { admit. }
+  arewrite (
+    (mapper ↑ rf_t')^? ⨾ ⦗mapper ↑₁ dtrmt_t⦘ ⊆
+      ⦗cmt_s⦘ ⨾ (mapper ↑ rf_t')^?
+  ).
+  { rewrite crE, !seq_union_l, !seq_union_r.
+    apply union_mori.
+    { rewrite seq_id_l, <- id_inter. apply eqv_rel_mori.
+      apply set_subset_inter_r. split; auto with hahn.
+      rewrite (WCore.dtrmt_cmt STEP).
+      unfold cmt_s. basic_solver. }
+    admit. }
+  clear. basic_solver.
+Admitted.
+
 Lemma rsr_rex_crfc_helper
     (DB : dtrmt_t b_t)
     (NINA : ~E_t' a_t) :
@@ -1113,6 +1185,13 @@ Proof using INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
   all: try now apply WF.
   { apply (rsr_fin_s INV' reexec_simrel). }
   exists w. splits; auto.
+  destruct SRF as ((r & ((VFSB & _) & ISR')) & _).
+  red in ISR'. destruct ISR' as (REQ & _). subst r.
+  destruct VFSB as (e & VF & SB).
+  assert (ED : dtrmt_s e).
+  { admit. }
+  apply rsr_rex_crfc_vf, set_subset_single_l.
+  rewrite extra_a_some; auto. basic_solver 11.
 Admitted.
 
 Lemma rsr_rex_crfc :
