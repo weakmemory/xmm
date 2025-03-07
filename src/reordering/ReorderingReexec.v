@@ -1002,6 +1002,22 @@ Admitted.
 Lemma rex_pfx :
   SubToFullExec.prefix (WCore.X_start X_s dtrmt_s) X_s'.
 Proof using INV INV' STEP LVAL NLOC ARW ARLX.
+  constructor; ins.
+  { rewrite set_inter_absorb_r; auto with xmm. }
+  { rewrite dtrmt_in_cmt, cmt_in_E_s.
+    change (mapper ↑₁ E_t' ∪₁ A_s') with E_s'.
+    basic_solver. }
+  { admit. }
+  { admit. }
+  { admit. (* FIXME: lab oddity *) }
+  { rewrite set_inter_absorb_r; auto with xmm.
+    change (
+      mapper ↑ rf_t' ∪
+      fake_srf (rsr_imm_g X_t' a_t b_t) b_t l_a ⨾ ⦗A_s' ∩₁ WCore.lab_is_r l_a⦘
+    ) with rf_s'.
+    rewrite <- restr_relE.
+    rewrite (rsr_rf SIMREL), (rsr_rf reexec_simrel).
+    admit. }
 Admitted.
 
 Lemma rsr_rex_restr_eq :
