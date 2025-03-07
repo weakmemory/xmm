@@ -719,7 +719,10 @@ Proof using INV' STEP.
       apply (rsr_mapper_inj NEQ).
       all: try red; auto. }
     unfold exa_d in EXA. desf.
-    admit. }
+    unfold a_s in *.
+    enough (E_t' a_t) by desf.
+    enough (e = a_t) by congruence.
+    eapply rsr_mapper_inv_bt; eauto. }
   assert (FOR' :
     forall e, ~(~cmt_t e /\ tid e = tid b_t /\ E_t' e)
   ).
@@ -854,6 +857,7 @@ Proof using INV' STEP LVAL.
   ).
   { apply thrdle_with_rhb; try now apply STEP.
     all: apply INV'. }
+  admit.
 Admitted.
 
 Lemma reexec_threads_s :
@@ -902,7 +906,7 @@ Qed.
 
 Lemma reexec_acts_s :
   E_s ≡₁ dtrmt_s ∪₁ E_s ∩₁ tid ↓₁ WCore.reexec_thread X_s' dtrmt_s.
-Proof using INV INV' SIMREL RCFAT.
+Proof using INV INV' SIMREL RCFAT STEP.
   clear - INV INV' STEP SIMREL RCFAT.
   assert (NEQ : a_t <> b_t) by apply INV.
   assert (TID : tid a_t = tid b_t) by apply INV.
@@ -925,12 +929,12 @@ Proof using INV INV' SIMREL RCFAT.
       extra_d
     )
   ).
-  { admit. }
+  { clear. basic_solver. }
   arewrite (
     A_s \₁ dtrmt_s ⊆₁
       A_s \₁ exa_d
   ).
-  { admit. }
+  { clear. unfold dtrmt_s. basic_solver. }
   apply set_subset_union_l. split.
   { unfold dtrmt_s.
     transitivity (
@@ -946,7 +950,9 @@ Proof using INV INV' SIMREL RCFAT.
       all: unfold flip; auto with hahn.
       rewrite <- reexec_thread_mapper.
       apply set_collect_mori; auto.
-      admit. }
+      rewrite (WCore.rexec_acts STEP), set_minus_union_l.
+      rewrite set_minusK, set_union_empty_l.
+      clear. basic_solver. }
     unfold extra_b; desf; [| basic_solver].
     rewrite set_collect_eq, rsr_mapper_bt; auto.
     unfold WCore.reexec_thread.
@@ -967,7 +973,7 @@ Proof using INV INV' SIMREL RCFAT.
   { intro FALSO. enough (E_t a_t) by tauto.
     now apply (rexec_dtrmt_in_start STEP). }
   unfold WCore.reexec_thread. basic_solver.
-Admitted.
+Qed.
 
 Lemma imm_sb_d_s :
   ⦗dtrmt_s⦘ ⨾ immediate (nin_sb G_s') ⨾ ⦗cmt_s⦘ ⊆
@@ -1029,8 +1035,11 @@ Proof using INV INV' STEP LVAL NLOC ARW ARLX.
   assert (NEQ' : b_t <> a_t) by now symmetry.
   constructor; ins.
   { admit. }
-  { admit. }
-  { admit. }
+  { apply rex_pfx. }
+  { eapply eq_dom_mori; try now apply rex_pfx.
+    all: ins.
+    unfold flip. rewrite set_inter_absorb_r; [basic_solver |].
+    auto with xmm. }
   { now rewrite (prf_rf rex_pfx), restr_restr, set_inter_absorb_l. }
   { now rewrite (prf_co rex_pfx), restr_restr, set_inter_absorb_l. }
   { now rewrite (prf_rmw rex_pfx), restr_restr, set_inter_absorb_l. }
@@ -1184,7 +1193,8 @@ Lemma rsr_rex_crfc_helper
 Proof using INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
   assert (WF : Wf G_s').
   { apply (new_G_s_wf INV' LVAL). }
-  assert (BIN : E_t' b_t) by admit.
+  assert (BIN : E_t' b_t).
+  { now apply (rexec_dtrmt_in_fin STEP). }
   assert (BCMT : cmt_s b_t).
   { unfold cmt_s. right. unfold exa_d; desf.
     tauto. }
