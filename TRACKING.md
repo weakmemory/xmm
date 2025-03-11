@@ -61,9 +61,9 @@ E_t' e -> tid e = tid b_t -> cmt_t e` that b_t is determined (aka, if all events
 - [ ] Its corollary -- the same thing but about `G_s'`
 - [ ] Proof that `G_s` restricted by `dtrmt_s` is a prefix of `G_s'`
 - [ ] `commit_embedded` predicate
-- [ ] Various relations hacks in `rsr_rex_crfc_vf`
-    - [ ] `arewrite` 1
-    - [ ] `arewrite` 2
-    - [ ] `arewrite` 3
-    - [ ] "determined event from target reads from a comitted event"
-- [ ] In `rsr_rex_crfc_helper` show that if `b_t` is determined in target, but `a_t` is absent from `G_t'` -- then all events before `a_s'` (extra a) are actually determined
+- [x] Various relations hacks in `rsr_rex_crfc_vf`
+    - [x] `arewrite` 1
+    - [x] `arewrite` 2
+    - [x] `arewrite` 3
+    - [x] "determined event from target reads from a comitted event"
+- [x] In `rsr_rex_crfc_helper` show that if `b_t` is determined in target, but `a_t` is absent from `G_t'` -- then all events before `a_s'` (extra a) are actually determined
