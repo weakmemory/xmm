@@ -1136,21 +1136,44 @@ Qed.
 
 Lemma rsr_rex_crfc_vf :
   dom_rel (vf_s' ⨾ ⦗dtrmt_s⦘ ⨾ sb_s' ⨾ ⦗A_s'⦘) ⊆₁ cmt_s.
-Proof using SIMREL INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
+Proof using SIMREL INV INV' LVAL STEP NLOC ARW ARLX RCFAT RCFBT CONS.
   unfold vf.
   rewrite !seqA.
+  assert (NEQ : a_t <> b_t) by apply INV'.
+  assert (HBIRR : irreflexive hb_s').
+  { eapply irreflexive_mori; [| apply (rsr_cons INV' CONS reexec_simrel)].
+    unfold flip. clear. basic_solver. }
+  assert (WF : Wf G_t') by apply INV'.
   arewrite (
-    ⦗dtrmt_s⦘ ⨾ sb_s' ⨾ ⦗A_s'⦘ ⊆
-      ⦗dtrmt_s \₁ (eq a_t ∪₁ A_s')⦘ ⨾ sb_s' ⨾ ⦗A_s'⦘
-  ).
-  { admit. }
-  arewrite (
-    hb_s'^? ⨾ ⦗dtrmt_s \₁ (eq a_t ∪₁ A_s')⦘ ⨾ sb_s' ⨾ ⦗A_s'⦘ ⊆
-      ⦗dtrmt_s \₁ (eq a_t ∪₁ A_s')⦘ ⨾ hb_s'^? ⨾ sb_s' ⨾ ⦗A_s'⦘
+    hb_s'^? ⨾ ⦗dtrmt_s⦘ ⨾ sb_s' ⨾ ⦗A_s'⦘ ⊆
+      ⦗dtrmt_s⦘ ⨾ hb_s'^? ⨾ sb_s' ⨾ ⦗A_s'⦘
   ).
   { rewrite crE, !seq_union_l, !seq_union_r.
     apply union_mori; [basic_solver |].
-    (* apply rsr_hb_in_d. *) admit. }
+    unfold extra_a; desf; [| clear; basic_solver].
+    sin_rewrite rsr_hb_in_d. basic_solver. }
+  arewrite (
+    hb_s'^? ⨾ sb_s' ⨾ ⦗A_s'⦘ ⊆
+      ⦗set_compl (eq a_t ∪₁ A_s')⦘ ⨾ hb_s'^? ⨾
+        sb_s' ⨾ ⦗A_s'⦘
+  ).
+  { unfold extra_a. desf; [| basic_solver].
+    enough (DOM : dom_rel (hb_s'^? ⨾ sb_s' ⨾ ⦗eq b_t⦘) ⊆₁ set_compl (eq a_t ∪₁ eq b_t)).
+    { forward apply DOM. clear. basic_solver 11. }
+    arewrite (hb_s'^? ⨾ sb_s' ⊆ hb_s').
+    { rewrite sb_in_hb. unfold hb.
+      now rewrite cr_of_ct, rt_ct. }
+    rewrite set_unionC, set_compl_union. unfolder.
+    intros x (y & HB & YEQ). subst y.
+    split; intro FALSO; subst x.
+    { eapply HBIRR; eauto. }
+    eapply HBIRR, hb_trans with b_t; eauto.
+    apply sb_in_hb. unfold sb.
+    apply (wf_hbE (new_G_s_wf INV' LVAL)) in HB.
+    unfolder. splits; try now apply INV'.
+    all: unfolder in HB; desf. }
+  seq_rewrite <- (id_inter dtrmt_s).
+  rewrite <- set_minusE.
   arewrite (
     rf_s'^? ⨾ ⦗dtrmt_s \₁ (eq a_t ∪₁ A_s')⦘ ⊆
     (mapper ↑ rf_t')^? ⨾ ⦗dtrmt_s \₁ (eq a_t ∪₁ A_s')⦘
@@ -1164,24 +1187,60 @@ Proof using SIMREL INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
         (dtrmt_s \₁ (eq a_t ∪₁ A_s')) ⊆₁ ∅
     ); [clear; basic_solver|].
     now rewrite eqv_empty, seq_false_r, union_false_r. }
+  unfold dtrmt_s. rewrite !set_minus_union_l.
+  arewrite (exa_d \₁ (eq a_t ∪₁ A_s') ⊆₁ ∅).
+  { unfold exa_d, extra_a, a_s. desf.
+    1, 3, 4: basic_solver.
+    enough (E_t' b_t) by tauto.
+    apply (rexec_dtrmt_in_fin STEP). desf. }
+  rewrite set_union_empty_r.
   arewrite (
-    dtrmt_s \₁ (eq a_t ∪₁ A_s') ⊆₁
-      mapper ↑₁ dtrmt_t
-  ).
-  { admit. }
+    mapper ↑₁ (dtrmt_t \₁ extra_b) \₁ (eq a_t ∪₁ A_s') ⊆₁
+      mapper ↑₁ (dtrmt_t \₁ extra_b)
+  ) by (clear; basic_solver).
   arewrite (
-    (mapper ↑ rf_t')^? ⨾ ⦗mapper ↑₁ dtrmt_t⦘ ⊆
-      ⦗cmt_s⦘ ⨾ (mapper ↑ rf_t')^?
+    extra_d \₁ (eq a_t ∪₁ A_s') ⊆₁ extra_d
+  ) by (clear; basic_solver).
+  arewrite (extra_d ⊆₁ mapper ↑₁ cmt_t).
+  { unfold extra_d, a_s. desf.
+    rewrite <- (rsr_mapper_at NEQ) at 1.
+    rewrite <- set_collect_eq.
+    apply set_collect_mori; eauto.
+    basic_solver. }
+  arewrite (dtrmt_t \₁ extra_b ⊆₁ cmt_t).
+  { rewrite (WCore.dtrmt_cmt STEP).
+    clear. basic_solver. }
+  rewrite set_unionK.
+  arewrite (
+    (mapper ↑ rf_t')^? ⨾ ⦗mapper ↑₁ cmt_t⦘ ⊆
+      ⦗mapper ↑₁ cmt_t⦘ ⨾ (mapper ↑ rf_t')^?
   ).
   { rewrite crE, !seq_union_l, !seq_union_r.
-    apply union_mori.
-    { rewrite seq_id_l, <- id_inter. apply eqv_rel_mori.
-      apply set_subset_inter_r. split; auto with hahn.
-      rewrite (WCore.dtrmt_cmt STEP).
-      unfold cmt_s. basic_solver. }
-    admit. }
+    apply union_mori; [basic_solver |].
+    rewrite <- collect_rel_eqv.
+    rewrite <- !collect_rel_seq.
+    { enough (DOM : dom_rel (rf_t' ⨾ ⦗cmt_t⦘) ⊆₁ cmt_t).
+      { forward apply DOM. clear. basic_solver 11. }
+      unfolder. intros x (y & RF & CMT).
+      destruct (WCore.wf_rfc (WCore.reexec_start_wf STEP))
+          with y
+            as (x' & RF').
+      { ins.
+        apply (wf_rfE WF) in RF.
+        unfolder in RF. destruct RF as (_ & RF & YE).
+        apply (wf_rfD WF) in RF.
+        unfolder in RF. destruct RF as (_ & RF & YD).
+        basic_solver. }
+      ins. unfolder in RF'.
+      destruct RF' as (XC & RF' & _).
+      enough (x = x') by congruence.
+      eapply (wf_rff WF).
+      all: unfold transp; eauto. }
+    all: eapply inj_dom_mori; auto with xmm.
+    all: unfold flip; auto with hahn. }
+  arewrite (mapper ↑₁ cmt_t ⊆₁ cmt_s).
   clear. basic_solver.
-Admitted.
+Qed.
 
 Lemma rsr_rex_crfc_helper
     (DB : dtrmt_t b_t)
