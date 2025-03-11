@@ -191,6 +191,17 @@ Proof using.
   now rewrite EQ, rsr_mapper_at.
 Qed.
 
+Lemma rsr_mapper_inv_o x y
+    (NEQ : a_t <> b_t)
+    (NEQA : y <> b_t)
+    (NEQB : y <> a_t)
+    (EQ : mapper x = y) :
+  x = y.
+Proof using.
+  apply rsr_mapper_inj; try red; eauto.
+  rewrite rsr_mappero with y; congruence.
+Qed.
+
 Lemma rsr_mapper_self_inv x
     (NEQ : a_t <> b_t) :
   mapper (mapper x) = x.
@@ -307,6 +318,65 @@ Lemma rsr_mapper_init
 Proof using.
   unfolder. ins.
   rewrite rsr_mappero; congruence.
+Qed.
+
+Hypothesis PRED : reord_step_pred X_t a_t b_t.
+Hypothesis SIMREL : reord_simrel X_s X_t a_t b_t mapper.
+
+Lemma rsr_sb_trick_e_as e
+    (SBA : sb_s e b_t) :
+  sb_t e b_t.
+Proof using PRED SIMREL.
+  assert (NEQ : a_t <> b_t) by apply PRED.
+  assert (NEQB : e <> b_t).
+  { intro FALSO; subst e.
+    eapply sb_irr; eauto. }
+  assert (NEQA : e <> a_t).
+  { intro FALSO; subst e.
+    eapply sb_irr, sb_trans with b_t; eauto.
+    unfold sb. unfolder. splits; try apply PRED.
+    all: unfold sb in SBA; unfolder in SBA; desf. }
+  assert (INB : E_s b_t).
+  { unfold sb in SBA. unfolder in SBA; desf. }
+  assert (INA : E_s a_t).
+  { apply (rsr_acts SIMREL) in INB.
+    destruct INB as [INB | INB].
+    { apply (rsr_acts SIMREL). left.
+      destruct INB as (x & XIN & XEQ).
+      assert (x = a_t); [| subst x].
+      { apply (rsr_mapper_inv_bt _ NEQ); eauto. }
+      exists b_t. split; [| now apply rsr_mapper_bt].
+      now apply (rsr_at_bt_ord PRED). }
+    unfold extra_a in INB; desf.
+    apply (rsr_acts SIMREL). left.
+    exists b_t. splits; desf.
+    now apply rsr_mapper_bt. }
+  assert (SB : sb_s b_t a_t).
+  { unfold sb. unfolder; splits; auto.
+    apply PRED. }
+  assert (SB' : sb_s e a_t).
+  { now apply sb_trans with b_t. }
+  apply (rsr_sb SIMREL) in SB'.
+  destruct SB'
+        as [[SB' | SB'] | SB'].
+  { unfolder in SB'.
+    destruct SB'
+          as (x' & y' & [MAP | EX] & XEQ & YEQ).
+    { assert (y' = b_t); [| subst y'].
+      { apply (rsr_mapper_inv_at _ NEQ YEQ). }
+      assert (x' = e); [| subst x'].
+      { apply (rsr_mapper_inv_o _ NEQ); eauto. }
+      desf. }
+    assert (y' = b_t); [| subst y'].
+    { apply (rsr_mapper_inv_at _ NEQ YEQ). }
+    assert (x' = e); [| subst x'].
+    { apply (rsr_mapper_inv_o _ NEQ); eauto. }
+    desf. }
+  { unfold extra_a in SB'.
+    desf; unfolder in SB'; desf.
+    congruence. }
+  unfold extra_a in SB'.
+  desf; unfolder in SB'; desf.
 Qed.
 
 End ReordMapper.

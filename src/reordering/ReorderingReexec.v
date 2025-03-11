@@ -1190,7 +1190,7 @@ Lemma rsr_rex_crfc_helper
     codom_rel (
       restr_rel cmt_s (srf_s' ⨾ ⦗A_s' ∩₁ R_s'⦘)
     ).
-Proof using INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
+Proof using INV INV' SIMREL LVAL STEP NLOC ARW ARLX RCFAT.
   assert (WF : Wf G_s').
   { apply (new_G_s_wf INV' LVAL). }
   assert (BIN : E_t' b_t).
@@ -1217,11 +1217,23 @@ Proof using INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
   destruct SRF as ((r & ((VFSB & _) & ISR')) & _).
   red in ISR'. destruct ISR' as (REQ & _). subst r.
   destruct VFSB as (e & VF & SB).
+  assert (NEQB : e <> b_t).
+  { intro FALSO. subst e. eapply sb_irr; eauto. }
+  assert (NEQA : e <> a_t).
+  { intro FALSO. subst e.
+    eapply sb_irr, sb_trans with b_t; eauto.
+    unfold sb. unfolder; splits; try now apply INV'.
+    all: unfold sb in SB; unfolder in SB; desf. }
   assert (ED : dtrmt_s e).
-  { admit. }
+  { apply (rsr_sb_trick_e_as INV' reexec_simrel) in SB.
+    unfold dtrmt_s. do 2 left.
+    exists e. split; [| apply rsr_mappero; auto].
+    split; [| unfold extra_b; desf; congruence].
+    apply dtrmt_t_sb_closed. exists b_t.
+    basic_solver. }
   apply rsr_rex_crfc_vf, set_subset_single_l.
   rewrite extra_a_some; auto. basic_solver 11.
-Admitted.
+Qed.
 
 Lemma rsr_rex_crfc :
   rf_complete (restrict G_s' cmt_s).
