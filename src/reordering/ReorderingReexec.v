@@ -1051,6 +1051,23 @@ Admitted.
 Lemma rsr_rex_embd :
   WCore.commit_embedded X_s X_s' f_s cmt_s.
 Proof using INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
+  constructor.
+  { unfold cmt_s. apply inj_dom_union.
+    { admit. }
+    (* { intros x' y'; unfold f_s.
+      intros [x [Hx]] [y [Hy]]; subst x' y'.
+      unfold compose.
+      change (mapper (mapper x)) with ((mapper ∘ mapper) x).
+      change (mapper (mapper y)) with ((mapper ∘ mapper) y).
+      rewrite !rsr_mapper_compose; auto; unfold id; intro EQf.
+      enough (EQxy: x = y); [by rewrite EQxy|].
+      apply (WCore.reexec_embd_inj (WCore.reexec_embd_corr GREEXEC)); auto.
+      apply (rsr_inj SIMREL).
+      { apply (WCore.reexec_embd_acts (WCore.reexec_embd_corr GREEXEC)); basic_solver. }
+      { apply (WCore.reexec_embd_acts (WCore.reexec_embd_corr GREEXEC)); basic_solver. }
+      done. } *)
+    { admit. }
+    admit. }
 Admitted.
 
 Lemma rsr_rex_ndtrmt_rlx :
@@ -1249,7 +1266,7 @@ Lemma rsr_rex_crfc_helper
     codom_rel (
       restr_rel cmt_s (srf_s' ⨾ ⦗A_s' ∩₁ R_s'⦘)
     ).
-Proof using INV INV' SIMREL LVAL STEP NLOC ARW ARLX RCFAT.
+Proof using INV INV' SIMREL LVAL STEP NLOC ARW ARLX RCFAT RCFBT CONS.
   assert (WF : Wf G_s').
   { apply (new_G_s_wf INV' LVAL). }
   assert (BIN : E_t' b_t).
@@ -1296,7 +1313,7 @@ Qed.
 
 Lemma rsr_rex_crfc :
   rf_complete (restrict G_s' cmt_s).
-Proof using INV INV' LVAL STEP NLOC ARW ARLX RCFAT.
+Proof using INV INV' LVAL STEP NLOC ARW ARLX RCFAT RCFBT SIMREL CONS.
   assert (NEQ : a_t <> b_t) by apply INV'.
   assert (RFCT : rf_complete (restrict G_t' cmt_t)) by apply STEP.
   unfold rf_complete.
