@@ -105,6 +105,7 @@ Notation "'Tid_' t" := (fun e => tid e = t) (at level 1).
 
 Hypothesis MAPREV : eq_dom E_t (mapper_rev ∘ mapper) id.
 Hypothesis PROGSEQ : program_trace_sequented ptc_1 ptc_2 t_1 t_2.
+Hypothesis WFT : Wf G_t.
 
 Definition t_12_len := length (ptc_2 t_2).
 Definition t_1_len := length (ptc_1 t_1).
@@ -168,7 +169,7 @@ Proof using.
     rewrite CDD in FALSO.
     apply (seq_acts SIMREL) in FALSO.
     destruct FALSO as [e' [C1 C2]].
-    admit. }
+    admit. (* TODO : Discuss *)}
   (*  { unfold sb.
       rewrite (rsr_actsE CORR SIMREL).
       unfold extra_a; desf; [exfalso; now apply ETID|].
@@ -316,7 +317,7 @@ Proof using.
       rewrite !collect_rel_union.
       arewrite (mapper' ↑ rf_t ≡ mapper ↑ rf_t).
       { apply collect_rel_eq_dom' with (s := E_t); ins.
-        apply (wf_rfE). admit. (* TODO : add *) }
+        apply (wf_rfE); vauto. }
       rewrite (seq_rf SIMREL).
       arewrite (mapper' ↑ WCore.rf_delta_R e w
                     ≡ WCore.rf_delta_R (mapper' e)
@@ -338,7 +339,7 @@ Proof using.
       rewrite !collect_rel_union.
       arewrite (mapper' ↑ co_t ≡ mapper ↑ co_t).
       { apply collect_rel_eq_dom' with (s := E_t); ins.
-        apply (wf_coE). admit. (* TODO : add *) }
+        apply (wf_coE); vauto. }
       rewrite (seq_co SIMREL).
       arewrite (mapper' ↑ WCore.co_delta e W1 W2
                     ≡ WCore.co_delta (mapper' e) (mapper' ↑₁ W1)
@@ -356,7 +357,7 @@ Proof using.
       collect_rel_union.
       arewrite (mapper' ↑ rmw_t ≡ mapper ↑ rmw_t).
       { apply collect_rel_eq_dom' with (s := E_t); ins.
-      apply (wf_rmwE). admit. (* TODO : add *) }
+      apply (wf_rmwE); vauto. }
       now rewrite (seq_rmw SIMREL). }
     { destruct ADD. rewrite add_event_data.
       rewrite (seq_data SIMREL); vauto. }
@@ -368,7 +369,7 @@ Proof using.
       rewrite (seq_rmw_dep SIMREL); vauto. }
     { admit. (* po-work *) }
     { destruct ADD. vauto. }
-    admit. (* TODO : add *) }
+    admit. (* TODO : add? *) }
   { unfold rf_complete.
     rewrite (seq_acts SIMRELQ), (seq_rf SIMRELQ).
     unfold rf_complete in RFC. rewrite EQACTS.
@@ -405,7 +406,7 @@ Proof using.
       unfold is_r in RD. unfold mapper_rev' in RD.
       rewrite upds in RD; vauto. }
     unfold mapper'. rewrite upds. vauto. }
-  admit.
+  admit. (* is_cons *)
 Admitted.
 
 Lemma simrel_step_e_t2
@@ -427,7 +428,7 @@ Proof using.
   set (mapper_rev' := upd mapper_rev (ThreadEvent t_2 (index e - t_1_len)) e).
   assert (ENOTIN : ~E_t e) by apply ADD.
   assert (EMAPNOTIN : ~E_s (ThreadEvent t_2 (index e - t_1_len))).
-  { admit. } 
+  { admit. (* TODO : Discuss *) }
   assert (MAPEQ : eq_dom E_t mapper' mapper).
   { subst mapper'. unfolder. intros x XINE.
     clear - EMAPNOTIN ENOTIN XINE. rewrite updo; vauto.
@@ -561,7 +562,7 @@ Proof using.
       rewrite !collect_rel_union.
       arewrite (mapper' ↑ rf_t ≡ mapper ↑ rf_t).
       { apply collect_rel_eq_dom' with (s := E_t); ins.
-        apply (wf_rfE). admit. (* TODO : add *) }
+        apply (wf_rfE); vauto. }
       rewrite (seq_rf SIMREL).
       arewrite (mapper' ↑ WCore.rf_delta_R e w
                     ≡ WCore.rf_delta_R (mapper' e)
@@ -583,7 +584,7 @@ Proof using.
       rewrite !collect_rel_union.
       arewrite (mapper' ↑ co_t ≡ mapper ↑ co_t).
       { apply collect_rel_eq_dom' with (s := E_t); ins.
-        apply (wf_coE). admit. (* TODO : add *) }
+        apply (wf_coE); vauto. }
       rewrite (seq_co SIMREL).
       arewrite (mapper' ↑ WCore.co_delta e W1 W2
                     ≡ WCore.co_delta (mapper' e) (mapper' ↑₁ W1)
@@ -601,7 +602,7 @@ Proof using.
       collect_rel_union.
       arewrite (mapper' ↑ rmw_t ≡ mapper ↑ rmw_t).
       { apply collect_rel_eq_dom' with (s := E_t); ins.
-      apply (wf_rmwE). admit. (* TODO : add *) }
+      apply (wf_rmwE); vauto. }
       now rewrite (seq_rmw SIMREL). }
     { destruct ADD. rewrite add_event_data.
       rewrite (seq_data SIMREL); vauto. }
@@ -613,7 +614,7 @@ Proof using.
       rewrite (seq_rmw_dep SIMREL); vauto. }
     { admit. (* po-work *) }
     { destruct ADD. vauto. }
-      admit. (* TODO : add *) }
+      admit. (* TODO : add? *) }
   { unfold rf_complete.
     rewrite (seq_acts SIMRELQ), (seq_rf SIMRELQ).
     unfold rf_complete in RFC. rewrite EQACTS.
@@ -683,7 +684,7 @@ Proof using.
     rewrite CDD in FALSO.
     apply (seq_acts SIMREL) in FALSO.
     destruct FALSO as [e' [C1 C2]].
-    admit. }
+    admit. (* TODO : Discuss *) }
   unfold NW in NEWE. destruct NEWE as (NINIT & NOTIN & TID).
 
   set (G_s' := {|
@@ -724,7 +725,8 @@ Proof using.
       destruct classic with (ev = e) as [EQ | NEQ].
       { unfold mapper' in TIDCOND.
         rewrite EQ in TIDCOND.
-        rewrite upds in TIDCOND. admit. }
+        rewrite upds in TIDCOND.
+        admit. (* TODO : problem *) }
       destruct SIMREL.
       assert (NINE : E_t ev).
       { apply EQACTS in INE'. destruct INE' as [C1 | C2]; vauto. }
@@ -783,7 +785,7 @@ Proof using.
       rewrite !collect_rel_union.
       arewrite (mapper' ↑ rf_t ≡ mapper ↑ rf_t).
       { apply collect_rel_eq_dom' with (s := E_t); ins.
-        apply (wf_rfE). admit. (* TODO : add *) }
+        apply (wf_rfE); vauto. }
       rewrite (seq_rf SIMREL).
       arewrite (mapper' ↑ WCore.rf_delta_R e w
                     ≡ WCore.rf_delta_R (mapper' e)
@@ -805,7 +807,7 @@ Proof using.
       rewrite !collect_rel_union.
       arewrite (mapper' ↑ co_t ≡ mapper ↑ co_t).
       { apply collect_rel_eq_dom' with (s := E_t); ins.
-        apply (wf_coE). admit. (* TODO : add *) }
+        apply (wf_coE); vauto. }
       rewrite (seq_co SIMREL).
       arewrite (mapper' ↑ WCore.co_delta e W1 W2
                     ≡ WCore.co_delta (mapper' e) (mapper' ↑₁ W1)
@@ -823,7 +825,7 @@ Proof using.
       collect_rel_union.
       arewrite (mapper' ↑ rmw_t ≡ mapper ↑ rmw_t).
       { apply collect_rel_eq_dom' with (s := E_t); ins.
-      apply (wf_rmwE). admit. (* TODO : add *) }
+      apply (wf_rmwE); vauto. }
       now rewrite (seq_rmw SIMREL). }
     { destruct ADD. rewrite add_event_data.
       rewrite (seq_data SIMREL); vauto. }
@@ -835,7 +837,7 @@ Proof using.
       rewrite (seq_rmw_dep SIMREL); vauto. }
     { admit. (* po-work *) }
     { destruct ADD. vauto. }
-    admit. (* TODO : add *) }
+    admit. (* TODO : add? *) }
   { unfold rf_complete.
     rewrite (seq_acts SIMRELQ), (seq_rf SIMRELQ).
     unfold rf_complete in RFC. rewrite EQACTS.
@@ -872,7 +874,7 @@ Proof using.
       unfold is_r in RD. unfold mapper_rev' in RD.
       rewrite upds in RD; vauto. }
     unfold mapper'. rewrite upds. vauto. }
-  admit.
+  admit. (* is_cons *)
 Admitted.
 
 
