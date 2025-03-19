@@ -11,6 +11,7 @@ From xmm Require Import Reordering.
 From xmm Require Import ThreadTrace.
 From xmm Require Import Programs.
 From xmm Require Import SequentBase.
+From xmm Require Import ConsistencyMonotonicity.
 
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
@@ -406,7 +407,11 @@ Proof using.
       unfold is_r in RD. unfold mapper_rev' in RD.
       rewrite upds in RD; vauto. }
     unfold mapper'. rewrite upds. vauto. }
-  admit. (* is_cons *)
+  apply XmmCons.monoton_cons with (G_t := G_t')
+          (m := mapper'); vauto; try apply SIMRELQ.
+  { admit. (* TODO : po-work? *) }
+  { admit. (* TODO : po-work? *) }
+  all : admit. (* TODO : add? *)
 Admitted.
 
 Lemma simrel_step_e_t2
@@ -642,7 +647,11 @@ Proof using.
       rewrite EQQ in ISR; vauto. }
     unfolder. intros rd (RD1 & RD2).
     admit. }
-  admit.
+  apply XmmCons.monoton_cons with (G_t := G_t')
+        (m := mapper'); vauto; try apply SIMRELQ.
+  { admit. (* TODO : po-work? *) }
+  { admit. (* TODO : po-work? *) }
+  all : admit. (* TODO : add? *)
 Admitted.
 
 Lemma simrel_step_e_else
@@ -874,7 +883,11 @@ Proof using.
       unfold is_r in RD. unfold mapper_rev' in RD.
       rewrite upds in RD; vauto. }
     unfold mapper'. rewrite upds. vauto. }
-  admit. (* is_cons *)
+  apply XmmCons.monoton_cons with (G_t := G_t')
+        (m := mapper'); vauto; try apply SIMRELQ.
+  { admit. (* TODO : po-work? *) }
+  { admit. (* TODO : po-work? *) }
+  all : admit. (* TODO : add? *)
 Admitted.
 
 
