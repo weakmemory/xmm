@@ -108,7 +108,7 @@ Hypothesis MAPREV : eq_dom E_t (mapper_rev ∘ mapper) id.
 Hypothesis PROGSEQ : program_trace_sequented ptc_1 ptc_2 t_1 t_2.
 Hypothesis WFT : Wf G_t.
 
-Definition t_12_len := length (ptc_2 t_2).
+Definition t_12_len := length (ptc_2 t_1).
 Definition t_1_len := length (ptc_1 t_1).
 Definition t_2_len := length (ptc_1 t_2).
 
@@ -119,10 +119,10 @@ Lemma simrel_step_e_t1
     (NINIT2 : t_2 <> tid_init)
     (T2NOTIN : ~ threads_set G_t t_2)
     (THRDNEQ : t_1 <> t_2)
-    (SIMREL : seq_simrel X_s X_t t_1 t_2 mapper)
+    (SIMREL : seq_simrel X_s X_t t_1 t_2 mapper ptc_1)
     (STEP : WCore.exec_inst X_t X_t' e l) :
   exists mapper' X_s',
-    << SIMREL : seq_simrel X_s' X_t' t_1 t_2 mapper' >> /\
+    << SIMREL : seq_simrel X_s' X_t' t_1 t_2 mapper' ptc_1 >> /\
     << STEP : WCore.exec_inst X_s X_s' (mapper' e) l >>.
 Proof using.
   destruct STEP as [ADD RFC CONS].
@@ -170,7 +170,13 @@ Proof using.
     rewrite CDD in FALSO.
     apply (seq_acts SIMREL) in FALSO.
     destruct FALSO as [e' [C1 C2]].
-    admit. (* TODO : Discuss *)}
+    assert (C1' : E_t e') by vauto.
+    apply (seq_mapeq SIMREL) in C1; vauto.
+    { assert (EQQ : e' = e).
+      { rewrite CDD. rewrite <- C2. vauto. }
+      subst e'; desf. }
+    rewrite C2; rewrite <- CDD.
+    clear - T1 THRDNEQ. intros FALSE; desf. }
   (*  { unfold sb.
       rewrite (rsr_actsE CORR SIMREL).
       unfold extra_a; desf; [exfalso; now apply ETID|].
@@ -232,7 +238,7 @@ Proof using.
   |}).
 
   exists mapper', X_s'.
-  assert (SIMRELQ : seq_simrel X_s' X_t' (tid e) t_2 mapper').
+  assert (SIMRELQ : seq_simrel X_s' X_t' (tid e) t_2 mapper' ptc_1).
   { constructor; vauto; simpl; try basic_solver 6.
     { rewrite (WCore.add_event_acts ADD). apply inj_dom_union.
       { clear - SIMREL MAPEQ.
@@ -278,8 +284,44 @@ Proof using.
     unfold mapper'. intros x COND.
     destruct classic with (x = e) as [EQ | NEQ].
     { subst x. rewrite upds; vauto. }
-    rewrite updo; vauto.
-    apply (seq_init SIMREL); vauto. }
+    { rewrite updo; vauto.
+      apply (seq_init SIMREL); vauto. }
+    { intros e' INE TID2.
+      destruct classic with (e' = e) as [EQ | NEQ].
+      { subst e'. unfold mapper'. rewrite upds; vauto. }
+      unfold mapper'. rewrite updo; vauto.
+      apply (seq_mapeq SIMREL); vauto.
+      { apply EQACTS in INE. 
+        destruct INE as [C1 | C2]; vauto. }
+      unfold mapper' in TID2. rewrite updo in TID2; vauto. }
+    { intros e' INE TID2.
+      destruct classic with (e' = e) as [EQ | NEQ].
+      { subst e'. unfold mapper' in TID2.
+        rewrite upds in TID2. exfalso.
+        clear - TID TID2 THRDNEQ. desf. }
+      assert (INE' : E_t e').
+      { apply EQACTS in INE.
+        destruct INE as [C1 | C2]; vauto. }
+      assert (MAPEQQ : mapper' e' = mapper e').
+      { unfold mapper'. rewrite updo; vauto. }
+      rewrite MAPEQQ. 
+      apply (seq_mapto SIMREL) in INE'.
+      { rewrite TID; vauto. }
+      rewrite <- MAPEQQ; vauto. }
+    intros e' INE TID2.
+    destruct classic with (e' = e) as [EQ | NEQ].
+    { subst e'. unfold mapper' in TID2.
+      rewrite upds in TID2. exfalso.
+      clear - TID TID2 THRDNEQ. desf. }
+    assert (INE' : E_t e').
+    { apply EQACTS in INE.
+      destruct INE as [C1 | C2]; vauto. }
+    assert (MAPEQQ : mapper' e' = mapper e').
+    { unfold mapper'. rewrite updo; vauto. }
+    rewrite MAPEQQ. 
+    apply (seq_index SIMREL) in INE'.
+    { rewrite TID; vauto. }
+    rewrite <- MAPEQQ; vauto. }
   splits.
   { rewrite <- TID; vauto. }
   constructor.
@@ -421,10 +463,10 @@ Lemma simrel_step_e_t2
     (NINIT2 : t_2 <> tid_init)
     (T2NOTIN : ~ threads_set G_t t_2)
     (THRDNEQ : t_1 <> t_2)
-    (SIMREL : seq_simrel X_s X_t t_1 t_2 mapper)
+    (SIMREL : seq_simrel X_s X_t t_1 t_2 mapper ptc_1)
     (STEP : WCore.exec_inst X_t X_t' e l) :
   exists mapper' X_s',
-    << SIMREL : seq_simrel X_s' X_t' t_1 t_2 mapper' >> /\
+    << SIMREL : seq_simrel X_s' X_t' t_1 t_2 mapper' ptc_1 >> /\
     << STEP : WCore.exec_inst X_s X_s' (mapper' e) l >>.
 Proof using.
   destruct STEP as [ADD RFC CONS].
@@ -433,7 +475,34 @@ Proof using.
   set (mapper_rev' := upd mapper_rev (ThreadEvent t_2 (index e - t_1_len)) e).
   assert (ENOTIN : ~E_t e) by apply ADD.
   assert (EMAPNOTIN : ~E_s (ThreadEvent t_2 (index e - t_1_len))).
-  { admit. (* TODO : Discuss *) }
+  { intros FALSE. destruct ADD.
+    assert (CDD : (ThreadEvent t_2 (index e - t_1_len)) = mapper' e).
+    { unfold mapper'. rewrite upds; vauto. }
+    rewrite CDD in FALSE.
+    apply (seq_acts SIMREL) in FALSE.
+    destruct FALSE as [e' [C1 C2]].
+    assert (C1' : E_t e') by vauto.
+    apply (seq_mapto SIMREL) in C1; vauto.
+    { assert (TID' : tid e' = t_1).
+      { apply (seq_tid_2 SIMREL) in C1'; vauto.
+        rewrite C1; vauto. }
+      rewrite <- CDD in C2. rewrite C1 in C2; vauto.
+      assert (INDEX : index e' = index e).
+      { unfold t_1_len in H0.
+        assert (index e' >= t_1_len).
+        { apply (seq_index SIMREL) in C1'.
+          { rewrite C1'.
+            unfold SequentBase.t_1_len, t_1_len.
+            clear. lia. }
+          rewrite C1; vauto. }
+        unfold SequentBase.t_1_len in H0.
+        clear - H0 H IND. unfold t_1_len in *. lia. }
+      assert (EQE : e' = e).
+      { clear - INDEX TID' T1 NINIT1.
+        destruct e', e; basic_solver 8. }
+      desf. }
+    rewrite C2; rewrite <- CDD.
+    vauto. }
   assert (MAPEQ : eq_dom E_t mapper' mapper).
   { subst mapper'. unfolder. intros x XINE.
     clear - EMAPNOTIN ENOTIN XINE. rewrite updo; vauto.
@@ -474,7 +543,7 @@ Proof using.
   |}).
 
   exists mapper', X_s'.
-  assert (SIMRELQ : seq_simrel X_s' X_t' t_1 t_2 mapper').
+  assert (SIMRELQ : seq_simrel X_s' X_t' t_1 t_2 mapper' ptc_1).
   { constructor; vauto; simpl; try basic_solver 6.
     { rewrite (WCore.add_event_acts ADD). apply inj_dom_union.
       { clear - SIMREL MAPEQ.
@@ -541,8 +610,38 @@ Proof using.
         desf. basic_solver 8. }
       rewrite updo; vauto.
       apply (seq_init SIMREL); vauto. }
-    rewrite EQACTS. rewrite set_collect_union.
-    rewrite MAPER_E, MAPSUB, (seq_acts SIMREL); vauto. }
+    { rewrite EQACTS. rewrite set_collect_union.
+      rewrite MAPER_E, MAPSUB, (seq_acts SIMREL); vauto. }
+    { intros e' INE NTID2.
+      apply EQACTS in INE.
+      destruct INE as [C1 | C2].
+      { destruct classic with (e' = e) as [EQ | NEQ].
+        { subst e'. unfold mapper'. rewrite upds; vauto. }
+        unfold mapper'. rewrite updo; vauto.
+        apply (seq_mapeq SIMREL) in C1; vauto.
+        unfold mapper' in NTID2. rewrite updo in NTID2; vauto. }
+      subst e'. unfold mapper'. rewrite upds; vauto.
+      unfold mapper' in NTID2. rewrite upds in NTID2; vauto. }
+    { intros e' INE TID2.
+      apply EQACTS in INE.
+      destruct INE as [C1 | C2].
+      { destruct classic with (e' = e) as [EQ | NEQ].
+        { subst e'. unfold mapper'. rewrite upds; vauto. }
+        unfold mapper'. rewrite updo; vauto.
+        apply (seq_mapto SIMREL) in C1; vauto.
+        unfold mapper' in TID2. rewrite updo in TID2; vauto. }
+      subst e'. unfold mapper'. rewrite upds; vauto. }
+    intros e' INE TID2.
+    apply EQACTS in INE.
+    destruct INE as [C1 | C2].
+    { destruct classic with (e' = e) as [EQ | NEQ].
+      { subst e'. unfold mapper'. rewrite upds; vauto. }
+      unfold mapper'. rewrite updo; vauto.
+      apply (seq_index SIMREL) in C1; vauto.
+      unfold mapper' in TID2. rewrite updo in TID2; vauto. }
+    subst e'. unfold mapper'. rewrite upds; vauto.
+    simpl. unfold SequentBase.t_1_len.
+    unfold t_1_len in *. clear - IND. lia. }
   splits; vauto.
   constructor.
   { unfold WCore.add_event.
@@ -660,10 +759,10 @@ Lemma simrel_step_e_else
     (NINIT2 : t_2 <> tid_init)
     (T2NOTIN : ~ threads_set G_t t_2)
     (THRDNEQ : t_1 <> t_2)
-    (SIMREL : seq_simrel X_s X_t t_1 t_2 mapper)
+    (SIMREL : seq_simrel X_s X_t t_1 t_2 mapper ptc_1 )
     (STEP : WCore.exec_inst X_t X_t' e l) :
   exists mapper' X_s',
-    << SIMREL : seq_simrel X_s' X_t' t_1 t_2 mapper' >> /\
+    << SIMREL : seq_simrel X_s' X_t' t_1 t_2 mapper' ptc_1 >> /\
     << STEP : WCore.exec_inst X_s X_s' (mapper' e) l >>.
 Proof using.
   destruct STEP as [ADD RFC CONS].
@@ -693,7 +792,18 @@ Proof using.
     rewrite CDD in FALSO.
     apply (seq_acts SIMREL) in FALSO.
     destruct FALSO as [e' [C1 C2]].
-    admit. (* TODO : Discuss *) }
+    assert (C1' : E_t e') by vauto.
+    apply (seq_mapeq SIMREL) in C1; vauto.
+    { assert (EQQ : e' = e).
+      { rewrite CDD. rewrite <- C2. vauto. }
+      subst e'; desf. }
+    rewrite C2; rewrite <- CDD.
+    symmetry in add_event_threads.
+    assert (T2NOTIN' : ~ threads_set G_t' t_2).
+    { intros FALSE. apply add_event_threads in FALSE; vauto. }
+    assert (INEN : E_t' e).
+    { apply EQACTS. basic_solver. }
+    intros FALSE; desf. }
   unfold NW in NEWE. destruct NEWE as (NINIT & NOTIN & TID).
 
   set (G_s' := {|
@@ -714,7 +824,7 @@ Proof using.
   |}).
 
   exists mapper', X_s'.
-  assert (SIMRELQ : seq_simrel X_s' X_t' t_1 t_2 mapper').
+  assert (SIMRELQ : seq_simrel X_s' X_t' t_1 t_2 mapper' ptc_1).
   { constructor; vauto; simpl; try basic_solver 6.
     { rewrite (WCore.add_event_acts ADD). apply inj_dom_union.
       { clear - SIMREL MAPEQ.
@@ -735,7 +845,16 @@ Proof using.
       { unfold mapper' in TIDCOND.
         rewrite EQ in TIDCOND.
         rewrite upds in TIDCOND.
-        admit. (* TODO : problem *) }
+        subst ev. apply EQACTS in INE'.
+        destruct INE' as [C1 | C2].
+        { desf. }
+        assert (INEN : E_t' e).
+        { apply EQACTS. basic_solver. }
+        exfalso.
+        destruct ADD. symmetry in add_event_threads.
+        assert (T2NOTIN' : ~ threads_set G_t' t_2).
+        { intros FALSE. apply add_event_threads in FALSE; vauto. }
+        desf. }
       destruct SIMREL.
       assert (NINE : E_t ev).
       { apply EQACTS in INE'. destruct INE' as [C1 | C2]; vauto. }
@@ -764,11 +883,54 @@ Proof using.
     { admit. (*TODO : po-work*) }
     { rewrite (seq_threads SIMREL).
       destruct ADD. rewrite add_event_threads; vauto. }
-    unfold mapper'. intros x COND.
-    destruct classic with (x = e) as [EQ | NEQ].
-    { subst x. rewrite upds; vauto. }
-    rewrite updo; vauto.
-    apply (seq_init SIMREL); vauto. }
+    { unfold mapper'. intros x COND.
+      destruct classic with (x = e) as [EQ | NEQ].
+      { subst x. rewrite upds; vauto. }
+      rewrite updo; vauto.
+      apply (seq_init SIMREL); vauto. }
+    { intros e' INE NTID2.
+      apply EQACTS in INE.
+      destruct INE as [C1 | C2].
+      { destruct classic with (e' = e) as [EQ | NEQ].
+        { subst e'. unfold mapper'. rewrite upds; vauto. }
+        unfold mapper'. rewrite updo; vauto.
+        apply (seq_mapeq SIMREL) in C1; vauto.
+        unfold mapper' in NTID2. rewrite updo in NTID2; vauto. }
+      subst e'. unfold mapper'. rewrite upds; vauto. }
+    { intros e' INE TID2.
+      apply EQACTS in INE.
+      destruct INE as [C1 | C2].
+      { destruct classic with (e' = e) as [EQ | NEQ].
+        { subst e'. unfold mapper'. rewrite upds; vauto. }
+        unfold mapper'. rewrite updo; vauto.
+        apply (seq_mapto SIMREL) in C1; vauto.
+        unfold mapper'. rewrite updo; vauto. }
+      subst e'. unfold mapper' in TID2.
+      rewrite upds in TID2.
+      assert (INEN : E_t' e).
+      { apply EQACTS. basic_solver. }
+      exfalso.
+      destruct ADD. symmetry in add_event_threads.
+      assert (T2NOTIN' : ~ threads_set G_t' t_2).
+      { intros FALSE. apply add_event_threads in FALSE; vauto. }
+      desf. }
+    intros e' INE TID2.
+    apply EQACTS in INE.
+    destruct INE as [C1 | C2].
+    { destruct classic with (e' = e) as [EQ | NEQ].
+      { subst e'. unfold mapper'. rewrite upds; vauto. }
+      unfold mapper'. rewrite updo; vauto.
+      apply (seq_index SIMREL) in C1; vauto.
+      unfold mapper'. rewrite updo; vauto. }
+    subst e'. unfold mapper' in TID2.
+    rewrite upds in TID2.
+    assert (INEN : E_t' e).
+    { apply EQACTS. basic_solver. }
+    exfalso.
+    destruct ADD. symmetry in add_event_threads.
+    assert (T2NOTIN' : ~ threads_set G_t' t_2).
+    { intros FALSE. apply add_event_threads in FALSE; vauto. }
+    desf. }
   split; vauto. constructor.
   { unfold WCore.add_event.
     exists (option_map mapper' r), (mapper' ↑₁ R1),

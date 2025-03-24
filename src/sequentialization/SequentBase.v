@@ -65,6 +65,12 @@ Notation "'Tid_' t" := (fun e => tid e = t) (at level 1).
 
 Definition po_seq := (Tid_ t_1 ∩₁ E_s) × (Tid_ t_2 ∩₁ E_s).
 
+Variable ptc_1 ptc_2 : program_trace.
+
+Definition t_12_len := length (ptc_2 t_1).
+Definition t_1_len := length (ptc_1 t_1).
+Definition t_2_len := length (ptc_1 t_2).
+
 Record seq_simrel : Prop := {
     seq_inj : inj_dom E_t mapper;
 
@@ -87,6 +93,10 @@ Record seq_simrel : Prop := {
     seq_init : fixset is_init mapper;
     (* rsr_mid : eq_dom (E_t \₁ eq a_t \₁ eq b_t) mapper id; *)
     seq_codom : mapper ↑₁ E_t ⊆₁ E_s;
+
+    seq_mapeq : forall e : actid, E_t e -> tid (mapper e) <> t_2 -> mapper e = e;
+    seq_mapto : forall e : actid, E_t e -> tid (mapper e) = t_2 -> mapper e = ThreadEvent t_2 (index e - t_1_len);
+    seq_index : forall e : actid, E_t e -> tid (mapper e) = t_2 -> index e = t_1_len + index (mapper e);
 }.
 
 End SimRelSeq.
@@ -96,6 +106,8 @@ Section SeqSimrelInit.
 Variable X_t X_s : WCore.t.
 Variable t_1 t_2 : thread_id.
 Variable mapper : actid -> actid.
+
+Variable ptc_1 ptc_2 : program_trace.
 
 Notation "'G_t'" := (WCore.G X_t).
 Notation "'G_s'" := (WCore.G X_s).
@@ -110,7 +122,7 @@ Lemma seq_simrel_init threads
     (WCore.Build_t (WCore.init_exec (threads ∪₁ eq t_2)) ∅₂)
     (WCore.Build_t (WCore.init_exec threads) ∅₂)
     t_1 t_2
-    id >>.
+    id ptc_1 >>.
 Proof using.
     assert (IWF : Wf (WCore.init_exec threads)).
     { now apply WCore.wf_init_exec. }
@@ -133,7 +145,8 @@ Proof using.
         intros x COND. destruct COND as [TID ISINIT].
         unfold is_init in ISINIT. desf. }
       rewrite EMP1, EMP2. clear; basic_solver 8. }
-    all : clear; basic_solver.
+    all : try basic_solver.
+    all : unfold is_init in H; desf.
 Qed.
 
 End SeqSimrelInit.
