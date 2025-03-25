@@ -119,10 +119,10 @@ Lemma simrel_step_e_t1
     (NINIT2 : t_2 <> tid_init)
     (T2NOTIN : ~ threads_set G_t t_2)
     (THRDNEQ : t_1 <> t_2)
-    (SIMREL : seq_simrel X_s X_t t_1 t_2 mapper ptc_1)
+    (SIMREL : seq_simrel X_s X_t t_1 t_2 mapper mapper_rev ptc_1)
     (STEP : WCore.exec_inst X_t X_t' e l) :
-  exists mapper' X_s',
-    << SIMREL : seq_simrel X_s' X_t' t_1 t_2 mapper' ptc_1 >> /\
+  exists mapper' mapper_rev' X_s',
+    << SIMREL : seq_simrel X_s' X_t' t_1 t_2 mapper' mapper_rev' ptc_1 >> /\
     << STEP : WCore.exec_inst X_s X_s' (mapper' e) l >>.
 Proof using.
   destruct STEP as [ADD RFC CONS].
@@ -237,8 +237,8 @@ Proof using.
     WCore.G := G_s';
   |}).
 
-  exists mapper', X_s'.
-  assert (SIMRELQ : seq_simrel X_s' X_t' (tid e) t_2 mapper' ptc_1).
+  exists mapper', mapper_rev', X_s'.
+  assert (SIMRELQ : seq_simrel X_s' X_t' (tid e) t_2 mapper' mapper_rev' ptc_1).
   { constructor; vauto; simpl; try basic_solver 6.
     { rewrite (WCore.add_event_acts ADD). apply inj_dom_union.
       { clear - SIMREL MAPEQ.
@@ -342,17 +342,27 @@ Proof using.
     { rewrite EQACTS. rewrite set_collect_union.
       rewrite MAPER_E, MAPSUB. rewrite (seq_acts SIMREL).
       unfold mapper'. rewrite upds. basic_solver. }
-    { unfold mapper', mapper_rev'.
-      destruct ADD. rewrite add_event_lab.
-      rewrite upds. destruct SIMREL.
+    { destruct ADD. destruct SIMRELQ.
+      unfold mapper', mapper_rev'.
+      
+      
+      rewrite add_event_lab.
+      destruct SIMREL.
+      unfold compose.
+      unfold upd.
+      rewrite <- seq_lab_rev.
+      destruct SIMREL.
+      unfold compose.
+      rewrite seq_lab.
       apply functional_extensionality.
       intros x.
       destruct (classic (x = e)) as [EQ | NEQ].
       { subst x. rewrite upds.
         unfold compose. rewrite !upds; vauto. }
       rewrite updo; vauto. unfold compose.
-      rewrite updo at 1; vauto.
-      { rewrite updo; vauto.
+      rewrite updo at 1; vauto. 
+      { 
+        
         admit. }
       rewrite updo; vauto.
       admit. }

@@ -485,6 +485,202 @@ Proof using.
   clear - NW. basic_solver.
 Qed.
 
+Lemma add_event_to_wf_fixed r R1 w W1 W2
+    (ININ : is_init ⊆₁ E)
+    (NEW : ~E e)
+    (NINIT : ~is_init e)
+    (NTID : tid e <> tid_init)
+    (ACTS : E' ≡₁ E ∪₁ eq e)
+    (THREADS : threads_set' ≡₁ threads_set)
+    (LAB : eq_dom E' lab' (upd lab e l))
+    (RF : rf' ≡ rf ∪ WCore.rf_delta_R e w ∪ WCore.rf_delta_W e R1)
+    (CO : co' ≡ co ∪ WCore.co_delta e W1 W2)
+    (RMW : rmw' ≡ rmw ∪ WCore.rmw_delta e r)
+    (DATA : data' ≡ data)
+    (ADDR : addr' ≡ addr)
+    (CTRL : ctrl' ≡ ctrl)
+    (RMWDEP : rmw_dep' ≡ rmw_dep)
+    (SB : sb' ≡ sb ∪ WCore.sb_delta e E)
+    (NCTRL : ctrl' ⊆ ∅₂)
+    (WF : Wf G') :
+  WCore.add_event_gen X X' e l r R1 w W1 W2.
+Proof using.
+  assert (WNE : ~ eq_opt w e).
+  { destruct w as [w|]; ins.
+    intro FALSO; desf.
+    apply (rf_irr WF) with e, RF.
+    clear. basic_solver. }
+  assert (RNE : ~ eq_opt r e).
+  { destruct r as [r|]; ins.
+    intro FALSO; desf.
+    apply (rmw_irr WF) with e, RMW.
+    clear. basic_solver. }
+  assert (W1NE : ~W1 e).
+  { intros FALSO.
+    apply (co_irr WF) with e, CO.
+    clear - FALSO. basic_solver. }
+  assert (W2NE : ~W2 e).
+  { intros FALSO.
+    apply (co_irr WF) with e, CO.
+    clear - FALSO. basic_solver. }
+  assert (R1NE : ~R1 e).
+  { intros FALSO.
+    apply (rf_irr WF) with e, RF.
+    clear - FALSO. basic_solver. }
+  (**)
+  assert (RF1' : eq_opt w ⊆₁ dom_rel (rf' ⨾ ⦗eq e⦘)).
+  { rewrite RF. clear. basic_solver 7. }
+  assert (RF2' : R1 ⊆₁ codom_rel (⦗eq e⦘ ⨾ rf')).
+  { rewrite RF. clear. basic_solver 7. }
+  assert (RMW' : eq_opt r ⊆₁ dom_rel (rmw' ⨾ ⦗eq e⦘)).
+  { rewrite RMW. clear. basic_solver 7. }
+  assert (CO1' : W1 ⊆₁ codom_rel (⦗eq e⦘ ⨾ co')).
+  { rewrite CO. clear. basic_solver 7. }
+  assert (CO2' : W2 ⊆₁ dom_rel (co' ⨾ ⦗eq e⦘)).
+  { rewrite CO. clear. basic_solver 7. }
+  (**)
+  assert (WE' : eq_opt w ⊆₁ E').
+  { rewrite RF1', (wf_rfE WF). clear. basic_solver. }
+  assert (R1E' : R1 ⊆₁ E').
+  { rewrite RF2', (wf_rfE WF). clear. basic_solver. }
+  assert (RE' : eq_opt r ⊆₁ E').
+  { rewrite RMW', (wf_rmwE WF). clear. basic_solver. }
+  assert (W1E' : W1 ⊆₁ E').
+  { rewrite CO1', (wf_coE WF). clear. basic_solver. }
+  assert (W2E' : W2 ⊆₁ E').
+  { rewrite CO2', (wf_coE WF). clear. basic_solver. }
+  (**)
+  assert (WE : eq_opt w ⊆₁ E).
+  { rewrite ACTS in WE'.
+    clear - WNE WE'. unfolder in *.
+    intros x XEQ. desf.
+    destruct WE' with x; congruence. }
+  assert (R1E : R1 ⊆₁ E).
+  { rewrite ACTS in R1E'.
+    clear - R1NE R1E'. unfolder in *.
+    intros x XEQ.
+    destruct R1E' with x; congruence. }
+  assert (RE : eq_opt r ⊆₁ E).
+  { rewrite ACTS in RE'.
+    clear - RNE RE'. unfolder in *.
+    intros x XEQ. desf.
+    destruct RE' with x; congruence. }
+  assert (W1E : W1 ⊆₁ E).
+  { rewrite ACTS in W1E'.
+    clear - W1NE W1E'. unfolder in *.
+    intros x XEQ.
+    destruct W1E' with x; congruence. }
+  assert (W2E : W2 ⊆₁ E).
+  { rewrite ACTS in W2E'.
+    clear - W2NE W2E'. unfolder in *.
+    intros x XEQ.
+    destruct W2E' with x; congruence. }
+  clear WE' R1E' RE' W1E' W2E'.
+  (**)
+  assert (SUBW : E ∩₁ W' ⊆₁ W).
+  { clear - LAB NEW ACTS. unfolder.
+    ins. desf. unfold is_w in *. rewrite LAB in H0. 
+    { rewrite updo in *; congruence. }
+    apply ACTS. basic_solver 8. }
+  assert (SUBR : E ∩₁ R' ⊆₁ R).
+  { clear - LAB NEW ACTS. unfolder.
+    ins. desf. unfold is_r in *. rewrite LAB in H0. 
+    { rewrite updo in *; congruence. }
+    apply ACTS. basic_solver 8. }
+  assert (LOCSET' : (fun x => same_loc' x e) ⊆₁ (fun x => same_loc' e x)).
+  { clear. unfold same_loc; basic_solver. }
+  assert (LOCSET : (fun x => same_loc x e) ⊆₁ (fun x => same_loc e x)).
+  { clear. unfold same_loc; basic_solver. }
+  assert (SUBLOC : E ∩₁ (fun x => same_loc' e x) ⊆₁ Loc_ (WCore.lab_loc l)).
+  { clear - NEW LAB ACTS. unfolder. unfold same_loc, loc, WCore.lab_loc.
+    rewrite LAB.
+    { intros x (XINE & LOC).
+      rewrite LAB in LOC.
+      { rewrite upds, updo in LOC.
+        { congruence. }
+        intros FALSE. desf. }
+      apply ACTS. basic_solver 8. }
+    apply ACTS. basic_solver 8. }
+  assert (SUBVAL : E ∩₁ (fun x => same_val' e x) ⊆₁ Val_ (WCore.lab_val l)).
+  { clear - NEW LAB ACTS. unfolder. unfold same_val, val, WCore.lab_val.
+    rewrite LAB.
+    { intros x (XINE & VAL).
+      rewrite LAB in VAL.
+      { rewrite upds, updo in VAL.
+        { congruence. }
+        intros FALSE. desf. }
+      apply ACTS. basic_solver 8. }
+    apply ACTS. basic_solver 8. }
+  assert (VALSET' : (fun x => same_val' x e) ⊆₁ (fun x => same_val' e x)).
+  { clear. unfolder. ins. unfold same_val in *. congruence. }
+  (**)
+  constructor; ins.
+  { transitivity (E ∩₁ W'); [| apply SUBW].
+    apply set_subset_inter_r. split; [apply WE |].
+    rewrite RF1', (wf_rfD WF). clear. basic_solver. }
+  { transitivity (E ∩₁ (fun x => same_loc' e x)); [| apply SUBLOC].
+    apply set_subset_inter_r. split; [apply WE |].
+    rewrite RF1', (wf_rfl WF), <- LOCSET'.
+    clear. basic_solver. }
+  { transitivity (E ∩₁ (fun x => same_val' e x)); [| apply SUBVAL].
+    apply set_subset_inter_r. split; [apply WE |].
+    rewrite RF1', <- VALSET'. clear - WF. unfolder.
+    ins. desf. now apply (wf_rfv WF). }
+  { transitivity (E ∩₁ R'); [| apply SUBR].
+    apply set_subset_inter_r. split; [apply RE |].
+    rewrite RMW', (wf_rmwD WF). clear. basic_solver. }
+  { transitivity (E ∩₁ (fun x => same_loc' e x)); [| apply SUBLOC].
+    apply set_subset_inter_r. split; [apply RE |].
+    rewrite RMW', (wf_rmwl WF), <- LOCSET'.
+    clear. basic_solver. }
+  { transitivity rmw'; [| apply WF].
+    rewrite RMW. clear. basic_solver. }
+  { transitivity (E ∩₁ W'); [| apply SUBW].
+    apply set_subset_inter_r. split; [apply W1E |].
+    rewrite CO1', (wf_coD WF). clear. basic_solver. }
+  { transitivity (E ∩₁ (fun x => same_loc' e x)); [| apply SUBLOC].
+    apply set_subset_inter_r. split; [apply W1E |].
+    rewrite CO1', (wf_col WF), <- LOCSET'.
+    clear. basic_solver. }
+  { transitivity (E ∩₁ W'); [| apply SUBW].
+    apply set_subset_inter_r. split; [apply W2E |].
+    rewrite CO2', (wf_coD WF). clear. basic_solver. }
+  { transitivity (E ∩₁ (fun x => same_loc' e x)); [| apply SUBLOC].
+    apply set_subset_inter_r. split; [apply W2E |].
+    rewrite CO2', (wf_col WF), <- LOCSET'.
+    clear. basic_solver. }
+  { transitivity (E ∩₁ R'); [| apply SUBR].
+    apply set_subset_inter_r. split; [apply R1E |].
+    rewrite RF2', (wf_rfD WF). clear. basic_solver. }
+  { transitivity (E ∩₁ (fun x => same_loc' e x)); [| apply SUBLOC].
+    apply set_subset_inter_r. split; [apply R1E |].
+    rewrite RF2', (wf_rfl WF), <- LOCSET'.
+    clear. basic_solver. }
+  { transitivity (E ∩₁ (fun x => same_val' e x)); [| apply SUBVAL].
+    apply set_subset_inter_r. split; [apply R1E |].
+    rewrite RF2', <- VALSET'. clear - WF. unfolder.
+    ins. desf. symmetry. now apply (wf_rfv WF). }
+  all: try now apply WF.
+  { apply THREADS, WF, ACTS. now right. }
+  { enough (EMP : eq_opt w ≡₁ ∅).
+    { clear - EMP. unfolder in *. desf.
+      exfalso. eauto. }
+    split; [| basic_solver]. rewrite RF1', (wf_rfD WF).
+    clear - NR. basic_solver. }
+  { split; [| basic_solver]. rewrite RF2', (wf_rfD WF).
+    clear - NW. basic_solver. }
+  { enough (EMP : eq_opt r ≡₁ ∅).
+    { clear - EMP. unfolder in *. desf.
+      exfalso. eauto. }
+    split; [| basic_solver]. rewrite RMW', (wf_rmwD WF).
+    clear - NW. basic_solver. }
+  { split; [| basic_solver]. rewrite CO1', (wf_coD WF).
+    clear - NW. basic_solver. }
+  split; [| basic_solver]. rewrite CO2', (wf_coD WF).
+  clear - NW. basic_solver.
+  admit.
+Admitted.
+
 Lemma dom_sb_delta s :
   dom_rel (WCore.sb_delta e s) ≡₁
     is_init ∪₁ s ∩₁ same_tid e.

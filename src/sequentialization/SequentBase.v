@@ -25,6 +25,7 @@ Section SimRelSeq.
 Variable X_s X_t : WCore.t.
 Variable t_1 t_2 : thread_id.
 Variable mapper : actid -> actid.
+Variable mappre_rev : actid -> actid.
 
 Notation "'G_t'" := (WCore.G X_t).
 Notation "'lab_t'" := (lab G_t).
@@ -77,7 +78,8 @@ Record seq_simrel : Prop := {
     seq_tid_1 : forall e : actid, E_t e -> tid (mapper e) <> t_2 -> tid e = tid (mapper e);
     seq_tid_2 : forall e : actid, E_t e -> tid (mapper e) = t_2 -> tid e = t_1;
 
-    seq_lab : eq_dom E_t (lab_s ∘ mapper) lab_t;
+    seq_lab : lab_t = lab_s ∘ mapper;
+    seq_lab_rev : lab_s = lab_t ∘ mappre_rev;
     seq_acts : E_s ≡₁ mapper ↑₁ E_t;
     seq_sb : sb_s ∪ po_seq ≡ mapper ↑ sb_t;
     seq_rf : rf_s ≡ mapper ↑ rf_t;
@@ -106,6 +108,7 @@ Section SeqSimrelInit.
 Variable X_t X_s : WCore.t.
 Variable t_1 t_2 : thread_id.
 Variable mapper : actid -> actid.
+Variable mappre_rev : actid -> actid.
 
 Variable ptc_1 ptc_2 : program_trace.
 
@@ -122,7 +125,7 @@ Lemma seq_simrel_init threads
     (WCore.Build_t (WCore.init_exec (threads ∪₁ eq t_2)) ∅₂)
     (WCore.Build_t (WCore.init_exec threads) ∅₂)
     t_1 t_2
-    id ptc_1 >>.
+    id id ptc_1 >>.
 Proof using.
     assert (IWF : Wf (WCore.init_exec threads)).
     { now apply WCore.wf_init_exec. }
