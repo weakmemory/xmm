@@ -198,7 +198,7 @@ Proof using.
     rewrite (seq_threads SIMREL).
     apply set_union_more; vauto.
     (* TODO : preserves threads? *)
-   all : admit. }
+    all : admit. }
   unfold WCore.reexec.
   exists thrdle'.
   arewrite (cmt' = cmt_t).
@@ -287,10 +287,8 @@ Proof using.
         basic_solver 4. }
       unfold thrdle'. unfold transitive.
       intros x y z XY YZ.
-      Search (relation _ -> (_ -> Prop)).
-      Print Proper.
-    destruct classic (y = eq t_2).
-    (* TODO : discuss *)
+      
+      (* TODO : discuss *)
     
       admit. }
     admit. }
