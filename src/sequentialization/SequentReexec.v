@@ -3,6 +3,7 @@ Require Import Core.
 Require Import AuxRel AuxRel2.
 Require Import Srf Rhb.
 Require Import SimrelCommon.
+Require Import SubToFullExec.
 Require Import StepOps.
 Require Import AuxInj.
 Require Import xmm_s_hb.
@@ -349,6 +350,9 @@ Proof using.
     { admit. (* add *) }
     { admit. (* add? *) }
     destruct STEP; vauto. }
+  { admit. }
+  apply sub_to_full_exec_listless
+    with (thrdle := thrdle').
   all : admit.
 Admitted.
 
