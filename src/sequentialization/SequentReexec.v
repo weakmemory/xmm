@@ -145,9 +145,9 @@ Proof using.
   rewrite rel_low. basic_solver.
 Qed.
 
-Definition thrdle' := (eq t_2 × eq t_1 ∪ (dom_rel (thrdle ⨾ ⦗eq t_1⦘) \₁ eq t_2) × eq t_2
-                      ∪ eq t_1 × (codom_rel (⦗eq t_2⦘ ⨾ thrdle) \₁ eq t_1)
-                      ∪ eq tid_init × codom_rel (thrdle)).
+Definition thrdle' := thrdle ∪ eq t_2 × eq t_1 ∪ (dom_rel (thrdle ⨾ ⦗eq t_1⦘) \₁ eq t_2) × eq t_2
+                      ∪ eq t_2 × (codom_rel (⦗eq t_1⦘ ⨾ thrdle) \₁ eq t_2)
+                      ∪ eq tid_init × codom_rel (thrdle).
                       (* ∪ relation_lowering thrdle (dom_rel (thrdle ⨾ ⦗eq t_1⦘) \₁ eq t_2)
                       ∪ relation_lowering thrdle (codom_rel (⦗eq t_2⦘ ⨾ thrdle) \₁ eq t_1)
                       (* \ (fun x y => x = y). *)
@@ -235,102 +235,65 @@ Proof using.
         destruct FLS as [FLS | FLS2].
         { apply codom_union in FLS.
           destruct FLS as [FLS | FLS3].
-          (* { apply codom_union in FLS.
+          { apply codom_union in FLS.
             destruct FLS as [FLS | FLS4].
-            { apply codom_union in FLS.
-              destruct FLS as [FLS | FLS5].
-              { apply codom_union in FLS.
-                destruct FLS as [FLS | FLS6].
-                { apply codom_union in FLS.
-                  destruct FLS as [FLS | FLS7].
-                  { apply codom_union in FLS.
-                    destruct FLS as [FLS | FLS8]. *)
-                    { clear - NINIT1 FLS.
-                      apply codom_crossed in FLS.
-                      desf. }
-                    clear - NINIT2 FLS3.
-                    apply codom_crossed in FLS3.
-                    desf. }
-                  apply codom_crossed in FLS2.
-                  unfold set_minus in FLS2.
-                  destruct FLS2 as [FLS2 _].
-                  destruct STEP. destruct reexec_sur.
-                  clear - FLS2 surg_init_min.
-                  unfold min_elt in surg_init_min.
-                  destruct FLS2 as [x FLS2].
-                  specialize (surg_init_min x).
-                  apply surg_init_min.
-                  destruct FLS2 as [x0 [EQ FLS2]].
-                  destruct EQ. desf. }
-                apply codom_crossed in FLS1.
-                destruct STEP. destruct reexec_sur.
-                clear - FLS1 surg_init_min.
-                unfold min_elt in surg_init_min.
-                destruct FLS1 as [x FLS1].
-                specialize (surg_init_min x).
-                desf. }
-              (* apply codom_rel_low in FLS5.
-              destruct FLS5 as [FLS5 _].
-              destruct STEP. destruct reexec_sur.
-              clear - FLS5 surg_init_min.
+            { destruct STEP. destruct reexec_sur.
               unfold min_elt in surg_init_min.
-              destruct FLS5 as [x FLS5].
+              destruct FLS as [x FLS].
               specialize (surg_init_min x).
-              desf. }
-            apply codom_rel_low in FLS4.
-            destruct FLS4 as [FLS4 _].
-            destruct STEP. destruct reexec_sur.
-            clear - FLS4 surg_init_min.
-            unfold min_elt in surg_init_min.
-            destruct FLS4 as [x FLS4].
-            specialize (surg_init_min x).
+              apply surg_init_min.
+              vauto. }
+            clear - NINIT1 FLS4.
+            apply codom_crossed in FLS4.
             desf. }
+          clear - NINIT2 FLS3.
           apply codom_crossed in FLS3.
-          unfold set_minus in FLS3.
-          destruct FLS3 as [FLS3 _].
-          destruct STEP. destruct reexec_sur.
-          clear - FLS3 surg_init_min.
-          unfold min_elt in surg_init_min.
-          destruct FLS3 as [x FLS3].
-          specialize (surg_init_min x).
-          destruct FLS3 as [x0 [EQ FLS3]].
-          destruct EQ. desf. }
+          desf. }
         apply codom_crossed in FLS2.
+        unfold set_minus in FLS2.
+        destruct FLS2 as [FLS2 _].
         destruct STEP. destruct reexec_sur.
         clear - FLS2 surg_init_min.
         unfold min_elt in surg_init_min.
-        destruct FLS2 as [FLS2 _].
         destruct FLS2 as [x FLS2].
         specialize (surg_init_min x).
+        apply surg_init_min.
         destruct FLS2 as [x0 [EQ FLS2]].
         destruct EQ. desf. }
       apply codom_crossed in FLS1.
-      desf. } *)
+      destruct STEP. destruct reexec_sur.
+      clear - FLS1 surg_init_min.
+      unfold min_elt in surg_init_min.
+      destruct FLS1 as [x FLS1].
+      specialize (surg_init_min x).
+      desf. }
     { constructor.
       { unfold thrdle'.
         apply irreflexive_union; split.
         { apply irreflexive_union; split.
           { apply irreflexive_union; split.
-            (* { apply irreflexive_union; split.
-              { apply irreflexive_union; split.
-                { apply irreflexive_union; split.
-                  { apply irreflexive_union; split.
-                    { apply irreflexive_union; split. *)
-                      { clear - THRDNEQ. basic_solver. }
-                    clear. basic_solver. }
-                  clear. basic_solver. }
-                destruct STEP. destruct reexec_sur.
-                unfold min_elt in surg_init_min.
-                clear - surg_init_min.
-                intros x [EQ [y FLS]].
-                specialize (surg_init_min y).
-                basic_solver 4. }
-    unfold thrdle'.
-    unfold transitive.
+            { apply irreflexive_union; split.
+              { destruct STEP. destruct reexec_sur.
+                unfold strict_partial_order in surg_order.
+                destruct surg_order as [IRR _]; vauto. }
+              clear - THRDNEQ. basic_solver. }
+            clear. basic_solver. }
+          clear. basic_solver. }
+        destruct STEP. destruct reexec_sur.
+        unfold min_elt in surg_init_min.
+        clear - surg_init_min.
+        intros x [EQ [y FLS]].
+        specialize (surg_init_min y).
+        basic_solver 4. }
+      unfold thrdle'. unfold transitive.
+      intros x y z XY YZ.
+      Search (relation _ -> (_ -> Prop)).
+      Print Proper.
+    destruct classic (y = eq t_2).
     (* TODO : discuss *)
     
+      admit. }
     admit. }
-  admit. }
               (* unfold irreflexive. intros x [CD FLS].
               destruct FLS as [FLS _].
               destruct STEP. destruct reexec_sur.
