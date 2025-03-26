@@ -333,7 +333,8 @@ Proof using.
     apply add_event_to_wf; simpl; vauto.
     { apply sico_init_acts_s with
             (X_t := X_t) (mapper := mapper).
-      { constructor. all : apply SIMREL. }
+      { constructor. all : try apply SIMREL.
+        rewrite (seq_lab SIMREL); vauto. }
       destruct ADD. apply add_event_init. }
     { unfold mapper'. rewrite upds. exact NOTIN. }
     { unfold mapper'. rewrite upds; vauto. }
@@ -344,28 +345,7 @@ Proof using.
       unfold mapper'. rewrite upds. basic_solver. }
     { destruct ADD. destruct SIMRELQ.
       unfold mapper', mapper_rev'.
-      
-      
-      rewrite add_event_lab.
-      destruct SIMREL.
-      unfold compose.
-      unfold upd.
-      rewrite <- seq_lab_rev.
-      destruct SIMREL.
-      unfold compose.
-      rewrite seq_lab.
-      apply functional_extensionality.
-      intros x.
-      destruct (classic (x = e)) as [EQ | NEQ].
-      { subst x. rewrite upds.
-        unfold compose. rewrite !upds; vauto. }
-      rewrite updo; vauto. unfold compose.
-      rewrite updo at 1; vauto. 
-      { 
-        
-        admit. }
-      rewrite updo; vauto.
-      admit. }
+      admit. (* TODO : discuss *) }
     { destruct ADD. rewrite add_event_rf.
       rewrite !collect_rel_union.
       arewrite (mapper' ↑ rf_t ≡ mapper ↑ rf_t).
@@ -462,6 +442,7 @@ Proof using.
   apply XmmCons.monoton_cons with (G_t := G_t')
           (m := mapper'); vauto; try apply SIMRELQ.
   { admit. (* TODO : po-work? *) }
+  { rewrite <- (seq_lab SIMRELQ); vauto. }
   { admit. (* TODO : po-work? *) }
   all : admit. (* TODO : add? *)
 Admitted.
@@ -473,10 +454,10 @@ Lemma simrel_step_e_t2
     (NINIT2 : t_2 <> tid_init)
     (T2NOTIN : ~ threads_set G_t t_2)
     (THRDNEQ : t_1 <> t_2)
-    (SIMREL : seq_simrel X_s X_t t_1 t_2 mapper ptc_1)
+    (SIMREL : seq_simrel X_s X_t t_1 t_2 mapper mapper_rev ptc_1)
     (STEP : WCore.exec_inst X_t X_t' e l) :
-  exists mapper' X_s',
-    << SIMREL : seq_simrel X_s' X_t' t_1 t_2 mapper' ptc_1 >> /\
+  exists mapper' mapper_rev' X_s',
+    << SIMREL : seq_simrel X_s' X_t' t_1 t_2 mapper' mapper_rev' ptc_1 >> /\
     << STEP : WCore.exec_inst X_s X_s' (mapper' e) l >>.
 Proof using.
   destruct STEP as [ADD RFC CONS].
@@ -552,8 +533,8 @@ Proof using.
     WCore.G := G_s';
   |}).
 
-  exists mapper', X_s'.
-  assert (SIMRELQ : seq_simrel X_s' X_t' t_1 t_2 mapper' ptc_1).
+  exists mapper', mapper_rev', X_s'.
+  assert (SIMRELQ : seq_simrel X_s' X_t' t_1 t_2 mapper' mapper_rev' ptc_1).
   { constructor; vauto; simpl; try basic_solver 6.
     { rewrite (WCore.add_event_acts ADD). apply inj_dom_union.
       { clear - SIMREL MAPEQ.
@@ -662,7 +643,8 @@ Proof using.
     apply add_event_to_wf; simpl; vauto.
     { apply sico_init_acts_s with
           (X_t := X_t) (mapper := mapper).
-      { constructor. all : apply SIMREL. }
+      { constructor. all : try apply SIMREL.
+        rewrite (seq_lab SIMREL); vauto. }
       destruct ADD. apply add_event_init. }
     { unfold mapper'. rewrite upds; vauto. }
     { unfold mapper'. rewrite upds; vauto. }
@@ -754,11 +736,21 @@ Proof using.
         apply MAPREV in INE. unfold compose in INE.
         unfold mapper_rev'. rewrite updo; vauto. }
       rewrite EQQ in ISR; vauto. }
-    unfolder. intros rd (RD1 & RD2).
-    admit. }
+    rewrite <- set_collect_codom. rewrite <- RFC.
+    intros x (EQ & RD). subst x.
+    unfold set_collect. exists e. splits; vauto.
+    { split.
+      { apply EQACTS. basic_solver. }
+      assert (FEQ : WCore.G X_s' = G_s') by vauto.
+      rewrite FEQ in RD. unfold G_s' in RD.
+      simpl in RD. clear - RD. unfold compose in RD.
+      unfold is_r in RD. unfold mapper_rev' in RD.
+      rewrite upds in RD; vauto. }
+    unfold mapper'. rewrite upds. vauto. }
   apply XmmCons.monoton_cons with (G_t := G_t')
         (m := mapper'); vauto; try apply SIMRELQ.
   { admit. (* TODO : po-work? *) }
+  { rewrite <- (seq_lab SIMRELQ); vauto. }
   { admit. (* TODO : po-work? *) }
   all : admit. (* TODO : add? *)
 Admitted.
@@ -769,10 +761,10 @@ Lemma simrel_step_e_else
     (NINIT2 : t_2 <> tid_init)
     (T2NOTIN : ~ threads_set G_t t_2)
     (THRDNEQ : t_1 <> t_2)
-    (SIMREL : seq_simrel X_s X_t t_1 t_2 mapper ptc_1 )
+    (SIMREL : seq_simrel X_s X_t t_1 t_2 mapper mapper_rev ptc_1 )
     (STEP : WCore.exec_inst X_t X_t' e l) :
-  exists mapper' X_s',
-    << SIMREL : seq_simrel X_s' X_t' t_1 t_2 mapper' ptc_1 >> /\
+  exists mapper' mapper_rev' X_s',
+    << SIMREL : seq_simrel X_s' X_t' t_1 t_2 mapper' mapper_rev' ptc_1 >> /\
     << STEP : WCore.exec_inst X_s X_s' (mapper' e) l >>.
 Proof using.
   destruct STEP as [ADD RFC CONS].
@@ -833,8 +825,8 @@ Proof using.
     WCore.G := G_s';
   |}).
 
-  exists mapper', X_s'.
-  assert (SIMRELQ : seq_simrel X_s' X_t' t_1 t_2 mapper' ptc_1).
+  exists mapper', mapper_rev', X_s'.
+  assert (SIMRELQ : seq_simrel X_s' X_t' t_1 t_2 mapper' mapper_rev' ptc_1).
   { constructor; vauto; simpl; try basic_solver 6.
     { rewrite (WCore.add_event_acts ADD). apply inj_dom_union.
       { clear - SIMREL MAPEQ.
@@ -950,7 +942,8 @@ Proof using.
     apply add_event_to_wf; simpl; vauto.
     { apply sico_init_acts_s with
           (X_t := X_t) (mapper := mapper).
-      { constructor. all : apply SIMREL. }
+      { constructor. all : try apply SIMREL.
+        rewrite (seq_lab SIMREL); vauto. }
       destruct ADD. apply add_event_init. }
     { unfold mapper'. rewrite upds. exact NOTIN. }
     { unfold mapper'. rewrite upds; vauto. }
@@ -1058,6 +1051,7 @@ Proof using.
   apply XmmCons.monoton_cons with (G_t := G_t')
         (m := mapper'); vauto; try apply SIMRELQ.
   { admit. (* TODO : po-work? *) }
+  { rewrite <- (seq_lab SIMRELQ); vauto. }
   { admit. (* TODO : po-work? *) }
   all : admit. (* TODO : add? *)
 Admitted.

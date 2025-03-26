@@ -117,16 +117,57 @@ Definition dtrmt' := mapper ↑₁ dtrmt_t. *)
 Definition cmt' := id ↑₁ cmt_t.
 Definition dtrmt' := id ↑₁ dtrmt_t.
 
-Definition thrdle' := eq t_2 × eq t_1 ∪ dom_rel (thrdle ⨾ ⦗eq t_1⦘) × eq t_2
-                      ∪ eq t_1 × codom_rel (⦗eq t_2⦘ ⨾ thrdle).
+Definition relation_lowering (A : Type) (r : relation A) (P : A -> Prop) : relation A :=
+  fun x y => r x y /\ P x /\ P y.
+
+Lemma codom_ct_union (A : Type) (r r' : relation A) :
+  codom_rel ((r ∪ r')⁺) ≡₁ codom_rel r ∪₁ codom_rel r'.
+Proof using.
+  rewrite codom_ct.
+  unfold codom_rel; basic_solver.
+Qed.
+
+Lemma rel_low (A : Type) (r : relation A) (P : A -> Prop) :
+  relation_lowering r P ≡ r ∩ (P × P).
+Proof using.
+  unfold relation_lowering. basic_solver.
+Qed.
+
+Lemma codom_crossed (A : Type) (P P' : A -> Prop) :
+  codom_rel (P × P') ⊆₁ P'.
+Proof using.
+  unfold codom_rel. basic_solver.
+Qed.
+
+Lemma codom_rel_low (A : Type) (r : relation A) (P : A -> Prop) :
+  codom_rel (relation_lowering r P) ⊆₁ codom_rel r ∩₁ P.
+Proof using.
+  rewrite rel_low. basic_solver.
+Qed.
+
+Definition thrdle' := (eq t_2 × eq t_1 ∪ (dom_rel (thrdle ⨾ ⦗eq t_1⦘) \₁ eq t_2) × eq t_2
+                      ∪ eq t_1 × (codom_rel (⦗eq t_2⦘ ⨾ thrdle) \₁ eq t_1)
+                      ∪ eq tid_init × codom_rel (thrdle)).
+                      (* ∪ relation_lowering thrdle (dom_rel (thrdle ⨾ ⦗eq t_1⦘) \₁ eq t_2)
+                      ∪ relation_lowering thrdle (codom_rel (⦗eq t_2⦘ ⨾ thrdle) \₁ eq t_1)
+                      (* \ (fun x y => x = y). *)
+                      ∪ (dom_rel (thrdle ⨾ ⦗eq t_1⦘) \₁ eq t_2) × (codom_rel (⦗eq t_2⦘ ⨾ thrdle) \₁ eq t_1)
+                      ∪ eq t_2 × (codom_rel (⦗eq t_2⦘ ⨾ thrdle) \₁ eq t_1)
+                      ∪ (dom_rel (thrdle ⨾ ⦗eq t_1⦘) \₁ eq t_2) × eq t_1). *)
+
+(* Definition thrdle_ohne' := (eq t_2 × eq t_1 ∪ (dom_rel (thrdle ⨾ ⦗eq t_1⦘) \₁ eq t_2) × eq t_2
+                      ∪ eq t_1 × (codom_rel (⦗eq t_2⦘ ⨾ thrdle) \₁ eq t_1)
+                      ∪ eq tid_init × codom_rel (thrdle)
+                      ∪ relation_lowering thrdle (dom_rel (thrdle ⨾ ⦗eq t_1⦘) \₁ eq t_2)
+                      ∪ relation_lowering thrdle (codom_rel (⦗eq t_2⦘ ⨾ thrdle) \₁ eq t_1))⁺. *)
 
 Lemma simrel_step_reex
     (NINIT1 : t_1 <> tid_init)
     (NINIT2 : t_2 <> tid_init)
     (THRDNEQ : t_1 <> t_2)
-    (SIMREL : seq_simrel X_s X_t t_1 t_2 mapper) :
+    (SIMREL : seq_simrel X_s X_t t_1 t_2 mapper mapper_rev ptc_1) :
   exists (X_s' : WCore.t),
-    << SIMREL : seq_simrel X_s' X_t' t_1 t_2 id >> /\
+    << SIMREL : seq_simrel X_s' X_t' t_1 t_2 id id ptc_1 >> /\
     << REX : WCore.reexec X_s X_s' id dtrmt' cmt' >>.
 Proof using.
   set (G_s' := {|
@@ -157,7 +198,7 @@ Proof using.
     rewrite (seq_threads SIMREL).
     apply set_union_more; vauto.
     (* TODO : preserves threads? *)
-    admit. }
+   all : admit. }
   unfold WCore.reexec.
   exists thrdle'.
   arewrite (cmt' = cmt_t).
@@ -177,9 +218,149 @@ Proof using.
   { constructor.
     { destruct STEP. destruct reexec_sur.
       unfold least_elt. intros trn INIT.
-      unfold thrdle'. (* transitive closure? *)
-      admit. }
-    all : admit. }
+      unfold thrdle'.
+      right.
+      split; vauto.
+      unfold least_elt in surg_init_least.
+      specialize (surg_init_least trn INIT).
+      clear - surg_init_least.
+      basic_solver. }
+    { unfold min_elt. intros trn INIT.
+      assert (FLS : codom_rel thrdle' tid_init).
+      { clear - INIT. basic_solver. }
+      unfold thrdle' in INIT.
+      apply codom_union in FLS.
+      destruct FLS as [FLS | FLS1].
+      { apply codom_union in FLS.
+        destruct FLS as [FLS | FLS2].
+        { apply codom_union in FLS.
+          destruct FLS as [FLS | FLS3].
+          (* { apply codom_union in FLS.
+            destruct FLS as [FLS | FLS4].
+            { apply codom_union in FLS.
+              destruct FLS as [FLS | FLS5].
+              { apply codom_union in FLS.
+                destruct FLS as [FLS | FLS6].
+                { apply codom_union in FLS.
+                  destruct FLS as [FLS | FLS7].
+                  { apply codom_union in FLS.
+                    destruct FLS as [FLS | FLS8]. *)
+                    { clear - NINIT1 FLS.
+                      apply codom_crossed in FLS.
+                      desf. }
+                    clear - NINIT2 FLS3.
+                    apply codom_crossed in FLS3.
+                    desf. }
+                  apply codom_crossed in FLS2.
+                  unfold set_minus in FLS2.
+                  destruct FLS2 as [FLS2 _].
+                  destruct STEP. destruct reexec_sur.
+                  clear - FLS2 surg_init_min.
+                  unfold min_elt in surg_init_min.
+                  destruct FLS2 as [x FLS2].
+                  specialize (surg_init_min x).
+                  apply surg_init_min.
+                  destruct FLS2 as [x0 [EQ FLS2]].
+                  destruct EQ. desf. }
+                apply codom_crossed in FLS1.
+                destruct STEP. destruct reexec_sur.
+                clear - FLS1 surg_init_min.
+                unfold min_elt in surg_init_min.
+                destruct FLS1 as [x FLS1].
+                specialize (surg_init_min x).
+                desf. }
+              (* apply codom_rel_low in FLS5.
+              destruct FLS5 as [FLS5 _].
+              destruct STEP. destruct reexec_sur.
+              clear - FLS5 surg_init_min.
+              unfold min_elt in surg_init_min.
+              destruct FLS5 as [x FLS5].
+              specialize (surg_init_min x).
+              desf. }
+            apply codom_rel_low in FLS4.
+            destruct FLS4 as [FLS4 _].
+            destruct STEP. destruct reexec_sur.
+            clear - FLS4 surg_init_min.
+            unfold min_elt in surg_init_min.
+            destruct FLS4 as [x FLS4].
+            specialize (surg_init_min x).
+            desf. }
+          apply codom_crossed in FLS3.
+          unfold set_minus in FLS3.
+          destruct FLS3 as [FLS3 _].
+          destruct STEP. destruct reexec_sur.
+          clear - FLS3 surg_init_min.
+          unfold min_elt in surg_init_min.
+          destruct FLS3 as [x FLS3].
+          specialize (surg_init_min x).
+          destruct FLS3 as [x0 [EQ FLS3]].
+          destruct EQ. desf. }
+        apply codom_crossed in FLS2.
+        destruct STEP. destruct reexec_sur.
+        clear - FLS2 surg_init_min.
+        unfold min_elt in surg_init_min.
+        destruct FLS2 as [FLS2 _].
+        destruct FLS2 as [x FLS2].
+        specialize (surg_init_min x).
+        destruct FLS2 as [x0 [EQ FLS2]].
+        destruct EQ. desf. }
+      apply codom_crossed in FLS1.
+      desf. } *)
+    { constructor.
+      { unfold thrdle'.
+        apply irreflexive_union; split.
+        { apply irreflexive_union; split.
+          { apply irreflexive_union; split.
+            (* { apply irreflexive_union; split.
+              { apply irreflexive_union; split.
+                { apply irreflexive_union; split.
+                  { apply irreflexive_union; split.
+                    { apply irreflexive_union; split. *)
+                      { clear - THRDNEQ. basic_solver. }
+                    clear. basic_solver. }
+                  clear. basic_solver. }
+                destruct STEP. destruct reexec_sur.
+                unfold min_elt in surg_init_min.
+                clear - surg_init_min.
+                intros x [EQ [y FLS]].
+                specialize (surg_init_min y).
+                basic_solver 4. }
+    unfold thrdle'.
+    unfold transitive.
+    (* TODO : discuss *)
+    
+    admit. }
+  admit. }
+              (* unfold irreflexive. intros x [CD FLS].
+              destruct FLS as [FLS _].
+              destruct STEP. destruct reexec_sur.
+              clear - CD FLS surg_order.
+              unfold strict_partial_order in surg_order.
+              destruct surg_order as [IRR _].
+              destruct IRR with x; vauto. }
+            unfold irreflexive. intros x [CD FLS].
+            destruct FLS as [FLS _].
+            destruct STEP. destruct reexec_sur.
+            clear - CD FLS surg_order.
+            unfold strict_partial_order in surg_order.
+            destruct surg_order as [IRR _].
+            destruct IRR with x; vauto. }
+          unfold irreflexive. intros x [CD1 CD2].
+              
+      { unfold thrdle'.
+        set (tlo := (eq t_2 × eq t_1
+        ∪ (dom_rel (thrdle ⨾ ⦗eq t_1⦘) \₁ eq t_2) × eq t_2
+        ∪ eq t_1 × (codom_rel (⦗eq t_2⦘ ⨾ thrdle) \₁ eq t_1)
+        ∪ eq tid_init × codom_rel thrdle
+        ∪ relation_lowering thrdle
+            (dom_rel (thrdle ⨾ ⦗eq t_1⦘) \₁ eq t_2)
+        ∪ relation_lowering thrdle
+            (codom_rel (⦗eq t_2⦘ ⨾ thrdle) \₁ eq t_1))).
+        clear. unfold transitive.
+        intros x y z XY YZ.
+        unfold minus_rel in *. 
+        admit. } *)
+
   { admit. }
   { admit. }
   { admit. }
