@@ -165,6 +165,7 @@ Definition thrdle' := thrdle ∪ eq t_2 × eq t_1 ∪ (dom_rel (thrdle ⨾ ⦗eq
 Lemma simrel_step_reex
     (NINIT1 : t_1 <> tid_init)
     (NINIT2 : t_2 <> tid_init)
+    (T2NOTIN : ~ threads_set G_t t_2)
     (THRDNEQ : t_1 <> t_2)
     (SIMREL : seq_simrel X_s X_t t_1 t_2 mapper mapper_rev ptc_1) :
   exists (X_s' : WCore.t),
@@ -189,17 +190,41 @@ Proof using.
   |}).
 
   exists X_s'. split; red.
-  { constructor; vauto.
+  { assert (threads_set G_t ≡₁ threads_set G_t') as TSET.
+    { symmetry. apply reex_thrd_preserve with (f := f_t)
+        (dtrmt := dtrmt_t) (cmt := cmt_t)
+        (thrdle := thrdle); vauto. }
+    constructor; vauto.
     { intros e INE TIDE.
-      (* TODO : preserves threads? *)
-      admit. }
-    { admit. (* po-work *) }
-    arewrite (WCore.G X_s' = G_s').
-    unfold G_s'. simpls.
-    rewrite (seq_threads SIMREL).
-    apply set_union_more; vauto.
-    (* TODO : preserves threads? *)
-    all : admit. }
+      unfold id in TIDE. exfalso.
+      apply wf_threads in INE; vauto.
+      { apply TSET in INE; desf. }
+      admit. (* TODO : add? *) }
+    { unfold po_seq.
+      arewrite (WCore.G X_s' = G_s').
+      unfold G_s' at 2. simpls.
+      rewrite collect_rel_id.
+      rewrite set_collect_id.
+      arewrite (Tid_ t_2 ∩₁ E_t' ≡₁ ∅).
+      { split; [|basic_solver].
+        intros x [TIDx INE].
+        exfalso.
+        apply wf_threads in INE; vauto.
+        { apply TSET in INE; desf. }
+        admit. (* TODO : add? *) }
+      rewrite cross_false_r.
+      rewrite union_false_r.
+      unfold sb. unfold G_s'; ins.
+      rewrite set_collect_id; vauto. }
+    { arewrite (WCore.G X_s' = G_s').
+      unfold G_s'. simpls.
+      rewrite (seq_threads SIMREL).
+      apply set_union_more; vauto. }
+    all : intros e0 INE TID2.
+    all : unfold id in TID2; exfalso.
+    all : apply wf_threads in INE; vauto.
+    all : try apply TSET in INE; desf.
+    all : admit. (* TODO : add? *) }
   unfold WCore.reexec.
   exists thrdle'.
   arewrite (cmt' = cmt_t).
