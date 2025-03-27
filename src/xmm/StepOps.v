@@ -1001,6 +1001,69 @@ Proof using.
   eapply xmm_rexec_gen_correct; eauto.
 Qed.
 
+Lemma guided_thrd_preserve cmt dtrmt
+    (STEP : WCore.guided_step cmt X (WCore.X_start X dtrmt) X') :
+  threads_set' ≡₁ threads_set.
+Proof using.
+  unfold WCore.guided_step in STEP.
+  destruct STEP as (e0 & l0 & COND).
+  destruct COND. 
+  unfold WCore.add_event in gsg_add_step.
+  destruct gsg_add_step 
+        as (r & R1 & w & W1 & W2 & gsg_add_step).
+  destruct gsg_add_step.
+  rewrite add_event_threads.
+  reflexivity.
+Qed.
+
+Lemma reex_thrd_preserve f dtrmt cmt thrdle
+    (STEP : WCore.reexec_gen X X' f dtrmt cmt thrdle) :
+  threads_set' ≡₁ threads_set.
+Proof using.
+  destruct STEP.
+  assert (RT : ((WCore.guided_step cmt X')＊ ≡ (WCore.guided_step cmt X')⁺ ∪ eq)).
+  { split; intros x y COND.
+    { assert (RTH : (WCore.guided_step cmt X')＊ x y <-> x = y \/ (WCore.guided_step cmt X')⁺ x y).
+      { clear; split; ins; desf; vauto;
+        induction H; desf; vauto. }
+      apply RTH in COND.
+      desf; vauto. }
+    assert (RTH : (WCore.guided_step cmt X')＊ x y <-> (WCore.guided_step cmt X')⁺ x y \/ x = y).
+    { clear; split; ins; desf; vauto;
+      induction H; desf; vauto. }
+    unfold union in COND.
+    apply RTH in COND; vauto. }
+  apply RT in reexec_steps.
+  unfold union in reexec_steps.
+  destruct reexec_steps
+      as [reexec_steps | reexec_steps].
+  { assert (TST : threads_set ≡₁
+          Execution.threads_set (WCore.G (WCore.X_start X dtrmt))).
+    { reflexivity. }
+    rewrite TST.
+    apply clos_trans_ind with
+        (R := WCore.guided_step cmt X')
+        (a := X') (x := (WCore.X_start X dtrmt)).
+    { intros x y COND.
+      unfold WCore.guided_step in COND.
+      destruct COND as (e0 & l0 & COND).
+      destruct COND.
+      unfold WCore.add_event in gsg_add_step.
+      destruct gsg_add_step
+          as (r & R1 & w & W1 & W2 & gsg_add_step).
+      destruct gsg_add_step.
+      rewrite add_event_threads.
+      reflexivity. }
+    { intros x y z COND1 IH1 COND2 IH2.
+      rewrite IH2; vauto. }
+    vauto. }
+  assert (TST : threads_set ≡₁
+      Execution.threads_set (WCore.G (WCore.X_start X dtrmt))).
+  { reflexivity. }
+  rewrite TST.
+  rewrite reexec_steps; vauto.
+Qed.
+
 End OtherStepInvariants.
 
 Lemma xmm_step_correct_ind X1 X2
