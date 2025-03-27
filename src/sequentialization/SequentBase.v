@@ -87,17 +87,26 @@ Record seq_simrel : Prop := {
     seq_rmw : rmw_s ≡ mapper ↑ rmw_t;
     seq_threads : threads_set G_s ≡₁ threads_set G_t ∪₁ eq t_2;
 
-    seq_ctrl : ctrl_s ≡ ctrl_t;
-    seq_data : data_s ≡ data_t;
-    seq_addr : addr_s ≡ addr_t;
-    seq_rmw_dep : rmw_dep_s ≡ rmw_dep_t;
+    seq_ctrl : ctrl_s ≡ ∅₂;
+    seq_data : data_s ≡ ∅₂;
+    seq_addr : addr_s ≡ ∅₂;
+    seq_rmw_dep : rmw_dep_s ≡ ∅₂;
 
     seq_init : fixset is_init mapper;
+    seq_init_rev : fixset is_init mappre_rev;
     seq_codom : mapper ↑₁ E_t ⊆₁ E_s;
 
     seq_mapeq : forall e : actid, E_t e -> tid (mapper e) <> t_2 -> mapper e = e;
     seq_mapto : forall e : actid, E_t e -> tid (mapper e) = t_2 -> mapper e = ThreadEvent t_2 (index e - t_1_len);
     seq_index : forall e : actid, E_t e -> tid (mapper e) = t_2 -> index e = t_1_len + index (mapper e);
+}.
+
+Record seq_simrel_inv : Prop := {
+    rsr_Gt_wf : Wf G_t;
+    rsr_nctrl : ctrl_t ≡ ∅₂;
+    rsr_ndata : data_t ≡ ∅₂;
+    rsr_naddr : addr_t ≡ ∅₂;
+    rsr_nrmw_dep : rmw_dep_t ≡ ∅₂;
 }.
 
 End SimRelSeq.
@@ -113,6 +122,8 @@ Variable ptc_1 ptc_2 : program_trace.
 
 Notation "'G_t'" := (WCore.G X_t).
 Notation "'G_s'" := (WCore.G X_s).
+
+Hypothesis INV : seq_simrel_inv X_t.
 
 Lemma seq_simrel_init threads
     (NINIT1 : t_1 <> tid_init)

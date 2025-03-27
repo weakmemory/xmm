@@ -112,6 +112,9 @@ Definition t_12_len := length (ptc_2 t_1).
 Definition t_1_len := length (ptc_1 t_1).
 Definition t_2_len := length (ptc_1 t_2).
 
+Hypothesis INV : seq_simrel_inv X_t.
+Hypothesis INV' : seq_simrel_inv X_t'.
+
 Lemma simrel_step_e_t1
     (T1 : tid e = t_1)
     (IND: index e < t_1_len)
@@ -156,30 +159,27 @@ Proof using.
   assert (NEWE :
   << NINIT : ~is_init e >> /\
   << NOTIN : ~E_s e >> /\
-  << TID : tid e = t_1 >> /\
-  << NEWSB : ⦗E_s ∪₁ eq e⦘ ⨾ ext_sb ⨾ ⦗E_s ∪₁ eq e⦘ ≡
-          sb_s ∪ WCore.sb_delta e E_s >>). 
+  << TID : tid e = t_1 >>). 
   { unfold NW; splits; vauto.
     { intro FALSO. unfold is_init in FALSO.
       unfold tid in T1. clear - T1 FALSO NINIT1.
       basic_solver. }
-    { intro FALSO. destruct ADD.
-      assert (CDD : e = mapper' e).
-      { unfold mapper'. rewrite upds; vauto. }
-      rewrite CDD in FALSO.
-      apply (seq_acts SIMREL) in FALSO.
-      destruct FALSO as [e' [C1 C2]].
-      assert (C1' : E_t e') by vauto.
-      apply (seq_mapeq SIMREL) in C1; vauto.
-      { assert (EQQ : e' = e).
-        { rewrite CDD. rewrite <- C2. vauto. }
-        subst e'; desf. }
-      rewrite C2; rewrite <- CDD.
-      clear - T1 THRDNEQ. intros FALSE; desf. }
-    admit. }
+    intro FALSO. destruct ADD.
+    assert (CDD : e = mapper' e).
+    { unfold mapper'. rewrite upds; vauto. }
+    rewrite CDD in FALSO.
+    apply (seq_acts SIMREL) in FALSO.
+    destruct FALSO as [e' [C1 C2]].
+    assert (C1' : E_t e') by vauto.
+    apply (seq_mapeq SIMREL) in C1; vauto.
+    { assert (EQQ : e' = e).
+      { rewrite CDD. rewrite <- C2. vauto. }
+      subst e'; desf. }
+    rewrite C2; rewrite <- CDD.
+    clear - T1 THRDNEQ. intros FALSE; desf. }
 
   unfold NW in NEWE.
-  destruct NEWE as (NINIT & NOTIN & TID & SBEXT).
+  destruct NEWE as (NINIT & NOTIN & TID).
 
   set (G_s' := {|
   acts_set := mapper' ↑₁ E_t';
@@ -188,10 +188,10 @@ Proof using.
     rf := mapper' ↑ rf_t';
     co := mapper' ↑ co_t';
     rmw := mapper' ↑ rmw_t';
-    rmw_dep := rmw_dep_t';
-    ctrl := ctrl_t';
-    data := data_t';
-    addr := addr_t';
+    rmw_dep := ∅₂;
+    ctrl := ∅₂;
+    data := ∅₂;
+    addr := ∅₂;
   |}).
   set (X_s' := {|
     WCore.sc := WCore.sc X_s;
@@ -265,7 +265,7 @@ Proof using.
               apply add_event_threads; vauto.
               apply wf_threads with (G := G_t')
                         (e := (ThreadEvent t_2 index0)); vauto.
-              admit. (* ??? *) }
+              apply INV'. }
             desf. unfold upd in Heq. desf.
             assert (MIND : index0 = index1).
             { rewrite (seq_mapeq SIMREL) in Heq; vauto.
@@ -307,7 +307,7 @@ Proof using.
             apply add_event_threads; vauto.
             apply wf_threads with (G := G_t')
                       (e := (ThreadEvent t_2 index)); vauto.
-            admit. (* ??? *) }
+            apply INV'. }
           destruct classic with (y' = e) as [EQY | NEQY].
           { subst. unfold mapper' in EXT. rewrite upds in EXT.
             desf.
@@ -322,15 +322,19 @@ Proof using.
                 destruct INE1 as [C1 | C2]; vauto. }
               rewrite Heq in NEQ'.
               unfold tid in NEQ'. destruct SIMREL.
-              clear - INE1 NEQ' Heq.
-              admit. (* ?????????????? *) }
+              assert (HLP : mapper_rev (InitEvent l0) = ThreadEvent thread index).
+              { rewrite <- Heq. apply MAPREV.
+                apply EQACTS in INE1.
+                clear - INE1 NEQ.
+                destruct INE1 as [C1 | C2]; vauto. }
+              rewrite seq_init_rev in HLP; vauto. }
             destruct classic with (thread0 = t_2) as [EQT | NEQT].
             { subst. destruct ADD.
               exfalso. apply T2NOTIN.
               apply add_event_threads; vauto.
               apply wf_threads with (G := G_t')
                         (e := (ThreadEvent t_2 index1)); vauto.
-              { admit. (* ??? *) }
+              { apply INV'. }
               destruct EXT; vauto. }
             rewrite (seq_mapeq SIMREL) in Heq; vauto.
             { apply EQACTS in INE1.
@@ -347,7 +351,12 @@ Proof using.
             clear - seq_init Heq0.
             rewrite seq_init in Heq0; desf. }
           desf.
-          { (* nothing should map into init *) admit. }
+          { assert (HLP : mapper_rev (InitEvent l0) = ThreadEvent thread index).
+            { rewrite <- Heq. apply MAPREV.
+              apply EQACTS in INE1.
+              clear - INE1 NEQ.
+              destruct INE1 as [C1 | C2]; vauto. }
+            rewrite seq_init_rev in HLP; vauto. }
           destruct EXT; subst.
           destruct classic with (thread2 = t_2) as [EQT | NEQT].
           { subst.
@@ -404,17 +413,20 @@ Proof using.
         exists y0; splits; vauto.
         assert (TIDD : tid y0 = t_1).
         { admit. }
-
-
         admit. }
       admit. }
     { rewrite (seq_threads SIMREL).
       destruct ADD. rewrite add_event_threads; vauto. }
-    unfold mapper'. intros x COND.
-    destruct classic with (x = e) as [EQ | NEQ].
-    { subst x. rewrite upds; vauto. }
-    { rewrite updo; vauto.
+    { unfold mapper'. intros x COND.
+      destruct classic with (x = e) as [EQ | NEQ].
+      { subst x. rewrite upds; vauto. }
+      rewrite updo; vauto.
       apply (seq_init SIMREL); vauto. }
+    { unfold mapper_rev'. intros x COND.
+      destruct classic with (x = e) as [EQ | NEQ].
+      { subst x. rewrite upds; vauto. }
+      rewrite updo; vauto.
+      apply (seq_init_rev SIMREL); vauto. }
     { intros e' INE TID2.
       destruct classic with (e' = e) as [EQ | NEQ].
       { subst e'. unfold mapper'. rewrite upds; vauto. }
@@ -521,17 +533,12 @@ Proof using.
       { apply collect_rel_eq_dom' with (s := E_t); ins.
       apply (wf_rmwE); vauto. }
       now rewrite (seq_rmw SIMREL). }
-    { destruct ADD. rewrite add_event_data.
-      rewrite (seq_data SIMREL); vauto. }
-    { destruct ADD. rewrite add_event_addr.
-      rewrite (seq_addr SIMREL); vauto. }
-    { destruct ADD. rewrite add_event_ctrl.
-      rewrite (seq_ctrl SIMREL); vauto. }
-    { destruct ADD. rewrite add_event_rmw_dep.
-      rewrite (seq_rmw_dep SIMREL); vauto. }
+    { rewrite (seq_data SIMREL); vauto. }
+    { rewrite (seq_addr SIMREL); vauto. }
+    { rewrite (seq_ctrl SIMREL); vauto. }
+    { rewrite (seq_rmw_dep SIMREL); vauto. }
     { admit. (* po-work *) }
-    { destruct ADD. vauto. }
-    admit. (* TODO : add? *) }
+    admit. (* wf_s' *) }
   { unfold rf_complete.
     rewrite (seq_acts SIMRELQ), (seq_rf SIMRELQ).
     unfold rf_complete in RFC. rewrite EQACTS.
@@ -573,7 +580,9 @@ Proof using.
   { admit. (* TODO : po-work? *) }
   { rewrite <- (seq_lab SIMRELQ); vauto. }
   { admit. (* TODO : po-work? *) }
-  all : admit. (* TODO : add? *)
+  { apply INV'. }
+  constructor. (* wf_s' *)
+  all : admit.
 Admitted.
 
 Lemma simrel_step_e_t2
@@ -652,10 +661,10 @@ Proof using.
     rf := mapper' ↑ rf_t';
     co := mapper' ↑ co_t';
     rmw := mapper' ↑ rmw_t';
-    rmw_dep := rmw_dep_t';
-    ctrl := ctrl_t';
-    data := data_t';
-    addr := addr_t';
+    rmw_dep := ∅₂;
+    ctrl := ∅₂;
+    data := ∅₂;
+    addr := ∅₂;
   |}).
   set (X_s' := {|
     WCore.sc := WCore.sc X_s;
@@ -730,6 +739,13 @@ Proof using.
         desf. basic_solver 8. }
       rewrite updo; vauto.
       apply (seq_init SIMREL); vauto. }
+    { unfold mapper_rev'. intros x COND.
+      destruct classic with (x = (ThreadEvent t_2 (index e - t_1_len))) as [EQ | NEQ].
+      { subst x. clear - T1 COND NINIT1.
+        unfold tid in T1. unfold is_init in COND.
+        desf. }
+      rewrite updo; vauto.
+      apply (seq_init_rev SIMREL); vauto. }
     { rewrite EQACTS. rewrite set_collect_union.
       rewrite MAPER_E, MAPSUB, (seq_acts SIMREL); vauto. }
     { intros e' INE NTID2.
@@ -829,17 +845,12 @@ Proof using.
       { apply collect_rel_eq_dom' with (s := E_t); ins.
       apply (wf_rmwE); vauto. }
       now rewrite (seq_rmw SIMREL). }
-    { destruct ADD. rewrite add_event_data.
-      rewrite (seq_data SIMREL); vauto. }
-    { destruct ADD. rewrite add_event_addr.
-      rewrite (seq_addr SIMREL); vauto. }
-    { destruct ADD. rewrite add_event_ctrl.
-      rewrite (seq_ctrl SIMREL); vauto. }
-    { destruct ADD. rewrite add_event_rmw_dep.
-      rewrite (seq_rmw_dep SIMREL); vauto. }
+    { rewrite (seq_data SIMREL); vauto. }
+    { rewrite (seq_addr SIMREL); vauto. }
+    { rewrite (seq_ctrl SIMREL); vauto. }
+    { rewrite (seq_rmw_dep SIMREL); vauto. }
     { admit. (* po-work *) }
-    { destruct ADD. vauto. }
-      admit. (* TODO : add? *) }
+      admit. (* wf_s' *) }
   { unfold rf_complete.
     rewrite (seq_acts SIMRELQ), (seq_rf SIMRELQ).
     unfold rf_complete in RFC. rewrite EQACTS.
@@ -881,7 +892,9 @@ Proof using.
   { admit. (* TODO : po-work? *) }
   { rewrite <- (seq_lab SIMRELQ); vauto. }
   { admit. (* TODO : po-work? *) }
-  all : admit. (* TODO : add? *)
+  { apply INV'. }
+  constructor. (* wf_s' *)
+  all : admit.
 Admitted.
 
 Lemma simrel_step_e_else
@@ -944,10 +957,10 @@ Proof using.
     rf := mapper' ↑ rf_t';
     co := mapper' ↑ co_t';
     rmw := mapper' ↑ rmw_t';
-    rmw_dep := rmw_dep_t';
-    ctrl := ctrl_t';
-    data := data_t';
-    addr := addr_t';
+    rmw_dep := ∅₂;
+    ctrl := ∅₂;
+    data := ∅₂;
+    addr := ∅₂;
   |}).
   set (X_s' := {|
     WCore.sc := WCore.sc X_s;
@@ -1019,6 +1032,11 @@ Proof using.
       { subst x. rewrite upds; vauto. }
       rewrite updo; vauto.
       apply (seq_init SIMREL); vauto. }
+    { unfold mapper_rev'. intros x COND.
+      destruct classic with (x = e) as [EQ | NEQ].
+      { subst x. rewrite upds; vauto. }
+      rewrite updo; vauto.
+      apply (seq_init_rev SIMREL); vauto. }
     { intros e' INE NTID2.
       apply EQACTS in INE.
       destruct INE as [C1 | C2].
@@ -1130,17 +1148,12 @@ Proof using.
       { apply collect_rel_eq_dom' with (s := E_t); ins.
       apply (wf_rmwE); vauto. }
       now rewrite (seq_rmw SIMREL). }
-    { destruct ADD. rewrite add_event_data.
-      rewrite (seq_data SIMREL); vauto. }
-    { destruct ADD. rewrite add_event_addr.
-      rewrite (seq_addr SIMREL); vauto. }
-    { destruct ADD. rewrite add_event_ctrl.
-      rewrite (seq_ctrl SIMREL); vauto. }
-    { destruct ADD. rewrite add_event_rmw_dep.
-      rewrite (seq_rmw_dep SIMREL); vauto. }
+    { rewrite (seq_data SIMREL); vauto. }
+    { rewrite (seq_addr SIMREL); vauto. }
+    { rewrite (seq_ctrl SIMREL); vauto. }
+    { rewrite (seq_rmw_dep SIMREL); vauto. }
     { admit. (* po-work *) }
-    { destruct ADD. vauto. }
-    admit. (* TODO : add? *) }
+    admit. (* wf_s' *) }
   { unfold rf_complete.
     rewrite (seq_acts SIMRELQ), (seq_rf SIMRELQ).
     unfold rf_complete in RFC. rewrite EQACTS.
@@ -1182,7 +1195,9 @@ Proof using.
   { admit. (* TODO : po-work? *) }
   { rewrite <- (seq_lab SIMRELQ); vauto. }
   { admit. (* TODO : po-work? *) }
-  all : admit. (* TODO : add? *)
+  { apply INV'. }
+  constructor. (* wf_s' *)
+  all : admit.
 Admitted.
 
 

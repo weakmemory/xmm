@@ -162,6 +162,9 @@ Definition thrdle' := thrdle ∪ eq t_2 × eq t_1 ∪ (dom_rel (thrdle ⨾ ⦗eq
                       ∪ relation_lowering thrdle (dom_rel (thrdle ⨾ ⦗eq t_1⦘) \₁ eq t_2)
                       ∪ relation_lowering thrdle (codom_rel (⦗eq t_2⦘ ⨾ thrdle) \₁ eq t_1))⁺. *)
 
+Hypothesis INV : seq_simrel_inv X_t.
+Hypothesis INV' : seq_simrel_inv X_t'.
+
 Lemma simrel_step_reex
     (NINIT1 : t_1 <> tid_init)
     (NINIT2 : t_2 <> tid_init)
@@ -179,10 +182,10 @@ Proof using.
     rf := id ↑ rf_t';
     co := id ↑ co_t';
     rmw := id ↑ rmw_t';
-    rmw_dep := rmw_dep_t';
-    ctrl := ctrl_t';
-    data := data_t';
-    addr := addr_t';
+    rmw_dep := ∅₂;
+    ctrl := ∅₂;
+    data := ∅₂;
+    addr := ∅₂;
   |}).
   set (X_s' := {|
     WCore.sc := WCore.sc X_s;
@@ -199,7 +202,7 @@ Proof using.
       unfold id in TIDE. exfalso.
       apply wf_threads in INE; vauto.
       { apply TSET in INE; desf. }
-      admit. (* TODO : add? *) }
+      apply INV'. }
     { unfold po_seq.
       arewrite (WCore.G X_s' = G_s').
       unfold G_s' at 2. simpls.
@@ -211,7 +214,7 @@ Proof using.
         exfalso.
         apply wf_threads in INE; vauto.
         { apply TSET in INE; desf. }
-        admit. (* TODO : add? *) }
+        apply INV'. }
       rewrite cross_false_r.
       rewrite union_false_r.
       unfold sb. unfold G_s'; ins.
@@ -224,7 +227,7 @@ Proof using.
     all : unfold id in TID2; exfalso.
     all : apply wf_threads in INE; vauto.
     all : try apply TSET in INE; desf.
-    all : admit. (* TODO : add? *) }
+    all : apply INV'. }
   unfold WCore.reexec.
   exists thrdle'.
   arewrite (cmt' = cmt_t).
@@ -372,8 +375,8 @@ Proof using.
     all : try arewrite (WCore.G X_s' = G_s').
     { admit. (* po-work? *) }
     { admit. (* po-work? *) }
-    { admit. (* add *) }
-    { admit. (* add? *) }
+    { apply INV'. }
+    { admit. (* wf_s' *) }
     destruct STEP; vauto. }
   { admit. }
   apply sub_to_full_exec_listless
