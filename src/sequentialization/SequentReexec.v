@@ -16,7 +16,7 @@ From xmm Require Import ConsistencyMonotonicity.
 
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
-From imm Require Import Events Execution Execution_eco.
+From imm Require Import Events Execution Execution_eco SubExecution.
 Require Import Setoid Morphisms Program.Basics.
 
 Open Scope program_scope.
@@ -369,18 +369,55 @@ Proof using.
     rewrite collect_rel_id, set_collect_id,
         Combinators.compose_id_right.
     apply rexec_rfc. }
-  { admit. }
-  { apply XmmCons.monoton_cons with (G_t := G_t')
+  { constructor; ins.
+    { apply sub_WF with (G := G_s) (sc := ∅₂) (sc' := ∅₂).
+      { ins.
+        assert (INITDER : (fun a : actid => is_init a) ⊆₁ dtrmt_t).
+        { admit. }
+        rewrite INITDER; vauto. }
+      { admit. (* TODO : Wf G_s *) }
+      apply restrict_sub; [basic_solver |].
+      admit. }
+    { ins. rewrite set_interA, set_inter_absorb_r.
+      { constructor; ins.
+        all : admit. }
+      admit. 
+              (* assert (REXPFX : SubToFullExec.prefix
+                    (WCore.X_start X_s dtrmt') X_s').
+          { constructor; ins.
+          { arewrite (dtrmt' = dtrmt_t).
+            { unfold dtrmt'.
+              rewrite set_collect_id; vauto. }
+            rewrite set_inter_absorb_r.
+            { destruct STEP. rewrite dtrmt_init; vauto. }
+            destruct STEP. rewrite dtrmt_cmt, reexec_embd_dom.
+            admit. }
+          all : admit. } *) }
+    all : admit. }
+  { assert (SBEQ : sb G_s' ≡ sb_t').
+    { unfold sb. unfold G_s'; ins.
+      clear; basic_solver 8. }
+    apply XmmCons.monoton_cons with (G_t := G_t')
                     (m := id); vauto.
     all : try arewrite (WCore.G X_s' = G_s').
-    { admit. (* po-work? *) }
-    { admit. (* po-work? *) }
+    { unfold rpo. unfold rpo_imm.
+      arewrite (R G_s' ≡₁ R_t').
+      arewrite (F G_s' ≡₁ F G_t').
+      arewrite (W G_s' ≡₁ W G_t').
+      arewrite (Acq G_s' ≡₁ Acq G_t').
+      arewrite (Rlx G_s' ≡₁ Rlx G_t').
+      arewrite (Rel G_s' ≡₁ Rel G_t').
+      rewrite collect_rel_id.
+      apply inclusion_t_t.
+      rewrite SBEQ; vauto. }
+    { rewrite SBEQ. rewrite collect_rel_id.
+      unfold same_loc. unfold G_s'; ins. }
     { apply INV'. }
     { admit. (* wf_s' *) }
     destruct STEP; vauto. }
   { admit. }
   apply sub_to_full_exec_listless
-    with (thrdle := thrdle').
+    with (thrdle := thrdle'); vauto.
   all : admit.
 Admitted.
 

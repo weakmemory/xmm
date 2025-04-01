@@ -1200,6 +1200,4 @@ Proof using.
   all : admit.
 Admitted.
 
-
-
 End SimrelStep.
