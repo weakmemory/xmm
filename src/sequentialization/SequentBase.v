@@ -81,6 +81,7 @@ Record seq_simrel : Prop := {
     seq_lab : eq_dom E_t lab_t (lab_s ∘ mapper);
     seq_lab_rev : eq_dom E_t lab_s (lab_t ∘ mappre_rev);
     seq_acts : E_s ≡₁ mapper ↑₁ E_t;
+    seq_acts_rev : E_t ≡₁ mappre_rev ↑₁ E_s;
     seq_sb : sb_s ∪ po_seq ≡ mapper ↑ sb_t;
     seq_rf : rf_s ≡ mapper ↑ rf_t;
     seq_co : co_s ≡ mapper ↑ co_t;
@@ -97,6 +98,7 @@ Record seq_simrel : Prop := {
     seq_codom : mapper ↑₁ E_t ⊆₁ E_s;
 
     seq_mapeq : forall e : actid, E_t e -> tid (mapper e) <> t_2 -> mapper e = e;
+    seq_mapeq_rev : forall e : actid, E_s e -> tid e <> t_2 -> mappre_rev e = e;
     seq_mapto : forall e : actid, E_t e -> tid (mapper e) = t_2 -> mapper e = ThreadEvent t_2 (index e - t_1_len);
     seq_index : forall e : actid, E_t e -> tid (mapper e) = t_2 -> index e = t_1_len + index (mapper e);
 
@@ -149,6 +151,7 @@ Proof using.
       { rewrite <- H0. unfold tid. desf.
         unfold is_init in H. desf. }
       desf. }
+    { clear; basic_solver. }
     { clear; basic_solver. }
     { rewrite collect_rel_id; split; vauto.
       unfold po_seq; ins.

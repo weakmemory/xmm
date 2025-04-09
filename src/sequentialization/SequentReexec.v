@@ -149,18 +149,6 @@ Qed.
 Definition thrdle' := thrdle ∪ eq t_2 × eq t_1 ∪ (dom_rel (thrdle ⨾ ⦗eq t_1⦘) \₁ eq t_2) × eq t_2
                       ∪ eq t_2 × (codom_rel (⦗eq t_1⦘ ⨾ thrdle) \₁ eq t_2)
                       ∪ eq tid_init × codom_rel (thrdle).
-                      (* ∪ relation_lowering thrdle (dom_rel (thrdle ⨾ ⦗eq t_1⦘) \₁ eq t_2)
-                      ∪ relation_lowering thrdle (codom_rel (⦗eq t_2⦘ ⨾ thrdle) \₁ eq t_1)
-                      (* \ (fun x y => x = y). *)
-                      ∪ (dom_rel (thrdle ⨾ ⦗eq t_1⦘) \₁ eq t_2) × (codom_rel (⦗eq t_2⦘ ⨾ thrdle) \₁ eq t_1)
-                      ∪ eq t_2 × (codom_rel (⦗eq t_2⦘ ⨾ thrdle) \₁ eq t_1)
-                      ∪ (dom_rel (thrdle ⨾ ⦗eq t_1⦘) \₁ eq t_2) × eq t_1). *)
-
-(* Definition thrdle_ohne' := (eq t_2 × eq t_1 ∪ (dom_rel (thrdle ⨾ ⦗eq t_1⦘) \₁ eq t_2) × eq t_2
-                      ∪ eq t_1 × (codom_rel (⦗eq t_2⦘ ⨾ thrdle) \₁ eq t_1)
-                      ∪ eq tid_init × codom_rel (thrdle)
-                      ∪ relation_lowering thrdle (dom_rel (thrdle ⨾ ⦗eq t_1⦘) \₁ eq t_2)
-                      ∪ relation_lowering thrdle (codom_rel (⦗eq t_2⦘ ⨾ thrdle) \₁ eq t_1))⁺. *)
 
 Hypothesis INV : seq_simrel_inv X_t.
 Hypothesis INV' : seq_simrel_inv X_t'.
@@ -203,6 +191,7 @@ Proof using.
       apply wf_threads in INE; vauto.
       { apply TSET in INE; desf. }
       apply INV'. }
+    { unfold X_s'; ins. basic_solver 8. }
     { unfold po_seq.
       arewrite (WCore.G X_s' = G_s').
       unfold G_s' at 2. simpls.
@@ -316,41 +305,9 @@ Proof using.
         basic_solver 4. }
       unfold thrdle'. unfold transitive.
       intros x y z XY YZ.
-      
       (* TODO : discuss *)
-    
       admit. }
     admit. }
-              (* unfold irreflexive. intros x [CD FLS].
-              destruct FLS as [FLS _].
-              destruct STEP. destruct reexec_sur.
-              clear - CD FLS surg_order.
-              unfold strict_partial_order in surg_order.
-              destruct surg_order as [IRR _].
-              destruct IRR with x; vauto. }
-            unfold irreflexive. intros x [CD FLS].
-            destruct FLS as [FLS _].
-            destruct STEP. destruct reexec_sur.
-            clear - CD FLS surg_order.
-            unfold strict_partial_order in surg_order.
-            destruct surg_order as [IRR _].
-            destruct IRR with x; vauto. }
-          unfold irreflexive. intros x [CD1 CD2].
-              
-      { unfold thrdle'.
-        set (tlo := (eq t_2 × eq t_1
-        ∪ (dom_rel (thrdle ⨾ ⦗eq t_1⦘) \₁ eq t_2) × eq t_2
-        ∪ eq t_1 × (codom_rel (⦗eq t_2⦘ ⨾ thrdle) \₁ eq t_1)
-        ∪ eq tid_init × codom_rel thrdle
-        ∪ relation_lowering thrdle
-            (dom_rel (thrdle ⨾ ⦗eq t_1⦘) \₁ eq t_2)
-        ∪ relation_lowering thrdle
-            (codom_rel (⦗eq t_2⦘ ⨾ thrdle) \₁ eq t_1))).
-        clear. unfold transitive.
-        intros x y z XY YZ.
-        unfold minus_rel in *. 
-        admit. } *)
-
   { unfold sb. rewrite !seqA.
     rewrite <- !id_inter.
     rewrite <- seqA with (r1 := ⦗dtrmt_t⦘).
@@ -378,30 +335,35 @@ Proof using.
     desf.
     { destruct SIMREL.
       unfold fixset in seq_init_rev.
-
-    transitivity (ext_sb ⨾ ⦗E_t ∩₁ dtrmt_t⦘);
-              [basic_solver 8|].
-  
-    
-    basic_solver 8. }
-    
-     
-
-    intros x y PTH.
-    unfold sb in PTH.
-    rewrite 
-    subst x0. destruct STEP.
-    assert (YIN : E_t y).
-    { apply rexec_acts; vauto. }
-    unfold sb in PTH1. unfold sb.
-    unfold sb in reexec_dtrmt_sb_closed.
-    specialize (reexec_dtrmt_sb_closed x y).
-  
-  
-    admit. }
-  { 
-  
-  admit. }
+      assert (TRF : E_t (mapper_rev (InitEvent l))).
+      { apply seq_acts_rev.
+        unfold set_collect.
+        exists (InitEvent l); split; vauto. }
+      rewrite seq_init_rev in TRF; vauto.
+      clear - dtrmt_init TRF INE2.
+      split with (InitEvent l); vauto; split.
+      { basic_solver 21. }
+      split with (ThreadEvent thread index); vauto. }
+    destruct PTH as [EQ IDX]; subst.
+    assert (TNEQ : thread0 <> t_2).
+    { intros FALSE.
+      destruct INE2 as [TID2 _].
+      apply wf_threads in TID2; vauto.
+      admit. (* TODO : add *) }
+    destruct SIMREL.
+    destruct INE2 as [TID2 DT2].
+    assert (INET : E_t (ThreadEvent thread0 index)).
+    { apply seq_acts_rev.
+      unfold set_collect.
+      exists (ThreadEvent thread0 index); split; vauto.
+      apply seq_mapeq_rev; vauto. }
+    destruct reexec_dtrmt_sb_closed with
+        (ThreadEvent thread0 index)
+        (ThreadEvent thread0 index0).
+    { unfold sb. basic_solver 42. }
+    destruct H as [[EQ CD] PTH]; subst.
+    basic_solver 42. }
+  { admit. }
   { admit. }
   { destruct STEP.
     destruct reexec_embd_corr.
@@ -422,7 +384,7 @@ Proof using.
     { apply sub_WF with (G := G_s) (sc := ∅₂) (sc' := ∅₂).
       { ins.
         assert (INITDER : (fun a : actid => is_init a) ⊆₁ dtrmt_t).
-        { admit. }
+        { destruct STEP; vauto. }
         rewrite INITDER; vauto. }
       { admit. (* TODO : Wf G_s *) }
       apply restrict_sub; [basic_solver |].
@@ -430,18 +392,7 @@ Proof using.
     { ins. rewrite set_interA, set_inter_absorb_r.
       { constructor; ins.
         all : admit. }
-      admit. 
-              (* assert (REXPFX : SubToFullExec.prefix
-                    (WCore.X_start X_s dtrmt') X_s').
-          { constructor; ins.
-          { arewrite (dtrmt' = dtrmt_t).
-            { unfold dtrmt'.
-              rewrite set_collect_id; vauto. }
-            rewrite set_inter_absorb_r.
-            { destruct STEP. rewrite dtrmt_init; vauto. }
-            destruct STEP. rewrite dtrmt_cmt, reexec_embd_dom.
-            admit. }
-          all : admit. } *) }
+      admit. }
     all : admit. }
   { assert (SBEQ : sb G_s' ≡ sb_t').
     { unfold sb. unfold G_s'; ins.
