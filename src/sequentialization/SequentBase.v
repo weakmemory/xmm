@@ -99,6 +99,11 @@ Record seq_simrel : Prop := {
     seq_mapeq : forall e : actid, E_t e -> tid (mapper e) <> t_2 -> mapper e = e;
     seq_mapto : forall e : actid, E_t e -> tid (mapper e) = t_2 -> mapper e = ThreadEvent t_2 (index e - t_1_len);
     seq_index : forall e : actid, E_t e -> tid (mapper e) = t_2 -> index e = t_1_len + index (mapper e);
+
+    seq_rest : forall e : actid, ~ E_t e -> mapper e = e;
+    seq_rest_rev : forall e : actid, ~ E_t e -> mappre_rev e = e;
+    seq_rlab : forall e : actid, ~ E_t e -> lab_s e = lab_t (mappre_rev e);
+    seq_rlab_rev : forall e : actid, ~ E_t e -> lab_t e = lab_s (mapper e);
 }.
 
 Record seq_simrel_inv : Prop := {

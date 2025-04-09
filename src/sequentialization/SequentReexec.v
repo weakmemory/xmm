@@ -351,8 +351,57 @@ Proof using.
         unfold minus_rel in *. 
         admit. } *)
 
-  { admit. }
-  { admit. }
+  { unfold sb. rewrite !seqA.
+    rewrite <- !id_inter.
+    rewrite <- seqA with (r1 := ⦗dtrmt_t⦘).
+    rewrite <- id_inter.
+    assert (IND : dtrmt_t ⊆₁ E_t).
+    { destruct STEP.
+      rewrite rexec_acts; vauto. }
+    assert (DDT : E_s ∩₁ dtrmt_t ≡₁ E_t ∩₁ dtrmt_t).
+    { arewrite (dtrmt_t ≡₁ dtrmt_t ∩₁ E_t).
+      { basic_solver 8. }
+      split; [basic_solver 8 |].
+      assert (HIN : dtrmt_t ⊆₁ E_s).
+      { admit. (* TODO : discuss *)}
+      basic_solver 8. }
+    rewrite DDT.
+    arewrite (dtrmt_t ∩₁ E_s ≡₁ dtrmt_t ∩₁ E_t).
+    { clear - DDT.
+      rewrite set_interC, DDT.
+      basic_solver. }
+    destruct STEP.
+    intros x y PTH.
+    destruct PTH as [x0 [[EQ1 INE1]
+                [x1 [PTH [EQ2 INE2]]]]].
+    subst. unfold ext_sb in PTH.
+    desf.
+    { destruct SIMREL.
+      unfold fixset in seq_init_rev.
+
+    transitivity (ext_sb ⨾ ⦗E_t ∩₁ dtrmt_t⦘);
+              [basic_solver 8|].
+  
+    
+    basic_solver 8. }
+    
+     
+
+    intros x y PTH.
+    unfold sb in PTH.
+    rewrite 
+    subst x0. destruct STEP.
+    assert (YIN : E_t y).
+    { apply rexec_acts; vauto. }
+    unfold sb in PTH1. unfold sb.
+    unfold sb in reexec_dtrmt_sb_closed.
+    specialize (reexec_dtrmt_sb_closed x y).
+  
+  
+    admit. }
+  { 
+  
+  admit. }
   { admit. }
   { destruct STEP.
     destruct reexec_embd_corr.
