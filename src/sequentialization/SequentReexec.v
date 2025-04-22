@@ -164,16 +164,17 @@ Lemma simrel_step_reex
     << REX : WCore.reexec X_s X_s' id dtrmt' cmt' >>.
 Proof using.
 
-  set (mapper' := fun x => if (negb (BinPos.Pos.eqb (tid x) t_1)) then x
+  set (mapper' := fun x => ifP (~ E_t' x) then x else
+                           (if (negb (BinPos.Pos.eqb (tid x) t_1)) then x
                            else (if Nat.ltb (index x) t_1_len then x
-                           else ThreadEvent t_2 (index x - t_1_len))).
-  set (mapper_rev' := fun x => if (negb (BinPos.Pos.eqb (tid x) t_2)) then x
-                           else ThreadEvent t_1 (t_1_len + index x)).
+                           else ThreadEvent t_2 (index x - t_1_len)))).
 
   set (G_s' := {|
     acts_set := mapper' ↑₁ E_t';
     threads_set := threads_set G_s;
-    lab := lab_t' ∘ mapper_rev';
+    lab := lab_t' ∘ (fun x => ifP (~ (mapper' ↑₁ E_t') x) then x else
+                              ( if (negb (BinPos.Pos.eqb (tid x) t_2)) then x
+                              else ThreadEvent t_1 (t_1_len + index x)));
     rf := mapper' ↑ rf_t';
     co := mapper' ↑ co_t';
     rmw := mapper' ↑ rmw_t';
@@ -187,6 +188,10 @@ Proof using.
     WCore.G := G_s';
   |}).
 
+  set (mapper_rev' := fun x => ifP (~ (acts_set G_s') x) then x else
+                            ( if (negb (BinPos.Pos.eqb (tid x) t_2)) then x
+                            else ThreadEvent t_1 (t_1_len + index x))).
+
   exists X_s', mapper', mapper_rev'. split; red.
   { assert (threads_set G_t ≡₁ threads_set G_t') as TSET.
     { symmetry. apply reex_thrd_preserve with (f := f_t)
@@ -196,9 +201,22 @@ Proof using.
     { unfold mapper', mapper_rev'.
       unfold eq_dom. intros x INE.
       unfold compose. desf; vauto.
-      { clear - Heq. exfalso.
-        rewrite Bool.negb_true_iff in *.
-        apply BinPos.Pos.eqb_neq in Heq; vauto. }
+      { unfold G_s' in Heq; ins. exfalso.
+        apply n. unfold set_collect.
+        exists x; split; vauto.
+        unfold mapper'. desf; vauto. }
+      { unfold G_s' in Heq; ins.
+        apply Bool.negb_true_iff in Heq.
+        clear - Heq.
+        apply BinPos.Pos.eqb_neq in Heq.
+        desf. }
+      { rewrite Bool.negb_false_iff in *.
+        apply BinPos.Peqb_true_eq in Heq.
+        unfold tid in *.
+        apply wf_threads in INE; vauto.
+        { apply TSET in INE.
+          exfalso. desf. }
+        apply INV'. }
       { rewrite Bool.negb_false_iff in *.
         apply BinPos.Peqb_true_eq in Heq.
         clear - Heq INE TSET T2NOTIN INV'.
@@ -206,10 +224,6 @@ Proof using.
         { exfalso. apply TSET in INE.
           desf. }
         apply INV'. }
-      { clear - Heq Heq0 THRDNEQ.
-        rewrite Bool.negb_false_iff in *.
-        apply BinPos.Peqb_true_eq in Heq, Heq0.
-        exfalso. basic_solver. }
       rewrite Bool.negb_false_iff in *.
       apply BinPos.Peqb_true_eq in Heq, Heq0.
       clear - Heq Heq0 Heq1 THRDNEQ NINIT1.
@@ -293,6 +307,10 @@ Proof using.
       rewrite Bool.negb_false_iff in *.
       apply BinPos.Peqb_true_eq in Heq; vauto. }
     { unfold X_s'; ins.
+      arewrite ((fun x : actid =>
+      ifP ~ (mapper' ↑₁ E_t') x then x
+      else (if negb (BinPos.Pos.eqb (tid x) t_2)
+            then x else ThreadEvent t_1 (t_1_len + index x))) = mapper_rev').
       clear - MAPCOMP.
       unfold eq_dom in *.
       intros x INE. unfold compose.
@@ -490,7 +508,8 @@ Proof using.
         { apply collect_rel_eqv.
           unfold collect_rel.
           exists (InitEvent l ), (InitEvent l); split; vauto.
-          unfold mapper'. rewrite HEQ; vauto. }
+          unfold mapper'. rewrite HEQ; vauto.
+          split; vauto. clear; basic_solver. }
         exists (mapper' x1); split; vauto.
         unfold mapper'. desf; basic_solver. }
       destruct x1.
@@ -520,14 +539,16 @@ Proof using.
               { unfold mapper'; ins.
                 rewrite HP1, HP2; vauto. }
               unfold mapper'; ins.
-              rewrite HP1, HP2; vauto. }
+              rewrite HP1, HP2; vauto.
+              clear; basic_solver. }
             exists (ThreadEvent t_1 index0); split; vauto.
             apply collect_rel_eqv.
             unfold collect_rel.
             exists (ThreadEvent t_1 index0),
                    (ThreadEvent t_1 index0); splits; vauto.
             { unfold mapper'; ins.
-              rewrite HP1, HP3; vauto. }
+              rewrite HP1, HP3; vauto.
+              clear; basic_solver. }
             unfold mapper'; ins.
             rewrite HP1, HP3; vauto. }
           subst. right. unfold mapper' at 3 4.
@@ -542,11 +563,13 @@ Proof using.
           { apply Compare_dec.leb_correct_conv. lia. }
           split; split.
           { unfold mapper'.
-            rewrite HP1, HP2; vauto. }
+            rewrite HP1, HP2; vauto.
+            clear; basic_solver. }
           { unfold set_collect.
             exists (ThreadEvent t_1 index); splits; vauto.
             unfold mapper'; basic_solver 8. }
-          { rewrite HP1, HP3; vauto. }
+          { rewrite HP1, HP3; vauto.
+            desf. }
           unfold set_collect. exists (ThreadEvent t_1 index0); split; vauto.
           unfold mapper'. rewrite HP1.
           unfold Events.index.
@@ -571,7 +594,8 @@ Proof using.
                  (ThreadEvent thread0 index); splits; vauto.
           unfold mapper'.
           unfold tid. rewrite HP1.
-          unfold Events.index. rewrite HP2; vauto. }
+          unfold Events.index. rewrite HP2; vauto.
+          desf. }
         exists (ThreadEvent t_2 (index0 - t_1_len)); split.
         { clear - IND IND1 IND2.
           unfold ext_sb; splits; vauto.
@@ -582,7 +606,8 @@ Proof using.
                (ThreadEvent thread0 index0); splits; vauto.
         unfold mapper'. unfold tid.
         rewrite HP1. unfold Events.index.
-        rewrite HP3; vauto. }
+        rewrite HP3; vauto.
+        desf. }
       left.
       unfold sb. unfold G_s'; ins.
       unfold seq. exists (ThreadEvent thread0 index); splits; vauto.
@@ -594,7 +619,8 @@ Proof using.
         assert (HP1 : negb (BinPos.Pos.eqb thread0 t_1) = true).
         { rewrite Bool.negb_true_iff.
           clear - THRD1. apply BinPos.Pos.eqb_neq; vauto. }
-        unfold tid. rewrite HP1; vauto. }
+        unfold tid. rewrite HP1; vauto.
+        desf. }
       exists (ThreadEvent thread0 index0); splits; vauto.
       apply collect_rel_eqv.
       unfold collect_rel.
@@ -604,7 +630,8 @@ Proof using.
       assert (HP1 : negb (BinPos.Pos.eqb thread0 t_1) = true).
       { rewrite Bool.negb_true_iff.
         clear - THRD1. apply BinPos.Pos.eqb_neq; vauto. }
-      unfold tid. rewrite HP1; vauto. }
+      unfold tid. rewrite HP1; vauto.
+      desf. }
     { arewrite (WCore.G X_s' = G_s').
       unfold G_s'; ins. rewrite <- TSET.
       apply SIMREL. }
@@ -615,7 +642,7 @@ Proof using.
         apply BinPos.Pos.eqb_neq.
         unfold tid. unfold is_init in INIT.
         clear - INIT NINIT1. basic_solver 8. }
-      rewrite HP; vauto. }
+      rewrite HP; vauto; desf. }
     { unfold fixset. intros e INIT.
       unfold mapper_rev'.
       assert (HP : negb (BinPos.Pos.eqb (tid e) t_2) = true).
@@ -623,7 +650,8 @@ Proof using.
         apply BinPos.Pos.eqb_neq.
         unfold tid. unfold is_init in INIT.
         clear - INIT NINIT2. basic_solver 8. }
-      rewrite HP; vauto. }
+      rewrite HP; vauto.
+      clear; basic_solver. }
     { intros e INE TID2.
       unfold mapper'. 
       desf; vauto.
@@ -649,7 +677,9 @@ Proof using.
       { unfold mapper' in TID2.
         rewrite Heq in TID2.
         apply wf_threads in INE.
-        { rewrite TID2 in INE.
+        { assert (TID2' : tid e = t_2).
+          { clear - TID2. basic_solver. }
+           rewrite <- TID2'. rewrite TID2' in INE.
           exfalso. apply TSET in INE. desf. }
         apply INV'. }
       { unfold mapper' in TID2.
@@ -659,7 +689,8 @@ Proof using.
           apply Compare_dec.leb_correct; vauto. }
         rewrite HP in TID2.
         apply wf_threads in INE.
-        { rewrite TID2 in INE.
+        { assert (TID2' : tid e = t_2).
+          { clear - TID2. basic_solver. }
           exfalso. apply TSET in INE. desf. }
         apply INV'. }
       basic_solver. }
@@ -668,7 +699,9 @@ Proof using.
       { unfold mapper' in TID2.
         rewrite Heq in TID2.
         apply wf_threads in INE.
-        { rewrite TID2 in INE.
+        { assert (TID2' : tid e = t_2).
+          { clear - TID2. basic_solver. }
+          rewrite TID2' in INE.
           exfalso. apply TSET in INE. desf. }
         apply INV'. }
       { unfold mapper' in TID2.
@@ -678,14 +711,18 @@ Proof using.
           apply Compare_dec.leb_correct; vauto. }
         rewrite HP in TID2.
         apply wf_threads in INE.
-        { rewrite TID2 in INE.
+        { assert (TID2' : tid e = t_2).
+          { clear - TID2. basic_solver. }
+          rewrite TID2' in INE.
           exfalso. apply TSET in INE. desf. }
         apply INV'. }
       arewrite (SequentBase.t_1_len t_1 ptc_1 = t_1_len).
       arewrite (index (ThreadEvent t_2 (index e - t_1_len)) = index e - t_1_len).
       lia. }
-    all : admit.
-    (* TODO : discuss *) }
+    { intros e NINE.
+      unfold mapper'; desf. }
+    intros e NINE.
+    unfold mapper_rev'; desf. }
   unfold WCore.reexec.
   exists thrdle'.
   arewrite (cmt' = cmt_t).

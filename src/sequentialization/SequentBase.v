@@ -79,7 +79,7 @@ Record seq_simrel : Prop := {
     seq_tid_2 : forall e : actid, E_t e -> tid (mapper e) = t_2 -> tid e = t_1;
 
     seq_lab : eq_dom E_t lab_t (lab_s ∘ mapper);
-    seq_lab_rev : eq_dom E_t lab_s (lab_t ∘ mappre_rev);
+    seq_lab_rev : eq_dom E_s lab_s (lab_t ∘ mappre_rev);
     seq_acts : E_s ≡₁ mapper ↑₁ E_t;
     seq_acts_rev : E_t ≡₁ mappre_rev ↑₁ E_s;
     seq_sb : sb_s ∪ po_seq ≡ mapper ↑ sb_t;
@@ -103,9 +103,8 @@ Record seq_simrel : Prop := {
     seq_index : forall e : actid, E_t e -> tid (mapper e) = t_2 -> index e = t_1_len + index (mapper e);
 
     seq_rest : forall e : actid, ~ E_t e -> mapper e = e;
-    seq_rest_rev : forall e : actid, ~ E_t e -> mappre_rev e = e;
-    seq_rlab : forall e : actid, ~ E_t e -> lab_s e = lab_t (mappre_rev e);
-    seq_rlab_rev : forall e : actid, ~ E_t e -> lab_t e = lab_s (mapper e);
+    seq_rest_rev : forall e : actid, ~ E_s e -> mappre_rev e = e;
+    seq_rlab : forall e : actid, ~ E_s e -> lab_s e = lab_t (mappre_rev e);
 }.
 
 Record seq_simrel_inv : Prop := {
