@@ -115,9 +115,6 @@ Definition t_2_len := length (ptc_1 t_2).
 (* Definition cmt' := mapper ↑₁ cmt_t.
 Definition dtrmt' := mapper ↑₁ dtrmt_t. *)
 
-Definition cmt' := id ↑₁ cmt_t.
-Definition dtrmt' := id ↑₁ dtrmt_t.
-
 Definition relation_lowering (A : Type) (r : relation A) (P : A -> Prop) : relation A :=
   fun x y => r x y /\ P x /\ P y.
 
@@ -159,7 +156,8 @@ Lemma simrel_step_reex
     (T2NOTIN : ~ threads_set G_t t_2)
     (THRDNEQ : t_1 <> t_2)
     (SIMREL : seq_simrel X_s X_t t_1 t_2 mapper mapper_rev ptc_1) :
-  exists (X_s' : WCore.t) (mapper' : actid -> actid) (mapper_rev' : actid -> actid),
+  exists (X_s' : WCore.t) (mapper' : actid -> actid) (mapper_rev' : actid -> actid)
+    (dtrmt' : actid -> Prop) (cmt' : actid -> Prop),
     << SIMREL : seq_simrel X_s' X_t' t_1 t_2 mapper' mapper_rev' ptc_1 >> /\
     << REX : WCore.reexec X_s X_s' id dtrmt' cmt' >>.
 Proof using.
@@ -192,51 +190,56 @@ Proof using.
                             ( if (negb (BinPos.Pos.eqb (tid x) t_2)) then x
                             else ThreadEvent t_1 (t_1_len + index x))).
 
-  exists X_s', mapper', mapper_rev'. split; red.
-  { assert (threads_set G_t ≡₁ threads_set G_t') as TSET.
-    { symmetry. apply reex_thrd_preserve with (f := f_t)
-        (dtrmt := dtrmt_t) (cmt := cmt_t)
-        (thrdle := thrdle); vauto. }
-    assert (MAPCOMP : eq_dom E_t' (mapper_rev' ∘ mapper') id).
-    { unfold mapper', mapper_rev'.
-      unfold eq_dom. intros x INE.
-      unfold compose. desf; vauto.
-      { unfold G_s' in Heq; ins. exfalso.
-        apply n. unfold set_collect.
-        exists x; split; vauto.
-        unfold mapper'. desf; vauto. }
-      { unfold G_s' in Heq; ins.
-        apply Bool.negb_true_iff in Heq.
-        clear - Heq.
-        apply BinPos.Pos.eqb_neq in Heq.
+  set (dtrmt' := mapper' ↑₁ dtrmt_t).
+  set (cmt' := mapper' ↑₁ cmt_t).
+
+  exists X_s', mapper', mapper_rev', dtrmt', cmt'.
+  assert (threads_set G_t ≡₁ threads_set G_t') as TSET.
+  { symmetry. apply reex_thrd_preserve with (f := f_t)
+      (dtrmt := dtrmt_t) (cmt := cmt_t)
+      (thrdle := thrdle); vauto. }
+  assert (MAPCOMP : eq_dom E_t' (mapper_rev' ∘ mapper') id).
+  { unfold mapper', mapper_rev'.
+    unfold eq_dom. intros x INE.
+    unfold compose. desf; vauto.
+    { unfold G_s' in Heq; ins. exfalso.
+      apply n. unfold set_collect.
+      exists x; split; vauto.
+      unfold mapper'. desf; vauto. }
+    { unfold G_s' in Heq; ins.
+      apply Bool.negb_true_iff in Heq.
+      clear - Heq.
+      apply BinPos.Pos.eqb_neq in Heq.
+      desf. }
+    { rewrite Bool.negb_false_iff in *.
+      apply BinPos.Peqb_true_eq in Heq.
+      unfold tid in *.
+      apply wf_threads in INE; vauto.
+      { apply TSET in INE.
+        exfalso. desf. }
+      apply INV'. }
+    { rewrite Bool.negb_false_iff in *.
+      apply BinPos.Peqb_true_eq in Heq.
+      clear - Heq INE TSET T2NOTIN INV'.
+      apply wf_threads in INE; vauto.
+      { exfalso. apply TSET in INE.
         desf. }
-      { rewrite Bool.negb_false_iff in *.
-        apply BinPos.Peqb_true_eq in Heq.
-        unfold tid in *.
-        apply wf_threads in INE; vauto.
-        { apply TSET in INE.
-          exfalso. desf. }
-        apply INV'. }
-      { rewrite Bool.negb_false_iff in *.
-        apply BinPos.Peqb_true_eq in Heq.
-        clear - Heq INE TSET T2NOTIN INV'.
-        apply wf_threads in INE; vauto.
-        { exfalso. apply TSET in INE.
-          desf. }
-        apply INV'. }
-      rewrite Bool.negb_false_iff in *.
-      apply BinPos.Peqb_true_eq in Heq, Heq0.
-      clear - Heq Heq0 Heq1 THRDNEQ NINIT1.
-      destruct x.
-      { clear - Heq0 NINIT1.
-        exfalso; desf. }
-      unfold Events.index in *.
-      unfold tid in Heq0. subst.
-      unfold id.
-      assert (HLP : (t_1_len + (index - t_1_len)) = index).
-      { lia. }
-      basic_solver. }
-    constructor; vauto.
+      apply INV'. }
+    rewrite Bool.negb_false_iff in *.
+    apply BinPos.Peqb_true_eq in Heq, Heq0.
+    clear - Heq Heq0 Heq1 THRDNEQ NINIT1.
+    destruct x.
+    { clear - Heq0 NINIT1.
+      exfalso; desf. }
+    unfold Events.index in *.
+    unfold tid in Heq0. subst.
+    unfold id.
+    assert (HLP : (t_1_len + (index - t_1_len)) = index).
+    { lia. }
+    basic_solver. }
+  assert (SIMRELQ : seq_simrel X_s' X_t' t_1 t_2
+                          mapper' mapper_rev' ptc_1).
+  { constructor; vauto.
     { unfold inj_dom. intros x y INX INY MAP.
       unfold mapper' in MAP. desf; vauto.
       { apply wf_threads in INX.
@@ -535,7 +538,7 @@ Proof using.
             { apply collect_rel_eqv.
               unfold collect_rel.
               exists (ThreadEvent t_1 index),
-                     (ThreadEvent t_1 index); splits; vauto.
+                    (ThreadEvent t_1 index); splits; vauto.
               { unfold mapper'; ins.
                 rewrite HP1, HP2; vauto. }
               unfold mapper'; ins.
@@ -545,7 +548,7 @@ Proof using.
             apply collect_rel_eqv.
             unfold collect_rel.
             exists (ThreadEvent t_1 index0),
-                   (ThreadEvent t_1 index0); splits; vauto.
+                  (ThreadEvent t_1 index0); splits; vauto.
             { unfold mapper'; ins.
               rewrite HP1, HP3; vauto.
               clear; basic_solver. }
@@ -591,7 +594,7 @@ Proof using.
         { apply collect_rel_eqv.
           unfold collect_rel.
           exists (ThreadEvent thread0 index),
-                 (ThreadEvent thread0 index); splits; vauto.
+                (ThreadEvent thread0 index); splits; vauto.
           unfold mapper'.
           unfold tid. rewrite HP1.
           unfold Events.index. rewrite HP2; vauto.
@@ -603,7 +606,7 @@ Proof using.
         apply collect_rel_eqv.
         unfold collect_rel.
         exists (ThreadEvent thread0 index0),
-               (ThreadEvent thread0 index0); splits; vauto.
+              (ThreadEvent thread0 index0); splits; vauto.
         unfold mapper'. unfold tid.
         rewrite HP1. unfold Events.index.
         rewrite HP3; vauto.
@@ -614,7 +617,7 @@ Proof using.
       { apply collect_rel_eqv.
         unfold collect_rel.
         exists (ThreadEvent thread0 index),
-               (ThreadEvent thread0 index); splits; vauto.
+              (ThreadEvent thread0 index); splits; vauto.
         unfold mapper'.
         assert (HP1 : negb (BinPos.Pos.eqb thread0 t_1) = true).
         { rewrite Bool.negb_true_iff.
@@ -625,7 +628,7 @@ Proof using.
       apply collect_rel_eqv.
       unfold collect_rel.
       exists (ThreadEvent thread0 index0),
-             (ThreadEvent thread0 index0); splits; vauto.
+            (ThreadEvent thread0 index0); splits; vauto.
       unfold mapper'.
       assert (HP1 : negb (BinPos.Pos.eqb thread0 t_1) = true).
       { rewrite Bool.negb_true_iff.
@@ -679,7 +682,7 @@ Proof using.
         apply wf_threads in INE.
         { assert (TID2' : tid e = t_2).
           { clear - TID2. basic_solver. }
-           rewrite <- TID2'. rewrite TID2' in INE.
+          rewrite <- TID2'. rewrite TID2' in INE.
           exfalso. apply TSET in INE. desf. }
         apply INV'. }
       { unfold mapper' in TID2.
@@ -719,25 +722,73 @@ Proof using.
       arewrite (SequentBase.t_1_len t_1 ptc_1 = t_1_len).
       arewrite (index (ThreadEvent t_2 (index e - t_1_len)) = index e - t_1_len).
       lia. }
+    { intros e INE COND.
+      unfold mapper' in COND. desf.
+      { apply wf_threads in INE.
+        { exfalso. apply TSET in INE. desf. }
+        apply INV'. }
+      { rewrite Bool.negb_false_iff in *.
+        apply BinPos.Peqb_true_eq in Heq; vauto. }
+      rewrite Bool.negb_false_iff in *.
+      apply BinPos.Peqb_true_eq in Heq; vauto. }
     { intros e NINE.
       unfold mapper'; desf. }
     intros e NINE.
     unfold mapper_rev'; desf. }
+  split; red.
+  { apply SIMRELQ. }
+  
+  assert (MAPS : forall x y, E_t' x -> E_t y ->
+          mapper' x = mapper y -> x = y).
+  { intros x y INX INY MAP.
+    destruct x.
+    { destruct y.
+      { rewrite (seq_init SIMREL) in MAP; vauto.
+        rewrite (seq_init SIMRELQ) in MAP; vauto. }
+      rewrite (seq_init SIMRELQ) in MAP; vauto.
+      assert (FLS : mapper_rev (InitEvent l) = 
+                mapper_rev (mapper (ThreadEvent thread index))).
+      { rewrite MAP; vauto. }
+      unfold compose in MAPREV.
+      rewrite MAPREV in FLS; vauto.
+      unfold id in FLS.
+      rewrite (seq_init_rev SIMREL) in FLS; vauto. }
+    destruct y.
+    { rewrite (seq_init SIMREL) in MAP; vauto.
+      assert (FLS : mapper_rev' (mapper' (ThreadEvent thread index)) = 
+                mapper_rev' (InitEvent l)).
+      { rewrite MAP; vauto. }
+      unfold compose in MAPCOMP.
+      rewrite MAPCOMP in FLS; vauto.
+      unfold id in FLS.
+      rewrite (seq_init_rev SIMRELQ) in FLS; vauto. }
+    destruct classic with (tid (mapper (ThreadEvent thread0 index0)) = t_2)
+              as [TID2 | TID2].
+    { unfold mapper' in MAP.
+      destruct classic with (~ E_t' (ThreadEvent thread index)) as [CND1 | CND1].
+      { desf. }
+      destruct classic with (negb (BinPos.Pos.eqb (tid
+            (ThreadEvent thread index)) t_1)) as [CND2 | CND2].
+      { admit. }
+      admit. }
+    admit. }
+        
   unfold WCore.reexec.
   exists thrdle'.
-  arewrite (cmt' = cmt_t).
-  { unfold cmt'.
-    rewrite set_collect_id; vauto. }
-  arewrite (dtrmt' = dtrmt_t).
-  { unfold dtrmt'.
-    rewrite set_collect_id; vauto. }
   constructor; vauto.
-  { unfold dtrmt'. destruct STEP.
+  { unfold dtrmt'. destruct SIMRELQ.
+    arewrite ((fun a : actid => is_init a) ⊆₁
+              mapper' ↑₁ (fun a : actid => is_init a)).
+    { clear- seq_init.
+      unfold fixset in seq_init.
+      basic_solver. }
+    destruct STEP.
     rewrite dtrmt_init; vauto. }
-  { exact (WCore.dtrmt_cmt STEP). }
-  { destruct STEP.
+  { unfold dtrmt', cmt'.
+    rewrite (WCore.dtrmt_cmt STEP); vauto. }
+  { destruct STEP. unfold cmt'.
     arewrite (WCore.G X_s' = G_s').
-    unfold G_s'. simpls. unfold cmt'.
+    unfold G_s'. simpls.
     basic_solver 8. }
   { constructor.
     { destruct STEP. destruct reexec_sur.
@@ -816,59 +867,109 @@ Proof using.
     admit. }
   { unfold sb. rewrite !seqA.
     rewrite <- !id_inter.
-    rewrite <- seqA with (r1 := ⦗dtrmt_t⦘).
+    rewrite <- seqA with (r1 := ⦗dtrmt'⦘).
     rewrite <- id_inter.
-    assert (IND : dtrmt_t ⊆₁ E_t).
-    { destruct STEP.
-      rewrite rexec_acts; vauto. }
-    assert (DDT : E_s ∩₁ dtrmt_t ≡₁ E_t ∩₁ dtrmt_t).
-    { arewrite (dtrmt_t ≡₁ dtrmt_t ∩₁ E_t).
-      { basic_solver 8. }
-      split; [basic_solver 8 |].
-      assert (HIN : dtrmt_t ⊆₁ E_s).
-      { admit. (* TODO : discuss *)}
-      basic_solver 8. }
-    rewrite DDT.
-    arewrite (dtrmt_t ∩₁ E_s ≡₁ dtrmt_t ∩₁ E_t).
-    { clear - DDT.
-      rewrite set_interC, DDT.
-      basic_solver. }
-    destruct STEP.
+    unfold dtrmt'. destruct SIMREL.
+    rewrite seq_acts.
     intros x y PTH.
-    destruct PTH as [x0 [[EQ1 INE1]
-                [x1 [PTH [EQ2 INE2]]]]].
-    subst. unfold ext_sb in PTH.
-    desf.
-    { destruct SIMREL.
-      unfold fixset in seq_init_rev.
-      assert (TRF : E_t (mapper_rev (InitEvent l))).
-      { apply seq_acts_rev.
-        unfold set_collect.
-        exists (InitEvent l); split; vauto. }
-      rewrite seq_init_rev in TRF; vauto.
-      clear - dtrmt_init TRF INE2.
-      split with (InitEvent l); vauto; split.
-      { basic_solver 21. }
-      split with (ThreadEvent thread index); vauto. }
-    destruct PTH as [EQ IDX]; subst.
-    assert (TNEQ : thread0 <> t_2).
-    { intros FALSE.
-      destruct INE2 as [TID2 _].
-      apply wf_threads in TID2; vauto.
-      admit. (* TODO : add *) }
-    destruct SIMREL.
-    destruct INE2 as [TID2 DT2].
-    assert (INET : E_t (ThreadEvent thread0 index)).
-    { apply seq_acts_rev.
+    destruct PTH as [x0 [[EQ1 IN1]
+                      [x1 [PTH [EQ2 [IN2 IN3]]]]]].
+    destruct IN1 as [x2 [IN1 M1]].
+    destruct IN2 as [x3 [IN2 M2]].
+    subst.
+    unfold seq. exists (mapper x2); split.
+    { red; split; vauto.
+      split; [| basic_solver].
+      destruct STEP.
+      destruct reexec_dtrmt_sb_closed with
+          (x := x2) (y := x3).
+      { unfold seq. exists x3; split.
+        { destruct x2.
+          { unfold sb.
+            unfold seq; exists (InitEvent l); split; vauto.
+            exists x3; split; vauto.
+            unfold ext_sb. desf.
+            rewrite !seq_init in PTH; vauto. }
+          destruct classic with (tid (mapper 
+                (ThreadEvent thread index)) = t_2) as [TID2 | TID2].
+          { rewrite seq_mapto in PTH.
+            { destruct x3.
+              { rewrite !seq_init in PTH; vauto. }
+              destruct classic with (tid (mapper 
+                    (ThreadEvent thread0 index0)) = t_2) as [TID2' | TID2'].
+              { rewrite seq_mapto in PTH.
+                { assert (TD1 : thread = t_1).
+                  { apply seq_thrd in TID2; vauto. }
+                  assert (TD2 : thread0 = t_1).
+                  { apply seq_thrd in TID2'; vauto. }
+                  clear - PTH IN1 IN2 TID2 TID2' TD1 TD2.
+                  unfold sb. unfold seq.
+                  exists (ThreadEvent thread index); split; vauto.
+                  exists (ThreadEvent t_1 index0); split; vauto.
+                  unfold ext_sb. desf; split; vauto.
+                  unfold ext_sb in PTH. desf.
+                  unfold Events.index in *. lia. }
+                all : vauto. }
+              clear - TID2 TID2' PTH IN1 IN2.
+              unfold sb. unfold seq.
+              exists (ThreadEvent thread index); split; vauto.
+              exists (ThreadEvent thread0 index0); split; vauto.
+              unfold ext_sb in *.
+              unfold tid in *.
+              desf; desf. }
+            all : vauto. }
+          destruct x3.
+          { exfalso.
+            assert (HLP : mapper (InitEvent l)
+                = InitEvent l).
+            { rewrite seq_init; vauto. }
+            rewrite HLP in PTH.
+            clear - PTH.
+            unfold ext_sb in PTH.
+            desf. }
+          destruct classic with (tid (mapper 
+                (ThreadEvent thread0 index0)) = t_2) as [TID2' | TID2'].
+          { clear - TID2 TID2' PTH IN1 IN2 seq_init seq_init_rev MAPREV.
+            unfold sb. unfold seq.
+            exists (ThreadEvent thread index); split; vauto.
+            exists (ThreadEvent thread0 index0); split; vauto.
+            exfalso. unfold ext_sb in *.
+            unfolder. desf.
+            { assert (Heqq : mapper_rev (mapper (ThreadEvent thread index)) =
+                mapper_rev (InitEvent l)).
+              { rewrite Heq; vauto. }
+              unfold compose in MAPREV.
+              rewrite MAPREV in Heqq; vauto.
+              unfold id in Heqq.
+              rewrite seq_init_rev in Heqq; vauto. }
+            unfold tid in *. desf. }
+          assert (EQQ1 : mapper (ThreadEvent thread index) =
+              ThreadEvent thread index).
+          { rewrite seq_mapeq; vauto. }
+          assert (EQQ2 : mapper (ThreadEvent thread0 index0) =
+              ThreadEvent thread0 index0).
+          { rewrite seq_mapeq; vauto. }
+          rewrite EQQ1, EQQ2 in PTH.
+          unfold sb. unfold seq.
+          exists (ThreadEvent thread index); split; vauto. }
+        red; split; vauto.
+        unfold set_collect in IN3.
+        destruct IN3 as [x4 [IN3 EQ]].
+        assert (IN4 : E_t' x4).
+        { apply dtrmt_cmt, reexec_embd_dom in IN3; vauto. }
+        unfold mapper' in EQ.
+        apply MAPS in EQ; vauto. }
       unfold set_collect.
-      exists (ThreadEvent thread0 index); split; vauto.
-      apply seq_mapeq_rev; vauto. }
-    destruct reexec_dtrmt_sb_closed with
-        (ThreadEvent thread0 index)
-        (ThreadEvent thread0 index0).
-    { unfold sb. basic_solver 42. }
-    destruct H as [[EQ CD] PTH]; subst.
-    basic_solver 42. }
+      exists x2; split.
+      { destruct H as [DT _].
+        red in DT. basic_solver 4. }
+      destruct x2.
+      { rewrite seq_init; vauto.
+        destruct SIMRELQ.
+        rewrite seq_init0; vauto. }
+      admit. }
+    exists (mapper x3); split; vauto.
+    red; split; vauto. }
   { admit. }
   { admit. }
   { destruct STEP.
@@ -883,6 +984,15 @@ Proof using.
   { destruct STEP. unfold rf_complete.
     arewrite (WCore.G X_s' = G_s').
     unfold G_s'. simpls.
+    arewrite ((fun x : actid =>
+    ifP ~ (mapper' ↑₁ E_t') x then x
+    else (if
+           negb
+             (BinPos.Pos.eqb (tid x) t_2)
+          then x
+          else
+           ThreadEvent t_1
+             (t_1_len + index x))) = mapper_rev').
     rewrite collect_rel_id, set_collect_id,
         Combinators.compose_id_right.
     apply rexec_rfc. }

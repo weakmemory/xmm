@@ -101,6 +101,7 @@ Record seq_simrel : Prop := {
     seq_mapeq_rev : forall e : actid, E_s e -> tid e <> t_2 -> mappre_rev e = e;
     seq_mapto : forall e : actid, E_t e -> tid (mapper e) = t_2 -> mapper e = ThreadEvent t_2 (index e - t_1_len);
     seq_index : forall e : actid, E_t e -> tid (mapper e) = t_2 -> index e = t_1_len + index (mapper e);
+    seq_thrd : forall e : actid, E_t e -> tid (mapper e) = t_2 -> tid e = t_1;
 
     seq_rest : forall e : actid, ~ E_t e -> mapper e = e;
     seq_rest_rev : forall e : actid, ~ E_s e -> mappre_rev e = e;
