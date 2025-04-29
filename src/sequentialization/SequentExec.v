@@ -240,7 +240,7 @@ Proof using.
         { rewrite <- FALSE.
           apply (seq_codom SIMREL); vauto. }
         desf. }
-    { admit. }
+    { admit. (*?????????*) }
     { unfold sb. unfold G_s'; ins.
       split; intros x y COND.
       { destruct COND as [CD1 | CD2].
