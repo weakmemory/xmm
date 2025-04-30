@@ -198,6 +198,89 @@ Proof using.
   { symmetry. apply reex_thrd_preserve with (f := f_t)
       (dtrmt := dtrmt_t) (cmt := cmt_t)
       (thrdle := thrdle); vauto. }
+  
+  assert (INDLEMMA : forall x y (NNIT : tid x <> tid_init) (EQT : tid x = tid y) (EQI : index x = index y),
+          x = y).
+  { clear. intros x y NNIT EQT EQI.
+    destruct x; destruct y; desf; ins.
+    desf. }
+
+  assert (DTRSAME : forall x, dtrmt_t x -> 
+                      mapper x = mapper' x).
+  { intros x COND.
+    destruct classic with (tid (mapper
+                      x) = t_2) as [TID2 | TID2].
+    { assert (TID2' : tid (mapper x) = t_2) by vauto.
+      assert (TID2S : tid (mapper x) = t_2) by vauto.
+      destruct SIMREL.
+      apply seq_index in TID2.
+      apply seq_thrd in TID2'.
+      { apply INDLEMMA.
+        { unfold mapper'. desf. }
+        { unfold mapper'.
+          rewrite TID2S. clear TID2S.
+          desf.
+          { destruct STEP.
+            apply dtrmt_cmt in COND.
+            apply reexec_embd_dom in COND; vauto. }
+          symmetry in TID2.
+          rewrite <- TID2 in l.
+          exfalso. unfold Events.index in *.
+          unfold SequentBase.t_1_len in *.
+          unfold t_1_len in *.
+          lia. }
+        unfold mapper'.
+        rewrite TID2. clear TID2.
+        desf.
+        { destruct STEP.
+          apply dtrmt_cmt in COND.
+          apply reexec_embd_dom in COND; vauto. }
+        { exfalso. unfold Events.index in *.
+          unfold SequentBase.t_1_len in *.
+          unfold t_1_len in *.
+          lia. }
+        unfold Events.index in *.
+        unfold t_1_len in *.
+        unfold SequentBase.t_1_len in *.
+        lia. }
+      { destruct STEP. apply rexec_acts; vauto. }
+      destruct STEP. apply rexec_acts; vauto. }
+    assert (TID2' : tid (mapper x) <> t_2) by vauto.
+    assert (TID2S : tid (mapper x) <> t_2) by vauto.
+    apply (seq_mapeq SIMREL) in TID2.
+    { rewrite TID2. clear TID2.
+      unfold mapper'. desf.
+      apply INDLEMMA.
+      { unfold not in n0.
+        apply NNPP in n0.
+        rewrite n0; vauto. }
+      { unfold tid.
+        unfold not in n0.
+        apply NNPP in n0.
+        apply (seq_out_move SIMREL) in n0; vauto.
+        { apply (seq_mapeq SIMREL) in TID2S; vauto.
+          rewrite TID2S in n0.
+          desf.
+          destruct STEP. apply rexec_acts; vauto. }
+        { destruct STEP. apply rexec_acts; vauto. }
+        unfold Events.index in *.
+        unfold t_1_len in *.
+        unfold SequentBase.t_1_len in *.
+        lia. }
+      unfold Events.index in *.
+      unfold not in n0.
+      apply NNPP in n0.
+      apply (seq_out_move SIMREL) in n0; vauto.
+      { apply (seq_mapeq SIMREL) in TID2S; vauto.
+        { rewrite TID2S in n0.
+          desf. }
+        destruct STEP. apply rexec_acts; vauto. }
+      { destruct STEP. apply rexec_acts; vauto. }
+      unfold Events.index in *.
+      unfold t_1_len in *.
+      unfold SequentBase.t_1_len in *.
+      lia. }
+    destruct STEP. apply rexec_acts; vauto. }
 
   assert (EXTSBL : forall x y, E_t' x -> E_t' y ->
                   ext_sb (mapper' x) (mapper' y) ->
@@ -650,12 +733,6 @@ Proof using.
     unfold mapper_rev'; desf. }
   split; red.
   { apply SIMRELQ. }
-
-  assert (INDLEMMA : forall x y (NNIT : tid x <> tid_init) (EQT : tid x = tid y) (EQI : index x = index y),
-          x = y).
-  { clear. intros x y NNIT EQT EQI.
-    destruct x; destruct y; desf; ins.
-    desf. }
   
   assert (MAPS : forall x y, E_t' x -> E_t y ->
           mapper' x = mapper y -> x = y).
@@ -1208,7 +1285,50 @@ Proof using.
     { apply INV'. }
     { admit. (* wf_s' *) }
     destruct STEP; vauto. }
-  { admit. }
+  { destruct SIMREL.
+    unfold dtrmt'. unfold WCore.reexec_thread.
+    arewrite ((WCore.G X_s') = G_s').
+    unfold G_s'; ins.
+    rewrite <- set_collect_minus.
+    { rewrite seq_acts.
+      destruct STEP.
+      rewrite rexec_acts at 1.
+      rewrite set_collect_union.
+      apply set_union_more.
+      { split.
+        { intros x COND.
+          destruct COND as [x0 [COND EQ]].
+          unfold set_collect.
+          exists x0; split; vauto.
+          symmetry.
+          apply DTRSAME; vauto. }
+        intros x COND.
+        destruct COND as [x0 [COND EQ]].
+        unfold set_collect.
+        exists x0; split; vauto.
+        apply DTRSAME; vauto. }
+      unfold WCore.reexec_thread.
+      split.
+      { intros x COND.
+        destruct COND as [x0 [COND EQ]].
+        split.
+        { unfold set_collect.
+          exists x0; split; vauto.
+          apply COND; vauto. }
+        destruct COND as [CD1 CD2].
+        unfold set_collect in CD2.
+        unfold set_collect.
+        unfold set_map in CD2.
+        unfold set_map.
+        destruct CD2 as [x1 [INE TIDS]].
+        exists (mapper' x1); split; vauto.
+        admit. (* ?????? *) }
+      admit. }
+    destruct STEP. rewrite dtrmt_cmt.
+    rewrite reexec_embd_dom.
+    destruct SIMRELQ.
+    clear - seq_inj0.
+    basic_solver. }
   apply sub_to_full_exec_listless
     with (thrdle := thrdle'); vauto.
   all : admit.
