@@ -159,7 +159,7 @@ Lemma simrel_step_reex
   exists (X_s' : WCore.t) (mapper' : actid -> actid) (mapper_rev' : actid -> actid)
     (dtrmt' : actid -> Prop) (cmt' : actid -> Prop),
     << SIMREL : seq_simrel X_s' X_t' t_1 t_2 mapper' mapper_rev' ptc_1 >> /\
-    << REX : WCore.reexec X_s X_s' f_t dtrmt' cmt' >>.
+    << REX : WCore.reexec X_s X_s' (mapper ∘ f_t ∘ mapper_rev') dtrmt' cmt' >>.
 Proof using.
 
   set (mapper' := fun x => ifP (~ E_t' x) then x else
@@ -775,7 +775,20 @@ Proof using.
     rewrite dtrmt_init; vauto. }
   { unfold dtrmt', cmt'.
     rewrite (WCore.dtrmt_cmt STEP); vauto. }
-  { admit. }
+  { unfold dtrmt'.
+    unfold fixset.
+    intros x DTT.
+    destruct DTT as [x0 [INX DTT]].
+    subst. unfold compose.
+    assert (HLP : mapper_rev' (mapper' x0) = x0).
+    { unfold compose in MAPCOMP.
+      apply MAPCOMP. destruct STEP.
+      apply dtrmt_cmt, reexec_embd_dom in INX; vauto. }
+    rewrite HLP.
+    arewrite (f_t x0 = x0).
+    { destruct STEP.
+      apply dtrmt_fixed; vauto. }
+    apply DTRSAME; vauto. }
   { destruct STEP. unfold cmt'.
     arewrite (WCore.G X_s' = G_s').
     unfold G_s'. simpls.
@@ -1088,8 +1101,46 @@ Proof using.
   { destruct STEP.
     destruct reexec_embd_corr.
     constructor; vauto.
-    { admit. }
-    { admit. }
+
+    { unfold cmt'.
+      unfold inj_dom.
+      intros x y CD1 CD2 EQQ.
+      destruct CD1 as [x0 [CD1 M1]].
+      destruct CD2 as [x1 [CD2 M2]].
+      subst.
+      unfold compose in EQQ.
+      unfold compose in MAPCOMP.
+      assert (HLP1 : mapper_rev' (mapper' x0) = x0).
+      { unfold compose in MAPCOMP.
+        apply MAPCOMP.
+        apply reexec_embd_dom in CD1; vauto. }
+      assert (HLP2 : mapper_rev' (mapper' x1) = x1).
+      { unfold compose in MAPCOMP.
+        apply MAPCOMP.
+        apply reexec_embd_dom in CD2; vauto. }
+      rewrite HLP1, HLP2 in EQQ.
+      destruct SIMREL.
+      apply seq_inj in EQQ.
+      { apply reexec_embd_inj in EQQ; vauto. }
+      { apply reexec_embd_acts; red.
+        exists x0; vauto. }
+      apply reexec_embd_acts; red.
+      exists x1; vauto. }
+    { intros e CMT.
+      unfold cmt' in CMT.
+      unfold set_collect in CMT.
+      destruct CMT as [x [CMT EQ]].
+      specialize (reexec_embd_lab x).
+      assert (INE : E_t' x).
+      { apply reexec_embd_dom in CMT; vauto. }
+      subst.
+      unfold compose.
+      assert (HLP : mapper_rev' (mapper' x) = x).
+      { unfold compose in MAPCOMP.
+        apply MAPCOMP.
+        apply reexec_embd_dom in CMT; vauto. }
+      rewrite HLP.
+      admit. }
     { intros e CMT.
       unfold cmt' in CMT.
       unfold set_collect in CMT.
@@ -1106,11 +1157,14 @@ Proof using.
       rewrite <- INE.
       destruct SIMREL.
       rewrite CMT.
-      rewrite seq_lab0.
-      { unfold compose.
-        rewrite <- EQ.
-        admit. }
-      admit. (* ??? *) }
+      subst.
+      unfold compose.
+      unfold compose in MAPCOMP.
+      rewrite MAPCOMP.
+      { unfold id.
+        apply seq_lab0.
+        apply reexec_embd_acts; red; vauto. }
+      apply reexec_embd_dom; vauto. }
     all : admit. }
   { destruct STEP. unfold rf_complete.
     arewrite (WCore.G X_s' = G_s').

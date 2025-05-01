@@ -240,7 +240,54 @@ Proof using.
         { rewrite <- FALSE.
           apply (seq_codom SIMREL); vauto. }
         desf. }
-    { admit. (*?????????*) }
+    { rewrite EQACTS.
+      rewrite set_collect_union.
+      rewrite set_collect_union.
+      apply set_union_more.
+      { split.
+        { intros x COND.
+          destruct classic with (x = e) as [EQ | NEQ].
+          { subst x. unfold mapper'.
+            desf. }
+          unfold set_collect.
+          exists (mapper' x). splits; vauto.
+          unfold mapper'.
+          rewrite updo; vauto.
+          unfold mapper_rev'.
+          rewrite updo; vauto.
+          { apply MAPREV; vauto. }
+          intros FALSE.
+          assert (INE : E_s e).
+          { destruct SIMREL.
+            apply seq_acts.
+            red; vauto. }
+          desf. }
+        intros x COND.
+        destruct COND as [x0 [[x1 [INE MAP1]] MAP2]].
+        apply MAPREVDOM.
+        unfold set_collect.
+        exists x0; splits; vauto.
+        { destruct classic with (x1 = e) as [EQ | NEQ].
+          { subst x1. unfold mapper'.
+            desf. }
+          unfold mapper'.
+          rewrite updo; vauto.
+          destruct SIMREL.
+          apply seq_acts.
+          red; vauto. }
+        unfold mapper'.
+        rewrite updo.
+        { unfold mapper_rev'.
+          rewrite updo; vauto.
+          intros FALSE.
+          assert (INES : E_s e).
+          { destruct SIMREL.
+            apply seq_acts.
+            red; vauto. }
+          desf. }
+        intros FALSE. desf. }
+      rewrite MAPER_E.
+      rewrite MEPERREV_E; vauto. }
     { unfold sb. unfold G_s'; ins.
       split; intros x y COND.
       { destruct COND as [CD1 | CD2].
@@ -413,8 +460,6 @@ Proof using.
         unfold collect_rel. exists x0, y0; splits; vauto.
         unfold seq. exists x0; splits; vauto.
         exists y0; splits; vauto.
-        assert (TIDD : tid y0 = t_1).
-        { admit. }
         admit. }
       admit. }
     { rewrite (seq_threads SIMREL).
@@ -437,7 +482,35 @@ Proof using.
       { apply EQACTS in INE. 
         destruct INE as [C1 | C2]; vauto. }
       unfold mapper' in TID2. rewrite updo in TID2; vauto. }
-    { admit. }
+    { intros x MAP TIDS.
+      destruct classic with (x = e) as [EQ | NEQ].
+      { subst x. unfold mapper_rev'. rewrite upds; vauto. }
+      destruct MAP as [x0 [INE MAP]].
+      unfold mapper_rev'.
+      rewrite updo; vauto.
+      unfold mapper'.
+      rewrite updo; vauto.
+      { unfold mapper' in TIDS.
+        rewrite updo in TIDS; vauto.
+        { destruct SIMREL.
+          apply seq_mapeq_rev in TIDS; vauto.
+          apply seq_acts.
+          red; exists x0; splits; vauto.
+          apply EQACTS in INE.
+          destruct INE as [C1 | C2]; vauto.
+          apply seq_mapeq in TIDS; vauto.
+          { unfold mapper' in NEQ.
+            rewrite upds in NEQ.
+            desf. }
+          unfold mapper' in NEQ.
+          rewrite upds in NEQ.
+          desf. }
+        intros FLS. subst.
+        unfold mapper' in NEQ.
+        rewrite upds in NEQ. desf. }
+      intros FLS. subst.
+      unfold mapper' in NEQ.
+      rewrite upds in NEQ. desf. }
     { intros e' INE TID2.
       destruct classic with (e' = e) as [EQ | NEQ].
       { subst e'. unfold mapper' in TID2.
@@ -466,6 +539,58 @@ Proof using.
       apply (seq_index SIMREL) in INE'.
       { rewrite TID; vauto. }
       rewrite <- MAPEQQ; vauto. }
+    { intros x INE TID2.
+      destruct classic with (x = e) as [EQ | NEQ].
+      { subst x. unfold mapper' in TID2.
+        rewrite upds in TID2. exfalso.
+        clear - TID TID2 THRDNEQ. desf. }
+      unfold mapper' in TID2.
+      rewrite updo in TID2.
+      { destruct SIMREL.
+        apply seq_thrd in TID2.
+        { rewrite TID2; vauto. }
+        apply EQACTS in INE.
+        destruct INE as [C1 | C2]; vauto. }
+      vauto. } 
+    { intros x INE TID2.
+      destruct classic with (x = e) as [EQ | NEQ].
+      { subst x. unfold mapper'.
+        rewrite upds. exfalso. desf. }
+      unfold mapper'.
+      rewrite updo; vauto.
+      destruct SIMREL.
+      rewrite seq_out; vauto.
+      { apply EQACTS in INE.
+        destruct INE as [C1 | C2]; vauto. }
+      rewrite <- TID; vauto. }
+    { intros x INE TIDS IDXS.
+      destruct classic with (x = e) as [EQ | NEQ].
+      { subst x. unfold mapper'.
+        rewrite upds. desf. }
+      unfold mapper'.
+      rewrite updo; vauto.
+      destruct SIMREL.
+      rewrite seq_out_snd; vauto.
+      { apply EQACTS in INE.
+        destruct INE as [C1 | C2]; vauto. }
+      { rewrite <- TID; vauto. }
+      rewrite <- TID; vauto. }
+    { intros x INE TIDS IDXS.
+      destruct classic with (x = e) as [EQ | NEQ].
+      { subst. clear - IDXS IND TID.
+        exfalso. unfold t_1_len in *.
+        unfold SequentBase.t_1_len in *.
+        rewrite TID in IDXS.
+        lia. }
+      unfold mapper'.
+      rewrite updo; vauto.
+      destruct SIMREL.
+      rewrite seq_out_move.
+      { rewrite <- TID; vauto. }
+      { apply EQACTS in INE.
+        destruct INE as [C1 | C2]; vauto. }
+      { rewrite <- TID; vauto. }
+      rewrite <- TID; vauto. }
     { intros e' NINE.
       destruct classic with (e' = e) as [EQ | NEQ].
       { subst e'. unfold mapper'. rewrite upds; vauto. }
@@ -489,45 +614,6 @@ Proof using.
     assert (WRG : E_t e).
     { apply MAPREVDOM. basic_solver 4. }
     desf. }
-    (* intros e' NINE.
-    destruct classic with (e' = e) as [EQ | NEQ].
-    { subst e'. unfold mapper_rev'.
-      unfold compose. unfold mapper'.
-      rewrite upds; vauto. }
-    unfold mapper_rev'. unfold compose.
-    unfold mapper'. rewrite updo; vauto.
-    rewrite (seq_rest_rev SIMREL); vauto.
-    destruct SIMREL. intros FLS.
-    apply seq_acts in FLS.
-    destruct FLS as [e'' [C1 C2]].
-    admit. } *)
-    (* { rewrite updo; vauto.
-      rewrite (seq_rest SIMREL); vauto.
-      { destruct ADD. rewrite (seq_rest_rev SIMREL); vauto.
-        intros FALSE. apply NINE.
-        apply EQACTS. unfold set_union.
-        left; vauto. }
-       rewrite add_event_lab.
-        rewrite updo; vauto.
-        rewrite updo.
-        rewrite (seq_rest_rev SIMREL); vauto.
-       rewrite (seq_rest_rev SIMREL); vauto.
-        intros FALSE. apply NINE.
-        apply EQACTS. unfold set_union.
-        left; vauto.
-        apply MAPREVDOM. unfold set_collect.
-        exists (mapper e'). split.
-        { 
-        
-        }
-      intros FALSE. apply NINE.
-      apply EQACTS. unfold set_union.
-      left; vauto. }
-    rewrite updo; vauto.
-    rewrite (seq_rest SIMREL); vauto.
-    intros FALSE. apply NINE.
-    apply EQACTS. unfold set_union.
-    left; vauto. } *)
   splits.
   { rewrite <- TID; vauto. }
   constructor.
