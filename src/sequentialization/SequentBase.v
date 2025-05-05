@@ -118,6 +118,7 @@ Record seq_simrel_inv : Prop := {
     rsr_ndata : data_t ≡ ∅₂;
     rsr_naddr : addr_t ≡ ∅₂;
     rsr_nrmw_dep : rmw_dep_t ≡ ∅₂;
+    rsr_init_acts : is_init ⊆₁ E_t;
 }.
 
 End SimRelSeq.
