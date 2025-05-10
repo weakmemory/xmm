@@ -11,6 +11,7 @@ From xmm Require Import Reordering.
 From xmm Require Import ThreadTrace.
 From xmm Require Import Programs.
 From xmm Require Import SequentBase.
+From xmm Require Import SequentWf.
 From xmm Require Import ConsistencyMonotonicity.
 
 From hahn Require Import Hahn.
@@ -178,6 +179,12 @@ Proof using.
       subst e'; desf. }
     rewrite C2; rewrite <- CDD.
     clear - T1 THRDNEQ. intros FALSE; desf. }
+
+  assert (INDLEMMA : forall x y (NNIT : tid x <> tid_init) (EQT : tid x = tid y) (EQI : index x = index y),
+          x = y).
+  { clear. intros x y NNIT EQT EQI.
+    destruct x; destruct y; desf; ins.
+    desf. }
 
   unfold NW in NEWE.
   destruct NEWE as (NINIT & NOTIN & TID).
@@ -553,6 +560,27 @@ Proof using.
         destruct INE as [C1 | C2]; vauto. }
       vauto. } 
     { intros x INE TID2.
+      unfold mapper_rev'.
+      destruct classic with (x = e) as [EQ | NEQ].
+      { subst x. exfalso.
+        clear - TID TID2 THRDNEQ. desf. }
+      rewrite updo; vauto.
+      rewrite (seq_maprev SIMREL); vauto.
+      { apply INDLEMMA; vauto.
+        unfold index. rewrite TID; lia. }
+      apply (seq_acts SIMREL).
+      apply MAPSUB.
+      unfold set_collect in INE.
+      destruct INE as [x0 [INE MAP]].
+      apply EQACTS in INE.
+      destruct INE as [C1 | C2].
+      { vauto. }
+      rewrite <- C2 in MAP.
+      assert (MAPNORM : mapper' e = e).
+      { rewrite set_collect_eq in MAPER_E.
+        apply MAPER_E; vauto. }
+      desf. }
+    { intros x INE TID2.
       destruct classic with (x = e) as [EQ | NEQ].
       { subst x. unfold mapper'.
         rewrite upds. exfalso. desf. }
@@ -908,6 +936,7 @@ Proof using.
         desf. }
     { rewrite EQACTS. rewrite set_collect_union.
       rewrite MAPER_E, MAPSUB, (seq_acts SIMREL); vauto. }
+    { admit. }
     { admit. (*TODO : po-work*) }
     { rewrite (seq_threads SIMREL).
       destruct ADD. rewrite add_event_threads; vauto. }

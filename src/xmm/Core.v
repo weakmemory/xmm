@@ -437,7 +437,7 @@ Record stable_uncmt_reads_gen thrdle : Prop :=
 
 Record commit_embedded : Prop :=
 { reexec_embd_inj : inj_dom cmt f;
-  reexec_embd_tid : forall e (CMT : cmt e), tid (f e) = tid e;
+  (* reexec_embd_tid : forall e (CMT : cmt e), tid (f e) = tid e; *)
   reexec_embd_lab : forall e (CMT : cmt e), lab' e = lab (f e);
   reexec_embd_rpo : f ↑ restr_rel cmt rpo' ⊆ rpo;
   reexec_embd_rf : f ↑ restr_rel cmt rf' ⊆ rf;

@@ -12,6 +12,7 @@ From xmm Require Import Reordering.
 From xmm Require Import ThreadTrace.
 From xmm Require Import Programs.
 From xmm Require Import SequentBase.
+From xmm Require Import SequentWf.
 From xmm Require Import ConsistencyMonotonicity.
 
 From hahn Require Import Hahn.
@@ -149,327 +150,6 @@ Definition thrdle' := thrdle ∪ eq t_2 × eq t_1 ∪ (dom_rel (thrdle ⨾ ⦗eq
 
 Hypothesis INV : seq_simrel_inv X_t.
 Hypothesis INV' : seq_simrel_inv X_t'.
-
-Lemma wf_transition
-    (SIMREL : seq_simrel X_s X_t t_1 t_2 mapper mapper_rev ptc_1) :
-  Wf G_s.
-Proof using.
-  assert (INDLEMMA : forall x y (NNIT : tid x <> tid_init) (EQT : tid x = tid y) (EQI : index x = index y),
-          x = y).
-  { clear. intros x y NNIT EQT EQI.
-    destruct x; destruct y; desf; ins.
-    desf. }
-  constructor.
-  { intros a b COND.
-    destruct COND as [INA [INB [NEQ [TIDS NINIT]]]].
-    intros FLS.
-    specialize INDLEMMA with a b.
-    apply NEQ; apply INDLEMMA; vauto.
-    unfold is_init in NINIT.
-    clear - NINIT. unfold not in NINIT.
-    unfold not. intros FLS.
-    unfold tid in FLS.
-    destruct a.
-    { apply NINIT; vauto. }
-    admit. (* ??? *) }
-  { rewrite (seq_data SIMREL); vauto. }
-  { rewrite (seq_data SIMREL); clear; [ basic_solver 4 ]. }
-  { rewrite (seq_addr SIMREL); vauto. }
-  { rewrite (seq_addr SIMREL); clear; [ basic_solver 4 ]. }
-  { rewrite (seq_ctrl SIMREL); vauto. }
-  { rewrite (seq_ctrl SIMREL); clear; [ basic_solver 4 ]. }
-  { rewrite (seq_ctrl SIMREL); clear; [ basic_solver 4 ]. }
-  { split; [| basic_solver 9 ].
-    rewrite (seq_rmw SIMREL); vauto.
-    intros x y COND. destruct COND as [x0 [y0 [RMW [M1 M2]]]].
-    apply wf_rmwE in RMW.
-    { destruct RMW as [x1 [[EQ1 INE1] [x2 [PTH [EQ2 INE2]]]]].
-      subst. destruct SIMREL.
-      apply seq_lab in INE1, INE2.
-      apply wf_rmwD in PTH.
-      { destruct PTH as [x2 [[EQ1 RD] [x3 [PTH [EQ2 WT]]]]].
-        subst. unfold seq. exists (mapper x2); splits.
-        { red; splits; vauto.
-          unfold compose in INE1.
-          unfold is_r in *.
-          rewrite <- INE1; vauto. }
-        exists (mapper y0); splits; vauto.
-        red; splits; vauto. unfold is_w in *.
-        unfold compose in INE2.
-        rewrite <- INE2; vauto. }
-      apply INV. }
-    apply INV. }
-  { rewrite (seq_rmw SIMREL).
-    intros x y COND.
-    destruct COND as [x0 [y0 [PTH [M1 M2]]]].
-    subst. 
-    apply wf_rmwE in PTH; [| apply INV].
-    destruct PTH as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]].
-    subst.
-    apply wf_rmwl in PTH; [| apply INV].
-    unfold same_loc in *.
-    apply (seq_lab SIMREL) in INE1, INE2.
-    unfold compose in *.
-    unfold loc in *.
-    rewrite <- INE1.
-    rewrite <- INE2; vauto. }
-  { rewrite (seq_rmw SIMREL).
-    intros x y COND.
-    destruct COND as [x0 [y0 [PTH [M1 M2]]]].
-    subst.
-    apply wf_rmwE in PTH; [| apply INV].
-    destruct PTH as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]].
-    subst. apply wf_rmwi in PTH; [| apply INV].
-    admit. (* false *) }
-  { split; [| basic_solver 4].
-    rewrite (seq_rf SIMREL).
-    intros x y COND.
-    destruct COND as [x0 [y0 [PTH [M1 M2]]]].
-    subst.
-    apply wf_rfE in PTH; [| apply INV].
-    destruct PTH as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]].
-    subst.
-    unfold seq.
-    exists (mapper x2); split.
-    { red; split; vauto.
-      destruct SIMREL. apply seq_codom.
-      red; exists x2; vauto. }
-    exists (mapper y0); split; vauto.
-    red; split; vauto.
-    destruct SIMREL. apply seq_codom.
-    red; exists y0; vauto. }
-  { split; [| basic_solver 4].
-    rewrite (seq_rf SIMREL).
-    intros x y COND.
-    destruct COND as [x0 [y0 [PTH [M1 M2]]]].
-    subst.
-    apply wf_rfE in PTH; [| apply INV].
-    destruct PTH as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]].
-    subst.
-    apply wf_rfD in PTH; [| apply INV].
-    destruct PTH as [x3 [[EQ1 WT] [x4 [PTH [EQ2 RD]]]]].
-    subst. 
-    destruct SIMREL.
-    apply seq_lab in INE1, INE2.
-    unfold compose in *.
-    unfold seq. exists (mapper x3); splits.
-    { red; splits; vauto.
-      unfold compose in INE1.
-      unfold is_w in *.
-      rewrite <- INE1; vauto. }
-    exists (mapper y0); splits; vauto.
-    red; splits; vauto. unfold is_r in *.
-    unfold compose in INE2.
-    rewrite <- INE2; vauto. }
-  { rewrite (seq_rf SIMREL).
-    intros x y COND.
-    destruct COND as [x0 [y0 [PTH [M1 M2]]]].
-    subst. 
-    apply wf_rfE in PTH; [| apply INV].
-    destruct PTH as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]].
-    subst.
-    apply wf_rfl in PTH; [| apply INV].
-    unfold same_loc in *.
-    apply (seq_lab SIMREL) in INE1, INE2.
-    unfold compose in *.
-    unfold loc in *.
-    rewrite <- INE1.
-    rewrite <- INE2; vauto. }
-  { rewrite (seq_rf SIMREL).
-    unfold funeq. intros a b MAP.
-    destruct MAP as [x0 [y0 [PTH [M1 M2]]]].
-    subst.
-    apply wf_rfE in PTH; [| apply INV].
-    destruct PTH as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]].
-    subst.
-    apply wf_rfv in PTH; [| apply INV].
-    apply (seq_lab SIMREL) in INE1.
-    apply (seq_lab SIMREL) in INE2.
-    unfold compose in *.
-    unfold val in *.
-    rewrite <- INE1.
-    rewrite <- INE2; vauto. }
-  { rewrite (seq_rf SIMREL).
-    unfold functional.
-    intros x y z M M'.
-    destruct M as [x0 [y0 [PTH1 [M1 M2]]]]; subst.
-    destruct M' as [x1 [y1 [PTH2 [M3 M4]]]]; subst.
-    destruct SIMREL.
-    assert (EQQ : y1 = y0).
-    { apply seq_inj; vauto.
-      { apply wf_rfE in PTH2; [| apply INV].
-        destruct PTH2 as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]]; vauto. }
-      apply wf_rfE in PTH1; [| apply INV].
-      destruct PTH1 as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]]; vauto. }
-    subst.
-    assert (EQQ' : x0 = x1).
-    { destruct wf_rff with (G := G_t) (x := y0)
-                (y := x0) (z := x1); vauto.
-      apply INV. }
-    basic_solver. }
-  { split; [| basic_solver].
-    rewrite (seq_co SIMREL).
-    intros x y COND.
-    destruct COND as [x0 [y0 [PTH [M1 M2]]]].
-    subst.
-    apply wf_coE in PTH; [| apply INV].
-    destruct PTH as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]].
-    subst.
-    unfold seq.
-    exists (mapper x2); split.
-    { red; split; vauto.
-      destruct SIMREL. apply seq_codom.
-      red; exists x2; vauto. }
-    exists (mapper y0); split; vauto.
-    red; split; vauto.
-    destruct SIMREL. apply seq_codom.
-    red; exists y0; vauto. }
-  { split; [| basic_solver 4].
-    rewrite (seq_co SIMREL).
-    intros x y COND.
-    destruct COND as [x0 [y0 [PTH [M1 M2]]]].
-    subst.
-    apply wf_coE in PTH; [| apply INV].
-    destruct PTH as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]].
-    subst.
-    apply wf_coD in PTH; [| apply INV].
-    destruct PTH as [x3 [[EQ1 WT] [x4 [PTH [EQ2 RD]]]]].
-    subst. 
-    destruct SIMREL.
-    apply seq_lab in INE1, INE2.
-    unfold compose in *.
-    unfold seq. exists (mapper x3); splits.
-    { red; splits; vauto.
-      unfold compose in INE1.
-      unfold is_w in *.
-      rewrite <- INE1; vauto. }
-    exists (mapper y0); splits; vauto.
-    red; splits; vauto. unfold is_w in *.
-    unfold compose in INE2.
-    rewrite <- INE2; vauto. }
-  { rewrite (seq_co SIMREL).
-    intros x y COND.
-    destruct COND as [x0 [y0 [PTH [M1 M2]]]].
-    subst. 
-    apply wf_coE in PTH; [| apply INV].
-    destruct PTH as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]].
-    subst.
-    apply wf_col in PTH; [| apply INV].
-    unfold same_loc in *.
-    apply (seq_lab SIMREL) in INE1, INE2.
-    unfold compose in *.
-    unfold loc in *.
-    rewrite <- INE1.
-    rewrite <- INE2; vauto. }
-  { rewrite (seq_co SIMREL).
-    unfold transitive.
-    intros x y z M M'.
-    destruct M as [x0 [y0 [PTH1 [M1 M2]]]]; subst.
-    destruct M' as [x1 [y1 [PTH2 [M3 M4]]]]; subst.
-    destruct SIMREL.
-    red; exists x0, y1; splits; vauto.
-    assert (EQQ : x1 = y0).
-    { apply seq_inj; vauto.
-      { apply wf_coE in PTH2; [| apply INV].
-        destruct PTH2 as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]]; vauto. }
-      apply wf_coE in PTH1; [| apply INV].
-      destruct PTH1 as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]]; vauto. }
-    subst.
-    apply co_trans with (x := x0) (y := y0) (z := y1); vauto.
-    apply INV. }
-  { intros ol.
-    rewrite (seq_co SIMREL).
-    unfold is_total.
-    intros a COND1 b COND2 NEQ.
-    unfold collect_rel.
-    destruct COND1 as [[INE1 ISW1] LOC1].
-    destruct COND2 as [[INE2 ISW2] LOC2].
-    destruct SIMREL.
-    apply seq_acts in INE1, INE2.
-    destruct INE1 as [a0 [INE1 MAP1]].
-    destruct INE2 as [b0 [INE2 MAP2]].
-    destruct wf_co_total with (G := G_t) (ol := ol)
-                    (a := a0) (b := b0).
-    { apply INV. }
-    { split.
-      { split; vauto.
-        apply seq_lab in INE1.
-        unfold compose in *.
-        unfold is_w in *.
-        rewrite INE1; vauto. }
-      unfold loc in *.
-      apply seq_lab in INE1.
-      unfold compose in *.
-      rewrite INE1; vauto. }
-    { split.
-      { split; vauto.
-        apply seq_lab in INE2.
-        unfold compose in *.
-        unfold is_w in *.
-        rewrite INE2; vauto. }
-      unfold loc in *.
-      apply seq_lab in INE2.
-      unfold compose in *.
-      rewrite INE2; vauto. }
-    { intros FALSE.
-      apply NEQ. subst; vauto. }
-    { left. exists a0, b0; splits; vauto. }
-    right. exists b0, a0; splits; vauto. }
-  { rewrite (seq_co SIMREL).
-    unfold irreflexive.
-    intros x COND.
-    destruct COND as [x0 [y0 [PTH1 [M1 M2]]]]; subst.
-    destruct co_irr with (G := G_t) (x := x0); [apply INV|].
-    assert (EQQ : y0 = x0).
-    { apply (seq_inj SIMREL); vauto.
-      { apply wf_coE in PTH1; [| apply INV].
-        destruct PTH1 as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]]; vauto. }
-      apply wf_coE in PTH1; [| apply INV].
-      destruct PTH1 as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]]; vauto. }
-    subst; vauto. }
-  { intros l COND.
-    destruct COND.
-    destruct H as [INE LOC].
-    apply (seq_acts SIMREL) in INE.
-    destruct INE as [x0 [INE MAP]].
-    apply (seq_acts SIMREL).
-    unfold set_collect. exists (InitEvent l); split; vauto.
-    { apply wf_init; [apply INV |].
-      exists x0; split; vauto.
-      unfold loc in *. apply (seq_lab SIMREL) in INE.
-      unfold compose in *.
-      rewrite INE; vauto. }
-    rewrite (seq_init SIMREL); vauto. }
-  { intros l.
-    assert (INE1 : E_s (InitEvent l)).
-    { apply (seq_acts SIMREL).
-      exists (InitEvent l).
-      split; [now apply (rsr_init_acts INV) |].
-      destruct SIMREL.
-      rewrite seq_init; vauto. }
-    destruct SIMREL.
-    apply seq_lab_rev in INE1.
-    rewrite INE1.
-    unfold compose.
-    rewrite seq_init_rev; vauto.
-    apply wf_init_lab; apply INV. }
-  { rewrite (seq_rmw_dep SIMREL); vauto. }
-  { rewrite (seq_rmw_dep SIMREL); basic_solver 4. }
-  intros e INE.
-  assert (INE' : E_s e) by vauto.
-  destruct SIMREL.
-  apply seq_acts in INE.
-  destruct INE as [e0 [INE MAP]].
-  assert (INE2 : E_t e0) by vauto.
-  apply wf_threads in INE; [| apply INV].
-  rewrite <- MAP.
-  apply seq_threads.
-  destruct classic with (tid (mapper e0) = t_2).
-  { right; vauto. }
-  left. apply seq_mapeq in H.
-  { rewrite H; vauto. }
-  vauto.
-Admitted.
 
 Lemma simrel_step_reex
     (NINIT1 : t_1 <> tid_init)
@@ -1038,6 +718,12 @@ Proof using.
         apply NNPP in n0; vauto. }
       unfold not in n0.
       apply NNPP in n0; vauto. }
+    { intros e INE COND.
+      unfold mapper_rev'. desf.
+      unfold t_1_len, SequentBase.t_1_len.
+      apply INDLEMMA; vauto.
+      unfold index. desf.
+      lia. }
     { intros e NINE.
       unfold mapper'; desf. }
     { intros e INE TID.
@@ -1370,7 +1056,7 @@ Proof using.
       apply reexec_embd_dom in DT; vauto. }
     exists (mapper x3); split; vauto.
     red; split; vauto. }
-  { admit. }
+  { admit. (* ugh *)}
   { arewrite (WCore.G X_s' = G_s').
     unfold G_s' at 1; ins.
     intros x COND.
@@ -1422,7 +1108,6 @@ Proof using.
   { destruct STEP.
     destruct reexec_embd_corr.
     constructor; vauto.
-
     { unfold cmt'.
       unfold inj_dom.
       intros x y CD1 CD2 EQQ.
@@ -1454,21 +1139,6 @@ Proof using.
       specialize (reexec_embd_lab x).
       assert (INE : E_t' x).
       { apply reexec_embd_dom in CMT; vauto. }
-      subst.
-      unfold compose.
-      assert (HLP : mapper_rev' (mapper' x) = x).
-      { unfold compose in MAPCOMP.
-        apply MAPCOMP.
-        apply reexec_embd_dom in CMT; vauto. }
-      rewrite HLP.
-      admit. }
-    { intros e CMT.
-      unfold cmt' in CMT.
-      unfold set_collect in CMT.
-      destruct CMT as [x [CMT EQ]].
-      specialize (reexec_embd_lab x).
-      assert (INE : E_t' x).
-      { apply reexec_embd_dom in CMT; vauto. }
       assert (CMT' : cmt_t x) by vauto.
       apply reexec_embd_lab in CMT.
       destruct SIMRELQ.
@@ -1486,7 +1156,134 @@ Proof using.
         apply seq_lab0.
         apply reexec_embd_acts; red; vauto. }
       apply reexec_embd_dom; vauto. }
-    all : admit. }
+    { admit. (* ugh *) }
+    { unfold cmt'.
+      rewrite (seq_rf SIMRELQ).
+      rewrite (seq_rf SIMREL).
+      destruct STEP.
+      destruct reexec_embd_corr.
+      rewrite <- reexec_embd_rf0.
+      rewrite collect_rel_restr.
+      { intros x y COND.
+        unfold compose in COND.
+        unfold collect_rel in COND.
+        destruct COND as [x0 [x1 [COND [EQ1 EQ2]]]].
+        destruct COND as [x2 [x3 [COND [EQ3 EQ4]]]].
+        unfold collect_rel.
+        exists (f_t (mapper_rev' x0)), (f_t (mapper_rev' x1)); splits.
+        { exists x2, x3; splits; vauto.
+          { unfold compose in MAPCOMP.
+            rewrite MAPCOMP; vauto.
+            destruct COND as [RF CDS].
+            apply wf_rfE in RF; [|apply INV'].
+            destruct RF as [x0 [[INE EQQ] RF2]]; vauto. }
+          unfold compose in MAPCOMP.
+          rewrite MAPCOMP; vauto.
+          destruct COND as [RF CDS].
+          apply wf_rfE in RF; [|apply INV'].
+          destruct RF as [x0 [RF1 [RF2 [RF3 [INE EQQ]]]]]; vauto. }
+        all : vauto. }
+      rewrite reexec_embd_dom0.
+      rewrite wf_rfE; [| apply INV'].
+      rewrite dom_eqv1.
+      rewrite <- seqA.
+      rewrite codom_seq_eqv_r.
+      arewrite (E_t' ∩₁ dom_rel (rf_t' ⨾ ⦗E_t'⦘) ⊆₁ E_t').
+      { basic_solver. }
+      destruct SIMRELQ.
+      clear - seq_inj.
+      basic_solver 8. }
+    { unfold cmt'.
+      rewrite (seq_co SIMRELQ).
+      rewrite (seq_co SIMREL).
+      destruct STEP.
+      destruct reexec_embd_corr.
+      rewrite <- reexec_embd_co0.
+      rewrite collect_rel_restr.
+      { intros x y COND.
+        unfold compose in COND.
+        unfold collect_rel in COND.
+        destruct COND as [x0 [x1 [COND [EQ1 EQ2]]]].
+        destruct COND as [x2 [x3 [COND [EQ3 EQ4]]]].
+        unfold collect_rel.
+        exists (f_t (mapper_rev' x0)), (f_t (mapper_rev' x1)); splits.
+        { exists x2, x3; splits; vauto.
+          { unfold compose in MAPCOMP.
+            rewrite MAPCOMP; vauto.
+            destruct COND as [CO CDS].
+            apply wf_coE in CO; [|apply INV'].
+            destruct CO as [x0 [[INE EQQ] CO2]]; vauto. }
+          unfold compose in MAPCOMP.
+          rewrite MAPCOMP; vauto.
+          destruct COND as [CO CDS].
+          apply wf_coE in CO; [|apply INV'].
+          destruct CO as [x0 [CO1 [CO2 [CO3 [INE EQQ]]]]]; vauto. }
+        all : vauto. }
+      rewrite reexec_embd_dom0.
+      rewrite wf_coE; [| apply INV'].
+      rewrite dom_eqv1.
+      rewrite <- seqA.
+      rewrite codom_seq_eqv_r.
+      arewrite (E_t' ∩₁ dom_rel (co_t' ⨾ ⦗E_t'⦘) ⊆₁ E_t').
+      { basic_solver. }
+      destruct SIMRELQ.
+      clear - seq_inj.
+      basic_solver 8. }
+    { unfold cmt'.
+      rewrite (seq_rmw SIMRELQ).
+      rewrite (seq_rmw SIMREL).
+      destruct STEP.
+      destruct reexec_embd_corr.
+      rewrite <- reexec_embd_rmw0.
+      rewrite collect_rel_restr.
+      { intros x y COND.
+        unfold compose in COND.
+        unfold collect_rel in COND.
+        destruct COND as [x0 [x1 [COND [EQ1 EQ2]]]].
+        destruct COND as [x2 [x3 [COND [EQ3 EQ4]]]].
+        unfold collect_rel.
+        exists (f_t (mapper_rev' x0)), (f_t (mapper_rev' x1)); splits.
+        { exists x2, x3; splits; vauto.
+          { unfold compose in MAPCOMP.
+            rewrite MAPCOMP; vauto.
+            destruct COND as [RM CDS].
+            apply wf_rmwE in RM; [|apply INV'].
+            destruct RM as [x0 [[INE EQQ] RM2]]; vauto. }
+          unfold compose in MAPCOMP.
+          rewrite MAPCOMP; vauto.
+          destruct COND as [RM CDS].
+          apply wf_rmwE in RM; [|apply INV'].
+          destruct RM as [x0 [RM1 [RM2 [RM3 [INE EQQ]]]]]; vauto. }
+        all : vauto. }
+      rewrite reexec_embd_dom0.
+      rewrite wf_rmwE; [| apply INV'].
+      rewrite dom_eqv1.
+      rewrite <- seqA.
+      rewrite codom_seq_eqv_r.
+      arewrite (E_t' ∩₁ dom_rel (rmw_t' ⨾ ⦗E_t'⦘) ⊆₁ E_t').
+      { basic_solver. }
+      destruct SIMRELQ.
+      clear - seq_inj.
+      basic_solver 8. }
+    unfold cmt'.
+    intros x COND.
+    unfold set_collect in COND.
+    destruct COND as [x0 [COND EQ]].
+    destruct COND as [x1 [COND EQ1]].
+    rewrite <- EQ1 in EQ.
+    unfold compose in EQ.
+    unfold compose in MAPCOMP.
+    rewrite MAPCOMP in EQ.
+    { unfold id in EQ.
+      rewrite <- EQ.
+      destruct SIMREL.
+      apply seq_acts.
+      unfold set_collect.
+      exists (f_t x1); split; vauto.
+      apply reexec_embd_acts.
+      clear - COND.
+      basic_solver. }
+    apply reexec_embd_dom; vauto. }
   { destruct STEP. unfold rf_complete.
     arewrite (WCore.G X_s' = G_s').
     unfold G_s'. simpls.
@@ -1523,7 +1320,10 @@ Proof using.
           basic_solver. }
         rewrite INITDER.
         unfold dtrmt'; vauto. }
-      { apply wf_transition; vauto. }
+      { apply wf_transition with (X_t := X_t)
+          (t_1 := t_1) (t_2 := t_2)
+          (mapper := mapper) (mapper_rev := mapper_rev)
+          (ptc_1 := ptc_1); vauto. }
       apply restrict_sub; [basic_solver |].
       unfold dtrmt'.
       destruct SIMREL.
@@ -1607,6 +1407,551 @@ Proof using.
         unfold SequentBase.t_1_len in *.
         lia. }
       destruct STEP. apply rexec_acts; vauto. }
+    { constructor.
+      { unfold WCore.X_start; ins.
+        destruct SIMRELQ.
+        unfold dtrmt'.
+        unfold cmt'.
+        rewrite <- !set_interA.
+        split.
+        { arewrite (mapper' ↑₁ dtrmt_t ⊆₁ mapper' ↑₁ E_t').
+          apply set_subset_collect.
+          { destruct STEP.
+            rewrite dtrmt_cmt.
+            rewrite reexec_embd_dom; vauto. }
+          clear. basic_solver 8. }
+        clear. basic_solver 8. }
+      { unfold WCore.X_start; ins. }
+      { unfold WCore.X_start; ins.
+        arewrite ((fun x : actid =>
+        ifP ~ (mapper' ↑₁ E_t') x then x
+        else (ifP tid x <> t_2 then x
+              else ThreadEvent t_1
+                     (t_1_len + index x))) = mapper_rev').
+        unfold eq_dom. intros x COND.
+        destruct SIMREL.
+        rewrite seq_lab_rev.
+        { destruct STEP.
+          destruct reexec_start_wf.
+          destruct wf_ereq.
+          unfold compose.
+          rewrite <- ereq_lab.
+          { unfold WCore.X_start; ins.
+            assert (EQQ: mapper_rev x = mapper_rev' x).
+            { unfold mapper_rev'. desf.
+              { apply seq_rest_rev.
+                clear - n COND reexec_embd_dom.
+                destruct n.
+                unfold cmt' in COND.
+                destruct COND as [CND [x0 [IN1 IN2]]].
+                unfold set_collect.
+                exists x0; split; vauto.
+                apply reexec_embd_dom; vauto. }
+              { apply NNPP in n.
+                apply seq_mapeq_rev; vauto.
+                clear - COND.
+                destruct COND as [[DTT ES] RST]; vauto. }
+              unfold not in n0.
+              apply NNPP in n0.
+              rewrite seq_maprev; vauto.
+              { apply INDLEMMA; vauto.
+                unfold index.
+                unfold SequentBase.t_1_len, t_1_len.
+                lia. }
+              destruct COND as [[DTT ES] RST]; vauto. }
+            rewrite EQQ; vauto. }
+          unfold WCore.X_start; ins.
+          destruct COND as [[DTT ES] RST].
+          apply seq_acts in ES.
+          unfold dtrmt', cmt' in *.
+          split.
+          { split.
+            { destruct DTT as [x0 [DTT M1]].
+              rewrite <- M1.
+              unfold compose in MAPCOMP.
+              rewrite MAPCOMP; vauto.
+              apply dtrmt_cmt in DTT.
+              apply reexec_embd_dom in DTT; vauto. }
+            destruct DTT as [x1 [DTT M1]].
+            rewrite <- M1.
+            unfold compose in MAPCOMP.
+            rewrite MAPCOMP.
+            { apply rexec_acts; vauto. }
+            apply dtrmt_cmt in DTT.
+            apply reexec_embd_dom in DTT; vauto. }
+          destruct RST as [x1 [RST M1]].
+          rewrite <- M1.
+          unfold compose in MAPCOMP.
+          rewrite MAPCOMP.
+          { unfold id; vauto. }
+          apply reexec_embd_dom in RST; vauto. }
+        destruct COND as [[DTT ES] RST]; vauto. }
+      { unfold WCore.X_start; ins.
+        destruct STEP.
+        destruct reexec_start_wf.
+        destruct wf_ereq.
+        split.
+        { intros x y COND.
+          unfold restr_rel in *.
+          destruct COND as [CD1 [CD2 CD3]].
+          split; vauto.
+          destruct CD1 as [x0 [[EQ1 DT1]
+                    [x1 [RF [EQ2 DT2]]]]]; subst.
+          destruct ereq_rf as [IN OUT].
+          destruct DT1 as [x2 [DT1 M1]].
+          destruct DT2 as [x3 [DT2 M2]].
+          destruct IN with x2 x3.
+          { unfold WCore.X_start; ins.
+            apply (seq_rf SIMREL) in RF.
+            unfold collect_rel in RF.
+            destruct RF as [x5 [x6 [RF [EQ3 EQ4]]]].
+            splits.
+            { unfold seq.
+              exists x2; split; vauto.
+              exists x3; split; vauto.
+              assert (EQQ1 : x5 = x2).
+              { assert (MEQ : mapper' x2 = mapper x2).
+                { apply DTRSAME in DT1; vauto. }
+                rewrite MEQ in EQ3.
+                apply (seq_inj SIMREL) in EQ3; vauto.
+                { apply wf_rfE in RF; [|apply INV].
+                  destruct RF as [x4 [[INE EQQ] RF2]]; vauto. }
+                apply rexec_acts; vauto. }
+              assert (EQQ2 : x6 = x3).
+              { assert (MEQ : mapper' x3 = mapper x3).
+                { apply DTRSAME in DT2; vauto. }
+                rewrite MEQ in M2.
+                apply (seq_inj SIMREL) in M2; vauto.
+                { apply rexec_acts; vauto. }
+                apply wf_rfE in RF; [|apply INV].
+                destruct RF as [x4 [[INE EQQ]
+                        [x7 [RF [EQR INER]]]]]; vauto. }
+              subst; vauto. }
+            { split.
+              { split; vauto.
+                apply rexec_acts; vauto. }
+              apply dtrmt_cmt in DT1; vauto. }
+            split.
+            { split; vauto.
+              apply rexec_acts; vauto. }
+            apply dtrmt_cmt in DT2; vauto. }
+          unfold collect_rel.
+          exists x2, x3; splits; vauto. }
+        intros x y COND.
+        unfold restr_rel in *.
+        destruct COND as [CD1 [CD2 CD3]].
+        destruct CD1 as [x0 [x1 [CDD [M1 M2]]]].
+        splits.
+        { unfold seq. exists x; split.
+          { red; split; vauto.
+            destruct CD2 as [[CD1 CD2] CD4]; vauto. }
+          exists y; split.
+          { apply (seq_rf SIMREL).
+            destruct ereq_rf as [IN OUT].
+            unfold collect_rel.
+            exists x0, x1; splits; vauto.
+            { destruct OUT with x0 x1.
+              { split; vauto.
+                unfold WCore.X_start; ins. split.
+                { split.
+                  { split.
+                    { destruct CD2 as [[[x2 [DTT1 MP1]] ES]
+                                  [x3 [CMT1 MP2]]].
+                      apply (seq_inj SIMRELQ) in MP1.
+                      { subst; vauto. }
+                      { apply dtrmt_cmt in DTT1.
+                        apply reexec_embd_dom in DTT1; vauto. }
+                      apply wf_rfE in CDD; [|apply INV'].
+                      destruct CDD as [x4 [[INE EQQ] RF2]]; vauto. }
+                    destruct CD2 as [[[x2 [DTT1 MP1]] ES]
+                            [x3 [CMT1 MP2]]].
+                    apply (seq_inj SIMRELQ) in MP1.
+                    { apply rexec_acts.
+                      subst; vauto. }
+                    { apply dtrmt_cmt in DTT1.
+                      apply reexec_embd_dom in DTT1; vauto. }
+                    apply wf_rfE in CDD; [|apply INV'].
+                    destruct CDD as [x4 [[INE EQQ] RF2]]; vauto. }
+                  destruct CD2 as [[[x2 [DTT1 MP1]] ES]
+                        [x3 [CMT1 MP2]]].
+                  apply (seq_inj SIMRELQ) in MP1.
+                  { subst; vauto.
+                    apply dtrmt_cmt in DTT1; vauto. }
+                  { apply dtrmt_cmt in DTT1.
+                    apply reexec_embd_dom in DTT1; vauto. }
+                  apply wf_rfE in CDD; [|apply INV'].
+                  destruct CDD as [x4 [[INE EQQ] RF2]]; vauto. }
+                split.
+                { split.
+                  { destruct CD3 as [[[x2 [DTT1 MP1]] ES]
+                          [x3 [CMT1 MP2]]].
+                    apply (seq_inj SIMRELQ) in MP1.
+                    { subst; vauto. }
+                    { apply dtrmt_cmt in DTT1.
+                      apply reexec_embd_dom in DTT1; vauto. }
+                    apply wf_rfE in CDD; [|apply INV'].
+                    destruct CDD as [x4 [[INE EQQ]
+                            [x5 [RF [INE2 EQ2]]]]]; vauto. }
+                  destruct CD3 as [[[x2 [DTT1 MP1]] ES]
+                          [x3 [CMT1 MP2]]].
+                  apply (seq_inj SIMRELQ) in MP1.
+                  { apply rexec_acts.
+                    subst; vauto. }
+                  { apply dtrmt_cmt in DTT1.
+                    apply reexec_embd_dom in DTT1; vauto. }
+                  apply wf_rfE in CDD; [|apply INV'].
+                  destruct CDD as [x4 [[INE EQQ]
+                            [x5 [RF [INE2 EQ2]]]]]; vauto. }
+                destruct CD3 as [[[x2 [DTT1 MP1]] ES]
+                            [x3 [CMT1 MP2]]].
+                apply (seq_inj SIMRELQ) in MP1.
+                { subst; vauto.
+                  apply dtrmt_cmt in DTT1; vauto. }
+                { apply dtrmt_cmt in DTT1.
+                  apply reexec_embd_dom in DTT1; vauto. }
+                apply wf_rfE in CDD; [|apply INV'].
+                destruct CDD as [x4 [[INE EQQ]
+                        [x5 [RF [INE2 EQ2]]]]]; vauto. }
+              unfold WCore.X_start in H; ins.
+              destruct H as [x2 [[EQ1 DT1] [x3 [RF [EQ2 DT2]]]]].
+              subst; vauto. }
+            { destruct CD2 as [[[x2 [DTT1 MP1]] ES]
+                    [x3 [CMT1 MP2]]].
+              apply (seq_inj SIMRELQ) in MP1.
+              { subst.
+                apply DTRSAME; vauto. }
+              { apply dtrmt_cmt in DTT1.
+                apply reexec_embd_dom in DTT1; vauto. }
+              apply wf_rfE in CDD; [|apply INV'].
+              destruct CDD as [x4 [[INE EQQ]
+                      [x5 [RF [INE2 EQ2]]]]]; vauto. }
+            destruct CD3 as [[[x2 [DTT1 MP1]] ES]
+                      [x3 [CMT1 MP2]]].
+            apply (seq_inj SIMRELQ) in MP1.
+            { subst.
+              apply DTRSAME; vauto. }
+            { apply dtrmt_cmt in DTT1.
+              apply reexec_embd_dom in DTT1; vauto. }
+            apply wf_rfE in CDD; [|apply INV'].
+            destruct CDD as [x4 [[INE EQQ]
+                    [x5 [RF [INE2 EQ2]]]]]; vauto. }
+          red; split; vauto.
+          destruct CD3 as [[CD1 CD3] CD4]; vauto. }
+        all : vauto. }
+      { unfold WCore.X_start; ins.
+        destruct STEP.
+        destruct reexec_start_wf.
+        destruct wf_ereq.
+        split.
+        { intros x y COND.
+          unfold restr_rel in *.
+          destruct COND as [CD1 [CD2 CD3]].
+          split; vauto.
+          destruct CD1 as [x0 [[EQ1 DT1]
+                    [x1 [RF [EQ2 DT2]]]]]; subst.
+          destruct ereq_co as [IN OUT].
+          destruct DT1 as [x2 [DT1 M1]].
+          destruct DT2 as [x3 [DT2 M2]].
+          destruct IN with x2 x3.
+          { unfold WCore.X_start; ins.
+            apply (seq_co SIMREL) in RF.
+            unfold collect_rel in RF.
+            destruct RF as [x5 [x6 [RF [EQ3 EQ4]]]].
+            splits.
+            { unfold seq.
+              exists x2; split; vauto.
+              exists x3; split; vauto.
+              assert (EQQ1 : x5 = x2).
+              { assert (MEQ : mapper' x2 = mapper x2).
+                { apply DTRSAME in DT1; vauto. }
+                rewrite MEQ in EQ3.
+                apply (seq_inj SIMREL) in EQ3; vauto.
+                { apply wf_coE in RF; [|apply INV].
+                  destruct RF as [x4 [[INE EQQ] RF2]]; vauto. }
+                apply rexec_acts; vauto. }
+              assert (EQQ2 : x6 = x3).
+              { assert (MEQ : mapper' x3 = mapper x3).
+                { apply DTRSAME in DT2; vauto. }
+                rewrite MEQ in M2.
+                apply (seq_inj SIMREL) in M2; vauto.
+                { apply rexec_acts; vauto. }
+                apply wf_coE in RF; [|apply INV].
+                destruct RF as [x4 [[INE EQQ]
+                        [x7 [RF [EQR INER]]]]]; vauto. }
+              subst; vauto. }
+            { split.
+              { split; vauto.
+                apply rexec_acts; vauto. }
+              apply dtrmt_cmt in DT1; vauto. }
+            split.
+            { split; vauto.
+              apply rexec_acts; vauto. }
+            apply dtrmt_cmt in DT2; vauto. }
+          unfold collect_rel.
+          exists x2, x3; splits; vauto. }
+        intros x y COND.
+        unfold restr_rel in *.
+        destruct COND as [CD1 [CD2 CD3]].
+        destruct CD1 as [x0 [x1 [CDD [M1 M2]]]].
+        splits.
+        { unfold seq. exists x; split.
+          { red; split; vauto.
+            destruct CD2 as [[CD1 CD2] CD4]; vauto. }
+          exists y; split.
+          { apply (seq_co SIMREL).
+            destruct ereq_co as [IN OUT].
+            unfold collect_rel.
+            exists x0, x1; splits; vauto.
+            { destruct OUT with x0 x1.
+              { split; vauto.
+                unfold WCore.X_start; ins. split.
+                { split.
+                  { split.
+                    { destruct CD2 as [[[x2 [DTT1 MP1]] ES]
+                                  [x3 [CMT1 MP2]]].
+                      apply (seq_inj SIMRELQ) in MP1.
+                      { subst; vauto. }
+                      { apply dtrmt_cmt in DTT1.
+                        apply reexec_embd_dom in DTT1; vauto. }
+                      apply wf_coE in CDD; [|apply INV'].
+                      destruct CDD as [x4 [[INE EQQ] RF2]]; vauto. }
+                    destruct CD2 as [[[x2 [DTT1 MP1]] ES]
+                            [x3 [CMT1 MP2]]].
+                    apply (seq_inj SIMRELQ) in MP1.
+                    { apply rexec_acts.
+                      subst; vauto. }
+                    { apply dtrmt_cmt in DTT1.
+                      apply reexec_embd_dom in DTT1; vauto. }
+                    apply wf_coE in CDD; [|apply INV'].
+                    destruct CDD as [x4 [[INE EQQ] RF2]]; vauto. }
+                  destruct CD2 as [[[x2 [DTT1 MP1]] ES]
+                        [x3 [CMT1 MP2]]].
+                  apply (seq_inj SIMRELQ) in MP1.
+                  { subst; vauto.
+                    apply dtrmt_cmt in DTT1; vauto. }
+                  { apply dtrmt_cmt in DTT1.
+                    apply reexec_embd_dom in DTT1; vauto. }
+                  apply wf_coE in CDD; [|apply INV'].
+                  destruct CDD as [x4 [[INE EQQ] RF2]]; vauto. }
+                split.
+                { split.
+                  { destruct CD3 as [[[x2 [DTT1 MP1]] ES]
+                          [x3 [CMT1 MP2]]].
+                    apply (seq_inj SIMRELQ) in MP1.
+                    { subst; vauto. }
+                    { apply dtrmt_cmt in DTT1.
+                      apply reexec_embd_dom in DTT1; vauto. }
+                    apply wf_coE in CDD; [|apply INV'].
+                    destruct CDD as [x4 [[INE EQQ]
+                            [x5 [RF [INE2 EQ2]]]]]; vauto. }
+                  destruct CD3 as [[[x2 [DTT1 MP1]] ES]
+                          [x3 [CMT1 MP2]]].
+                  apply (seq_inj SIMRELQ) in MP1.
+                  { apply rexec_acts.
+                    subst; vauto. }
+                  { apply dtrmt_cmt in DTT1.
+                    apply reexec_embd_dom in DTT1; vauto. }
+                  apply wf_coE in CDD; [|apply INV'].
+                  destruct CDD as [x4 [[INE EQQ]
+                            [x5 [RF [INE2 EQ2]]]]]; vauto. }
+                destruct CD3 as [[[x2 [DTT1 MP1]] ES]
+                            [x3 [CMT1 MP2]]].
+                apply (seq_inj SIMRELQ) in MP1.
+                { subst; vauto.
+                  apply dtrmt_cmt in DTT1; vauto. }
+                { apply dtrmt_cmt in DTT1.
+                  apply reexec_embd_dom in DTT1; vauto. }
+                apply wf_coE in CDD; [|apply INV'].
+                destruct CDD as [x4 [[INE EQQ]
+                        [x5 [RF [INE2 EQ2]]]]]; vauto. }
+              unfold WCore.X_start in H; ins.
+              destruct H as [x2 [[EQ1 DT1] [x3 [RF [EQ2 DT2]]]]].
+              subst; vauto. }
+            { destruct CD2 as [[[x2 [DTT1 MP1]] ES]
+                    [x3 [CMT1 MP2]]].
+              apply (seq_inj SIMRELQ) in MP1.
+              { subst.
+                apply DTRSAME; vauto. }
+              { apply dtrmt_cmt in DTT1.
+                apply reexec_embd_dom in DTT1; vauto. }
+              apply wf_coE in CDD; [|apply INV'].
+              destruct CDD as [x4 [[INE EQQ]
+                      [x5 [RF [INE2 EQ2]]]]]; vauto. }
+            destruct CD3 as [[[x2 [DTT1 MP1]] ES]
+                      [x3 [CMT1 MP2]]].
+            apply (seq_inj SIMRELQ) in MP1.
+            { subst.
+              apply DTRSAME; vauto. }
+            { apply dtrmt_cmt in DTT1.
+              apply reexec_embd_dom in DTT1; vauto. }
+            apply wf_coE in CDD; [|apply INV'].
+            destruct CDD as [x4 [[INE EQQ]
+                    [x5 [RF [INE2 EQ2]]]]]; vauto. }
+          red; split; vauto.
+          destruct CD3 as [[CD1 CD3] CD4]; vauto. }
+        all : vauto. }
+      { unfold WCore.X_start; ins.
+        destruct STEP.
+        destruct reexec_start_wf.
+        destruct wf_ereq.
+        split.
+        { intros x y COND.
+          unfold restr_rel in *.
+          destruct COND as [CD1 [CD2 CD3]].
+          split; vauto.
+          destruct CD1 as [x0 [[EQ1 DT1]
+                    [x1 [RF [EQ2 DT2]]]]]; subst.
+          destruct ereq_rmw as [IN OUT].
+          destruct DT1 as [x2 [DT1 M1]].
+          destruct DT2 as [x3 [DT2 M2]].
+          destruct IN with x2 x3.
+          { unfold WCore.X_start; ins.
+            apply (seq_rmw SIMREL) in RF.
+            unfold collect_rel in RF.
+            destruct RF as [x5 [x6 [RF [EQ3 EQ4]]]].
+            splits.
+            { unfold seq.
+              exists x2; split; vauto.
+              exists x3; split; vauto.
+              assert (EQQ1 : x5 = x2).
+              { assert (MEQ : mapper' x2 = mapper x2).
+                { apply DTRSAME in DT1; vauto. }
+                rewrite MEQ in EQ3.
+                apply (seq_inj SIMREL) in EQ3; vauto.
+                { apply wf_rmwE in RF; [|apply INV].
+                  destruct RF as [x4 [[INE EQQ] RF2]]; vauto. }
+                apply rexec_acts; vauto. }
+              assert (EQQ2 : x6 = x3).
+              { assert (MEQ : mapper' x3 = mapper x3).
+                { apply DTRSAME in DT2; vauto. }
+                rewrite MEQ in M2.
+                apply (seq_inj SIMREL) in M2; vauto.
+                { apply rexec_acts; vauto. }
+                apply wf_rmwE in RF; [|apply INV].
+                destruct RF as [x4 [[INE EQQ]
+                        [x7 [RF [EQR INER]]]]]; vauto. }
+              subst; vauto. }
+            { split.
+              { split; vauto.
+                apply rexec_acts; vauto. }
+              apply dtrmt_cmt in DT1; vauto. }
+            split.
+            { split; vauto.
+              apply rexec_acts; vauto. }
+            apply dtrmt_cmt in DT2; vauto. }
+          unfold collect_rel.
+          exists x2, x3; splits; vauto. }
+        intros x y COND.
+        unfold restr_rel in *.
+        destruct COND as [CD1 [CD2 CD3]].
+        destruct CD1 as [x0 [x1 [CDD [M1 M2]]]].
+        splits.
+        { unfold seq. exists x; split.
+          { red; split; vauto.
+            destruct CD2 as [[CD1 CD2] CD4]; vauto. }
+          exists y; split.
+          { apply (seq_rmw SIMREL).
+            destruct ereq_rmw as [IN OUT].
+            unfold collect_rel.
+            exists x0, x1; splits; vauto.
+            { destruct OUT with x0 x1.
+              { split; vauto.
+                unfold WCore.X_start; ins. split.
+                { split.
+                  { split.
+                    { destruct CD2 as [[[x2 [DTT1 MP1]] ES]
+                                  [x3 [CMT1 MP2]]].
+                      apply (seq_inj SIMRELQ) in MP1.
+                      { subst; vauto. }
+                      { apply dtrmt_cmt in DTT1.
+                        apply reexec_embd_dom in DTT1; vauto. }
+                      apply wf_rmwE in CDD; [|apply INV'].
+                      destruct CDD as [x4 [[INE EQQ] RF2]]; vauto. }
+                    destruct CD2 as [[[x2 [DTT1 MP1]] ES]
+                            [x3 [CMT1 MP2]]].
+                    apply (seq_inj SIMRELQ) in MP1.
+                    { apply rexec_acts.
+                      subst; vauto. }
+                    { apply dtrmt_cmt in DTT1.
+                      apply reexec_embd_dom in DTT1; vauto. }
+                    apply wf_rmwE in CDD; [|apply INV'].
+                    destruct CDD as [x4 [[INE EQQ] RF2]]; vauto. }
+                  destruct CD2 as [[[x2 [DTT1 MP1]] ES]
+                        [x3 [CMT1 MP2]]].
+                  apply (seq_inj SIMRELQ) in MP1.
+                  { subst; vauto.
+                    apply dtrmt_cmt in DTT1; vauto. }
+                  { apply dtrmt_cmt in DTT1.
+                    apply reexec_embd_dom in DTT1; vauto. }
+                  apply wf_rmwE in CDD; [|apply INV'].
+                  destruct CDD as [x4 [[INE EQQ] RF2]]; vauto. }
+                split.
+                { split.
+                  { destruct CD3 as [[[x2 [DTT1 MP1]] ES]
+                          [x3 [CMT1 MP2]]].
+                    apply (seq_inj SIMRELQ) in MP1.
+                    { subst; vauto. }
+                    { apply dtrmt_cmt in DTT1.
+                      apply reexec_embd_dom in DTT1; vauto. }
+                    apply wf_rmwE in CDD; [|apply INV'].
+                    destruct CDD as [x4 [[INE EQQ]
+                            [x5 [RF [INE2 EQ2]]]]]; vauto. }
+                  destruct CD3 as [[[x2 [DTT1 MP1]] ES]
+                          [x3 [CMT1 MP2]]].
+                  apply (seq_inj SIMRELQ) in MP1.
+                  { apply rexec_acts.
+                    subst; vauto. }
+                  { apply dtrmt_cmt in DTT1.
+                    apply reexec_embd_dom in DTT1; vauto. }
+                  apply wf_rmwE in CDD; [|apply INV'].
+                  destruct CDD as [x4 [[INE EQQ]
+                            [x5 [RF [INE2 EQ2]]]]]; vauto. }
+                destruct CD3 as [[[x2 [DTT1 MP1]] ES]
+                            [x3 [CMT1 MP2]]].
+                apply (seq_inj SIMRELQ) in MP1.
+                { subst; vauto.
+                  apply dtrmt_cmt in DTT1; vauto. }
+                { apply dtrmt_cmt in DTT1.
+                  apply reexec_embd_dom in DTT1; vauto. }
+                apply wf_rmwE in CDD; [|apply INV'].
+                destruct CDD as [x4 [[INE EQQ]
+                        [x5 [RF [INE2 EQ2]]]]]; vauto. }
+              unfold WCore.X_start in H; ins.
+              destruct H as [x2 [[EQ1 DT1] [x3 [RF [EQ2 DT2]]]]].
+              subst; vauto. }
+            { destruct CD2 as [[[x2 [DTT1 MP1]] ES]
+                    [x3 [CMT1 MP2]]].
+              apply (seq_inj SIMRELQ) in MP1.
+              { subst.
+                apply DTRSAME; vauto. }
+              { apply dtrmt_cmt in DTT1.
+                apply reexec_embd_dom in DTT1; vauto. }
+              apply wf_rmwE in CDD; [|apply INV'].
+              destruct CDD as [x4 [[INE EQQ]
+                      [x5 [RF [INE2 EQ2]]]]]; vauto. }
+            destruct CD3 as [[[x2 [DTT1 MP1]] ES]
+                      [x3 [CMT1 MP2]]].
+            apply (seq_inj SIMRELQ) in MP1.
+            { subst.
+              apply DTRSAME; vauto. }
+            { apply dtrmt_cmt in DTT1.
+              apply reexec_embd_dom in DTT1; vauto. }
+            apply wf_rmwE in CDD; [|apply INV'].
+            destruct CDD as [x4 [[INE EQQ]
+                    [x5 [RF [INE2 EQ2]]]]]; vauto. }
+          red; split; vauto.
+          destruct CD3 as [[CD1 CD3] CD4]; vauto. }
+        all : vauto. }
+      { unfold WCore.X_start; ins.
+        rewrite (seq_data SIMREL).
+        clear; basic_solver 8. }
+      { unfold WCore.X_start; ins.
+        rewrite (seq_ctrl SIMREL).
+        clear; basic_solver 8. }
+      unfold WCore.X_start; ins.
+      rewrite (seq_rmw_dep SIMREL).
+      clear; basic_solver 8. }
+
     all : admit. }
   { apply XmmCons.monoton_cons with (G_t := G_t')
                     (m := mapper'); vauto.
@@ -1659,310 +2004,10 @@ Proof using.
       unfold same_loc, loc; vauto. }
     { apply INV'. }
     { arewrite (G_s' = (WCore.G X_s')).
-      constructor.
-      { intros a b COND.
-        destruct COND as [INA [INB [NEQ [TIDS NINIT]]]].
-        intros FLS.
-        specialize INDLEMMA with a b.
-        apply NEQ; apply INDLEMMA; vauto.
-        unfold is_init in NINIT.
-        clear - NINIT. unfold not in NINIT.
-        unfold not. intros FLS.
-        unfold tid in FLS.
-        destruct a.
-        { apply NINIT; vauto. }
-        admit. (* ??? *) }
-      { rewrite (seq_data SIMRELQ); vauto. }
-      { rewrite (seq_data SIMRELQ); clear; [ basic_solver 4 ]. }
-      { rewrite (seq_addr SIMRELQ); vauto. }
-      { rewrite (seq_addr SIMRELQ); clear; [ basic_solver 4 ]. }
-      { rewrite (seq_ctrl SIMRELQ); vauto. }
-      { rewrite (seq_ctrl SIMRELQ); clear; [ basic_solver 4 ]. }
-      { rewrite (seq_ctrl SIMRELQ); clear; [ basic_solver 4 ]. }
-      { split; [| basic_solver 9 ].
-        rewrite (seq_rmw SIMRELQ); vauto.
-        intros x y COND. destruct COND as [x0 [y0 [RMW [M1 M2]]]].
-        apply wf_rmwE in RMW.
-        { destruct RMW as [x1 [[EQ1 INE1] [x2 [PTH [EQ2 INE2]]]]].
-          subst. destruct SIMRELQ.
-          apply seq_lab in INE1, INE2.
-          apply wf_rmwD in PTH.
-          { destruct PTH as [x2 [[EQ1 RD] [x3 [PTH [EQ2 WT]]]]].
-            subst. unfold seq. exists (mapper' x2); splits.
-            { red; splits; vauto.
-              unfold compose in INE1.
-              unfold is_r in *.
-              rewrite <- INE1; vauto. }
-            exists (mapper' y0); splits; vauto.
-            red; splits; vauto. unfold is_w in *.
-            unfold compose in INE2.
-            rewrite <- INE2; vauto. }
-          apply INV'. }
-        apply INV'. }
-      { rewrite (seq_rmw SIMRELQ).
-        intros x y COND.
-        destruct COND as [x0 [y0 [PTH [M1 M2]]]].
-        subst. 
-        apply wf_rmwE in PTH; [| apply INV'].
-        destruct PTH as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]].
-        subst.
-        apply wf_rmwl in PTH; [| apply INV'].
-        unfold same_loc in *.
-        apply (seq_lab SIMRELQ) in INE1, INE2.
-        unfold compose in *.
-        unfold loc in *.
-        rewrite <- INE1.
-        rewrite <- INE2; vauto. }
-      { rewrite (seq_rmw SIMRELQ).
-        intros x y COND.
-        destruct COND as [x0 [y0 [PTH [M1 M2]]]].
-        subst.
-        apply wf_rmwE in PTH; [| apply INV'].
-        destruct PTH as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]].
-        subst. apply wf_rmwi in PTH; [| apply INV'].
-        admit. (* false *) }
-      { split; [| basic_solver 4].
-        rewrite (seq_rf SIMRELQ).
-        intros x y COND.
-        destruct COND as [x0 [y0 [PTH [M1 M2]]]].
-        subst.
-        apply wf_rfE in PTH; [| apply INV'].
-        destruct PTH as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]].
-        subst.
-        unfold seq.
-        exists (mapper' x2); split.
-        { red; split; vauto.
-          destruct SIMRELQ. apply seq_codom.
-          red; exists x2; vauto. }
-        exists (mapper' y0); split; vauto. }
-      { split; [| basic_solver 4].
-        rewrite (seq_rf SIMRELQ).
-        intros x y COND.
-        destruct COND as [x0 [y0 [PTH [M1 M2]]]].
-        subst.
-        apply wf_rfE in PTH; [| apply INV'].
-        destruct PTH as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]].
-        subst.
-        apply wf_rfD in PTH; [| apply INV'].
-        destruct PTH as [x3 [[EQ1 WT] [x4 [PTH [EQ2 RD]]]]].
-        subst. 
-        destruct SIMRELQ.
-        apply seq_lab in INE1, INE2.
-        unfold compose in *.
-        unfold seq. exists (mapper' x3); splits.
-        { red; splits; vauto.
-          unfold compose in INE1.
-          unfold is_w in *.
-          rewrite <- INE1; vauto. }
-        exists (mapper' y0); splits; vauto.
-        red; splits; vauto. unfold is_r in *.
-        unfold compose in INE2.
-        rewrite <- INE2; vauto. }
-      { rewrite (seq_rf SIMRELQ).
-        intros x y COND.
-        destruct COND as [x0 [y0 [PTH [M1 M2]]]].
-        subst. 
-        apply wf_rfE in PTH; [| apply INV'].
-        destruct PTH as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]].
-        subst.
-        apply wf_rfl in PTH; [| apply INV'].
-        unfold same_loc in *.
-        apply (seq_lab SIMRELQ) in INE1, INE2.
-        unfold compose in *.
-        unfold loc in *.
-        rewrite <- INE1.
-        rewrite <- INE2; vauto. }
-      { rewrite (seq_rf SIMRELQ).
-        unfold funeq. intros a b MAP.
-        destruct MAP as [x0 [y0 [PTH [M1 M2]]]].
-        subst.
-        apply wf_rfE in PTH; [| apply INV'].
-        destruct PTH as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]].
-        subst.
-        apply wf_rfv in PTH; [| apply INV'].
-        apply (seq_lab SIMRELQ) in INE1.
-        apply (seq_lab SIMRELQ) in INE2.
-        unfold compose in *.
-        unfold val in *.
-        rewrite <- INE1.
-        rewrite <- INE2; vauto. }
-      { rewrite (seq_rf SIMRELQ).
-        unfold functional.
-        intros x y z M M'.
-        destruct M as [x0 [y0 [PTH1 [M1 M2]]]]; subst.
-        destruct M' as [x1 [y1 [PTH2 [M3 M4]]]]; subst.
-        destruct SIMRELQ.
-        assert (EQQ : y1 = y0).
-        { apply seq_inj; vauto.
-          { apply wf_rfE in PTH2; [| apply INV'].
-            destruct PTH2 as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]]; vauto. }
-          apply wf_rfE in PTH1; [| apply INV'].
-          destruct PTH1 as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]]; vauto. }
-        subst.
-        assert (EQQ' : x0 = x1).
-        { destruct wf_rff with (G := G_t') (x := y0)
-                    (y := x0) (z := x1); vauto.
-          apply INV'. }
-        basic_solver. }
-      { split; [| basic_solver].
-        rewrite (seq_co SIMRELQ).
-        intros x y COND.
-        destruct COND as [x0 [y0 [PTH [M1 M2]]]].
-        subst.
-        apply wf_coE in PTH; [| apply INV'].
-        destruct PTH as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]].
-        subst.
-        unfold seq.
-        exists (mapper' x2); split.
-        { red; split; vauto.
-          destruct SIMRELQ. apply seq_codom.
-          red; exists x2; vauto. }
-        exists (mapper' y0); split; vauto. }
-      { split; [| basic_solver 4].
-        rewrite (seq_co SIMRELQ).
-        intros x y COND.
-        destruct COND as [x0 [y0 [PTH [M1 M2]]]].
-        subst.
-        apply wf_coE in PTH; [| apply INV'].
-        destruct PTH as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]].
-        subst.
-        apply wf_coD in PTH; [| apply INV'].
-        destruct PTH as [x3 [[EQ1 WT] [x4 [PTH [EQ2 RD]]]]].
-        subst. 
-        destruct SIMRELQ.
-        apply seq_lab in INE1, INE2.
-        unfold compose in *.
-        unfold seq. exists (mapper' x3); splits.
-        { red; splits; vauto.
-          unfold compose in INE1.
-          unfold is_w in *.
-          rewrite <- INE1; vauto. }
-        exists (mapper' y0); splits; vauto.
-        red; splits; vauto. unfold is_w in *.
-        unfold compose in INE2.
-        rewrite <- INE2; vauto. }
-      { rewrite (seq_co SIMRELQ).
-        intros x y COND.
-        destruct COND as [x0 [y0 [PTH [M1 M2]]]].
-        subst. 
-        apply wf_coE in PTH; [| apply INV'].
-        destruct PTH as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]].
-        subst.
-        apply wf_col in PTH; [| apply INV'].
-        unfold same_loc in *.
-        apply (seq_lab SIMRELQ) in INE1, INE2.
-        unfold compose in *.
-        unfold loc in *.
-        rewrite <- INE1.
-        rewrite <- INE2; vauto. }
-      { rewrite (seq_co SIMRELQ).
-        unfold transitive.
-        intros x y z M M'.
-        destruct M as [x0 [y0 [PTH1 [M1 M2]]]]; subst.
-        destruct M' as [x1 [y1 [PTH2 [M3 M4]]]]; subst.
-        destruct SIMRELQ.
-        red; exists x0, y1; splits; vauto.
-        assert (EQQ : x1 = y0).
-        { apply seq_inj; vauto.
-          { apply wf_coE in PTH2; [| apply INV'].
-            destruct PTH2 as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]]; vauto. }
-          apply wf_coE in PTH1; [| apply INV'].
-          destruct PTH1 as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]]; vauto. }
-        subst.
-        apply co_trans with (x := x0) (y := y0) (z := y1); vauto.
-        apply INV'. }
-      { intros ol.
-        rewrite (seq_co SIMRELQ).
-        unfold is_total.
-        intros a COND1 b COND2 NEQ.
-        unfold collect_rel.
-        destruct COND1 as [[INE1 ISW1] LOC1].
-        destruct COND2 as [[INE2 ISW2] LOC2].
-        destruct SIMRELQ.
-        apply seq_acts in INE1, INE2.
-        destruct INE1 as [a0 [INE1 MAP1]].
-        destruct INE2 as [b0 [INE2 MAP2]].
-        destruct wf_co_total with (G := G_t') (ol := ol)
-                        (a := a0) (b := b0).
-        { apply INV'. }
-        { split.
-          { split; vauto.
-            apply seq_lab in INE1.
-            unfold compose in *.
-            unfold is_w in *.
-            rewrite INE1; vauto. }
-          unfold loc in *.
-          apply seq_lab in INE1.
-          unfold compose in *.
-          rewrite INE1; vauto. }
-        { split.
-          { split; vauto.
-            apply seq_lab in INE2.
-            unfold compose in *.
-            unfold is_w in *.
-            rewrite INE2; vauto. }
-          unfold loc in *.
-          apply seq_lab in INE2.
-          unfold compose in *.
-          rewrite INE2; vauto. }
-        { intros FALSE.
-          apply NEQ. subst; vauto. }
-        { left. exists a0, b0; splits; vauto. }
-        right. exists b0, a0; splits; vauto. }
-      { rewrite (seq_co SIMRELQ).
-        unfold irreflexive.
-        intros x COND.
-        destruct COND as [x0 [y0 [PTH1 [M1 M2]]]]; subst.
-        destruct co_irr with (G := G_t') (x := x0); [apply INV'|].
-        assert (EQQ : y0 = x0).
-        { apply (seq_inj SIMRELQ); vauto.
-          { apply wf_coE in PTH1; [| apply INV'].
-            destruct PTH1 as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]]; vauto. }
-          apply wf_coE in PTH1; [| apply INV'].
-          destruct PTH1 as [x2 [[EQ1 INE1] [x3 [PTH [EQ2 INE2]]]]]; vauto. }
-        subst; vauto. }
-      { intros l COND.
-        destruct COND.
-        destruct H as [INE LOC].
-        apply (seq_acts SIMRELQ) in INE.
-        destruct INE as [x0 [INE MAP]].
-        apply (seq_acts SIMRELQ).
-        unfold set_collect. exists (InitEvent l); split; vauto.
-        { apply wf_init; [apply INV' |].
-          exists x0; split; vauto.
-          unfold loc in *. apply (seq_lab SIMRELQ) in INE.
-          unfold compose in *.
-          rewrite INE; vauto. }
-        rewrite (seq_init SIMRELQ); vauto. }
-      { intros l.
-        assert (INE1 : acts_set (WCore.G X_s') (InitEvent l)).
-        { apply (seq_acts SIMRELQ).
-          exists (InitEvent l).
-          split; [now apply (rsr_init_acts INV') |].
-          destruct SIMRELQ.
-          rewrite seq_init; vauto. }
-        destruct SIMRELQ.
-        apply seq_lab_rev in INE1.
-        rewrite INE1.
-        unfold compose.
-        rewrite seq_init_rev; vauto.
-        apply wf_init_lab; apply INV'. }
-      { rewrite (seq_rmw_dep SIMRELQ); vauto. }
-      { rewrite (seq_rmw_dep SIMRELQ); basic_solver 4. }
-      intros e INE.
-      assert (INE' : acts_set (WCore.G X_s') e) by vauto.
-      destruct SIMRELQ.
-      apply seq_acts in INE.
-      destruct INE as [e0 [INE MAP]].
-      assert (INE2 : E_t' e0) by vauto.
-      apply wf_threads in INE; [| apply INV'].
-      rewrite <- MAP.
-      apply seq_threads.
-      destruct classic with (tid (mapper' e0) = t_2).
-      { right; vauto. }
-      left. apply seq_mapeq in H.
-      { rewrite H; vauto. }
-      vauto. }
+      apply wf_transition with (X_t := X_t')
+          (t_1 := t_1) (t_2 := t_2)
+          (mapper := mapper') (mapper_rev := mapper_rev')
+          (ptc_1 := ptc_1); vauto. }
     destruct STEP; vauto. }
   { destruct SIMREL.
     unfold dtrmt'. unfold WCore.reexec_thread.
