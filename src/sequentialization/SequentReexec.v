@@ -2136,6 +2136,9 @@ Proof using.
     basic_solver. }
   apply sub_to_full_exec_listless
     with (thrdle := thrdle'); vauto.
+  { admit. (* we have it *) }
+  { admit. (* we have it *) }
+  { admit. (* we have it *) }
   all : admit.
 Admitted.
 
