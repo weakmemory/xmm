@@ -2139,7 +2139,38 @@ Proof using.
   { admit. (* we have it *) }
   { admit. (* we have it *) }
   { admit. (* we have it *) }
-  all : admit.
+  { admit. }
+  { constructor.
+    all : admit. }
+  { apply wf_transition with (X_t := X_t')
+        (t_1 := t_1) (t_2 := t_2)
+        (mapper := mapper') (mapper_rev := mapper_rev')
+        (ptc_1 := ptc_1); vauto. }
+  { unfold WCore.X_start; ins.
+    destruct STEP.
+    intros x COND.
+    destruct COND as [MP NOT].
+    intros FLS.
+    assert (INITT: is_init x).
+    { admit. (* is this a joke? *) }
+    assert (INITT2: is_init x) by vauto.
+    apply dtrmt_init in INITT.
+    assert (DTRF : dtrmt' x).
+    { unfold dtrmt'.
+      unfold set_collect.
+      exists x; split; vauto.
+      destruct SIMRELQ.
+      apply seq_init; vauto. }
+    destruct NOT.
+    split; vauto.
+    destruct SIMREL.
+    apply seq_acts.
+    unfold set_collect.
+    exists x; split; vauto.
+    { apply rexec_acts; vauto. }
+    destruct MP as [x0 [INE MPP]].
+    apply seq_init; vauto. }
+  admit. (* we have it *)
 Admitted.
 
 End SequentReexec.
