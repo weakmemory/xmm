@@ -1951,14 +1951,95 @@ Proof using.
       unfold WCore.X_start; ins.
       rewrite (seq_rmw_dep SIMREL).
       clear; basic_solver 8. }
-
-    all : admit. }
+    { unfold rf_complete.
+      unfold restrict; ins.
+      arewrite ((fun x : actid =>
+            ifP ~ (mapper' ↑₁ E_t') x
+            then x
+            else (ifP tid x <> t_2 then x
+                  else ThreadEvent t_1
+                   (t_1_len +
+                    index x))) = mapper_rev').
+      destruct STEP.
+      intros x COND.
+      destruct COND as [[CD2 CD3] CD1].
+      destruct CD2 as [x0 [CM MP]].
+      destruct reexec_start_wf.
+      destruct wf_rfc with x0.
+      { split.
+        { unfold restrict; ins.
+          split; vauto.
+          apply reexec_embd_dom in CM; vauto. }
+        unfold restrict; ins.
+        unfold compose in CD1.
+        unfold is_r in *.
+        rewrite <- MP in CD1.
+        unfold compose in MAPCOMP.
+        rewrite MAPCOMP in CD1.
+        { unfold id in CD1; vauto. }
+        apply reexec_embd_dom in CM; vauto. }
+      unfold restrict in H; ins.
+      unfold codom_rel.
+      exists (mapper' x1).
+      unfold seq. exists (mapper' x1); split.
+      { red. split; vauto.
+        destruct H as [x2 [[EQQ CMM] MP]]; subst.
+        unfold cmt'.
+        unfold set_collect.
+        exists x2; split; vauto. }
+      exists x; split; vauto.
+      unfold collect_rel.
+      exists x1, x0; splits; vauto.
+      destruct H as [x2 [[EQQ CMM]
+              [x3 [RF [CM3 EQ]]]]]; subst; vauto. }
+    intros x COND.
+    destruct COND as [[DTT ESS] RD].
+    destruct DTT as [x0 [DTT MP1]].
+    destruct STEP.
+    destruct reexec_start_wf.
+    destruct wf_sub_rfD with x0.
+    { unfold WCore.X_start; ins.
+      split.
+      { split; vauto.
+        apply rexec_acts; vauto. }
+      rewrite <- MP1 in RD.
+      unfold is_r in *.
+      destruct SIMREL.
+      rewrite seq_lab.
+      { unfold compose.
+        assert (COND : mapper' x0 = mapper x0).
+        { apply DTRSAME in DTT; vauto. }
+        rewrite <- COND; vauto. }
+      apply rexec_acts; vauto. }
+    { left. unfold WCore.X_start; ins.
+      destruct SIMREL.
+      destruct H as [x1 PTH].
+      unfold codom_rel. exists (mapper' x1).
+      unfold seq. exists (mapper' x1); split.
+      { red. split; vauto.
+        unfold dtrmt'. unfold set_collect.
+        exists x1; split; vauto.
+        destruct PTH as [x2 [[EQQ CMM] MP]]; subst; vauto. }
+      exists x; split; vauto.
+      apply seq_rf.
+      unfold collect_rel.
+      exists x1, x0; splits; vauto.
+      { destruct PTH as [x2 [[EQQ CMM]
+              [x3 [RF [CM3 EQ]]]]]; subst; vauto. }
+      { apply DTRSAME.
+        destruct PTH as [x2 [[EQQ CMM] MP]]; vauto. }
+      apply DTRSAME.
+      destruct PTH as [x2 [[EQQ CMM] MP]]; vauto. }
+    right.
+    unfold cmt'.
+    unfold set_collect.
+    exists x0; split; vauto. }
   { apply XmmCons.monoton_cons with (G_t := G_t')
                     (m := mapper'); vauto.
     all : try arewrite (WCore.G X_s' = G_s').
     { apply SIMRELQ. }
     { unfold rpo. unfold rpo_imm.
-      admit. }
+      admit. (* ugh *)}
     { unfold G_s'; ins.
       arewrite ((fun x : actid =>
           ifP ~ (mapper' ↑₁ E_t') x then x
