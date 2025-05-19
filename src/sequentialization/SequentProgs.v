@@ -28,6 +28,9 @@ Section SimrelGen.
 Variable X_t X_t' X_s : WCore.t.
 Variable t_1 t_2 : thread_id.
 Variable mapper : actid -> actid.
+Variable mapper_rev : actid -> actid.
+
+Variable ptc_1 ptc_2 : program_trace.
 
 Variable dtrmt_t cmt_t : actid -> Prop.
 Variable thrdle : relation thread_id.
@@ -105,9 +108,9 @@ Lemma seq_step_gen
     (NINIT2 : t_2 <> tid_init)
     (THRDNEQ : t_1 <> t_2)
     (STEP : xmm_step X_t X_t')
-    (SIMREL : seq_simrel X_s X_t t_1 t_2 mapper) :
-  exists X_s' mapper',
-    << SIMREL : seq_simrel X_s' X_t' t_1 t_2 mapper' >> /\
+    (SIMREL : seq_simrel X_s X_t t_1 t_2 mapper mapper_rev ptc_1) :
+  exists X_s' mapper' mapper_rev',
+    << SIMREL : seq_simrel X_s' X_t' t_1 t_2 mapper' mapper_rev' ptc_1 >> /\
     << STEP : xmm_step⁺ X_s X_s' >>.
 Proof using.
   admit.
@@ -137,6 +140,7 @@ Section SimrelMain.
 
 Variable X_t_init X_s_init X_t : WCore.t.
 Variable t_1 t_2 : thread_id.
+Variable ptc_1 ptc_2 : program_trace.
 
 Notation "'G_t_init'" := (WCore.G X_t_init).
 Notation "'G_s_init'" := (WCore.G X_s_init).
@@ -211,8 +215,8 @@ Lemma simrel_main
     (NINIT2 : t_2 <> tid_init)
     (THRDNEQ : t_1 <> t_2)
     (TARGETPTH : xmm_step＊ X_t_init X_t) :
-  exists X_s mapper,
-    << SIMREL : seq_simrel X_s X_t t_1 t_2 mapper >> /\
+  exists X_s mapper mapper_rev,
+    << SIMREL : seq_simrel X_s X_t t_1 t_2 mapper mapper_rev ptc_1>> /\
     << STEP : xmm_step＊ X_s_init X_s >> /\
     << BEHRS : same_behaviors (WCore.G X_s) G_t >>.
 Proof using.
@@ -226,6 +230,7 @@ Section ProgMain.
 Variable X_t : WCore.t.
 Variable t_1 t_2 : thread_id.
 Variable threads : thread_id -> Prop.
+Variable ptc_1 ptc_2 : program_trace.
 
 Variable p1 p2 : program.
 
@@ -235,16 +240,16 @@ Definition X_s_init : WCore.t := WCore.Build_t (WCore.init_exec (threads ∪₁ 
 Hypothesis PROGSEQ : program_sequented p1 p2 t_1 t_2.
 
 Lemma prog_supp : 
-  exists X_s mapper,
-    << SIMREL : seq_simrel X_s X_t t_1 t_2 mapper >> /\
+  exists X_s mapper mapper_rev,
+    << SIMREL : seq_simrel X_s X_t t_1 t_2 mapper mapper_rev ptc_1>> /\
     << STEP   : xmm_step＊ X_s_init X_s >> /\
     << BEHRS  : same_behaviors (WCore.G X_s) (WCore.G X_t) >>.
 Proof using.
   admit.
 Admitted.
 
-Lemma prog_helper X_s mapper :
-  seq_simrel X_s X_t t_1 t_2 mapper ->
+Lemma prog_helper X_s mapper mapper_rev :
+  seq_simrel X_s X_t t_1 t_2 mapper mapper_rev ptc_1 ->
   exec_sequent X_s X_t p1 p2 t_1 t_2.
 Proof using.
   intros SIMREL.
@@ -259,10 +264,11 @@ Lemma prog_main :
     << STEP   : xmm_step＊ X_s_init X_s >> /\
     << BEHRS  : same_behaviors (WCore.G X_s) (WCore.G X_t) >>.
 Proof using.
-  destruct prog_supp as (X_s & mapper & SIMREL & STEP & BEHRS).
+  destruct prog_supp as (X_s & mapper & mapper_rev & SIMREL & STEP & BEHRS).
   exists X_s; splits; auto.
-  apply prog_helper with (mapper := mapper).
+  apply prog_helper with (mapper := mapper)
+  (mapper_rev := mapper_rev).
   vauto.
-Qed.
+Admitted.
 
 End ProgMain.
