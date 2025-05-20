@@ -749,7 +749,7 @@ Proof using.
         { destruct classic with (x1 = e) as [EQ3 | NEQ3].
           { subst x1. unfold ext_sb in COND. desf.
             destruct COND as [COND1 COND2].
-            exfalso. apply Arith_base.gt_irrefl_stt in COND2; vauto. }
+            exfalso. clear - COND2. lia. }
           apply EQACTS in INE1.
           destruct INE1 as [C1 | C2]; vauto. }
         apply (seq_mapeq SIMREL) in INEE; vauto.
@@ -758,7 +758,7 @@ Proof using.
             intros FALSO. subst x1.
             unfold ext_sb in COND. desf.
             destruct COND as [COND1 COND2].
-            exfalso. apply Arith_base.gt_irrefl_stt in COND2; vauto. }
+            exfalso. lia. }
           rewrite INEE.
           unfold mapper'.
           rewrite upds; vauto. }
@@ -1444,8 +1444,7 @@ Proof using.
       { unfold SequentBase.t_1_len in *.
         unfold t_1_len in *.
         subst x. exfalso.
-        apply Arith_base.lt_not_le_stt in IDXS.
-        apply IDXS; vauto. }
+        lia. }
       unfold mapper'.
       rewrite updo; vauto.
       apply (seq_out_snd SIMREL); vauto.
