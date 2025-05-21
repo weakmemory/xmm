@@ -376,6 +376,8 @@ Proof using.
     assert (HLP : (t_1_len + (index - t_1_len)) = index).
     { lia. }
     basic_solver. }
+  assert (MAPREVCOMP : eq_dom (acts_set G_s') (mapper' ∘ mapper_rev') id).
+  { admit. }
   assert (SIMRELQ : seq_simrel X_s' X_t' t_1 t_2
                           mapper' mapper_rev' ptc_1).
 
@@ -2039,7 +2041,239 @@ Proof using.
     all : try arewrite (WCore.G X_s' = G_s').
     { apply SIMRELQ. }
     { unfold rpo. unfold rpo_imm.
-      admit. (* ugh *)}
+      destruct SIMRELQ.
+      assert (RESTR : ⦗R_t' ∩₁ Rlx G_t'⦘ ⨾ sb_t' ⨾ ⦗F G_t' ∩₁ Acq G_t'⦘ ∪ ⦗Acq G_t'⦘ ⨾ sb_t' ∪ sb_t' ⨾ ⦗Rel G_t'⦘
+                ∪ ⦗F G_t' ∩₁ Rel G_t'⦘ ⨾ sb_t' ⨾ ⦗W_t' ∩₁ Rlx G_t'⦘ ≡ restr_rel E_t' (
+                      ⦗R_t' ∩₁ Rlx G_t'⦘ ⨾ sb_t' ⨾ ⦗F G_t' ∩₁ Acq G_t'⦘ ∪ ⦗Acq G_t'⦘ ⨾ sb_t' ∪ sb_t' ⨾ ⦗Rel G_t'⦘
+                ∪ ⦗F G_t' ∩₁ Rel G_t'⦘ ⨾ sb_t' ⨾ ⦗W_t' ∩₁ Rlx G_t'⦘)).
+      { split.
+        { rewrite !restr_union.
+          repeat apply union_mori.
+          { intros x y COND.
+            unfold restr_rel; split; vauto.
+            destruct COND as [x0 [[EQ1 CD1] [x1 [COND [EQ2 CD2]]]]]; subst.
+            apply wf_sbE in COND. 
+            clear - COND. destruct COND as [x2 [[EQ1 CD1] [x3 [COND [EQ2 CD2]]]]]; subst.
+            basic_solver. }
+          { intros x y COND.
+            unfold restr_rel; split; vauto.
+            destruct COND as [x0 [[EQ1 CD1] COND]]; subst.
+            apply wf_sbE in COND. 
+            clear - COND. destruct COND as [x2 [[EQ1 CD1] [x3 [COND [EQ2 CD2]]]]]; subst.
+            basic_solver. }
+          { intros x y COND.
+            unfold restr_rel; split; vauto.
+            destruct COND as [x1 [COND [EQ2 CD2]]]; subst.
+            apply wf_sbE in COND. 
+            clear - COND. destruct COND as [x2 [[EQ1 CD1] [x3 [COND [EQ2 CD2]]]]]; subst.
+            basic_solver. }
+          intros x y COND.
+          unfold restr_rel; split; vauto.
+          destruct COND as [x0 [[EQ1 CD1] [x1 [COND [EQ2 CD2]]]]]; subst.
+          apply wf_sbE in COND. 
+          clear - COND. destruct COND as [x2 [[EQ1 CD1] [x3 [COND [EQ2 CD2]]]]]; subst.
+          basic_solver. }
+        rewrite inclusion_restr; vauto. }
+      rewrite RESTR.
+      rewrite collect_rel_ct_inj.
+      { assert (SBIN : sb G_s' ⊆ mapper' ↑ sb_t').
+        { rewrite <- seq_sb; vauto. }
+        apply clos_trans_mori.
+        rewrite <- RESTR.
+        rewrite !collect_rel_union.
+        repeat apply union_mori.
+        { rewrite wf_sbE. rewrite !seqA.
+          rewrite <- id_inter.
+          rewrite <- seqA.
+          rewrite <- id_inter.
+          rewrite SBIN.
+          rewrite wf_sbE at 2.
+          rewrite !seqA.
+          rewrite <- id_inter.
+          arewrite (⦗R_t' ∩₁ Rlx G_t'⦘ ⨾ ⦗E_t'⦘ ⨾ sb_t' ⨾ ⦗E_t' ∩₁ (F G_t' ∩₁ Acq G_t')⦘ ≡
+                    ⦗R_t' ∩₁ Rlx G_t' ∩₁ E_t'⦘ ⨾ sb_t' ⨾ ⦗E_t' ∩₁ (F G_t' ∩₁ Acq G_t')⦘).
+          { rewrite <- seqA.
+            rewrite <- id_inter; vauto. }
+          rewrite !collect_rel_seq.
+          { repeat apply seq_mori; vauto.
+            { intros x y COND.
+              destruct COND as [EQ [[ISR ISRLX] INE]]; subst.
+              assert (SUB : G_s' = WCore.G X_s') by vauto.
+              rewrite SUB in *.
+              unfold is_rlx, mod in ISRLX.
+              rewrite seq_lab_rev in ISRLX; vauto.
+              red. exists (mapper_rev' y), (mapper_rev' y); splits.
+              { red; split; vauto.
+                repeat split.
+                { unfold is_r. unfold compose in ISRLX; vauto. }
+                { unfold is_rlx. unfold compose in ISRLX; vauto. }
+                apply seq_acts_rev; red; vauto. }
+              { unfold compose in MAPREVCOMP.
+                rewrite MAPREVCOMP; vauto. }
+              unfold compose in MAPREVCOMP.
+              rewrite MAPREVCOMP; vauto. }
+            intros x y COND.
+            destruct COND as [EQ [INE [ISF ISA]]]; subst.
+            assert (SUB : G_s' = WCore.G X_s') by vauto.
+            rewrite SUB in *.
+            unfold is_acq, mod in ISA.
+            rewrite seq_lab_rev in ISA; vauto.
+            red. exists (mapper_rev' y), (mapper_rev' y); splits.
+            { red; split; vauto.
+              repeat split.
+              { apply seq_acts_rev; red; vauto. }
+              { unfold is_r. unfold compose in ISA; vauto. }
+              unfold is_rlx. unfold compose in ISA; vauto. }
+            { unfold compose in MAPREVCOMP.
+              rewrite MAPREVCOMP; vauto. }
+            unfold compose in MAPREVCOMP.
+            rewrite MAPREVCOMP; vauto. }
+          { rewrite wf_sbE.
+            rewrite !codom_seq.
+            clear - seq_inj.
+            basic_solver 8. }
+          rewrite wf_sbE.
+          clear - seq_inj.
+          basic_solver 8. }
+        { rewrite wf_sbE.
+          rewrite <- seqA.
+          rewrite <- id_inter.
+          rewrite SBIN.
+          rewrite wf_sbE at 2.
+          arewrite (⦗Acq G_t'⦘ ⨾ ⦗E_t'⦘ ⨾ sb_t' ⨾ ⦗E_t'⦘ ≡
+                    ⦗Acq G_t' ∩₁ E_t'⦘ ⨾ sb_t' ⨾ ⦗E_t'⦘).
+          { rewrite <- seqA.
+            rewrite <- id_inter; vauto. }
+          rewrite !collect_rel_seq.
+          { repeat apply seq_mori; vauto.
+            { intros x y COND.
+              destruct COND as [EQ [ISA INE]]; subst.
+              assert (SUB : G_s' = WCore.G X_s') by vauto.
+              rewrite SUB in *.
+              unfold is_acq, mod in ISA.
+              rewrite seq_lab_rev in ISA; vauto.
+              red. exists (mapper_rev' y), (mapper_rev' y); splits.
+              { red; split; vauto.
+                repeat split.
+                { unfold is_acq. unfold compose in ISA; vauto. }
+                apply seq_acts_rev; red; vauto. }
+              { unfold compose in MAPREVCOMP.
+                rewrite MAPREVCOMP; vauto. }
+              unfold compose in MAPREVCOMP.
+              rewrite MAPREVCOMP; vauto. }
+            intros x y COND.
+            destruct COND as [EQ INE]; subst.
+            assert (SUB : G_s' = WCore.G X_s') by vauto.
+            rewrite SUB in *.
+            red. exists (mapper_rev' y), (mapper_rev' y); splits.
+            { red; split; vauto.
+              apply seq_acts_rev; red; vauto. }
+            { unfold compose in MAPREVCOMP.
+              rewrite MAPREVCOMP; vauto. }
+            unfold compose in MAPREVCOMP.
+            rewrite MAPREVCOMP; vauto. }
+          { rewrite wf_sbE.
+            rewrite !codom_seq.
+            clear - seq_inj.
+            basic_solver 8. }
+          rewrite wf_sbE.
+          clear - seq_inj.
+          basic_solver 8. }
+        { rewrite wf_sbE. rewrite !seqA.
+          rewrite <- id_inter.
+          rewrite SBIN.
+          rewrite wf_sbE at 2.
+          rewrite !seqA.
+          rewrite <- id_inter.
+          rewrite !collect_rel_seq.
+          { repeat apply seq_mori; vauto.
+            { intros x y COND.
+              destruct COND as [EQ INE]; subst.
+              assert (SUB : G_s' = WCore.G X_s') by vauto.
+              rewrite SUB in *.
+              red. exists (mapper_rev' y), (mapper_rev' y); splits.
+              { red; split; vauto.
+                apply seq_acts_rev; red; vauto. }
+              { unfold compose in MAPREVCOMP.
+                rewrite MAPREVCOMP; vauto. }
+              unfold compose in MAPREVCOMP.
+              rewrite MAPREVCOMP; vauto. }
+            intros x y COND.
+            destruct COND as [EQ [INE ISR]]; subst.
+            assert (SUB : G_s' = WCore.G X_s') by vauto.
+            rewrite SUB in *.
+            unfold is_rel, mod in ISR.
+            rewrite seq_lab_rev in ISR; vauto.
+            red. exists (mapper_rev' y), (mapper_rev' y); splits.
+            { red; split; vauto.
+              repeat split.
+              { apply seq_acts_rev; red; vauto. }
+              unfold is_rel. unfold compose in ISR; vauto. }
+            { unfold compose in MAPREVCOMP.
+              rewrite MAPREVCOMP; vauto. }
+            unfold compose in MAPREVCOMP.
+            rewrite MAPREVCOMP; vauto. }
+          { rewrite wf_sbE.
+            rewrite !codom_seq.
+            clear - seq_inj.
+            basic_solver 8. }
+          rewrite wf_sbE.
+          clear - seq_inj.
+          basic_solver 8. }
+        rewrite wf_sbE. rewrite !seqA.
+        rewrite <- id_inter.
+        rewrite <- seqA.
+        rewrite <- id_inter.
+        rewrite SBIN.
+        rewrite wf_sbE at 2.
+        rewrite !seqA.
+        rewrite <- id_inter.
+        arewrite (⦗F G_t' ∩₁ Rel G_t'⦘ ⨾ ⦗E_t'⦘ ⨾ sb_t' ⨾ ⦗E_t' ∩₁ (W_t' ∩₁ Rlx G_t')⦘ ≡
+        ⦗F G_t' ∩₁ Rel G_t' ∩₁ E_t'⦘ ⨾ sb_t' ⨾ ⦗E_t' ∩₁ (W_t' ∩₁ Rlx G_t')⦘).
+        { rewrite <- seqA.
+          rewrite <- id_inter; vauto. }
+        rewrite !collect_rel_seq.
+        { repeat apply seq_mori; vauto.
+          { intros x y COND.
+            destruct COND as [EQ [[ISF ISREL] INE]]; subst.
+            assert (SUB : G_s' = WCore.G X_s') by vauto.
+            rewrite SUB in *.
+            unfold is_rel, mod in ISREL.
+            rewrite seq_lab_rev in ISREL; vauto.
+            red. exists (mapper_rev' y), (mapper_rev' y); splits.
+            { red; split; vauto.
+              repeat split.
+              { unfold is_r. unfold compose in ISREL; vauto. }
+              { unfold is_rlx. unfold compose in ISREL; vauto. }
+              apply seq_acts_rev; red; vauto. }
+            { unfold compose in MAPREVCOMP.
+              rewrite MAPREVCOMP; vauto. }
+            unfold compose in MAPREVCOMP.
+            rewrite MAPREVCOMP; vauto. }
+          intros x y COND.
+          destruct COND as [EQ [INE [ISF ISA]]]; subst.
+          assert (SUB : G_s' = WCore.G X_s') by vauto.
+          rewrite SUB in *.
+          unfold is_rlx, mod in ISA.
+          rewrite seq_lab_rev in ISA; vauto.
+          red. exists (mapper_rev' y), (mapper_rev' y); splits.
+          { red; split; vauto.
+            repeat split.
+            { apply seq_acts_rev; red; vauto. }
+            { unfold is_r. unfold compose in ISA; vauto. }
+            unfold is_rlx. unfold compose in ISA; vauto. }
+          { unfold compose in MAPREVCOMP.
+            rewrite MAPREVCOMP; vauto. }
+          unfold compose in MAPREVCOMP.
+          rewrite MAPREVCOMP; vauto. }
+        { rewrite wf_sbE.
+          rewrite !codom_seq.
+          clear - seq_inj.
+          basic_solver 8. }
+        rewrite wf_sbE.
+        clear - seq_inj.
+        basic_solver 8. }
+      vauto. }
     { unfold G_s'; ins.
       arewrite ((fun x : actid =>
           ifP ~ (mapper' ↑₁ E_t') x then x
@@ -2141,6 +2375,24 @@ Proof using.
   { admit. (* we have it *) }
   { admit. }
   { constructor.
+    { unfold WCore.X_start; ins.
+      destruct STEP; vauto.
+      unfold dtrmt'. rewrite <- dtrmt_init.
+      destruct SIMREL. rewrite seq_acts.
+      split.
+      { destruct SIMRELQ.
+        unfold set_collect. exists x; split; vauto.
+        apply seq_init0 in H; vauto. }
+      unfold set_collect.
+      exists x; split.
+      { apply INV; vauto. }
+      destruct SIMRELQ.
+      apply seq_init in H; vauto. }
+    { unfold WCore.X_start; ins.
+      rewrite (seq_acts SIMREL).
+      unfold dtrmt'. destruct STEP.
+      rewrite dtrmt_cmt, reexec_embd_dom.
+      admit. }
     all : admit. }
   { apply wf_transition with (X_t := X_t')
         (t_1 := t_1) (t_2 := t_2)
