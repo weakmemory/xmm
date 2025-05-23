@@ -12,6 +12,8 @@ From xmm Require Import ThreadTrace.
 From xmm Require Import Programs.
 From xmm Require Import SequentBase.
 From xmm Require Import SequentExec.
+From xmm Require Import SequentExec2.
+From xmm Require Import SequentExec3.
 From xmm Require Import SequentReexec.
 
 From hahn Require Import Hahn.
