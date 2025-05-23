@@ -2534,20 +2534,10 @@ Proof using.
         apply DTRSAME; vauto. }
       unfold WCore.reexec_thread.
       split.
-      { intros x COND.
-        destruct COND as [x0 [COND EQ]].
-        split.
-        { unfold set_collect.
-          exists x0; split; vauto.
-          apply COND; vauto. }
-        destruct COND as [CD1 CD2].
-        unfold set_collect in CD2.
-        unfold set_collect.
-        unfold set_map in CD2.
-        unfold set_map.
-        destruct CD2 as [x1 [INE TIDS]].
-        exists (mapper' x1); split; vauto.
-        admit. (* ?????? *) }
+      { rewrite set_collect_inter.
+        apply set_subset_inter_r.
+        split; [clear; basic_solver |].
+        admit. }
       admit. }
     destruct STEP. rewrite dtrmt_cmt.
     rewrite reexec_embd_dom.

@@ -1132,7 +1132,36 @@ Proof using.
     { rewrite (seq_addr SIMREL); vauto. }
     { rewrite (seq_ctrl SIMREL); vauto. }
     { rewrite (seq_rmw_dep SIMREL); vauto. }
-    { admit. (* po-work *) }
+    { assert (SBEQ1 : sb_s ≡ mapper ↑ sb_t \ po_seq X_s t_1 t_2).
+      { rewrite <- (seq_sb SIMREL).
+        rewrite minus_union_l.
+        rewrite minusK. split; [| basic_solver].
+        intros x y COND.
+        left. split; vauto.
+        intros FLS.
+        unfold po_seq in FLS.
+        destruct FLS as [[TID1 INE1] [TID2 INE2]].
+        unfold sb in COND. unfold ext_sb in COND.
+        clear - COND TID1 TID2 NINIT1 NINIT2 THRDNEQ.
+        destruct COND as [x0 [[EQQ1 INEE1] [x1 [COND2 [EQQ2 INEE2]]]]].
+        subst. desf. basic_solver 42. }
+      assert (SBEQ2 : sb G_s' ≡ mapper' ↑ sb_t' \ po_seq X_s' t_1 t_2).
+      { rewrite <- (seq_sb SIMRELQ).
+        rewrite minus_union_l. rewrite TID.
+        rewrite minusK. split; [| basic_solver].
+        intros x y COND.
+        left. split; vauto.
+        intros FLS.
+        unfold po_seq in FLS.
+        destruct FLS as [[TID1 INE1] [TID2 INE2]].
+        unfold sb in COND. unfold ext_sb in COND.
+        clear - COND TID1 TID2 NINIT1 NINIT2 THRDNEQ.
+        destruct COND as [x0 [[EQQ1 INEE1] [x1 [COND2 [EQQ2 INEE2]]]]].
+        subst. desf. basic_solver 42. }
+      rewrite SBEQ1, SBEQ2.
+      unfold WCore.sb_delta.
+      destruct ADD. rewrite add_event_sb.
+      admit. (* po-work *) }
     arewrite (G_s' = WCore.G X_s').
     apply wf_transition with (X_t := X_t')
           (t_1 := t_1) (t_2 := t_2)
@@ -1438,7 +1467,33 @@ Proof using.
       basic_solver 8. }
     vauto. }
   { rewrite <- (seq_lab SIMRELQ); vauto. }
-  { admit. (* TODO : po-work? *) }
+  { assert (SBEQ : sb G_s' ≡ mapper' ↑ sb_t' \ po_seq X_s' t_1 t_2).
+    { rewrite <- (seq_sb SIMRELQ).
+      rewrite minus_union_l. rewrite TID.
+      rewrite minusK. split; [| basic_solver].
+      intros x y COND.
+      left. split; vauto.
+      intros FLS.
+      unfold po_seq in FLS.
+      destruct FLS as [[TID1 INE1] [TID2 INE2]].
+      unfold sb in COND. unfold ext_sb in COND.
+      clear - COND TID1 TID2 NINIT1 NINIT2 THRDNEQ.
+      destruct COND as [x0 [[EQQ1 INEE1] [x1 [COND2 [EQQ2 INEE2]]]]].
+      subst. desf. basic_solver 42. }
+    arewrite (WCore.G X_s' = G_s').
+    rewrite SBEQ.
+    intros x y COND.
+    destruct COND as [[CDMAP POSEQ] COND2].
+    destruct CDMAP as [x0 [x1 [CND [M1 M2]]]].
+    unfold collect_rel.
+    exists x0, x1; split; vauto.
+    split; vauto.
+    unfold same_loc in *.
+    destruct SIMRELQ.
+    unfold loc. rewrite !seq_lab.
+    { unfold compose; vauto. }
+    all : apply wf_sbE in CND.
+    all : destruct CND as [x2 [[EQ1 CD1] [x3 [COND [EQ2 CD2]]]]]; vauto. }
   { apply INV'. }
   apply wf_transition with (X_t := X_t')
           (t_1 := t_1) (t_2 := t_2)
