@@ -144,8 +144,10 @@ Proof using.
   rewrite rel_low. basic_solver.
 Qed.
 
-Definition thrdle' := thrdle ∪ eq t_2 × eq t_1 ∪ (dom_rel (thrdle ⨾ ⦗eq t_1⦘) \₁ eq t_2) × eq t_2
-                      ∪ eq t_2 × (codom_rel (⦗eq t_1⦘ ⨾ thrdle) \₁ eq t_2)
+Hypothesis THRLEE : thrdle ≡ ⦗threads_set G_t⦘ ⨾ thrdle ⨾ ⦗threads_set G_t⦘.
+
+Definition thrdle' := thrdle ∪ eq t_2 × eq t_1 ∪ dom_rel (thrdle ⨾ ⦗eq t_1⦘) × eq t_2
+                      ∪ eq t_2 × codom_rel (⦗eq t_1⦘ ⨾ thrdle)
                       ∪ eq tid_init × codom_rel (thrdle).
 
 Hypothesis INV : seq_simrel_inv X_t.
@@ -1100,8 +1102,6 @@ Proof using.
           apply codom_crossed in FLS3.
           desf. }
         apply codom_crossed in FLS2.
-        unfold set_minus in FLS2.
-        destruct FLS2 as [FLS2 _].
         destruct STEP. destruct reexec_sur.
         clear - FLS2 surg_init_min.
         unfold min_elt in surg_init_min.
@@ -1119,16 +1119,23 @@ Proof using.
       desf. }
     { constructor.
       { unfold thrdle'.
-        apply irreflexive_union; split.
-        { apply irreflexive_union; split.
-          { apply irreflexive_union; split.
-            { apply irreflexive_union; split.
-              { destruct STEP. destruct reexec_sur.
-                unfold strict_partial_order in surg_order.
-                destruct surg_order as [IRR _]; vauto. }
-              clear - THRDNEQ. basic_solver. }
-            clear. basic_solver. }
-          clear. basic_solver. }
+        repeat (apply irreflexive_union; split).
+        { destruct STEP. destruct reexec_sur.
+          unfold strict_partial_order in surg_order.
+          destruct surg_order as [IRR _]; vauto. }
+        { clear - THRDNEQ. basic_solver. }
+        { intros x COND.
+          destruct COND as [CD1 CD2]; subst x.
+          destruct CD1 as [x1 [x2 [CD1 CD2]]].
+          apply THRLEE in CD1.
+          destruct CD1 as [x3 [[EQ INE] CD3]].
+          subst x3. desf. }
+        { intros x COND.
+          destruct COND as [CD1 CD2]; subst x.
+          destruct CD2 as [x1 [x2 [CD1 CD2]]].
+          apply THRLEE in CD2.
+          destruct CD2 as [x3 [CD2 [x4 [CD3 [EQ INE]]]]].
+          subst x4. desf. }
         destruct STEP. destruct reexec_sur.
         unfold min_elt in surg_init_min.
         clear - surg_init_min.
@@ -1137,8 +1144,155 @@ Proof using.
         basic_solver 4. }
       unfold thrdle'. unfold transitive.
       intros x y z XY YZ.
-      (* TODO : discuss *)
-      admit. }
+      destruct XY as [[[[C1 | C1] | C1] | C1] | C1].
+      all : destruct YZ as [[[[C2 | C2] | C2] | C2] | C2].
+      all : destruct STEP.
+      all : destruct reexec_sur.
+      all : destruct surg_order as [IR TR].
+      { do 4 left. clear - C1 C2 TR. basic_solver 4. }
+      { destruct C2 as [EQ1 EQ2].
+        subst y. apply THRLEE in C1.
+        destruct C1 as [x3 [CD2 [x4 [CD3 [EQ INE]]]]].
+        desf. }
+      { do 2 left; right.
+        clear - C1 C2 TR.
+        destruct C2 as [C2 EQ]; subst z.
+        split; vauto.
+        destruct C2 as [x0 [x1 [CD2 [EQ1 EQ2]]]]; subst.
+        basic_solver 8. }
+      { destruct C2 as [EQ1 EQ2].
+        subst y. apply THRLEE in C1.
+        destruct C1 as [x3 [CD2 [x4 [CD3 [EQ INE]]]]].
+        desf. }
+      { clear - C1 C2 surg_init_min.
+        exfalso. unfold min_elt in surg_init_min.
+        destruct C2 as [C2 C3].
+        basic_solver 4. }
+      { left; right.
+        clear - C1 C2 TR.
+        destruct C1 as [C1 EQ]; subst x y.
+        split; vauto. }
+      { clear - C1 C2 THRDNEQ.
+        destruct C1 as [C1 EQ]; subst x y.
+        destruct C2 as [C2 EQ1]; subst z.
+        exfalso. desf. }
+      { clear - C1 C2 IR.
+        exfalso.
+        destruct C1 as [C1 EQ]; subst x y.
+        destruct C2 as [C2 EQ1]; subst z.
+        destruct IR with t_1.
+        destruct C2 as [x0 [x1 [CD [EQ1 EQ2]]]]; subst.
+        vauto. }
+      { clear - C1 C2 THRDNEQ.
+        destruct C1 as [C1 EQ]; subst x y.
+        destruct C2 as [C2 EQ1].
+        exfalso. desf. }
+      { clear - C1 C2 NINIT1.
+        destruct C1 as [C1 EQ]; subst x y.
+        destruct C2 as [C2 EQ1].
+        exfalso. desf. }
+      { destruct C1 as [EQ1 EQ2].
+        subst y. apply THRLEE in C2.
+        destruct C2 as [x3 [[EQ TD] [x4 [CD3 CD4]]]].
+        desf. }
+      { do 4 left. clear - C1 C2 TR.
+        destruct C2 as [C2 EQ]; subst y z.
+        destruct C1 as [C1 EQ1].
+        destruct C1 as [x0 [x1 [CD1 [EQ2 EQ3]]]]; subst.
+        vauto. }
+      { destruct C1 as [EQ1 EQ2].
+        subst y.
+        destruct C2 as [C2 EQ]; subst z.
+        destruct C2 as [x0 [x1 [CD2 [EQ3 EQ4]]]]; subst.
+        apply THRLEE in CD2.
+        destruct CD2 as [x3 [[EQ TD] [x4 [CD3 CD4]]]].
+        desf. }
+      { do 4 left. clear - C1 C2 TR.
+        destruct C2 as [C2 EQ]; subst.
+        destruct C1 as [C1 EQ1]; subst.
+        destruct C1 as [x0 [x1 [CD1 [EQ2 EQ3]]]]; subst.
+        destruct EQ as [x1 [x2 [[EQ INE] CDD]]]; subst.
+        basic_solver 8. }
+      { clear - C1 C2 NINIT2.
+        destruct C1 as [C1 EQ]; subst.
+        destruct C2 as [C2 EQ1]; subst.
+        exfalso. desf. }
+      { left; right.
+        clear - C1 C2 TR.
+        destruct C1 as [EQ1 EQ2].
+        subst x. split; vauto.
+        unfold codom_rel.
+        destruct EQ2 as [x0 [x1 [[EQ1 EQ2] CD]]].
+        basic_solver 8. }
+      { clear - C1 C2 THRLEE T2NOTIN.
+        destruct C2 as [C2 EQ]; subst.
+        destruct C1 as [C1 EQ1]; subst.
+        destruct EQ1 as [x0 [x1 [[EQ1 EQ2] CD]]].
+        apply THRLEE in CD.
+        destruct CD as [x3 [[EQ TD] [x4 [CD3 [EQ3 TD2]]]]].
+        desf. }
+      { clear - C1 C2 IR TR.
+        exfalso.
+        destruct C1 as [C1 EQ]; subst.
+        destruct C2 as [C2 EQ1]; subst.
+        destruct EQ as [x0 [x1 [[EQ1 EQ2] CD]]]; subst.
+        destruct C2 as [x2 [x3 [CD2 [INE1 INE2]]]]; subst.
+        basic_solver 8. }
+      { destruct C1 as [EQ1 EQ2].
+        subst x.
+        destruct C2 as [C2 EQ]; subst.
+        destruct EQ2 as [x0 [x1 [CD2 CD3]]]; subst.
+        apply THRLEE in CD3.
+        destruct CD3 as [x3 [[EQ2 TD] [x4 [CD3 [EQ3 EQ4]]]]].
+        desf. }
+      { clear - C1 C2 surg_init_min TR.
+        exfalso.
+        destruct C1 as [C1 EQ]; subst.
+        destruct C2 as [C2 EQ1]; subst.
+        destruct EQ as [x0 [x1 [[EQ3 EQ2] CD]]]; subst.
+        destruct surg_init_min with x1; vauto. }
+      { do 4 left. clear - C1 C2 TR surg_init_least surg_init_min.
+        destruct C1.
+        destruct H0 as [x0 CND]; subst.
+        unfold least_elt in surg_init_least.
+        apply surg_init_least.
+        intros FLS. basic_solver 12. }
+      { clear - C1 C2 THRLEE T2NOTIN.
+        exfalso.
+        destruct C1 as [C1 EQ]; subst.
+        destruct C2 as [C2 EQ1]; subst.
+        destruct EQ as [x0 CND]; subst.
+        apply THRLEE in CND.
+        destruct CND as [x3 [[EQ2 TD] [x4 [CD3 [EQ3 EQ4]]]]].
+        desf. }
+      { do 2 left; right.
+        clear - C1 C2 TR NINIT1 surg_init_least.
+        destruct C1 as [C1 EQ]; subst.
+        destruct C2 as [C2 EQ1]; subst.
+        split; vauto.
+        unfold dom_rel.
+        exists t_1; vauto.
+        unfold seq; exists t_1; split; vauto.
+        unfold least_elt in surg_init_least.
+        specialize (surg_init_least t_1).
+        apply surg_init_least.
+        basic_solver. }
+      { clear - C1 C2 THRLEE T2NOTIN.
+        exfalso.
+        destruct C1 as [C1 EQ]; subst.
+        destruct C2 as [C2 EQ1]; subst.
+        destruct EQ as [x0 CND]; subst.
+        apply THRLEE in CND.
+        destruct CND as [x3 [[EQ2 TD] [x4 [CD3 [EQ3 EQ4]]]]].
+        desf. }
+      clear - C1 C2 surg_init_min.
+      destruct C1 as [C1 EQ]; subst.
+      destruct C2 as [C2 EQ1]; subst.
+      exfalso.
+      unfold min_elt in surg_init_min.
+      destruct EQ as [x0 CND].
+      specialize (surg_init_min x0).
+      vauto. }
     admit. }
   { unfold sb. rewrite !seqA.
     rewrite <- !id_inter.
