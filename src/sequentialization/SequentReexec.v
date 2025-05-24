@@ -116,6 +116,9 @@ Definition t_2_len := length (ptc_1 t_2).
 (* Definition cmt' := mapper ↑₁ cmt_t.
 Definition dtrmt' := mapper ↑₁ dtrmt_t. *)
 
+Hypothesis INTREADS : forall (x : actid),
+  tid x = tid_init <-> is_init x.
+
 Definition relation_lowering (A : Type) (r : relation A) (P : A -> Prop) : relation A :=
   fun x y => r x y /\ P x /\ P y.
 
@@ -1036,700 +1039,7 @@ Proof using.
     { unfold tid in TID1. apply NINIT1; vauto. }
     unfold tid in *. desf. }
 
-  unfold WCore.reexec.
-  exists thrdle'.
-  constructor; vauto.
-  { unfold dtrmt'. destruct SIMRELQ.
-    arewrite ((fun a : actid => is_init a) ⊆₁
-              mapper' ↑₁ (fun a : actid => is_init a)).
-    { clear- seq_init.
-      unfold fixset in seq_init.
-      basic_solver. }
-    destruct STEP.
-    rewrite dtrmt_init; vauto. }
-  { unfold dtrmt', cmt'.
-    rewrite (WCore.dtrmt_cmt STEP); vauto. }
-  { unfold dtrmt'.
-    unfold fixset.
-    intros x DTT.
-    destruct DTT as [x0 [INX DTT]].
-    subst. unfold compose.
-    assert (HLP : mapper_rev' (mapper' x0) = x0).
-    { unfold compose in MAPCOMP.
-      apply MAPCOMP. destruct STEP.
-      apply dtrmt_cmt, reexec_embd_dom in INX; vauto. }
-    rewrite HLP.
-    arewrite (f_t x0 = x0).
-    { destruct STEP.
-      apply dtrmt_fixed; vauto. }
-    apply DTRSAME; vauto. }
-  { destruct STEP. unfold cmt'.
-    arewrite (WCore.G X_s' = G_s').
-    unfold G_s'. simpls.
-    basic_solver 8. }
-  { constructor.
-    { destruct STEP. destruct reexec_sur.
-      unfold least_elt. intros trn INIT.
-      unfold thrdle'.
-      right.
-      split; vauto.
-      unfold least_elt in surg_init_least.
-      specialize (surg_init_least trn INIT).
-      clear - surg_init_least.
-      basic_solver. }
-    { unfold min_elt. intros trn INIT.
-      assert (FLS : codom_rel thrdle' tid_init).
-      { clear - INIT. basic_solver. }
-      unfold thrdle' in INIT.
-      apply codom_union in FLS.
-      destruct FLS as [FLS | FLS1].
-      { apply codom_union in FLS.
-        destruct FLS as [FLS | FLS2].
-        { apply codom_union in FLS.
-          destruct FLS as [FLS | FLS3].
-          { apply codom_union in FLS.
-            destruct FLS as [FLS | FLS4].
-            { destruct STEP. destruct reexec_sur.
-              unfold min_elt in surg_init_min.
-              destruct FLS as [x FLS].
-              specialize (surg_init_min x).
-              apply surg_init_min.
-              vauto. }
-            clear - NINIT1 FLS4.
-            apply codom_crossed in FLS4.
-            desf. }
-          clear - NINIT2 FLS3.
-          apply codom_crossed in FLS3.
-          desf. }
-        apply codom_crossed in FLS2.
-        destruct STEP. destruct reexec_sur.
-        clear - FLS2 surg_init_min.
-        unfold min_elt in surg_init_min.
-        destruct FLS2 as [x FLS2].
-        specialize (surg_init_min x).
-        apply surg_init_min.
-        destruct FLS2 as [x0 [EQ FLS2]].
-        destruct EQ. desf. }
-      apply codom_crossed in FLS1.
-      destruct STEP. destruct reexec_sur.
-      clear - FLS1 surg_init_min.
-      unfold min_elt in surg_init_min.
-      destruct FLS1 as [x FLS1].
-      specialize (surg_init_min x).
-      desf. }
-    { constructor.
-      { unfold thrdle'.
-        repeat (apply irreflexive_union; split).
-        { destruct STEP. destruct reexec_sur.
-          unfold strict_partial_order in surg_order.
-          destruct surg_order as [IRR _]; vauto. }
-        { clear - THRDNEQ. basic_solver. }
-        { intros x COND.
-          destruct COND as [CD1 CD2]; subst x.
-          destruct CD1 as [x1 [x2 [CD1 CD2]]].
-          apply THRLEE in CD1.
-          destruct CD1 as [x3 [[EQ INE] CD3]].
-          subst x3. desf. }
-        { intros x COND.
-          destruct COND as [CD1 CD2]; subst x.
-          destruct CD2 as [x1 [x2 [CD1 CD2]]].
-          apply THRLEE in CD2.
-          destruct CD2 as [x3 [CD2 [x4 [CD3 [EQ INE]]]]].
-          subst x4. desf. }
-        destruct STEP. destruct reexec_sur.
-        unfold min_elt in surg_init_min.
-        clear - surg_init_min.
-        intros x [EQ [y FLS]].
-        specialize (surg_init_min y).
-        basic_solver 4. }
-      unfold thrdle'. unfold transitive.
-      intros x y z XY YZ.
-      destruct XY as [[[[C1 | C1] | C1] | C1] | C1].
-      all : destruct YZ as [[[[C2 | C2] | C2] | C2] | C2].
-      all : destruct STEP.
-      all : destruct reexec_sur.
-      all : destruct surg_order as [IR TR].
-      { do 4 left. clear - C1 C2 TR. basic_solver 4. }
-      { destruct C2 as [EQ1 EQ2].
-        subst y. apply THRLEE in C1.
-        destruct C1 as [x3 [CD2 [x4 [CD3 [EQ INE]]]]].
-        desf. }
-      { do 2 left; right.
-        clear - C1 C2 TR.
-        destruct C2 as [C2 EQ]; subst z.
-        split; vauto.
-        destruct C2 as [x0 [x1 [CD2 [EQ1 EQ2]]]]; subst.
-        basic_solver 8. }
-      { destruct C2 as [EQ1 EQ2].
-        subst y. apply THRLEE in C1.
-        destruct C1 as [x3 [CD2 [x4 [CD3 [EQ INE]]]]].
-        desf. }
-      { clear - C1 C2 surg_init_min.
-        exfalso. unfold min_elt in surg_init_min.
-        destruct C2 as [C2 C3].
-        basic_solver 4. }
-      { left; right.
-        clear - C1 C2 TR.
-        destruct C1 as [C1 EQ]; subst x y.
-        split; vauto. }
-      { clear - C1 C2 THRDNEQ.
-        destruct C1 as [C1 EQ]; subst x y.
-        destruct C2 as [C2 EQ1]; subst z.
-        exfalso. desf. }
-      { clear - C1 C2 IR.
-        exfalso.
-        destruct C1 as [C1 EQ]; subst x y.
-        destruct C2 as [C2 EQ1]; subst z.
-        destruct IR with t_1.
-        destruct C2 as [x0 [x1 [CD [EQ1 EQ2]]]]; subst.
-        vauto. }
-      { clear - C1 C2 THRDNEQ.
-        destruct C1 as [C1 EQ]; subst x y.
-        destruct C2 as [C2 EQ1].
-        exfalso. desf. }
-      { clear - C1 C2 NINIT1.
-        destruct C1 as [C1 EQ]; subst x y.
-        destruct C2 as [C2 EQ1].
-        exfalso. desf. }
-      { destruct C1 as [EQ1 EQ2].
-        subst y. apply THRLEE in C2.
-        destruct C2 as [x3 [[EQ TD] [x4 [CD3 CD4]]]].
-        desf. }
-      { do 4 left. clear - C1 C2 TR.
-        destruct C2 as [C2 EQ]; subst y z.
-        destruct C1 as [C1 EQ1].
-        destruct C1 as [x0 [x1 [CD1 [EQ2 EQ3]]]]; subst.
-        vauto. }
-      { destruct C1 as [EQ1 EQ2].
-        subst y.
-        destruct C2 as [C2 EQ]; subst z.
-        destruct C2 as [x0 [x1 [CD2 [EQ3 EQ4]]]]; subst.
-        apply THRLEE in CD2.
-        destruct CD2 as [x3 [[EQ TD] [x4 [CD3 CD4]]]].
-        desf. }
-      { do 4 left. clear - C1 C2 TR.
-        destruct C2 as [C2 EQ]; subst.
-        destruct C1 as [C1 EQ1]; subst.
-        destruct C1 as [x0 [x1 [CD1 [EQ2 EQ3]]]]; subst.
-        destruct EQ as [x1 [x2 [[EQ INE] CDD]]]; subst.
-        basic_solver 8. }
-      { clear - C1 C2 NINIT2.
-        destruct C1 as [C1 EQ]; subst.
-        destruct C2 as [C2 EQ1]; subst.
-        exfalso. desf. }
-      { left; right.
-        clear - C1 C2 TR.
-        destruct C1 as [EQ1 EQ2].
-        subst x. split; vauto.
-        unfold codom_rel.
-        destruct EQ2 as [x0 [x1 [[EQ1 EQ2] CD]]].
-        basic_solver 8. }
-      { clear - C1 C2 THRLEE T2NOTIN.
-        destruct C2 as [C2 EQ]; subst.
-        destruct C1 as [C1 EQ1]; subst.
-        destruct EQ1 as [x0 [x1 [[EQ1 EQ2] CD]]].
-        apply THRLEE in CD.
-        destruct CD as [x3 [[EQ TD] [x4 [CD3 [EQ3 TD2]]]]].
-        desf. }
-      { clear - C1 C2 IR TR.
-        exfalso.
-        destruct C1 as [C1 EQ]; subst.
-        destruct C2 as [C2 EQ1]; subst.
-        destruct EQ as [x0 [x1 [[EQ1 EQ2] CD]]]; subst.
-        destruct C2 as [x2 [x3 [CD2 [INE1 INE2]]]]; subst.
-        basic_solver 8. }
-      { destruct C1 as [EQ1 EQ2].
-        subst x.
-        destruct C2 as [C2 EQ]; subst.
-        destruct EQ2 as [x0 [x1 [CD2 CD3]]]; subst.
-        apply THRLEE in CD3.
-        destruct CD3 as [x3 [[EQ2 TD] [x4 [CD3 [EQ3 EQ4]]]]].
-        desf. }
-      { clear - C1 C2 surg_init_min TR.
-        exfalso.
-        destruct C1 as [C1 EQ]; subst.
-        destruct C2 as [C2 EQ1]; subst.
-        destruct EQ as [x0 [x1 [[EQ3 EQ2] CD]]]; subst.
-        destruct surg_init_min with x1; vauto. }
-      { do 4 left. clear - C1 C2 TR surg_init_least surg_init_min.
-        destruct C1.
-        destruct H0 as [x0 CND]; subst.
-        unfold least_elt in surg_init_least.
-        apply surg_init_least.
-        intros FLS. basic_solver 12. }
-      { clear - C1 C2 THRLEE T2NOTIN.
-        exfalso.
-        destruct C1 as [C1 EQ]; subst.
-        destruct C2 as [C2 EQ1]; subst.
-        destruct EQ as [x0 CND]; subst.
-        apply THRLEE in CND.
-        destruct CND as [x3 [[EQ2 TD] [x4 [CD3 [EQ3 EQ4]]]]].
-        desf. }
-      { do 2 left; right.
-        clear - C1 C2 TR NINIT1 surg_init_least.
-        destruct C1 as [C1 EQ]; subst.
-        destruct C2 as [C2 EQ1]; subst.
-        split; vauto.
-        unfold dom_rel.
-        exists t_1; vauto.
-        unfold seq; exists t_1; split; vauto.
-        unfold least_elt in surg_init_least.
-        specialize (surg_init_least t_1).
-        apply surg_init_least.
-        basic_solver. }
-      { clear - C1 C2 THRLEE T2NOTIN.
-        exfalso.
-        destruct C1 as [C1 EQ]; subst.
-        destruct C2 as [C2 EQ1]; subst.
-        destruct EQ as [x0 CND]; subst.
-        apply THRLEE in CND.
-        destruct CND as [x3 [[EQ2 TD] [x4 [CD3 [EQ3 EQ4]]]]].
-        desf. }
-      clear - C1 C2 surg_init_min.
-      destruct C1 as [C1 EQ]; subst.
-      destruct C2 as [C2 EQ1]; subst.
-      exfalso.
-      unfold min_elt in surg_init_min.
-      destruct EQ as [x0 CND].
-      specialize (surg_init_min x0).
-      vauto. }
-    admit. }
-  { unfold sb. rewrite !seqA.
-    rewrite <- !id_inter.
-    rewrite <- seqA with (r1 := ⦗dtrmt'⦘).
-    rewrite <- id_inter.
-    unfold dtrmt'. destruct SIMREL.
-    rewrite seq_acts.
-    intros x y PTH.
-    destruct PTH as [x0 [[EQ1 IN1]
-                      [x1 [PTH [EQ2 [IN2 IN3]]]]]].
-    destruct IN1 as [x2 [IN1 M1]].
-    destruct IN2 as [x3 [IN2 M2]].
-    subst.
-    unfold seq. exists (mapper x2); split.
-    { red; split; vauto.
-      split; [| basic_solver].
-      destruct STEP.
-      destruct reexec_dtrmt_sb_closed with
-          (x := x2) (y := x3).
-      { unfold seq. exists x3; split.
-        { destruct x2.
-          { unfold sb.
-            unfold seq; exists (InitEvent l); split; vauto.
-            exists x3; split; vauto.
-            unfold ext_sb. desf.
-            rewrite !seq_init in PTH; vauto. }
-          destruct classic with (tid (mapper 
-                (ThreadEvent thread index)) = t_2) as [TID2 | TID2].
-          { rewrite seq_mapto in PTH.
-            { destruct x3.
-              { rewrite !seq_init in PTH; vauto. }
-              destruct classic with (tid (mapper 
-                    (ThreadEvent thread0 index0)) = t_2) as [TID2' | TID2'].
-              { rewrite seq_mapto in PTH.
-                { assert (TD1 : thread = t_1).
-                  { apply seq_thrd in TID2; vauto. }
-                  assert (TD2 : thread0 = t_1).
-                  { apply seq_thrd in TID2'; vauto. }
-                  clear - PTH IN1 IN2 TID2 TID2' TD1 TD2.
-                  unfold sb. unfold seq.
-                  exists (ThreadEvent thread index); split; vauto.
-                  exists (ThreadEvent t_1 index0); split; vauto.
-                  unfold ext_sb. desf; split; vauto.
-                  unfold ext_sb in PTH. desf.
-                  unfold Events.index in *. lia. }
-                all : vauto. }
-              clear - TID2 TID2' PTH IN1 IN2.
-              unfold sb. unfold seq.
-              exists (ThreadEvent thread index); split; vauto.
-              exists (ThreadEvent thread0 index0); split; vauto.
-              unfold ext_sb in *.
-              unfold tid in *.
-              desf; desf. }
-            all : vauto. }
-          destruct x3.
-          { exfalso.
-            assert (HLP : mapper (InitEvent l)
-                = InitEvent l).
-            { rewrite seq_init; vauto. }
-            rewrite HLP in PTH.
-            clear - PTH.
-            unfold ext_sb in PTH.
-            desf. }
-          destruct classic with (tid (mapper 
-                (ThreadEvent thread0 index0)) = t_2) as [TID2' | TID2'].
-          { clear - TID2 TID2' PTH IN1 IN2 seq_init seq_init_rev MAPREV.
-            unfold sb. unfold seq.
-            exists (ThreadEvent thread index); split; vauto.
-            exists (ThreadEvent thread0 index0); split; vauto.
-            exfalso. unfold ext_sb in *.
-            unfolder. desf.
-            { assert (Heqq : mapper_rev (mapper (ThreadEvent thread index)) =
-                mapper_rev (InitEvent l)).
-              { rewrite Heq; vauto. }
-              unfold compose in MAPREV.
-              rewrite MAPREV in Heqq; vauto.
-              unfold id in Heqq.
-              rewrite seq_init_rev in Heqq; vauto. }
-            unfold tid in *. desf. }
-          assert (EQQ1 : mapper (ThreadEvent thread index) =
-              ThreadEvent thread index).
-          { rewrite seq_mapeq; vauto. }
-          assert (EQQ2 : mapper (ThreadEvent thread0 index0) =
-              ThreadEvent thread0 index0).
-          { rewrite seq_mapeq; vauto. }
-          rewrite EQQ1, EQQ2 in PTH.
-          unfold sb. unfold seq.
-          exists (ThreadEvent thread index); split; vauto. }
-        red; split; vauto.
-        unfold set_collect in IN3.
-        destruct IN3 as [x4 [IN3 EQ]].
-        assert (IN4 : E_t' x4).
-        { apply dtrmt_cmt, reexec_embd_dom in IN3; vauto. }
-        unfold mapper' in EQ.
-        apply MAPS in EQ; vauto. }
-      unfold set_collect.
-      exists x2; split.
-      { destruct H as [DT _].
-        red in DT. basic_solver 4. }
-      destruct x2.
-      { rewrite seq_init; vauto.
-        destruct SIMRELQ.
-        rewrite seq_init0; vauto. }
-      destruct H as [DT SB].
-      destruct classic with (tid (mapper
-                (ThreadEvent thread index)) = t_2) as [TID2 | TID2].
-      { assert (TID2' : tid (mapper (ThreadEvent thread index)) = t_2) by vauto.
-        assert (TID2S : tid (mapper (ThreadEvent thread index)) = t_2) by vauto.
-        apply seq_index in TID2.
-        apply seq_thrd in TID2'.
-        { apply INDLEMMA.
-          { unfold mapper'. desf.
-            { rewrite TID2'; vauto. }
-          unfold not in n0.
-          apply NNPP in n0.
-          rewrite n0; vauto. }
-          { unfold mapper'.
-            rewrite TID2S. clear TID2S.
-            desf.
-            { red in DT. destruct DT as [EQ DT].
-              apply dtrmt_cmt in DT.
-              apply reexec_embd_dom in DT; vauto. }
-            symmetry in TID2.
-            rewrite <- TID2 in l.
-            exfalso. unfold Events.index in *.
-            unfold SequentBase.t_1_len in *.
-            unfold t_1_len in *.
-            lia. }
-          unfold mapper'.
-          rewrite TID2. clear TID2.
-          desf.
-          { red in DT. destruct DT as [EQ DT].
-            apply dtrmt_cmt in DT.
-            apply reexec_embd_dom in DT; vauto. }
-          { exfalso. unfold Events.index in *.
-            unfold SequentBase.t_1_len in *.
-            unfold t_1_len in *.
-            lia. }
-          unfold Events.index in *.
-          unfold t_1_len in *.
-          unfold SequentBase.t_1_len in *.
-          lia. }
-        { red in DT. destruct DT as [EQ DT].
-          apply dtrmt_cmt in DT.
-          apply reexec_embd_dom in DT; vauto. }
-        red in DT. destruct DT as [EQ DT].
-        apply dtrmt_cmt in DT.
-        apply reexec_embd_dom in DT; vauto. }
-      assert (TID2' : tid (mapper (ThreadEvent thread index)) <> t_2) by vauto.
-      assert (TID2S : tid (mapper (ThreadEvent thread index)) <> t_2) by vauto.
-      apply seq_mapeq in TID2.
-      { rewrite TID2. clear TID2.
-        unfold mapper'. desf.
-        apply INDLEMMA.
-        { unfold tid; vauto. }
-        { unfold tid.
-          unfold not in n0.
-          apply NNPP in n0.
-          apply seq_out_move in n0; vauto.
-          { apply seq_mapeq in TID2S; vauto.
-            rewrite TID2S in n0.
-            desf. }
-          unfold Events.index in *.
-          unfold t_1_len in *.
-          unfold SequentBase.t_1_len in *.
-          lia. }
-        unfold Events.index in *.
-        unfold not in n0.
-        apply NNPP in n0.
-        apply seq_out_move in n0; vauto.
-        { apply seq_mapeq in TID2S; vauto.
-          rewrite TID2S in n0.
-          desf. }
-        unfold Events.index in *.
-        unfold t_1_len in *.
-        unfold SequentBase.t_1_len in *.
-        lia. }
-      red in DT. destruct DT as [EQ DT].
-      apply dtrmt_cmt in DT.
-      apply reexec_embd_dom in DT; vauto. }
-    exists (mapper x3); split; vauto.
-    red; split; vauto. }
-  { unfold nin_sb.
-    rewrite SBSEQ.
-    rewrite <- seq_eqv_minus_ll.
-    admit. (* something for immediate of exclusion is needed *)}
-  { arewrite (WCore.G X_s' = G_s').
-    unfold G_s' at 1; ins.
-    intros x COND.
-    destruct COND as (INE & NDT).
-    unfold set_compl. intros FLS.
-    destruct INE as [x0 [INE M1]]; subst.
-    unfold dtrmt' in NDT.
-    assert (DTRM : ~ dtrmt_t x0).
-    { intros FLSS.
-      apply NDT. unfold set_collect.
-      exists x0; split; vauto. }
-    destruct FLS as [FL1 | FL2].
-    { assert (FLS : (Rel G_t') x0).
-      { assert (SUBST : (fun x : actid =>
-                  ifP ~ (mapper' ↑₁ E_t') x then x
-                  else (ifP tid x <> t_2 then x
-                        else ThreadEvent t_1
-                              (t_1_len + index x))) = mapper_rev') by vauto.
-        rewrite SUBST in FL1.
-        unfold compose in FL1.
-        unfold is_rel, mod in *.
-        assert (HLP : mapper_rev' (mapper' x0) = x0).
-        { unfold compose in MAPCOMP.
-          apply MAPCOMP in INE.
-          unfold id in INE; vauto. }
-        rewrite HLP in FL1; vauto. }
-      destruct STEP.
-      clear - reexec_dtrmt_rpo FLS DTRM INE.
-      unfold set_compl in reexec_dtrmt_rpo.
-      destruct reexec_dtrmt_rpo with x0; vauto. }
-    assert (FLS : (Acq G_t') x0).
-    { assert (SUBST : (fun x : actid =>
-                ifP ~ (mapper' ↑₁ E_t') x then x
-                else (ifP tid x <> t_2 then x
-                      else ThreadEvent t_1
-                            (t_1_len + index x))) = mapper_rev') by vauto.
-      rewrite SUBST in FL2.
-      unfold compose in FL2.
-      unfold is_acq, mod in *.
-      assert (HLP : mapper_rev' (mapper' x0) = x0).
-      { unfold compose in MAPCOMP.
-        apply MAPCOMP in INE.
-        unfold id in INE; vauto. }
-      rewrite HLP in FL2; vauto. }
-    destruct STEP.
-    clear - reexec_dtrmt_rpo FLS DTRM INE.
-    unfold set_compl in reexec_dtrmt_rpo.
-    destruct reexec_dtrmt_rpo with x0; vauto. }
-  { destruct STEP.
-    destruct reexec_embd_corr.
-    constructor; vauto.
-    { unfold cmt'.
-      unfold inj_dom.
-      intros x y CD1 CD2 EQQ.
-      destruct CD1 as [x0 [CD1 M1]].
-      destruct CD2 as [x1 [CD2 M2]].
-      subst.
-      unfold compose in EQQ.
-      unfold compose in MAPCOMP.
-      assert (HLP1 : mapper_rev' (mapper' x0) = x0).
-      { unfold compose in MAPCOMP.
-        apply MAPCOMP.
-        apply reexec_embd_dom in CD1; vauto. }
-      assert (HLP2 : mapper_rev' (mapper' x1) = x1).
-      { unfold compose in MAPCOMP.
-        apply MAPCOMP.
-        apply reexec_embd_dom in CD2; vauto. }
-      rewrite HLP1, HLP2 in EQQ.
-      destruct SIMREL.
-      apply seq_inj in EQQ.
-      { apply reexec_embd_inj in EQQ; vauto. }
-      { apply reexec_embd_acts; red.
-        exists x0; vauto. }
-      apply reexec_embd_acts; red.
-      exists x1; vauto. }
-    { intros e CMT.
-      unfold cmt' in CMT.
-      unfold set_collect in CMT.
-      destruct CMT as [x [CMT EQ]].
-      specialize (reexec_embd_lab x).
-      assert (INE : E_t' x).
-      { apply reexec_embd_dom in CMT; vauto. }
-      assert (CMT' : cmt_t x) by vauto.
-      apply reexec_embd_lab in CMT.
-      destruct SIMRELQ.
-      apply seq_lab in INE.
-      unfold compose in INE.
-      rewrite EQ in INE.
-      rewrite <- INE.
-      destruct SIMREL.
-      rewrite CMT.
-      subst.
-      unfold compose.
-      unfold compose in MAPCOMP.
-      rewrite MAPCOMP.
-      { unfold id.
-        apply seq_lab0.
-        apply reexec_embd_acts; red; vauto. }
-      apply reexec_embd_dom; vauto. }
-    { admit. (* needs a better analysis of sb structure *) }
-    { unfold cmt'.
-      rewrite (seq_rf SIMRELQ).
-      rewrite (seq_rf SIMREL).
-      destruct STEP.
-      destruct reexec_embd_corr.
-      rewrite <- reexec_embd_rf0.
-      rewrite collect_rel_restr.
-      { intros x y COND.
-        unfold compose in COND.
-        unfold collect_rel in COND.
-        destruct COND as [x0 [x1 [COND [EQ1 EQ2]]]].
-        destruct COND as [x2 [x3 [COND [EQ3 EQ4]]]].
-        unfold collect_rel.
-        exists (f_t (mapper_rev' x0)), (f_t (mapper_rev' x1)); splits.
-        { exists x2, x3; splits; vauto.
-          { unfold compose in MAPCOMP.
-            rewrite MAPCOMP; vauto.
-            destruct COND as [RF CDS].
-            apply wf_rfE in RF; [|apply INV'].
-            destruct RF as [x0 [[INE EQQ] RF2]]; vauto. }
-          unfold compose in MAPCOMP.
-          rewrite MAPCOMP; vauto.
-          destruct COND as [RF CDS].
-          apply wf_rfE in RF; [|apply INV'].
-          destruct RF as [x0 [RF1 [RF2 [RF3 [INE EQQ]]]]]; vauto. }
-        all : vauto. }
-      rewrite reexec_embd_dom0.
-      rewrite wf_rfE; [| apply INV'].
-      rewrite dom_eqv1.
-      rewrite <- seqA.
-      rewrite codom_seq_eqv_r.
-      arewrite (E_t' ∩₁ dom_rel (rf_t' ⨾ ⦗E_t'⦘) ⊆₁ E_t').
-      { basic_solver. }
-      destruct SIMRELQ.
-      clear - seq_inj.
-      basic_solver 8. }
-    { unfold cmt'.
-      rewrite (seq_co SIMRELQ).
-      rewrite (seq_co SIMREL).
-      destruct STEP.
-      destruct reexec_embd_corr.
-      rewrite <- reexec_embd_co0.
-      rewrite collect_rel_restr.
-      { intros x y COND.
-        unfold compose in COND.
-        unfold collect_rel in COND.
-        destruct COND as [x0 [x1 [COND [EQ1 EQ2]]]].
-        destruct COND as [x2 [x3 [COND [EQ3 EQ4]]]].
-        unfold collect_rel.
-        exists (f_t (mapper_rev' x0)), (f_t (mapper_rev' x1)); splits.
-        { exists x2, x3; splits; vauto.
-          { unfold compose in MAPCOMP.
-            rewrite MAPCOMP; vauto.
-            destruct COND as [CO CDS].
-            apply wf_coE in CO; [|apply INV'].
-            destruct CO as [x0 [[INE EQQ] CO2]]; vauto. }
-          unfold compose in MAPCOMP.
-          rewrite MAPCOMP; vauto.
-          destruct COND as [CO CDS].
-          apply wf_coE in CO; [|apply INV'].
-          destruct CO as [x0 [CO1 [CO2 [CO3 [INE EQQ]]]]]; vauto. }
-        all : vauto. }
-      rewrite reexec_embd_dom0.
-      rewrite wf_coE; [| apply INV'].
-      rewrite dom_eqv1.
-      rewrite <- seqA.
-      rewrite codom_seq_eqv_r.
-      arewrite (E_t' ∩₁ dom_rel (co_t' ⨾ ⦗E_t'⦘) ⊆₁ E_t').
-      { basic_solver. }
-      destruct SIMRELQ.
-      clear - seq_inj.
-      basic_solver 8. }
-    { unfold cmt'.
-      rewrite (seq_rmw SIMRELQ).
-      rewrite (seq_rmw SIMREL).
-      destruct STEP.
-      destruct reexec_embd_corr.
-      rewrite <- reexec_embd_rmw0.
-      rewrite collect_rel_restr.
-      { intros x y COND.
-        unfold compose in COND.
-        unfold collect_rel in COND.
-        destruct COND as [x0 [x1 [COND [EQ1 EQ2]]]].
-        destruct COND as [x2 [x3 [COND [EQ3 EQ4]]]].
-        unfold collect_rel.
-        exists (f_t (mapper_rev' x0)), (f_t (mapper_rev' x1)); splits.
-        { exists x2, x3; splits; vauto.
-          { unfold compose in MAPCOMP.
-            rewrite MAPCOMP; vauto.
-            destruct COND as [RM CDS].
-            apply wf_rmwE in RM; [|apply INV'].
-            destruct RM as [x0 [[INE EQQ] RM2]]; vauto. }
-          unfold compose in MAPCOMP.
-          rewrite MAPCOMP; vauto.
-          destruct COND as [RM CDS].
-          apply wf_rmwE in RM; [|apply INV'].
-          destruct RM as [x0 [RM1 [RM2 [RM3 [INE EQQ]]]]]; vauto. }
-        all : vauto. }
-      rewrite reexec_embd_dom0.
-      rewrite wf_rmwE; [| apply INV'].
-      rewrite dom_eqv1.
-      rewrite <- seqA.
-      rewrite codom_seq_eqv_r.
-      arewrite (E_t' ∩₁ dom_rel (rmw_t' ⨾ ⦗E_t'⦘) ⊆₁ E_t').
-      { basic_solver. }
-      destruct SIMRELQ.
-      clear - seq_inj.
-      basic_solver 8. }
-    unfold cmt'.
-    intros x COND.
-    unfold set_collect in COND.
-    destruct COND as [x0 [COND EQ]].
-    destruct COND as [x1 [COND EQ1]].
-    rewrite <- EQ1 in EQ.
-    unfold compose in EQ.
-    unfold compose in MAPCOMP.
-    rewrite MAPCOMP in EQ.
-    { unfold id in EQ.
-      rewrite <- EQ.
-      destruct SIMREL.
-      apply seq_acts.
-      unfold set_collect.
-      exists (f_t x1); split; vauto.
-      apply reexec_embd_acts.
-      clear - COND.
-      basic_solver. }
-    apply reexec_embd_dom; vauto. }
-  { destruct STEP. unfold rf_complete.
-    arewrite (WCore.G X_s' = G_s').
-    unfold G_s'. simpls.
-    arewrite ((fun x : actid =>
-       ifP ~ (mapper' ↑₁ E_t') x then x
-       else (ifP tid x <> t_2 then x
-             else ThreadEvent t_1
-                    (t_1_len + index x))) = mapper_rev').
-    unfold is_r. unfold compose.
-    intros x COND.
-    destruct COND as [MAP RD].
-    destruct MAP as [x0 [MAP M1]]; subst.
-    unfold rf_complete in rexec_rfc.
-    destruct rexec_rfc with x0; vauto.
-    { split; vauto.
-      unfold compose in MAPCOMP.
-      apply MAPCOMP in MAP.
-      unfold id in MAP.
-      rewrite MAP in RD.
-      unfold is_r; vauto. }
-    unfold codom_rel.
-    exists (mapper' x).
-    unfold collect_rel.
-    exists x, x0; split; vauto. }
+  assert (WFSTART : WCore.wf (WCore.X_start X_s dtrmt') X_s' cmt').
   { constructor; ins.
     { apply sub_WF with (G := G_s) (sc := ∅₂) (sc' := ∅₂).
       { ins.
@@ -2456,6 +1766,34 @@ Proof using.
     unfold cmt'.
     unfold set_collect.
     exists x0; split; vauto. }
+
+  assert (RFCS : rf_complete (WCore.G X_s')).
+  { destruct STEP. unfold rf_complete.
+    arewrite (WCore.G X_s' = G_s').
+    unfold G_s'. simpls.
+    arewrite ((fun x : actid =>
+       ifP ~ (mapper' ↑₁ E_t') x then x
+       else (ifP tid x <> t_2 then x
+             else ThreadEvent t_1
+                    (t_1_len + index x))) = mapper_rev').
+    unfold is_r. unfold compose.
+    intros x COND.
+    destruct COND as [MAP RD].
+    destruct MAP as [x0 [MAP M1]]; subst.
+    unfold rf_complete in rexec_rfc.
+    destruct rexec_rfc with x0; vauto.
+    { split; vauto.
+      unfold compose in MAPCOMP.
+      apply MAPCOMP in MAP.
+      unfold id in MAP.
+      rewrite MAP in RD.
+      unfold is_r; vauto. }
+    unfold codom_rel.
+    exists (mapper' x).
+    unfold collect_rel.
+    exists x, x0; split; vauto. }
+
+  assert (CONSS : WCore.is_cons (WCore.G X_s')).
   { apply XmmCons.monoton_cons with (G_t := G_t')
                     (m := mapper'); vauto.
     all : try arewrite (WCore.G X_s' = G_s').
@@ -2510,6 +1848,680 @@ Proof using.
           (mapper := mapper') (mapper_rev := mapper_rev')
           (ptc_1 := ptc_1); vauto. }
     destruct STEP; vauto. }
+
+  assert (STURG : WCore.stable_uncmt_reads_gen X_s' cmt' thrdle').
+  { constructor.
+    { destruct STEP. destruct reexec_sur.
+      unfold least_elt. intros trn INIT.
+      unfold thrdle'.
+      right.
+      split; vauto.
+      unfold least_elt in surg_init_least.
+      specialize (surg_init_least trn INIT).
+      clear - surg_init_least.
+      basic_solver. }
+    { unfold min_elt. intros trn INIT.
+      assert (FLS : codom_rel thrdle' tid_init).
+      { clear - INIT. basic_solver. }
+      unfold thrdle' in INIT.
+      apply codom_union in FLS.
+      destruct FLS as [FLS | FLS1].
+      { apply codom_union in FLS.
+        destruct FLS as [FLS | FLS2].
+        { apply codom_union in FLS.
+          destruct FLS as [FLS | FLS3].
+          { apply codom_union in FLS.
+            destruct FLS as [FLS | FLS4].
+            { destruct STEP. destruct reexec_sur.
+              unfold min_elt in surg_init_min.
+              destruct FLS as [x FLS].
+              specialize (surg_init_min x).
+              apply surg_init_min.
+              vauto. }
+            clear - NINIT1 FLS4.
+            apply codom_crossed in FLS4.
+            desf. }
+          clear - NINIT2 FLS3.
+          apply codom_crossed in FLS3.
+          desf. }
+        apply codom_crossed in FLS2.
+        destruct STEP. destruct reexec_sur.
+        clear - FLS2 surg_init_min.
+        unfold min_elt in surg_init_min.
+        destruct FLS2 as [x FLS2].
+        specialize (surg_init_min x).
+        apply surg_init_min.
+        destruct FLS2 as [x0 [EQ FLS2]].
+        destruct EQ. desf. }
+      apply codom_crossed in FLS1.
+      destruct STEP. destruct reexec_sur.
+      clear - FLS1 surg_init_min.
+      unfold min_elt in surg_init_min.
+      destruct FLS1 as [x FLS1].
+      specialize (surg_init_min x).
+      desf. }
+    { constructor.
+      { unfold thrdle'.
+        repeat (apply irreflexive_union; split).
+        { destruct STEP. destruct reexec_sur.
+          unfold strict_partial_order in surg_order.
+          destruct surg_order as [IRR _]; vauto. }
+        { clear - THRDNEQ. basic_solver. }
+        { intros x COND.
+          destruct COND as [CD1 CD2]; subst x.
+          destruct CD1 as [x1 [x2 [CD1 CD2]]].
+          apply THRLEE in CD1.
+          destruct CD1 as [x3 [[EQ INE] CD3]].
+          subst x3. desf. }
+        { intros x COND.
+          destruct COND as [CD1 CD2]; subst x.
+          destruct CD2 as [x1 [x2 [CD1 CD2]]].
+          apply THRLEE in CD2.
+          destruct CD2 as [x3 [CD2 [x4 [CD3 [EQ INE]]]]].
+          subst x4. desf. }
+        destruct STEP. destruct reexec_sur.
+        unfold min_elt in surg_init_min.
+        clear - surg_init_min.
+        intros x [EQ [y FLS]].
+        specialize (surg_init_min y).
+        basic_solver 4. }
+      unfold thrdle'. unfold transitive.
+      intros x y z XY YZ.
+      destruct XY as [[[[C1 | C1] | C1] | C1] | C1].
+      all : destruct YZ as [[[[C2 | C2] | C2] | C2] | C2].
+      all : destruct STEP.
+      all : destruct reexec_sur.
+      all : destruct surg_order as [IR TR].
+      { do 4 left. clear - C1 C2 TR. basic_solver 4. }
+      { destruct C2 as [EQ1 EQ2].
+        subst y. apply THRLEE in C1.
+        destruct C1 as [x3 [CD2 [x4 [CD3 [EQ INE]]]]].
+        desf. }
+      { do 2 left; right.
+        clear - C1 C2 TR.
+        destruct C2 as [C2 EQ]; subst z.
+        split; vauto.
+        destruct C2 as [x0 [x1 [CD2 [EQ1 EQ2]]]]; subst.
+        basic_solver 8. }
+      { destruct C2 as [EQ1 EQ2].
+        subst y. apply THRLEE in C1.
+        destruct C1 as [x3 [CD2 [x4 [CD3 [EQ INE]]]]].
+        desf. }
+      { clear - C1 C2 surg_init_min.
+        exfalso. unfold min_elt in surg_init_min.
+        destruct C2 as [C2 C3].
+        basic_solver 4. }
+      { left; right.
+        clear - C1 C2 TR.
+        destruct C1 as [C1 EQ]; subst x y.
+        split; vauto. }
+      { clear - C1 C2 THRDNEQ.
+        destruct C1 as [C1 EQ]; subst x y.
+        destruct C2 as [C2 EQ1]; subst z.
+        exfalso. desf. }
+      { clear - C1 C2 IR.
+        exfalso.
+        destruct C1 as [C1 EQ]; subst x y.
+        destruct C2 as [C2 EQ1]; subst z.
+        destruct IR with t_1.
+        destruct C2 as [x0 [x1 [CD [EQ1 EQ2]]]]; subst.
+        vauto. }
+      { clear - C1 C2 THRDNEQ.
+        destruct C1 as [C1 EQ]; subst x y.
+        destruct C2 as [C2 EQ1].
+        exfalso. desf. }
+      { clear - C1 C2 NINIT1.
+        destruct C1 as [C1 EQ]; subst x y.
+        destruct C2 as [C2 EQ1].
+        exfalso. desf. }
+      { destruct C1 as [EQ1 EQ2].
+        subst y. apply THRLEE in C2.
+        destruct C2 as [x3 [[EQ TD] [x4 [CD3 CD4]]]].
+        desf. }
+      { do 4 left. clear - C1 C2 TR.
+        destruct C2 as [C2 EQ]; subst y z.
+        destruct C1 as [C1 EQ1].
+        destruct C1 as [x0 [x1 [CD1 [EQ2 EQ3]]]]; subst.
+        vauto. }
+      { destruct C1 as [EQ1 EQ2].
+        subst y.
+        destruct C2 as [C2 EQ]; subst z.
+        destruct C2 as [x0 [x1 [CD2 [EQ3 EQ4]]]]; subst.
+        apply THRLEE in CD2.
+        destruct CD2 as [x3 [[EQ TD] [x4 [CD3 CD4]]]].
+        desf. }
+      { do 4 left. clear - C1 C2 TR.
+        destruct C2 as [C2 EQ]; subst.
+        destruct C1 as [C1 EQ1]; subst.
+        destruct C1 as [x0 [x1 [CD1 [EQ2 EQ3]]]]; subst.
+        destruct EQ as [x1 [x2 [[EQ INE] CDD]]]; subst.
+        basic_solver 8. }
+      { clear - C1 C2 NINIT2.
+        destruct C1 as [C1 EQ]; subst.
+        destruct C2 as [C2 EQ1]; subst.
+        exfalso. desf. }
+      { left; right.
+        clear - C1 C2 TR.
+        destruct C1 as [EQ1 EQ2].
+        subst x. split; vauto.
+        unfold codom_rel.
+        destruct EQ2 as [x0 [x1 [[EQ1 EQ2] CD]]].
+        basic_solver 8. }
+      { clear - C1 C2 THRLEE T2NOTIN.
+        destruct C2 as [C2 EQ]; subst.
+        destruct C1 as [C1 EQ1]; subst.
+        destruct EQ1 as [x0 [x1 [[EQ1 EQ2] CD]]].
+        apply THRLEE in CD.
+        destruct CD as [x3 [[EQ TD] [x4 [CD3 [EQ3 TD2]]]]].
+        desf. }
+      { clear - C1 C2 IR TR.
+        exfalso.
+        destruct C1 as [C1 EQ]; subst.
+        destruct C2 as [C2 EQ1]; subst.
+        destruct EQ as [x0 [x1 [[EQ1 EQ2] CD]]]; subst.
+        destruct C2 as [x2 [x3 [CD2 [INE1 INE2]]]]; subst.
+        basic_solver 8. }
+      { destruct C1 as [EQ1 EQ2].
+        subst x.
+        destruct C2 as [C2 EQ]; subst.
+        destruct EQ2 as [x0 [x1 [CD2 CD3]]]; subst.
+        apply THRLEE in CD3.
+        destruct CD3 as [x3 [[EQ2 TD] [x4 [CD3 [EQ3 EQ4]]]]].
+        desf. }
+      { clear - C1 C2 surg_init_min TR.
+        exfalso.
+        destruct C1 as [C1 EQ]; subst.
+        destruct C2 as [C2 EQ1]; subst.
+        destruct EQ as [x0 [x1 [[EQ3 EQ2] CD]]]; subst.
+        destruct surg_init_min with x1; vauto. }
+      { do 4 left. clear - C1 C2 TR surg_init_least surg_init_min.
+        destruct C1.
+        destruct H0 as [x0 CND]; subst.
+        unfold least_elt in surg_init_least.
+        apply surg_init_least.
+        intros FLS. basic_solver 12. }
+      { clear - C1 C2 THRLEE T2NOTIN.
+        exfalso.
+        destruct C1 as [C1 EQ]; subst.
+        destruct C2 as [C2 EQ1]; subst.
+        destruct EQ as [x0 CND]; subst.
+        apply THRLEE in CND.
+        destruct CND as [x3 [[EQ2 TD] [x4 [CD3 [EQ3 EQ4]]]]].
+        desf. }
+      { do 2 left; right.
+        clear - C1 C2 TR NINIT1 surg_init_least.
+        destruct C1 as [C1 EQ]; subst.
+        destruct C2 as [C2 EQ1]; subst.
+        split; vauto.
+        unfold dom_rel.
+        exists t_1; vauto.
+        unfold seq; exists t_1; split; vauto.
+        unfold least_elt in surg_init_least.
+        specialize (surg_init_least t_1).
+        apply surg_init_least.
+        basic_solver. }
+      { clear - C1 C2 THRLEE T2NOTIN.
+        exfalso.
+        destruct C1 as [C1 EQ]; subst.
+        destruct C2 as [C2 EQ1]; subst.
+        destruct EQ as [x0 CND]; subst.
+        apply THRLEE in CND.
+        destruct CND as [x3 [[EQ2 TD] [x4 [CD3 [EQ3 EQ4]]]]].
+        desf. }
+      clear - C1 C2 surg_init_min.
+      destruct C1 as [C1 EQ]; subst.
+      destruct C2 as [C2 EQ1]; subst.
+      exfalso.
+      unfold min_elt in surg_init_min.
+      destruct EQ as [x0 CND].
+      specialize (surg_init_min x0).
+      vauto. }
+    admit. }
+
+  unfold WCore.reexec.
+  exists thrdle'.
+  constructor; vauto.
+  { unfold dtrmt'. destruct SIMRELQ.
+    arewrite ((fun a : actid => is_init a) ⊆₁
+              mapper' ↑₁ (fun a : actid => is_init a)).
+    { clear- seq_init.
+      unfold fixset in seq_init.
+      basic_solver. }
+    destruct STEP.
+    rewrite dtrmt_init; vauto. }
+  { unfold dtrmt', cmt'.
+    rewrite (WCore.dtrmt_cmt STEP); vauto. }
+  { unfold dtrmt'.
+    unfold fixset.
+    intros x DTT.
+    destruct DTT as [x0 [INX DTT]].
+    subst. unfold compose.
+    assert (HLP : mapper_rev' (mapper' x0) = x0).
+    { unfold compose in MAPCOMP.
+      apply MAPCOMP. destruct STEP.
+      apply dtrmt_cmt, reexec_embd_dom in INX; vauto. }
+    rewrite HLP.
+    arewrite (f_t x0 = x0).
+    { destruct STEP.
+      apply dtrmt_fixed; vauto. }
+    apply DTRSAME; vauto. }
+  { destruct STEP. unfold cmt'.
+    arewrite (WCore.G X_s' = G_s').
+    unfold G_s'. simpls.
+    basic_solver 8. }
+  { unfold sb. rewrite !seqA.
+    rewrite <- !id_inter.
+    rewrite <- seqA with (r1 := ⦗dtrmt'⦘).
+    rewrite <- id_inter.
+    unfold dtrmt'. destruct SIMREL.
+    rewrite seq_acts.
+    intros x y PTH.
+    destruct PTH as [x0 [[EQ1 IN1]
+                      [x1 [PTH [EQ2 [IN2 IN3]]]]]].
+    destruct IN1 as [x2 [IN1 M1]].
+    destruct IN2 as [x3 [IN2 M2]].
+    subst.
+    unfold seq. exists (mapper x2); split.
+    { red; split; vauto.
+      split; [| basic_solver].
+      destruct STEP.
+      destruct reexec_dtrmt_sb_closed with
+          (x := x2) (y := x3).
+      { unfold seq. exists x3; split.
+        { destruct x2.
+          { unfold sb.
+            unfold seq; exists (InitEvent l); split; vauto.
+            exists x3; split; vauto.
+            unfold ext_sb. desf.
+            rewrite !seq_init in PTH; vauto. }
+          destruct classic with (tid (mapper 
+                (ThreadEvent thread index)) = t_2) as [TID2 | TID2].
+          { rewrite seq_mapto in PTH.
+            { destruct x3.
+              { rewrite !seq_init in PTH; vauto. }
+              destruct classic with (tid (mapper 
+                    (ThreadEvent thread0 index0)) = t_2) as [TID2' | TID2'].
+              { rewrite seq_mapto in PTH.
+                { assert (TD1 : thread = t_1).
+                  { apply seq_thrd in TID2; vauto. }
+                  assert (TD2 : thread0 = t_1).
+                  { apply seq_thrd in TID2'; vauto. }
+                  clear - PTH IN1 IN2 TID2 TID2' TD1 TD2.
+                  unfold sb. unfold seq.
+                  exists (ThreadEvent thread index); split; vauto.
+                  exists (ThreadEvent t_1 index0); split; vauto.
+                  unfold ext_sb. desf; split; vauto.
+                  unfold ext_sb in PTH. desf.
+                  unfold Events.index in *. lia. }
+                all : vauto. }
+              clear - TID2 TID2' PTH IN1 IN2.
+              unfold sb. unfold seq.
+              exists (ThreadEvent thread index); split; vauto.
+              exists (ThreadEvent thread0 index0); split; vauto.
+              unfold ext_sb in *.
+              unfold tid in *.
+              desf; desf. }
+            all : vauto. }
+          destruct x3.
+          { exfalso.
+            assert (HLP : mapper (InitEvent l)
+                = InitEvent l).
+            { rewrite seq_init; vauto. }
+            rewrite HLP in PTH.
+            clear - PTH.
+            unfold ext_sb in PTH.
+            desf. }
+          destruct classic with (tid (mapper 
+                (ThreadEvent thread0 index0)) = t_2) as [TID2' | TID2'].
+          { clear - TID2 TID2' PTH IN1 IN2 seq_init seq_init_rev MAPREV.
+            unfold sb. unfold seq.
+            exists (ThreadEvent thread index); split; vauto.
+            exists (ThreadEvent thread0 index0); split; vauto.
+            exfalso. unfold ext_sb in *.
+            unfolder. desf.
+            { assert (Heqq : mapper_rev (mapper (ThreadEvent thread index)) =
+                mapper_rev (InitEvent l)).
+              { rewrite Heq; vauto. }
+              unfold compose in MAPREV.
+              rewrite MAPREV in Heqq; vauto.
+              unfold id in Heqq.
+              rewrite seq_init_rev in Heqq; vauto. }
+            unfold tid in *. desf. }
+          assert (EQQ1 : mapper (ThreadEvent thread index) =
+              ThreadEvent thread index).
+          { rewrite seq_mapeq; vauto. }
+          assert (EQQ2 : mapper (ThreadEvent thread0 index0) =
+              ThreadEvent thread0 index0).
+          { rewrite seq_mapeq; vauto. }
+          rewrite EQQ1, EQQ2 in PTH.
+          unfold sb. unfold seq.
+          exists (ThreadEvent thread index); split; vauto. }
+        red; split; vauto.
+        unfold set_collect in IN3.
+        destruct IN3 as [x4 [IN3 EQ]].
+        assert (IN4 : E_t' x4).
+        { apply dtrmt_cmt, reexec_embd_dom in IN3; vauto. }
+        unfold mapper' in EQ.
+        apply MAPS in EQ; vauto. }
+      unfold set_collect.
+      exists x2; split.
+      { destruct H as [DT _].
+        red in DT. basic_solver 4. }
+      destruct x2.
+      { rewrite seq_init; vauto.
+        destruct SIMRELQ.
+        rewrite seq_init0; vauto. }
+      destruct H as [DT SB].
+      destruct classic with (tid (mapper
+                (ThreadEvent thread index)) = t_2) as [TID2 | TID2].
+      { assert (TID2' : tid (mapper (ThreadEvent thread index)) = t_2) by vauto.
+        assert (TID2S : tid (mapper (ThreadEvent thread index)) = t_2) by vauto.
+        apply seq_index in TID2.
+        apply seq_thrd in TID2'.
+        { apply INDLEMMA.
+          { unfold mapper'. desf.
+            { rewrite TID2'; vauto. }
+          unfold not in n0.
+          apply NNPP in n0.
+          rewrite n0; vauto. }
+          { unfold mapper'.
+            rewrite TID2S. clear TID2S.
+            desf.
+            { red in DT. destruct DT as [EQ DT].
+              apply dtrmt_cmt in DT.
+              apply reexec_embd_dom in DT; vauto. }
+            symmetry in TID2.
+            rewrite <- TID2 in l.
+            exfalso. unfold Events.index in *.
+            unfold SequentBase.t_1_len in *.
+            unfold t_1_len in *.
+            lia. }
+          unfold mapper'.
+          rewrite TID2. clear TID2.
+          desf.
+          { red in DT. destruct DT as [EQ DT].
+            apply dtrmt_cmt in DT.
+            apply reexec_embd_dom in DT; vauto. }
+          { exfalso. unfold Events.index in *.
+            unfold SequentBase.t_1_len in *.
+            unfold t_1_len in *.
+            lia. }
+          unfold Events.index in *.
+          unfold t_1_len in *.
+          unfold SequentBase.t_1_len in *.
+          lia. }
+        { red in DT. destruct DT as [EQ DT].
+          apply dtrmt_cmt in DT.
+          apply reexec_embd_dom in DT; vauto. }
+        red in DT. destruct DT as [EQ DT].
+        apply dtrmt_cmt in DT.
+        apply reexec_embd_dom in DT; vauto. }
+      assert (TID2' : tid (mapper (ThreadEvent thread index)) <> t_2) by vauto.
+      assert (TID2S : tid (mapper (ThreadEvent thread index)) <> t_2) by vauto.
+      apply seq_mapeq in TID2.
+      { rewrite TID2. clear TID2.
+        unfold mapper'. desf.
+        apply INDLEMMA.
+        { unfold tid; vauto. }
+        { unfold tid.
+          unfold not in n0.
+          apply NNPP in n0.
+          apply seq_out_move in n0; vauto.
+          { apply seq_mapeq in TID2S; vauto.
+            rewrite TID2S in n0.
+            desf. }
+          unfold Events.index in *.
+          unfold t_1_len in *.
+          unfold SequentBase.t_1_len in *.
+          lia. }
+        unfold Events.index in *.
+        unfold not in n0.
+        apply NNPP in n0.
+        apply seq_out_move in n0; vauto.
+        { apply seq_mapeq in TID2S; vauto.
+          rewrite TID2S in n0.
+          desf. }
+        unfold Events.index in *.
+        unfold t_1_len in *.
+        unfold SequentBase.t_1_len in *.
+        lia. }
+      red in DT. destruct DT as [EQ DT].
+      apply dtrmt_cmt in DT.
+      apply reexec_embd_dom in DT; vauto. }
+    exists (mapper x3); split; vauto.
+    red; split; vauto. }
+  { unfold nin_sb.
+    rewrite SBSEQ.
+    rewrite <- seq_eqv_minus_ll.
+    admit. (* something for immediate of exclusion is needed *)}
+  { arewrite (WCore.G X_s' = G_s').
+    unfold G_s' at 1; ins.
+    intros x COND.
+    destruct COND as (INE & NDT).
+    unfold set_compl. intros FLS.
+    destruct INE as [x0 [INE M1]]; subst.
+    unfold dtrmt' in NDT.
+    assert (DTRM : ~ dtrmt_t x0).
+    { intros FLSS.
+      apply NDT. unfold set_collect.
+      exists x0; split; vauto. }
+    destruct FLS as [FL1 | FL2].
+    { assert (FLS : (Rel G_t') x0).
+      { assert (SUBST : (fun x : actid =>
+                  ifP ~ (mapper' ↑₁ E_t') x then x
+                  else (ifP tid x <> t_2 then x
+                        else ThreadEvent t_1
+                              (t_1_len + index x))) = mapper_rev') by vauto.
+        rewrite SUBST in FL1.
+        unfold compose in FL1.
+        unfold is_rel, mod in *.
+        assert (HLP : mapper_rev' (mapper' x0) = x0).
+        { unfold compose in MAPCOMP.
+          apply MAPCOMP in INE.
+          unfold id in INE; vauto. }
+        rewrite HLP in FL1; vauto. }
+      destruct STEP.
+      clear - reexec_dtrmt_rpo FLS DTRM INE.
+      unfold set_compl in reexec_dtrmt_rpo.
+      destruct reexec_dtrmt_rpo with x0; vauto. }
+    assert (FLS : (Acq G_t') x0).
+    { assert (SUBST : (fun x : actid =>
+                ifP ~ (mapper' ↑₁ E_t') x then x
+                else (ifP tid x <> t_2 then x
+                      else ThreadEvent t_1
+                            (t_1_len + index x))) = mapper_rev') by vauto.
+      rewrite SUBST in FL2.
+      unfold compose in FL2.
+      unfold is_acq, mod in *.
+      assert (HLP : mapper_rev' (mapper' x0) = x0).
+      { unfold compose in MAPCOMP.
+        apply MAPCOMP in INE.
+        unfold id in INE; vauto. }
+      rewrite HLP in FL2; vauto. }
+    destruct STEP.
+    clear - reexec_dtrmt_rpo FLS DTRM INE.
+    unfold set_compl in reexec_dtrmt_rpo.
+    destruct reexec_dtrmt_rpo with x0; vauto. }
+  { destruct STEP.
+    destruct reexec_embd_corr.
+    constructor; vauto.
+    { unfold cmt'.
+      unfold inj_dom.
+      intros x y CD1 CD2 EQQ.
+      destruct CD1 as [x0 [CD1 M1]].
+      destruct CD2 as [x1 [CD2 M2]].
+      subst.
+      unfold compose in EQQ.
+      unfold compose in MAPCOMP.
+      assert (HLP1 : mapper_rev' (mapper' x0) = x0).
+      { unfold compose in MAPCOMP.
+        apply MAPCOMP.
+        apply reexec_embd_dom in CD1; vauto. }
+      assert (HLP2 : mapper_rev' (mapper' x1) = x1).
+      { unfold compose in MAPCOMP.
+        apply MAPCOMP.
+        apply reexec_embd_dom in CD2; vauto. }
+      rewrite HLP1, HLP2 in EQQ.
+      destruct SIMREL.
+      apply seq_inj in EQQ.
+      { apply reexec_embd_inj in EQQ; vauto. }
+      { apply reexec_embd_acts; red.
+        exists x0; vauto. }
+      apply reexec_embd_acts; red.
+      exists x1; vauto. }
+    { intros e CMT.
+      unfold cmt' in CMT.
+      unfold set_collect in CMT.
+      destruct CMT as [x [CMT EQ]].
+      specialize (reexec_embd_lab x).
+      assert (INE : E_t' x).
+      { apply reexec_embd_dom in CMT; vauto. }
+      assert (CMT' : cmt_t x) by vauto.
+      apply reexec_embd_lab in CMT.
+      destruct SIMRELQ.
+      apply seq_lab in INE.
+      unfold compose in INE.
+      rewrite EQ in INE.
+      rewrite <- INE.
+      destruct SIMREL.
+      rewrite CMT.
+      subst.
+      unfold compose.
+      unfold compose in MAPCOMP.
+      rewrite MAPCOMP.
+      { unfold id.
+        apply seq_lab0.
+        apply reexec_embd_acts; red; vauto. }
+      apply reexec_embd_dom; vauto. }
+    { admit. (* needs a better analysis of sb structure *) }
+    { unfold cmt'.
+      rewrite (seq_rf SIMRELQ).
+      rewrite (seq_rf SIMREL).
+      destruct STEP.
+      destruct reexec_embd_corr.
+      rewrite <- reexec_embd_rf0.
+      rewrite collect_rel_restr.
+      { intros x y COND.
+        unfold compose in COND.
+        unfold collect_rel in COND.
+        destruct COND as [x0 [x1 [COND [EQ1 EQ2]]]].
+        destruct COND as [x2 [x3 [COND [EQ3 EQ4]]]].
+        unfold collect_rel.
+        exists (f_t (mapper_rev' x0)), (f_t (mapper_rev' x1)); splits.
+        { exists x2, x3; splits; vauto.
+          { unfold compose in MAPCOMP.
+            rewrite MAPCOMP; vauto.
+            destruct COND as [RF CDS].
+            apply wf_rfE in RF; [|apply INV'].
+            destruct RF as [x0 [[INE EQQ] RF2]]; vauto. }
+          unfold compose in MAPCOMP.
+          rewrite MAPCOMP; vauto.
+          destruct COND as [RF CDS].
+          apply wf_rfE in RF; [|apply INV'].
+          destruct RF as [x0 [RF1 [RF2 [RF3 [INE EQQ]]]]]; vauto. }
+        all : vauto. }
+      rewrite reexec_embd_dom0.
+      rewrite wf_rfE; [| apply INV'].
+      rewrite dom_eqv1.
+      rewrite <- seqA.
+      rewrite codom_seq_eqv_r.
+      arewrite (E_t' ∩₁ dom_rel (rf_t' ⨾ ⦗E_t'⦘) ⊆₁ E_t').
+      { basic_solver. }
+      destruct SIMRELQ.
+      clear - seq_inj.
+      basic_solver 8. }
+    { unfold cmt'.
+      rewrite (seq_co SIMRELQ).
+      rewrite (seq_co SIMREL).
+      destruct STEP.
+      destruct reexec_embd_corr.
+      rewrite <- reexec_embd_co0.
+      rewrite collect_rel_restr.
+      { intros x y COND.
+        unfold compose in COND.
+        unfold collect_rel in COND.
+        destruct COND as [x0 [x1 [COND [EQ1 EQ2]]]].
+        destruct COND as [x2 [x3 [COND [EQ3 EQ4]]]].
+        unfold collect_rel.
+        exists (f_t (mapper_rev' x0)), (f_t (mapper_rev' x1)); splits.
+        { exists x2, x3; splits; vauto.
+          { unfold compose in MAPCOMP.
+            rewrite MAPCOMP; vauto.
+            destruct COND as [CO CDS].
+            apply wf_coE in CO; [|apply INV'].
+            destruct CO as [x0 [[INE EQQ] CO2]]; vauto. }
+          unfold compose in MAPCOMP.
+          rewrite MAPCOMP; vauto.
+          destruct COND as [CO CDS].
+          apply wf_coE in CO; [|apply INV'].
+          destruct CO as [x0 [CO1 [CO2 [CO3 [INE EQQ]]]]]; vauto. }
+        all : vauto. }
+      rewrite reexec_embd_dom0.
+      rewrite wf_coE; [| apply INV'].
+      rewrite dom_eqv1.
+      rewrite <- seqA.
+      rewrite codom_seq_eqv_r.
+      arewrite (E_t' ∩₁ dom_rel (co_t' ⨾ ⦗E_t'⦘) ⊆₁ E_t').
+      { basic_solver. }
+      destruct SIMRELQ.
+      clear - seq_inj.
+      basic_solver 8. }
+    { unfold cmt'.
+      rewrite (seq_rmw SIMRELQ).
+      rewrite (seq_rmw SIMREL).
+      destruct STEP.
+      destruct reexec_embd_corr.
+      rewrite <- reexec_embd_rmw0.
+      rewrite collect_rel_restr.
+      { intros x y COND.
+        unfold compose in COND.
+        unfold collect_rel in COND.
+        destruct COND as [x0 [x1 [COND [EQ1 EQ2]]]].
+        destruct COND as [x2 [x3 [COND [EQ3 EQ4]]]].
+        unfold collect_rel.
+        exists (f_t (mapper_rev' x0)), (f_t (mapper_rev' x1)); splits.
+        { exists x2, x3; splits; vauto.
+          { unfold compose in MAPCOMP.
+            rewrite MAPCOMP; vauto.
+            destruct COND as [RM CDS].
+            apply wf_rmwE in RM; [|apply INV'].
+            destruct RM as [x0 [[INE EQQ] RM2]]; vauto. }
+          unfold compose in MAPCOMP.
+          rewrite MAPCOMP; vauto.
+          destruct COND as [RM CDS].
+          apply wf_rmwE in RM; [|apply INV'].
+          destruct RM as [x0 [RM1 [RM2 [RM3 [INE EQQ]]]]]; vauto. }
+        all : vauto. }
+      rewrite reexec_embd_dom0.
+      rewrite wf_rmwE; [| apply INV'].
+      rewrite dom_eqv1.
+      rewrite <- seqA.
+      rewrite codom_seq_eqv_r.
+      arewrite (E_t' ∩₁ dom_rel (rmw_t' ⨾ ⦗E_t'⦘) ⊆₁ E_t').
+      { basic_solver. }
+      destruct SIMRELQ.
+      clear - seq_inj.
+      basic_solver 8. }
+    unfold cmt'.
+    intros x COND.
+    unfold set_collect in COND.
+    destruct COND as [x0 [COND EQ]].
+    destruct COND as [x1 [COND EQ1]].
+    rewrite <- EQ1 in EQ.
+    unfold compose in EQ.
+    unfold compose in MAPCOMP.
+    rewrite MAPCOMP in EQ.
+    { unfold id in EQ.
+      rewrite <- EQ.
+      destruct SIMREL.
+      apply seq_acts.
+      unfold set_collect.
+      exists (f_t x1); split; vauto.
+      apply reexec_embd_acts.
+      clear - COND.
+      basic_solver. }
+    apply reexec_embd_dom; vauto. }
+
   { destruct SIMREL.
     unfold dtrmt'. unfold WCore.reexec_thread.
     arewrite ((WCore.G X_s') = G_s').
@@ -2546,9 +2558,6 @@ Proof using.
     basic_solver. }
   apply sub_to_full_exec_listless
     with (thrdle := thrdle'); vauto.
-  { admit. (* we have it *) }
-  { admit. (* we have it *) }
-  { admit. (* we have it *) }
   { admit. }
   { constructor.
     { unfold WCore.X_start; ins.
@@ -2568,37 +2577,37 @@ Proof using.
       rewrite (seq_acts SIMREL).
       unfold dtrmt'. destruct STEP.
       rewrite dtrmt_cmt, reexec_embd_dom.
-      admit. }
+      clear; basic_solver. }
+    { unfold WCore.X_start; ins. }
     all : admit. }
   { apply wf_transition with (X_t := X_t')
         (t_1 := t_1) (t_2 := t_2)
         (mapper := mapper') (mapper_rev := mapper_rev')
         (ptc_1 := ptc_1); vauto. }
-  { unfold WCore.X_start; ins.
-    destruct STEP.
-    intros x COND.
-    destruct COND as [MP NOT].
-    intros FLS.
-    assert (INITT: is_init x).
-    { admit. (* is this a joke? *) }
-    assert (INITT2: is_init x) by vauto.
-    apply dtrmt_init in INITT.
-    assert (DTRF : dtrmt' x).
-    { unfold dtrmt'.
-      unfold set_collect.
-      exists x; split; vauto.
-      destruct SIMRELQ.
-      apply seq_init; vauto. }
-    destruct NOT.
-    split; vauto.
-    destruct SIMREL.
-    apply seq_acts.
+  unfold WCore.X_start; ins.
+  destruct STEP.
+  intros x COND.
+  destruct COND as [MP NOT].
+  intros FLS.
+  assert (INITT: is_init x).
+  { apply INTREADS; vauto. }
+  assert (INITT2: is_init x) by vauto.
+  apply dtrmt_init in INITT.
+  assert (DTRF : dtrmt' x).
+  { unfold dtrmt'.
     unfold set_collect.
     exists x; split; vauto.
-    { apply rexec_acts; vauto. }
-    destruct MP as [x0 [INE MPP]].
+    destruct SIMRELQ.
     apply seq_init; vauto. }
-  admit. (* we have it *)
+  destruct NOT.
+  split; vauto.
+  destruct SIMREL.
+  apply seq_acts.
+  unfold set_collect.
+  exists x; split; vauto.
+  { apply rexec_acts; vauto. }
+  destruct MP as [x0 [INE MPP]].
+  apply seq_init; vauto.
 Admitted.
 
 End SequentReexec.
