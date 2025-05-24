@@ -432,37 +432,31 @@ Proof using.
         rewrite add_event_lab.
         unfold compose. rewrite upds.
         rewrite upds; vauto. }
-      rewrite !updo; vauto.
-      { rewrite add_event_lab.
-        unfold compose. rewrite updo; vauto.
-        { destruct SIMREL.
-          destruct classic with (E_s x) as [INN | NINN].
-          { rewrite updo; vauto.
-            rewrite seq_lab_rev0; vauto. }
-          rewrite updo; vauto.
-          rewrite seq_rlab0; vauto. }
+      rewrite upds; vauto.
+      rewrite add_event_lab.
+      unfold compose.
+      destruct SIMREL.
+      assert (SWITCH : upd mapper_rev (ThreadEvent t_2 (index e - t_1_len)) e x
+                = mapper_rev x).
+      { rewrite updo; vauto. }
+      rewrite SWITCH.
+      assert (SWITCH2 : upd lab_s (ThreadEvent t_2 (index e - t_1_len)) l x
+                = lab_s x).
+      { rewrite updo; vauto. }
+      rewrite SWITCH2.
+      destruct classic with (E_s x) as [INNE | NINNE].
+      { assert (INNE' : E_s x) by vauto. 
+        apply seq_lab_rev0 in INNE'.
         rewrite updo; vauto.
-        destruct classic with (E_s x) as [INN | NINN].
-        { destruct SIMREL.
-          intros FALSE.
-          assert (STT : mapper (mapper_rev x) = mapper e)
-                  by vauto.
-          unfold compose in MAPREVR.
-          rewrite MAPREVR in STT.
-          { unfold id in STT.
-            assert (HLP : E_t (mapper_rev x)).
-            { apply seq_acts_rev0.
-              red; exists x; vauto. }
-            rewrite FALSE in HLP.
-            apply seq_mapto0 in HLP.
-            { subst x.
-              unfold SequentBase.t_1_len, t_1_len in *.
-              desf. }
-            apply seq_out_move0 in HLP; vauto.
-            rewrite HLP. unfold tid; vauto. }
-          vauto. }
-        admit. (* ??? *) }
-      rewrite upds; vauto. }
+        intros FLS.
+        assert (FF : E_t e).
+        { apply seq_acts_rev0.
+          red; vauto. }
+        desf. }
+      assert (NINNE' : ~ E_s x) by vauto. 
+      apply seq_rlab0 in NINNE.
+      rewrite NINNE.
+      admit. }
     { destruct ADD. rewrite add_event_rf.
       rewrite !collect_rel_union.
       arewrite (mapper' ↑ rf_t ≡ mapper ↑ rf_t).
