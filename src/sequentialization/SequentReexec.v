@@ -2076,7 +2076,8 @@ Proof using.
       destruct EQ as [x0 CND].
       specialize (surg_init_min x0).
       vauto. }
-    admit. }
+    admit. (* proof scheme of this statement is
+              in the appendix of the article*)}
 
   unfold WCore.reexec.
   exists thrdle'.
@@ -2293,7 +2294,8 @@ Proof using.
   { unfold nin_sb.
     rewrite SBSEQ.
     rewrite <- seq_eqv_minus_ll.
-    admit. (* something for immediate of exclusion is needed *)}
+    admit. (* immediate on exclusion is unfolded and then 
+              the mapper is taken out *)}
   { arewrite (WCore.G X_s' = G_s').
     unfold G_s' at 1; ins.
     intros x COND.
@@ -2393,7 +2395,10 @@ Proof using.
         apply seq_lab0.
         apply reexec_embd_acts; red; vauto. }
       apply reexec_embd_dom; vauto. }
-    { admit. (* needs a better analysis of sb structure *) }
+    { admit. (* case analysis on where in G_s'
+                the rpo-edge lies: if it lies not in t_1 or t_2,
+                it stays there and if not, we use the lemma
+                about rpo-edges proven earlier *) }
     { unfold cmt'.
       rewrite (seq_rf SIMRELQ).
       rewrite (seq_rf SIMREL).
@@ -2558,7 +2563,7 @@ Proof using.
     basic_solver. }
   apply sub_to_full_exec_listless
     with (thrdle := thrdle'); vauto.
-  { admit. }
+  { admit. (* acts_set is generally finite *) }
   { constructor.
     { unfold WCore.X_start; ins.
       destruct STEP; vauto.
@@ -2579,7 +2584,9 @@ Proof using.
       rewrite dtrmt_cmt, reexec_embd_dom.
       clear; basic_solver. }
     { unfold WCore.X_start; ins. }
-    all : admit. }
+    all : admit. (* all of these statements follow from 
+                    induction on guided step and 
+                    particularly its add_setp part *)}
   { apply wf_transition with (X_t := X_t')
         (t_1 := t_1) (t_2 := t_2)
         (mapper := mapper') (mapper_rev := mapper_rev')

@@ -1017,7 +1017,7 @@ Proof using.
       assert (NINNE' : ~ E_s x) by vauto. 
       apply seq_rlab0 in NINNE.
       rewrite NINNE.
-      admit. }
+      admit. (* labels out of act_set are irrelevant *) }
     { destruct ADD. rewrite add_event_rf.
       rewrite !collect_rel_union.
       arewrite (mapper' ↑ rf_t ≡ mapper ↑ rf_t).
@@ -1068,7 +1068,9 @@ Proof using.
     { rewrite (seq_addr SIMREL); vauto. }
     { rewrite (seq_ctrl SIMREL); vauto. }
     { rewrite (seq_rmw_dep SIMREL); vauto. }
-    { admit. (* po-work *) }
+    { admit. (* all the events except t_2 are stay on their
+                places, t_2 moves in order and delta-edges
+                are added respectively as well *) }
     arewrite (G_s' = WCore.G X_s').
     apply wf_transition with (X_t := X_t')
           (t_1 := t_1) (t_2 := t_2)
