@@ -679,7 +679,6 @@ Proof using ADD SIMREL INV INV'.
   all: unfold f.
   all: rewrite ?collect_rel_id, ?set_collect_id.
   { basic_solver. }
-  { basic_solver. }
   { intros e EIN. unfold id.
     now apply rsr_a_labeq. }
   { apply rsr_rpo_emb. }
