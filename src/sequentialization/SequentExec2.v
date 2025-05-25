@@ -271,7 +271,568 @@ Proof using.
       rewrite set_collect_eq.
       rewrite upds, EQACTS.
       rewrite (seq_acts_rev SIMREL); vauto. }
-    { admit. (*TODO : po-work*) }
+    { unfold sb. unfold G_s'; ins.
+      split; intros x y COND.
+      { destruct COND as [CD1 | CD2].
+        { destruct CD1 as [x0 [[EQ1 INE1] [x1 [EXT [EQ2 INE2]]]]]; subst.
+          destruct INE1 as [CD1 | CD2].
+          { destruct INE2 as [CD3 | CD4].
+            { apply (seq_acts SIMREL) in CD1, CD3.
+              destruct CD1 as [x2 [IN1 MAP1]], CD3 as [x3 [IN2 MAP2]].
+              unfold collect_rel.
+              exists x2, x3; splits.
+              { unfold seq. exists x2; split.
+                { red; split; vauto.
+                  apply EQACTS; vauto. }
+                exists x3; split.
+                { subst.
+                  destruct x2, x3; desf.
+                  { rewrite !(seq_init SIMREL) in EXT; vauto. }
+                  { assert (INIT1 : mapper (InitEvent l0) = InitEvent l0).
+                    { rewrite (seq_init SIMREL); vauto. }
+                    rewrite INIT1 in EXT; vauto.
+                    exfalso.
+                    unfold ext_sb in EXT.
+                    desf. }
+                  unfold ext_sb in EXT. desf.
+                  { exfalso.
+                    assert (REVVV : mapper_rev (mapper (ThreadEvent thread index)) =
+                                    mapper_rev (InitEvent l0)).
+                    { rewrite Heq; vauto. }
+                    unfold compose in MAPREV.
+                    rewrite MAPREV in REVVV; vauto.
+                    rewrite (seq_init_rev SIMREL) in REVVV; vauto. }
+                  destruct EXT as [EXT1 EXT2].
+                  subst thread2.
+                  destruct classic with (thread1 = t_2) as [TD2 | TN2].
+                  { subst thread1.
+                    destruct SIMREL.
+                    assert (TT1 : thread = t_1).
+                    { apply seq_thrd in IN1; vauto.
+                      rewrite Heq; unfold tid; vauto. }
+                    assert (TT2 : thread0 = t_1).
+                    { apply seq_thrd in IN2; vauto.
+                      rewrite Heq0; unfold tid; vauto. }
+                    assert (INDX : index < index0).
+                    { apply seq_index in IN1.
+                      { apply seq_index in IN2.
+                        { rewrite Heq in IN1.
+                          rewrite Heq0 in IN2.
+                          unfold SequentBase.t_1_len, t_1_len in *.
+                          clear - IN1 IN2 IND EXT2.
+                          unfold Events.index in *. lia. }
+                        rewrite Heq0.
+                        unfold tid; vauto. }
+                      rewrite Heq.
+                      unfold tid; vauto. }
+                    unfold ext_sb; vauto. }
+                  assert (TRDS : thread = thread0).
+                  { destruct SIMREL.
+                    apply seq_mapeq in IN1, IN2.
+                    { rewrite Heq in IN1.
+                      rewrite Heq0 in IN2.
+                      unfold tid in *; vauto. }
+                    { rewrite Heq0; unfold tid; vauto. }
+                    rewrite Heq; unfold tid; vauto. }
+                  assert (INDX : index < index0).
+                  { destruct SIMREL.
+                    apply seq_mapeq in IN1, IN2.
+                    { rewrite Heq in IN1.
+                      rewrite Heq0 in IN2.
+                      unfold tid in *; vauto. }
+                    { rewrite Heq0; unfold tid; vauto. }
+                    rewrite Heq; unfold tid; vauto. }
+                  unfold ext_sb; vauto. }
+                red; split; vauto.
+                apply EQACTS; vauto. }
+              { unfold mapper'.
+                rewrite updo; vauto.
+                intros FLS; subst; desf. }
+              unfold mapper'.
+              rewrite updo; vauto.
+              intros FLS; subst; desf. }
+            apply (seq_acts SIMREL) in CD1.
+            destruct CD1 as [x2 [IN1 MAP1]].
+            unfold collect_rel.
+            exists x2, e; splits.
+            { unfold seq. exists x2; split.
+              { red; split; vauto.
+                apply EQACTS; vauto. }
+              exists e; split.
+              { destruct x2; desf.
+                { unfold ext_sb; desf. }
+                unfold ext_sb in EXT.
+                desf.
+                { exfalso.
+                  assert (REVVV : mapper_rev (mapper (ThreadEvent thread index)) =
+                                  mapper_rev (InitEvent l0)).
+                  { rewrite Heq; vauto. }
+                  unfold compose in MAPREV.
+                  rewrite MAPREV in REVVV; vauto.
+                  rewrite (seq_init_rev SIMREL) in REVVV; vauto. }
+                destruct EXT as [EXT1 EXT2].
+                assert (TT1 : thread = t_1).
+                { apply (seq_thrd SIMREL) in IN1; vauto.
+                  rewrite Heq; unfold tid; vauto. }
+                assert (INDX : index < Events.index e).
+                { apply (seq_index SIMREL) in IN1.
+                  { rewrite Heq in IN1.
+                    unfold SequentBase.t_1_len, t_1_len in *.
+                    unfold Events.index in *. lia. }
+                  rewrite Heq; unfold tid; vauto. }
+                destruct e.
+                { exfalso. desf. }
+                unfold Events.index in *.
+                unfold ext_sb; vauto. }
+              red; split; vauto.
+              apply EQACTS; vauto. }
+            { unfold mapper'.
+              rewrite updo; vauto.
+              intros FLS; subst; desf. }
+            unfold mapper'.
+            rewrite upds; vauto. }
+          destruct INE2 as [C3 | C4].
+          { apply (seq_acts SIMREL) in C3.
+            destruct C3 as [x2 [IN1 MAP1]].
+            unfold collect_rel.
+            exists e, x2; splits.
+            { unfold seq. exists e; split.
+              { red; split; vauto.
+                apply EQACTS; vauto. }
+              exists x2; split.
+              { destruct x2; desf.
+                { rewrite (seq_init SIMREL) in EXT; vauto. }
+                unfold ext_sb in EXT.
+                desf.
+                destruct EXT as [EXT1 EXT2].
+                assert (TT1 : thread = t_1).
+                { apply (seq_thrd SIMREL) in IN1; vauto.
+                  rewrite Heq; unfold tid; vauto. }
+                assert (INDX : Events.index e < index).
+                { apply (seq_index SIMREL) in IN1.
+                  { rewrite Heq in IN1.
+                    unfold SequentBase.t_1_len, t_1_len in *.
+                    unfold Events.index in *. lia. }
+                  rewrite Heq; unfold tid; vauto. }
+                destruct e.
+                { exfalso. desf. }
+                unfold Events.index in *.
+                unfold ext_sb; vauto. }
+              red; split; vauto.
+              apply EQACTS; vauto. }
+            { unfold mapper'.
+              rewrite upds; vauto. }
+            unfold mapper'.
+            rewrite updo; vauto.
+            intros FLS; subst; desf. }
+          unfold ext_sb in EXT.
+          desf. lia. }
+        unfold po_seq in CD2.
+        destruct CD2 as [[TD1 INE1] [TD2 INE2]].
+        assert (SWCH : WCore.G X_s' = G_s') by vauto.
+        rewrite SWCH in *.
+        unfold G_s' in INE1, INE2; ins.
+        destruct INE1 as [CD1 | CD2].
+        { destruct INE2 as [CD3 | CD4].
+          { destruct SIMREL.
+            apply seq_acts in CD1, CD3.
+            destruct CD1 as [x2 [IN1 MAP1]], CD3 as [x3 [IN2 MAP2]].
+            unfold collect_rel.
+            exists x2, x3; splits.
+            { unfold seq. exists x2; split.
+              { red; split; vauto.
+                apply EQACTS; vauto. }
+              exists x3; split.
+              { subst.
+                destruct x2, x3; desf.
+                { rewrite seq_init in TD1; vauto.
+                  unfold tid in TD1.
+                  exfalso; apply NINIT1; vauto. }
+                { rewrite seq_init in NINIT2; vauto. }
+                assert (THRD1 : thread = t_1).
+                { apply seq_mapeq in IN1; vauto.
+                  { rewrite IN1 in TD1.
+                    unfold tid; vauto. }
+                  rewrite TD1; unfold tid; vauto. }
+                assert (THRD2 : thread0 = t_1).
+                { apply seq_thrd in IN2; vauto. }
+                assert (INDX1 : index < t_1_len).
+                { apply NNPP. intros INDX'.
+                  assert (INDX : index >= t_1_len) by lia.
+                  apply seq_out_move in IN1.
+                  { rewrite IN1 in TD1.
+                    unfold SequentBase.t_1_len, t_1_len in *.
+                    unfold Events.index in *. basic_solver. }
+                  { unfold tid; vauto. }
+                  unfold Events.index in *.
+                  unfold SequentBase.t_1_len in *.
+                  unfold t_1_len in *.
+                  lia. }
+                assert (INDX2 : index0 >= t_1_len).
+                { apply NNPP. intros INDX'.
+                  assert (INDX : index0 < t_1_len) by lia.
+                  apply seq_index in IN2.
+                  { unfold Events.index in IN2.
+                    unfold SequentBase.t_1_len, t_1_len in *.
+                    unfold Events.index in *. lia. }
+                  vauto. }
+                unfold ext_sb; split; vauto.
+                lia. }
+              red; split; vauto.
+              apply EQACTS; vauto. }
+            { unfold mapper'.
+              rewrite updo; vauto.
+              intros FLS; subst; desf. }
+            unfold mapper'.
+            rewrite updo; vauto.
+            intros FLS; subst; desf. }
+          destruct SIMREL.
+          apply seq_acts in CD1.
+          destruct CD1 as [x2 [IN1 MAP1]].
+          unfold collect_rel.
+          exists x2, e; splits.
+          { unfold seq. exists x2; split.
+            { red; split; vauto.
+              apply EQACTS; vauto. }
+            exists e; split.
+            { subst.
+              destruct x2, e; desf.
+              assert (THRD1 : thread = t_1).
+              { apply seq_mapeq in IN1; vauto.
+                { rewrite IN1 in TD1.
+                  unfold tid; vauto. }
+                rewrite TD1; unfold tid; vauto. }
+              assert (THRD2 : thread0 = t_1).
+              { unfold tid in *; vauto. }
+              assert (INDX1 : index < t_1_len).
+              { apply NNPP. intros INDX'.
+                assert (INDX : index >= t_1_len) by lia.
+                apply seq_out_move in IN1.
+                { rewrite IN1 in TD1.
+                  unfold SequentBase.t_1_len, t_1_len in *.
+                  unfold Events.index in *. basic_solver. }
+                { unfold tid; vauto. }
+                unfold Events.index in *.
+                unfold SequentBase.t_1_len in *.
+                unfold t_1_len in *.
+                lia. }
+              unfold ext_sb; split; vauto.
+              unfold Events.index in *.
+              unfold SequentBase.t_1_len in *.
+              unfold t_1_len in *. 
+              lia. }
+            red; split; vauto.
+            apply EQACTS; vauto. }
+          { unfold mapper'.
+            rewrite updo; vauto.
+            intros FLS; subst; desf. }
+          unfold mapper'.
+          rewrite upds; vauto. }
+        rewrite <- CD2 in TD1.
+        unfold tid in *. desf. }
+      destruct COND as [x0 [y0 [[x1 [[EQ1 INE1]
+            [y1 [COND [EQ2 INE2]]]]] [M1 M2]]]].
+      subst.
+      apply EQACTS in INE1, INE2.
+      destruct INE1 as [C1 | C2], INE2 as [C3 | C4].
+      { destruct x1, y0.
+        { desf. }
+        { left. unfold seq.
+          exists (mapper' (InitEvent l0)); split.
+          { red; split; vauto.
+            unfold mapper'.
+            rewrite updo; vauto.
+            { left.
+              apply (seq_acts SIMREL).
+              red; exists (InitEvent l0); split; vauto. }
+            intros FLS; subst; desf. }
+          exists (mapper' (ThreadEvent thread index)); split.
+          { unfold mapper'.
+            rewrite updo; vauto.
+            { rewrite (seq_init SIMREL); vauto.
+              unfold ext_sb; desf.
+              destruct classic with ((ThreadEvent thread index) = e) as [EQ | NEQ].
+              { subst; vauto. }
+              rewrite updo in Heq; vauto.
+              assert (REVVV : mapper_rev (mapper (ThreadEvent thread index)) =
+                              mapper_rev (InitEvent l1)).
+              { rewrite Heq; vauto. }
+              unfold compose in MAPREV.
+              rewrite MAPREV in REVVV; vauto.
+              rewrite (seq_init_rev SIMREL) in REVVV; vauto. }
+            intros FLS; subst; desf. }
+          red; split; vauto.
+          left.
+          apply (seq_acts SIMREL).
+          red; exists (ThreadEvent thread index); split; vauto.
+          unfold mapper'.
+          rewrite updo; vauto.
+          intros FLS; subst; desf. }
+        { unfold ext_sb in COND; desf. }
+        unfold ext_sb in COND.
+        destruct COND as [COND1 COND2].
+        subst thread0.
+        destruct classic with (thread = t_1) as [TD1 | TN1].
+        { destruct classic with (index >= t_1_len) as [IDL | IDG'].
+          { left.
+            unfold seq.
+            exists (mapper' (ThreadEvent thread index)); split.
+            { red; split; vauto.
+              unfold mapper'.
+              rewrite updo; vauto.
+              { left.
+                apply (seq_acts SIMREL).
+                red; exists (ThreadEvent t_1 index); split; vauto. }
+              intros FLS; subst; desf. }
+            exists (mapper' (ThreadEvent thread index0)); split.
+            { unfold mapper'.
+              rewrite !updo; vauto.
+              { destruct SIMREL. 
+                apply seq_out_move in C1, C3.
+                all : try unfold tid; vauto.
+                { rewrite C1, C3.
+                  unfold SequentBase.t_1_len, t_1_len in *.
+                  unfold Events.index in *.
+                  unfold ext_sb; desf.
+                  desf. lia. }
+                unfold SequentBase.t_1_len, t_1_len in *.
+                unfold Events.index in *.
+                lia. }
+              { intros FLS; subst; desf. }
+              intros FLS; subst; desf. }
+            red; split; vauto.
+            left.
+            apply (seq_acts SIMREL).
+            red; exists (ThreadEvent t_1 index0); split; vauto.
+            unfold mapper'.
+            rewrite updo; vauto.
+            intros FLS; subst; desf. }
+          assert (IDG : index < t_1_len) by lia.
+          destruct classic with (index0 >= t_1_len) as [IDL2 | IDG2'].
+          { right.
+            unfold po_seq. split.
+            { split.
+              { unfold mapper'.
+                rewrite updo; vauto.
+                { destruct SIMREL.
+                  apply seq_out_snd in C1.
+                  { rewrite C1.
+                    unfold tid; vauto. }
+                  { unfold tid; vauto. }
+                  unfold SequentBase.t_1_len, t_1_len in *.
+                  unfold Events.index in *.
+                  lia. }
+                intros FLS; subst; desf. }
+              arewrite (WCore.G X_s' = G_s').
+              unfold G_s'; ins.
+              left.
+              apply (seq_acts SIMREL).
+              red; exists (ThreadEvent t_1 index); split; vauto.
+              unfold mapper'.
+              rewrite updo; vauto.
+              intros FLS; subst; desf. }
+            split.
+            { unfold mapper'.
+              rewrite updo; vauto.
+              { destruct SIMREL.
+                apply seq_out_move in C3.
+                { rewrite C3.
+                  unfold tid; vauto. }
+                { unfold tid; vauto. }
+                unfold SequentBase.t_1_len, t_1_len in *.
+                unfold Events.index in *.
+                lia. }
+              intros FLS; subst; desf. }
+            arewrite (WCore.G X_s' = G_s').
+            unfold G_s'; ins.
+            left.
+            apply (seq_acts SIMREL).
+            red; exists (ThreadEvent thread index0); split; vauto.
+            unfold mapper'.
+            rewrite updo; vauto.
+            intros FLS; subst; desf. }
+          assert (IDG2 : index0 < t_1_len) by lia.
+          left.
+          unfold seq.
+          exists (mapper' (ThreadEvent thread index)); split.
+          { red; split; vauto.
+            unfold mapper'.
+            rewrite updo; vauto.
+            { left.
+              apply (seq_acts SIMREL).
+              red; exists (ThreadEvent t_1 index); split; vauto. }
+            intros FLS; subst; desf. }
+          exists (mapper' (ThreadEvent thread index0)); split.
+          { unfold mapper'.
+            rewrite !updo; vauto.
+            { destruct SIMREL.
+              apply seq_out_snd in C1, C3.
+              all : try unfold tid; vauto.
+              rewrite C1, C3.
+              unfold SequentBase.t_1_len, t_1_len in *.
+              unfold Events.index in *.
+              unfold ext_sb; desf. }
+            all : intros FLS; subst; desf. }
+          red; split; vauto.
+          left.
+          apply (seq_acts SIMREL).
+          red; exists (ThreadEvent t_1 index0); split; vauto.
+          unfold mapper'.
+          rewrite updo; vauto.
+          intros FLS; subst; desf. }
+        left.
+        unfold seq.
+        exists (mapper' (ThreadEvent thread index)); split.
+        { red; split; vauto.
+          unfold mapper'.
+          rewrite updo; vauto.
+          { left.
+            apply (seq_acts SIMREL).
+            red; exists (ThreadEvent thread index); split; vauto. }
+          intros FLS; subst; desf. }
+        exists (mapper' (ThreadEvent thread index0)); split.
+        { unfold mapper'.
+          rewrite !updo; vauto.
+          { destruct SIMREL.
+            apply seq_out in C1, C3.
+            all : try unfold tid; vauto.
+            rewrite C1, C3.
+            unfold SequentBase.t_1_len, t_1_len in *.
+            unfold Events.index in *.
+            unfold ext_sb; desf. }
+          all : intros FLS; subst; desf. }
+        red; split; vauto.
+        left.
+        apply (seq_acts SIMREL).
+        red; exists (ThreadEvent thread index0); split; vauto.
+        unfold mapper'.
+        rewrite updo; vauto.
+        intros FLS; subst; desf. }
+      { subst y0.
+        destruct x1.
+        { left. unfold seq.
+          exists (mapper' (InitEvent l0)); split.
+          { red; split; vauto.
+            unfold mapper'.
+            rewrite updo; vauto.
+            { left.
+              apply (seq_acts SIMREL).
+              red; exists (InitEvent l0); split; vauto. }
+            intros FLS; subst; desf. }
+          exists (mapper' e); split.
+          { unfold mapper'.
+            rewrite updo; vauto.
+            { rewrite (seq_init SIMREL); vauto.
+              unfold ext_sb; desf.
+              rewrite upds in Heq; vauto. }
+            intros FLS; subst; desf. }
+          red; split; vauto.
+          right.
+          unfold mapper'.
+          rewrite upds; vauto. }
+        assert (TRD1 : thread = t_1).
+        { destruct e.
+          { desf. }
+          unfold ext_sb in COND; desf. }
+        subst thread.
+        destruct classic with (index < t_1_len) as [INDX | INDX'].
+        { right.
+          unfold po_seq. split.
+          { split.
+            { unfold mapper'.
+              rewrite updo; vauto.
+              { destruct SIMREL.
+                apply seq_out_snd in C1.
+                { rewrite C1.
+                  unfold tid; vauto. }
+                { unfold tid; vauto. }
+                unfold SequentBase.t_1_len, t_1_len in *.
+                unfold Events.index in *.
+                lia. }
+              intros FLS; subst; desf. }
+            arewrite (WCore.G X_s' = G_s').
+            unfold G_s'; ins.
+            left.
+            apply (seq_acts SIMREL).
+            red; exists (ThreadEvent t_1 index); split; vauto.
+            unfold mapper'.
+            rewrite updo; vauto.
+            intros FLS; subst; desf. }
+          split.
+          { unfold mapper'.
+            rewrite upds; vauto. }
+          arewrite (WCore.G X_s' = G_s').
+          unfold G_s'; ins.
+          right.
+          unfold mapper'.
+          rewrite upds; vauto. }
+        assert (INDX : index >= t_1_len) by lia.
+        left.
+        unfold seq.
+        exists (mapper' (ThreadEvent t_1 index)); split.
+        { red; split; vauto.
+          unfold mapper'.
+          rewrite updo; vauto.
+          { left.
+            apply (seq_acts SIMREL).
+            red; exists (ThreadEvent t_1 index); split; vauto. }
+          intros FLS; subst; desf. }
+        exists (mapper' e); split.
+        { unfold mapper'.
+          rewrite updo; vauto.
+          { rewrite upds.
+            destruct SIMREL.
+            apply seq_out_move in C1.
+            { rewrite C1.
+              unfold SequentBase.t_1_len, t_1_len in *.
+              unfold Events.index in *.
+              unfold ext_sb; desf.
+              split; vauto.
+              unfold ext_sb in COND. desf. lia. }
+            { unfold tid; vauto. }
+            unfold SequentBase.t_1_len, t_1_len in *.
+            unfold Events.index in *.
+            lia. }
+          intros FLS; subst; desf. }
+        red; split; vauto.
+        right.
+        unfold mapper'.
+        rewrite upds; vauto. }
+      { subst x1.
+        unfold ext_sb in COND; desf.
+        destruct COND as [COND1 COND2].
+        left.
+        unfold seq.
+        exists (mapper' (ThreadEvent thread index)); split.
+        { red; split; vauto.
+          unfold mapper'.
+          rewrite upds; vauto. }
+        exists (mapper' (ThreadEvent thread0 index0)); split.
+        { unfold mapper'.
+          rewrite upds. rewrite updo.
+          { destruct SIMREL.
+            apply seq_out_move in C3.
+            { rewrite C3.
+              unfold SequentBase.t_1_len, t_1_len in *.
+              unfold Events.index in *.
+              unfold ext_sb; desf.
+              split; vauto.
+              unfold ext_sb in COND2. desf. lia. }
+            { unfold tid; vauto. }
+            unfold SequentBase.t_1_len, t_1_len in *.
+            unfold Events.index in *.
+            lia. }
+          intros FLS; subst; desf. }
+        red; split; vauto.
+        left.
+        apply (seq_acts SIMREL).
+        red; exists (ThreadEvent thread0 index0); split; vauto.
+        unfold mapper'.
+        rewrite updo; vauto.
+        intros FLS; subst; desf. }
+      subst x1 y0; unfold ext_sb in COND.
+      exfalso. desf.
+      lia. }
     { rewrite (seq_threads SIMREL).
       destruct ADD. rewrite add_event_threads; vauto. }
     { unfold mapper'. intros x COND.
